@@ -1,0 +1,52 @@
+{
+  "name": "@bbr/root",
+  "version": "1.0.0",
+  "description": "",
+  "keywords": [],
+  "license": "ISC",
+  "author": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "turbo build",
+    "build:packages": "pnpm --filter \"./packages/**\" build",
+    "clean": "rimraf node_modules apps/*/node_modules apps/*/dist packages/*/dist packages/*/node_modules apps/*/.next apps/*/dist apps/*/.turbo rimraf .env apps/*/.env",
+    "cm": "cz",
+    "docker:api:dev": "docker compose -f compose.api.dev.yml up --build",
+    "docker:api:dev:down": "docker compose -f compose.api.dev.yml down --remove-orphans",
+    "docker:api:dev:logs": "docker compose -f compose.api.dev.yml logs api -f",
+    "docker:api:dev:ps": "docker compose -f compose.api.dev.yml ps",
+    "docker:api:prod": "docker compose -f compose.api.yml up --build -d",
+    "docker:api:prod:down": "docker compose -f compose.api.yml down --remove-orphans",
+    "docker:api:prod:logs": "docker compose -f compose.api.yml logs api -f",
+    "docker:api:prod:ps": "docker compose -f compose.api.yml ps",
+    "lint": "turbo lint",
+    "dev": "turbo dev",
+    "prepare": "husky install",
+    "copy-env": "shx cp .env.example .env; turbo copy-env",
+    "dev:fixtures": "turbo dev:fixtures",
+    "dev:mongo": "ts-node packages/api-core/modules/scripts/devMongo.ts",
+    "start:prod": "turbo start:prod"
+  },
+  "config": {
+    "commitizen": {
+      "path": "cz-customizable"
+    }
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^17.5.1",
+    "commitizen": "^4.3.0",
+    "commitlint-config-gitmoji": "^2.3.1",
+    "cz-customizable": "^7.0.0",
+    "husky": "^8.0.0",
+    "lint-staged": "^13.2.0",
+    "prettier": "^3.1.1",
+    "prettier-plugin-packagejson": "^2.4.7",
+    "rimraf": "^4.4.1",
+    "shx": "^0.3.4",
+    "turbo": "^1.11.2"
+  },
+  "packageManager": "pnpm@8.7.5",
+  "engines": {
+    "node": ">= 18.17"
+  }
+}

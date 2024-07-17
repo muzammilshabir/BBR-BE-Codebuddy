@@ -1,0 +1,26 @@
+services:
+  redis:
+    image: "redis"
+    volumes:
+      - redis:/data
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    init: true
+    restart: always
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/apps/api/node_modules
+      - /app/apps/api/dist
+    env_file:
+      - path: .env
+        required: true
+    ports:
+      - '${API_PORT}:5000'
+    command: sh -c "pnpm --filter api prisma db push --skip-generate && pnpm --filter api start:prod"
+
+volumes:
+  redis:

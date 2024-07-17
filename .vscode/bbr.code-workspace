@@ -1,0 +1,70 @@
+{
+  "folders": [
+    {
+      "name": "@bbr",
+      "path": ".."
+    },
+    {
+      "name": "@bbr/api",
+      "path": "../apps/api"
+    }
+  ],
+  "settings": {
+    "eslint.workingDirectories": [
+      {
+        "mode": "auto"
+      }
+    ],
+    "cSpell.words": [
+      "Aggr",
+      "deeplink",
+      "Embeddable",
+      "Mantine",
+      "mikro",
+      "nestjs",
+      "pino",
+      "root",
+      "tailwindcss"
+    ],
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint",
+    "editor.formatOnSave": true,
+    "editor.formatOnSaveMode": "file",
+    "typescript.preferences.importModuleSpecifier": "relative",
+    "[jsonc]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[prisma]": {
+      "editor.defaultFormatter": "Prisma.prisma"
+    },
+    "[typescript]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/bower_components": true,
+      "**/*.code-search": true,
+      "**/*dist": true
+    },
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit"
+    }
+  },
+  "extensions": {
+    "recommendations": [
+      "dbaeumer.vscode-eslint",
+      "aaron-bond.better-comments",
+      "streetsidesoftware.code-spell-checker",
+      "editorconfig.editorconfig",
+      "mhutchie.git-graph",
+      "esbenp.prettier-vscode",
+      "bradlc.vscode-tailwindcss",
+      "stylelint.vscode-stylelint",
+      "gruntfuggly.todo-tree",
+      "github.vscode-pull-request-github",
+      "wix.vscode-import-cost",
+      "naumovs.color-highlight",
+      "antfu.iconify",
+      "yoavbls.pretty-ts-errors"
+    ]
+  }
+}

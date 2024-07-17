@@ -1,0 +1,42 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "pipeline": {
+    "build": {
+      "outputs": [
+        ".next/**",
+        "!.next/cache/**",
+        "dist/**"
+      ]
+    },
+    "lint": {
+      "dependsOn": [
+        "^lint"
+      ]
+    },
+    "dev": {
+      "dependsOn": [
+        "^dev"
+      ]
+    },
+    "copy-env": {
+      "dependsOn": [
+        "^copy-env"
+      ]
+    },
+    "dev:fixtures": {
+      "dependsOn": [
+        "^dev:fixtures"
+      ]
+    },
+    "test": {
+      "dependsOn": [
+        "^test"
+      ]
+    },
+    "start:prod": {
+      "dependsOn": [
+        "^start:prod"
+      ]
+    }
+  }
+}
