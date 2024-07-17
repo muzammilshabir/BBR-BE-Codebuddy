@@ -22,7 +22,7 @@
     "lint": "turbo lint",
     "dev": "turbo dev",
     "prepare": "husky install",
-    "copy-env": "shx cp .env.example .env; turbo copy-env",
+    "copy-env": "turbo copy-env",
     "dev:fixtures": "turbo dev:fixtures",
     "dev:mongo": "ts-node packages/api-core/modules/scripts/devMongo.ts",
     "start:prod": "turbo start:prod"

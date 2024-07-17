@@ -8,15 +8,10 @@ export abstract class BbrConfig extends BaseConfig {
   services = {
     user: {
       port: 4001,
-      name: 'User Service',
+      name: 'API Service',
     },
   };
 
   port = this.get<number>('APP_PORT');
   name = this.get<string>('APP_NAME');
-
-  readonly jwt = {
-    atSecret: this.getOrThrow('AT_SECRET'),
-    rtSecret: this.getOrThrow('RT_SECRET'),
-  };
 }
