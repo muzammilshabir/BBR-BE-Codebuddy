@@ -11,7 +11,7 @@ export class DbConfig extends BaseConfig {
     super();
   }
 
-  database = this.getOrThrow('DB_DATABASE');
+  database = this.getOrThrow('DB_NAME');
   username = this.getOrThrow('DB_USERNAME');
   password = this.getOrThrow('DB_PASSWORD');
   host = this.getOrThrow('DB_HOST');

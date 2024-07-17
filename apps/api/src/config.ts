@@ -19,6 +19,6 @@ export class ServiceConfig extends BbrStatefulServiceConfig {
     port: this.getOrThrow('DB_PORT'),
     username: this.getOrThrow('DB_USERNAME'),
     password: this.getOrThrow('DB_PASSWORD'),
-    database: this.getOrThrow('DB_DATABASE'),
+    database: this.getOrThrow('DB_NAME'),
   };
 }
