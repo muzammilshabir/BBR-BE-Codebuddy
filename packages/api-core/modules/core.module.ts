@@ -6,6 +6,7 @@ import { ResponseModule } from './response/response.module';
 import { PaginationModule } from './pagination/pagination.module';
 import { HealthCheckModule } from './health-check/health-check.module';
 import { LoggerModule } from './logger/logger.module';
+import { BbrDbModule } from './db/db.module';
 
 @Module({
   imports: [
@@ -15,7 +16,8 @@ import { LoggerModule } from './logger/logger.module';
     PaginationModule,
     HealthCheckModule,
     LoggerModule,
+    BbrDbModule,
   ],
-  exports: [JoiPipeModule, ConsoleModule, ResponseModule, PaginationModule],
+  exports: [JoiPipeModule, ConsoleModule, ResponseModule, PaginationModule, BbrDbModule],
 })
 export class BbrCoreModule {}
