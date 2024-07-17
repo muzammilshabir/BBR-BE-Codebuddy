@@ -11,7 +11,7 @@ export class ServiceConfig extends BbrStatefulServiceConfig {
   }
 
   readonly app = {
-    url: this.getOrThrow('USER_SERVICE_URL'),
+    url: this.getOrThrow('SERVICE_URL'),
   };
 
   readonly db = {

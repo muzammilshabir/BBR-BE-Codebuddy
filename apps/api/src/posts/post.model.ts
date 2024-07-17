@@ -1,6 +1,9 @@
 import { Table, Column, Model, DataType } from 'sequelize-typescript';
 
-@Table
+@Table({
+  tableName: 'posts',
+  timestamps: true,
+})
 export class PostModel extends Model<PostModel> {
   @Column({
     type: DataType.STRING,

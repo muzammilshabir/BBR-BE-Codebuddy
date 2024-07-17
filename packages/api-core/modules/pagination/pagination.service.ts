@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { ListPropsDto } from '../dto/listProps.dto';
 
 interface IPaginationProps {
   page: number;
@@ -18,10 +19,25 @@ export interface IPaginationEntity {
 
 @Injectable()
 export class PaginationService {
+  static prepareOptions(listPostDto: ListPropsDto): {
+    limit: number;
+    offset: number;
+    order: any;
+  } {
+    return {
+      limit: listPostDto.limit,
+      offset: listPostDto.limit * (listPostDto.page - 1),
+      order: [[listPostDto.sortBy, listPostDto.sortOrder]],
+    };
+  }
+
   constructor() {}
 
-  static paginate(count: number, args: IPaginationProps): IPaginationEntity {
-    const totalDocs = count;
+  static paginate(
+    data: { rows: any[]; count: number },
+    args: IPaginationProps
+  ): { pagination: IPaginationEntity; data: any[] } {
+    const totalDocs = data.count;
     const totalPages = Number(Math.ceil(totalDocs / args.limit));
     const hasNextPage = args.page < totalPages;
     const hasPrevPage = totalPages > 1 && args.page > 1 && args.page <= totalPages;
@@ -33,7 +49,7 @@ export class PaginationService {
       hasNextPage,
       hasPrevPage,
     };
-    return pagination;
+    return { pagination, data: data.rows };
   }
 
   static prepareSortQuery(sortOrder: string, orderBy: string) {
