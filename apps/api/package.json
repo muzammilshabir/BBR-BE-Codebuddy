@@ -21,6 +21,7 @@
     "start:debug": "nest start --debug --watch",
     "start:dev": "nest start --watch",
     "start:prod": "cross-env NODE_ENV=production node dist/apps/api/src/main.js",
+    "db:migrate:generate": "read -p 'Enter migration name: ' migrationName && pnpm sequelize-cli migration:generate --name $migrationName",
     "db:migrate": "sequelize-cli db:migrate",
     "db:migrate:undo": "sequelize-cli db:migrate:undo",
     "db:migrate:undo:all": "sequelize-cli db:migrate:undo:all"
