@@ -11,6 +11,6 @@ export class DbConfig extends BaseConfig {
     super();
   }
 
-  mongodbUri = this.getOrThrow('MONGODB_URI');
+  mongodbUri = this.getOrThrow('DB_URI');
   debug = this.isDev;
 }

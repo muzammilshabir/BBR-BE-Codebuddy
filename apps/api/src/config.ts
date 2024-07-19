@@ -15,8 +15,6 @@ export class ServiceConfig extends BbrStatefulServiceConfig {
   };
 
   readonly db = {
-    host: this.getOrThrow('DB_HOST'),
-    port: this.getOrThrow('DB_PORT'),
-    mongodbUri : this.getOrThrow('MONGODB_URI')
+    mongodbUri : this.getOrThrow('DB_URI')
   };
 }
