@@ -9,28 +9,18 @@
     "author": "",
     "license": "ISC",
     "dependencies": {
-        "@mikro-orm/core": "^5.9.8",
-        "@mikro-orm/mongodb": "^5.9.8",
-        "@mikro-orm/nestjs": "^5.2.3",
         "@nestjs/common": "^9.4.3",
         "@nestjs/config": "^2.3.4",
         "@nestjs/jwt": "^10.2.0",
-        "@nestjs/sequelize": "^10.0.1",
         "clone-buffer": "^1.0.0",
         "nestjs-console": "^9.0.0",
         "nestjs-joi": "^1.10.0",
         "nestjs-pino": "^4.1.0",
-        "pg": "^8.12.0",
-        "pg-hstore": "^2.3.4",
         "pino": "^9.2.0",
         "pino-elasticsearch": "^8.0.0",
-        "pino-pretty": "^11.2.1",
-        "sequelize": "^6.37.3",
-        "sequelize-cli": "^6.6.2",
-        "sequelize-typescript": "^2.1.6"
+        "pino-pretty": "^11.2.1"
     },
     "devDependencies": {
-        "@types/sequelize": "^4.28.20",
         "mongodb-memory-server": "^9.1.8"
     }
 }

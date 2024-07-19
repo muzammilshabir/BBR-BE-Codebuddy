@@ -7,7 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
-import { ValidationError as SequelizeValidationError } from 'sequelize';
+import mongoose from 'mongoose';
 
 @Catch()
 export class GlobalExceptionsFilter implements ExceptionFilter {
@@ -19,13 +19,11 @@ export class GlobalExceptionsFilter implements ExceptionFilter {
     const { httpAdapter } = this.httpAdapterHost;
     const ctx = host.switchToHttp();
     const response = ctx.getResponse();
-    const request = ctx.getRequest();
 
     this.logger.error(`Exception thrown: ${exception.message}`, exception.stack);
 
-    if (exception instanceof SequelizeValidationError) {
+    if (exception instanceof mongoose.Error.ValidationError) {
       this.logger.error('Validation Error', exception.message);
-      const messages = exception.errors.map((err) => err.message);
       return httpAdapter.reply(
         response,
         {

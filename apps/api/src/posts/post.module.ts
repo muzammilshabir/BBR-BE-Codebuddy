@@ -1,11 +1,13 @@
 import { Module } from '@nestjs/common';
-import { SequelizeModule } from '@nestjs/sequelize';
-import { PostModel } from './post.model';
+import { MongooseModule } from '@nestjs/mongoose';
+import { Post, PostSchema } from './post.schema';
 import { PostController } from './post.controller';
 import { PostService } from './post.service';
 
 @Module({
-  imports: [SequelizeModule.forFeature([PostModel])],
+  imports: [
+    MongooseModule.forFeature([{ name: Post.name, schema: PostSchema }])
+  ],
   providers: [PostService],
   controllers: [PostController],
 })

@@ -28,17 +28,3 @@ cd apps/api
 pnpm copy-env
 pnpm dev
 ```
-
-## Migration
-
-# Generate new migration file
-pnpm db:migrate:generate 
-
-# Run migration file
-pnpm db:migrate
-
-# Undo migration
-pnpm db:migrate:undo
-
-# Undo all the migrations
-pnpm db:migrate:undo:all

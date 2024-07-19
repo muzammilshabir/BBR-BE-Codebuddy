@@ -1,42 +1,42 @@
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/sequelize';
-import { PostModel } from './post.model';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { Post } from './post.schema';
 import { CreatePostDto } from './dto/createPost.dto';
 import { UpdatePostDto } from './dto/updatePost.dto';
 import { ListPostDto } from './dto/listPost.dto';
-import { Op, WhereOptions } from 'sequelize';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
 import { NotFoundException } from '@bbr/api-core/modules/exceptions';
-
 @Injectable()
 export class PostService {
-  constructor(
-    @InjectModel(PostModel)
-    private postModel: typeof PostModel
-  ) {}
+  constructor(@InjectModel(Post.name) private readonly postModel: Model<Post>) {}
 
   async findAll(listPostDto: ListPostDto) {
-    const where: WhereOptions<PostModel> = {};
+    const filter = listPostDto.search
+      ? {
+          $or: [
+            { title: { $regex: listPostDto.search, $options: 'i' } },
+            { content: { $regex: listPostDto.search, $options: 'i' } },
+          ],
+        }
+      : {};
 
-    if (listPostDto.search?.length) {
-      where[Op.or] = [
-        { title: { [Op.like]: `%${listPostDto.search}%` } },
-        { content: { [Op.like]: `%${listPostDto.search}%` } },
-      ];
-    }
+    const options = PaginationService.prepareOptions(listPostDto);
+    const data = await this.postModel
+      .find(filter)
+      .skip(options.offset)
+      .limit(options.limit)
+      .sort(options.sort)
+      .exec();
 
-    const data = await this.postModel.findAndCountAll({
-      where,
-      ...PaginationService.prepareOptions(listPostDto),
-    });
+    const count = await this.postModel.countDocuments(filter).exec();
+    const { pagination } = PaginationService.paginate({ rows: data, count }, listPostDto);
 
-    const { pagination, data: posts } = PaginationService.paginate(data, listPostDto);
-
-    return { pagination, posts };
+    return { pagination, posts: data };
   }
 
-  async findOne(id: number) {
-    const post = await this.postModel.findByPk(id);
+  async findOne(id: string) {
+    const post = await this.postModel.findById(id).exec();
 
     if (!post) {
       throw new NotFoundException('Post');
@@ -46,22 +46,29 @@ export class PostService {
   }
 
   async create(createPostDto: CreatePostDto) {
-    return await this.postModel.create(createPostDto);
+    const createdPost = new this.postModel(createPostDto);
+    return await createdPost.save();
   }
 
-  async update(id: number, updatePostDto: UpdatePostDto) {
-    const post = await this.findOne(id);
+  async update(id: string, updatePostDto: UpdatePostDto) {
+    const updatedPost = await this.postModel
+      .findByIdAndUpdate(id, updatePostDto, { new: true })
+      .exec();
 
-    await post.update(updatePostDto);
+    if (!updatedPost) {
+      throw new NotFoundException('Post');
+    }
 
-    return post;
+    return updatedPost;
   }
 
-  async delete(id: number) {
-    const post = await this.findOne(id);
+  async delete(id: string) {
+    const deletedPost = await this.postModel.findByIdAndDelete(id).exec();
 
-    await post.destroy();
+    if (!deletedPost) {
+      throw new NotFoundException('Post');
+    }
 
-    return post;
+    return deletedPost;
   }
 }
