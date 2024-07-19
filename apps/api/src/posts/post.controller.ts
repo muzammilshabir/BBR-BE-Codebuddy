@@ -55,7 +55,7 @@ export class PostController {
   @UsePipes(new JoiValidationPipe(updatePostSchema, 'body'))
   async update(@Param() getSingleBookDto: GetSinglePostDto, @Body() updatePostDto: UpdatePostDto) {
     const post = await this.postService.update(getSingleBookDto.id, updatePostDto);
-    return ResponseService.buildResponse({ post }, 'Post created successfully');
+    return ResponseService.buildResponse({ post }, 'Post updated successfully');
   }
 
   @Delete(':id')

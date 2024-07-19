@@ -1,67 +1,59 @@
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/sequelize';
-import { PostModel } from './post.model';
+import { PostRepository } from './post.repository';
 import { CreatePostDto } from './dto/createPost.dto';
 import { UpdatePostDto } from './dto/updatePost.dto';
 import { ListPostDto } from './dto/listPost.dto';
-import { Op, WhereOptions } from 'sequelize';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
 import { NotFoundException } from '@bbr/api-core/modules/exceptions';
 
 @Injectable()
 export class PostService {
-  constructor(
-    @InjectModel(PostModel)
-    private postModel: typeof PostModel
-  ) {}
+  constructor(private readonly postRepository: PostRepository) {}
 
   async findAll(listPostDto: ListPostDto) {
-    const where: WhereOptions<PostModel> = {};
+    const filter = listPostDto.search
+      ? {
+          $or: [
+            { title: { $regex: listPostDto.search, $options: 'i' } },
+            { content: { $regex: listPostDto.search, $options: 'i' } },
+          ],
+        }
+      : {};
 
-    if (listPostDto.search?.length) {
-      where[Op.or] = [
-        { title: { [Op.like]: `%${listPostDto.search}%` } },
-        { content: { [Op.like]: `%${listPostDto.search}%` } },
-      ];
-    }
+    const options = PaginationService.prepareOptions(listPostDto);
 
-    const data = await this.postModel.findAndCountAll({
-      where,
-      ...PaginationService.prepareOptions(listPostDto),
-    });
+    const { data, count } = await this.postRepository.findAll(filter, options);
 
-    const { pagination, data: posts } = PaginationService.paginate(data, listPostDto);
+    const { pagination } = PaginationService.paginate({ rows: data, count }, listPostDto);
 
-    return { pagination, posts };
+    return { pagination, posts: data };
   }
 
-  async findOne(id: number) {
-    const post = await this.postModel.findByPk(id);
-
+  async findOne(id: string) {
+    const post = await this.postRepository.findOne(id);
     if (!post) {
       throw new NotFoundException('Post');
     }
-
     return post;
   }
 
   async create(createPostDto: CreatePostDto) {
-    return await this.postModel.create(createPostDto);
+    return await this.postRepository.create(createPostDto);
   }
 
-  async update(id: number, updatePostDto: UpdatePostDto) {
-    const post = await this.findOne(id);
-
-    await post.update(updatePostDto);
-
-    return post;
+  async update(id: string, updatePostDto: UpdatePostDto) {
+    const updatedPost = await this.postRepository.update(id, updatePostDto);
+    if (!updatedPost) {
+      throw new NotFoundException('Post');
+    }
+    return updatedPost;
   }
 
-  async delete(id: number) {
-    const post = await this.findOne(id);
-
-    await post.destroy();
-
+  async delete(id: string) {
+    const post = await this.postRepository.delete(id);
+    if (!post) {
+      throw new NotFoundException('Post');
+    }
     return post;
   }
 }

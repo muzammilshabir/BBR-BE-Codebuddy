@@ -22,12 +22,12 @@ export class PaginationService {
   static prepareOptions(listPostDto: ListPropsDto): {
     limit: number;
     offset: number;
-    order: any;
+    sort: any;
   } {
     return {
       limit: listPostDto.limit,
       offset: listPostDto.limit * (listPostDto.page - 1),
-      order: [[listPostDto.sortBy, listPostDto.sortOrder]],
+      sort: [[listPostDto.sortBy, listPostDto.sortOrder === 'asc' ? 1 : -1]],
     };
   }
 
