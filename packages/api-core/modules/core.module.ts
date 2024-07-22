@@ -7,6 +7,7 @@ import { PaginationModule } from './pagination/pagination.module';
 import { HealthCheckModule } from './health-check/health-check.module';
 import { LoggerModule } from './logger/logger.module';
 import { BbrDbModule } from './db/db.module';
+import { FixturesModule } from './fixture/fixture.module';
 
 @Module({
   imports: [
@@ -17,7 +18,17 @@ import { BbrDbModule } from './db/db.module';
     HealthCheckModule,
     LoggerModule,
     BbrDbModule,
+    HealthCheckModule,
+    FixturesModule,
   ],
-  exports: [JoiPipeModule, ConsoleModule, ResponseModule, PaginationModule, BbrDbModule],
+  exports: [
+    JoiPipeModule,
+    ConsoleModule,
+    ResponseModule,
+    PaginationModule,
+    BbrDbModule,
+    HealthCheckModule,
+    FixturesModule,
+  ],
 })
 export class BbrCoreModule {}
