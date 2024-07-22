@@ -20,7 +20,8 @@
     "start": "nest start",
     "start:debug": "nest start --debug --watch",
     "start:dev": "nest start --watch",
-    "start:prod": "cross-env NODE_ENV=production node dist/apps/api/src/main.js"
+    "start:prod": "cross-env NODE_ENV=production node dist/apps/api/src/main.js",
+    "test": "pnpm copy-env; jest --maxWorkers=50% --workerIdleMemoryLimit='1024MB'"
   },
   "dependencies": {
     "@bbr/api-core": "workspace:^",
@@ -44,7 +45,10 @@
     "@bbr/prettier": "workspace:^",
     "@nestjs/cli": "^9.5.0",
     "@nestjs/schematics": "^9.2.0",
+    "@nestjs/testing": "^10.3.10",
+    "@types/jest": "^29.5.12",
     "@types/node": "18.11.18",
+    "@types/supertest": "^6.0.2",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
     "cross-env": "^7.0.3",
@@ -57,9 +61,32 @@
     "prettier-plugin-packagejson": "^2.4.14",
     "shx": "^0.3.4",
     "source-map-support": "^0.5.21",
+    "supertest": "^7.0.0",
+    "ts-jest": "^29.2.3",
     "ts-loader": "^9.5.1",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "4.1.1",
     "typescript": "^4.9.5"
+  },
+  "jest": {
+    "collectCoverageFrom": [
+      "**/*.(t|j)s"
+    ],
+    "coverageDirectory": "../coverage",
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "ts",
+      "node",
+      "a"
+    ],
+    "rootDir": "src",
+    "testEnvironment": "node",
+    "testRegex": ".*\\.spec\\.ts$",
+    "transform": {
+      "^.+\\.(t|j)s$": "ts-jest"
+    },
+    "globalSetup": "<rootDir>/../node_modules/@bbr/api-core/modules/testing/setup.ts",
+    "globalTeardown": "<rootDir>/../node_modules/@bbr/api-core/modules/testing/teardown.ts"
   }
 }
