@@ -21,20 +21,20 @@ export class ServiceConfig extends BbrStatefulServiceConfig {
     jwtSecretKey : this.getOrThrow('JWT_SECRET_KEY')
   };
 
-  // readonly nodemailerHost = {
-  //   nodemailerHost : this.getOrThrow('NODMAILER_HOST')
-  // };
+  readonly nodemailerHost = {
+    nodemailerHost : this.getOrThrow('NODMAILER_HOST')
+  };
 
-  // readonly nodemailerPort = {
-  //   nodemailerPort : this.getOrThrow('NODMAILER_PORT')
-  // };
+  readonly nodemailerPort = {
+    nodemailerPort : this.getOrThrow('NODMAILER_PORT')
+  };
 
-  // readonly nodemailerUser = {
-  //   nodemailerUser : this.getOrThrow('NODMAILER_USER')
-  // };
+  readonly nodemailerUser = {
+    nodemailerUser : this.getOrThrow('NODMAILER_USER')
+  };
 
-  // readonly nodemailerPass = {
-  //   nodemailerPass : this.getOrThrow('NODMAILER_PASS')
-  // };
+  readonly nodemailerPass = {
+    nodemailerPass : this.getOrThrow('NODMAILER_PASS')
+  };
 
 }

@@ -4,7 +4,7 @@ import * as Joi from 'joi';
 export const resetPasswordSchema = Joi.object({
   id: Joi.string().required(),
   token: Joi.string().required(),
-  password: Joi.string().min(6).required(),
+  password: Joi.string().min(6).pattern(new RegExp('^[a-zA-Z0-9]{3,30}$')).required(),
 });
 
 export class ResetPasswordDto {

@@ -1,12 +1,16 @@
-export function generateVerificationToken(length = 12) {
+import { Injectable } from '@nestjs/common';
+
+@Injectable()
+export class TokenService {
+  generateVerificationToken(length = 12): string {
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     const charactersLength = characters.length;
     let token = '';
-  
+
     for (let i = 0; i < length; i++) {
       token += characters.charAt(Math.floor(Math.random() * charactersLength));
     }
-  
+
     return token;
   }
-  
+}

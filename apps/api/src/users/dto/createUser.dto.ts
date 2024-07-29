@@ -1,11 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
 import * as Joi from 'joi';
+import { UserType } from '../../utils/user.type';
 
 export const createUserSchema = Joi.object({
   name: Joi.string().trim().max(100).required(),
   email: Joi.string().email().required(),
-  password: Joi.string().pattern(new RegExp('^[a-zA-Z0-9]{3,30}$')).required(),
-  userType: Joi.string().valid('Seller', 'Buyer').required(),
+  password: Joi.string().min(6).pattern(new RegExp('^[a-zA-Z0-9]{3,30}$')).required(),
+  userType: Joi.string().valid(...Object.values(UserType)).required(),
 });
 
 export class CreateUserDto {

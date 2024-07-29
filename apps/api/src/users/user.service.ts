@@ -4,16 +4,17 @@ import { Model } from 'mongoose';
 import { CreateUserDto } from './dto/createUser.dto';
 import { UserModel } from './user.model';
 import * as bcrypt from 'bcryptjs';
-import { generateVerificationToken } from '../utils/tokenGeneration';
-import { sendVerificationEmail, sendResetPasswordEmail } from '../utils/emailService';
 import { JwtService } from '@nestjs/jwt';
 import { User } from './schemas/user.schema';
-
+import { TokenService } from '@bbr/api-core/modules/token-generation/token.service';
+import { MailerService } from '@bbr/api-core/modules/mailer/mailer.service';
 @Injectable()
 export class UserService {
   constructor(
     @InjectModel(User.name) private readonly userModel: Model<UserModel>,
     private readonly jwtService: JwtService,
+    private readonly tokenService: TokenService,
+    private readonly mailerService: MailerService,
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<UserModel> {
@@ -27,7 +28,7 @@ export class UserService {
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
 
     // Generate a random verification token
-    const verifyToken = generateVerificationToken();
+    const verifyToken = this.tokenService.generateVerificationToken();
 
     // Create a new user object with hashed password, default isVerified=false, and verifyToken
     const newUser = new this.userModel({
@@ -42,7 +43,7 @@ export class UserService {
       await newUser.save();
 
       // Send verification email
-      await sendVerificationEmail(newUser.id, newUser.verificationToken, newUser.email);
+      await this.mailerService.sendVerificationEmail(newUser.id, newUser.verificationToken, newUser.email);
 
       return newUser;
     } catch (error) {
@@ -83,10 +84,10 @@ export class UserService {
   }
 
   async resendVerificationEmail(user: UserModel): Promise<void> {
-    const verifyToken = generateVerificationToken();
+    const verifyToken = this.tokenService.generateVerificationToken();
     user.verificationToken = verifyToken;
     await user.save();
-    await sendVerificationEmail(user.id, verifyToken,user.email);
+    await this.mailerService.sendVerificationEmail(user.id, verifyToken,user.email);
   }
 
   async forgotPassword(email: string): Promise<void> {
@@ -96,11 +97,11 @@ export class UserService {
       throw new NotFoundException('User not found');
     }
 
-    const resetToken = generateVerificationToken();
+    const resetToken = this.tokenService.generateVerificationToken();
     user.verificationToken = resetToken;
     await user.save();
 
-    await sendResetPasswordEmail(user.id, user.email, resetToken);
+    await this.mailerService.sendResetPasswordEmail(user.id, user.email, resetToken);
   }
 
   async resetPassword(_id: string, token: string, newPassword: string): Promise<void> {
