@@ -1,10 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
-
-enum UserType {
-  Seller = 'Seller',
-  Buyer = 'Buyer',
-}
+import { UserType } from '../utils/user.type';
 
 @Schema({ timestamps: true })
 export class UserModel extends Document {
@@ -23,7 +19,7 @@ export class UserModel extends Document {
   @Prop({ required: true, default: null })
   verificationToken: string | null;
 
-  @Prop({ required: true, default: UserType.Seller })
+  @Prop({ required: true, ...Object.values(UserType) })
   userType: string;
 }
 
