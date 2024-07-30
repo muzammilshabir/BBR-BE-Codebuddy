@@ -2,8 +2,7 @@ import { BbrStatefulServiceConfig } from '@bbr/api-core/modules/config/bbrStateF
 import { Injectable } from '@nestjs/common';
 
 /**
- * Base Config for this service
- */
+c */
 @Injectable()
 export class ServiceConfig extends BbrStatefulServiceConfig {
   getServiceName(): string {
@@ -21,19 +20,11 @@ export class ServiceConfig extends BbrStatefulServiceConfig {
     jwtSecretKey : this.getOrThrow('JWT_SECRET_KEY')
   };
 
-  readonly nodemailerHost = {
-    nodemailerHost : this.getOrThrow('NODMAILER_HOST')
-  };
 
-  readonly nodemailerPort = {
-    nodemailerPort : this.getOrThrow('NODMAILER_PORT')
-  };
-
-  readonly nodemailerUser = {
-    nodemailerUser : this.getOrThrow('NODMAILER_USER')
-  };
-
-  readonly nodemailerPass = {
+readonly nodemailer = {
+    nodemailerHost : this.getOrThrow('NODMAILER_HOST'),
+    nodemailerPort : this.getOrThrow('NODMAILER_PORT'),
+    nodemailerUser : this.getOrThrow('NODMAILER_USER'),
     nodemailerPass : this.getOrThrow('NODMAILER_PASS')
   };
 

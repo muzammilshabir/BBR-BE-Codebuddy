@@ -8,7 +8,6 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserService } from './user.service';
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
 
-
 @ApiTags('Users')
 @Controller('users')
 export class UserController {
@@ -66,4 +65,5 @@ export class UserController {
       return { error: error.message };
     }
   }
+
 }

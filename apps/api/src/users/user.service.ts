@@ -2,22 +2,21 @@ import { Injectable, NotFoundException, ConflictException } from '@nestjs/common
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { CreateUserDto } from './dto/createUser.dto';
-import { UserModel } from './user.model';
+import { User } from './user.schema';
 import * as bcrypt from 'bcryptjs';
 import { JwtService } from '@nestjs/jwt';
-import { User } from './schemas/user.schema';
 import { TokenService } from '@bbr/api-core/modules/token-generation/token.service';
 import { MailerService } from '@bbr/api-core/modules/mailer/mailer.service';
 @Injectable()
 export class UserService {
   constructor(
-    @InjectModel(User.name) private readonly userModel: Model<UserModel>,
+    @InjectModel(User.name) private readonly userModel: Model<User>,
     private readonly jwtService: JwtService,
     private readonly tokenService: TokenService,
     private readonly mailerService: MailerService,
   ) {}
 
-  async create(createUserDto: CreateUserDto): Promise<UserModel> {
+  async create(createUserDto: CreateUserDto): Promise<User> {
     // Check if user with the given email already exists
     const existingUser = await this.userModel.findOne({ email: createUserDto.email }).exec();
     if (existingUser) {
@@ -54,7 +53,6 @@ export class UserService {
 
   async verifyUserEmail(token: string, _id: string): Promise<string> {
     const user = await this.userModel.findOne({ _id, verificationToken: token }).exec();
-
     if (!user) {
       throw new NotFoundException('User not found or invalid verification token');
     }
@@ -66,11 +64,11 @@ export class UserService {
     return 'User email verified successfully';
   }
 
-  async findByEmail(email: string): Promise<UserModel> {
+  async findByEmail(email: string): Promise<User> {
     return this.userModel.findOne({ email }).exec();
   }
 
-  async validateUser(email: string, password: string): Promise<UserModel> {
+  async validateUser(email: string, password: string): Promise<User> {
     const user = await this.findByEmail(email);
     if (user && await bcrypt.compare(password, user.password)) {
       return user;
@@ -78,12 +76,12 @@ export class UserService {
     return null;
   }
 
-  async generateJwtToken(user: UserModel): Promise<string> {
+  async generateJwtToken(user: User): Promise<string> {
     const payload = { email: user.email, sub: user.id };
     return this.jwtService.signAsync(payload, { expiresIn: '1h' });
   }
 
-  async resendVerificationEmail(user: UserModel): Promise<void> {
+  async resendVerificationEmail(user: User): Promise<void> {
     const verifyToken = this.tokenService.generateVerificationToken();
     user.verificationToken = verifyToken;
     await user.save();
@@ -115,4 +113,5 @@ export class UserService {
     user.verificationToken = null;
     await user.save();
   }
+
 }
