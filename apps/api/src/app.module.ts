@@ -1,9 +1,11 @@
 import { BbrConfigModule } from '@bbr/api-core/modules/config/configModule';
-import { BbrCoreModule } from '@bbr/api-core/modules/core.module';
 import { ServiceConfig } from './config';
 import { Module } from '@nestjs/common/decorators';
 import { PostModule } from './posts/post.module';
-
+import { UserModule } from './users/user.module';
+import { BbrCoreModule } from '@bbr/api-core/modules/core.module'; 
+import { TokenGenerationModule } from '@bbr/api-core/modules/token-generation/token.module';
+import { MailerCoreModule } from '@bbr/api-core/modules/mailer/mailer.module';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -11,6 +13,10 @@ import { PostModule } from './posts/post.module';
     }),
     BbrCoreModule,
     PostModule,
+    UserModule,
+    TokenGenerationModule,
+    MailerCoreModule,
+    
   ],
   controllers: [],
   providers: [],
