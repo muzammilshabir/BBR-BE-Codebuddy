@@ -7,7 +7,7 @@ import { ResidenceTypeService } from './residenceType.service';
 import { ListResidenceTypeDto, listResidenceTypeSchema } from './dto/listResidenceType.dto';
 
 @ApiTags('ResidenceType')
-@Controller('residenceType')
+@Controller('residence-type')
 export class ResidenceTypeController {
   constructor(private readonly residenceTypeService: ResidenceTypeService) {}
 

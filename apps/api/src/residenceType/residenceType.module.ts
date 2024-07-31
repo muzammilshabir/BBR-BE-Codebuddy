@@ -5,11 +5,12 @@ import { ResidenceTypeService } from './residenceType.service';
 import { ResidenceTypeController } from './residenceType.controller';
 import { ResidenceTypeRepository } from './residenceType.repository';
 import { ResidenceTypeSeeder } from './residenceType.seeder';
+import { ResidenceTypeFixture } from './residenceType.fixture';
 
 @Module({
   imports: [MongooseModule.forFeature([{ name: ResidenceType.name, schema: ResidenceTypeSchema }])],
-  providers: [ResidenceTypeService, ResidenceTypeRepository, ResidenceTypeSeeder],
-  exports: [ResidenceTypeSeeder],
+  providers: [ResidenceTypeService, ResidenceTypeRepository, ResidenceTypeSeeder,ResidenceTypeFixture],
+  exports: [ResidenceTypeSeeder,ResidenceTypeFixture],
   controllers: [ResidenceTypeController],
 })
 export class ResidenceTypeModule {}

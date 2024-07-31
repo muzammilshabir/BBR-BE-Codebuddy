@@ -10,7 +10,7 @@ import {
 } from './dto/listResidenceFeatures.dto';
 
 @ApiTags('ResidenceFeature')
-@Controller('residenceFeature')
+@Controller('residence-feature')
 export class ResidenceFeatureController {
   constructor(private readonly residenceFeatureService: ResidenceFeatureService) {}
 

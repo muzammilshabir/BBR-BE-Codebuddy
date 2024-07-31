@@ -63,7 +63,7 @@ describe('PostModule', () => {
       expect(res.body.data.post).toMatchObject(data);
     });
 
-    it('Should remove book by id ', async () => {
+    it('Should remove post by id ', async () => {
       const post: Post = app.getReference(PostFixture.TAG_1);
       const res = await app.exec('DELETE', url + '/' + post.id, {
         headers: {},
