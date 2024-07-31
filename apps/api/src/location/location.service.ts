@@ -20,6 +20,9 @@ export class LocationService {
       filter.type = listLocationDto.locationFilter;
     }
       
+    if (listLocationDto.parentId) {
+      filter.parentId = listLocationDto.parentId;
+    }
 
     const options = PaginationService.prepareOptions(listLocationDto);
 

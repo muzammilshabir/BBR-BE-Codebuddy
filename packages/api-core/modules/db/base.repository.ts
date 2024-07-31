@@ -30,4 +30,12 @@ export class BaseRepository<T extends Document> {
   async delete(id: string): Promise<T> {
     return await this.model.findByIdAndDelete(id);
   }
+
+  async upsert(filter: any, updateDto: any): Promise<T> {
+    return this.model.findOneAndUpdate(filter, updateDto, {
+      new: true, // Return the updated document
+      upsert: true, // Create if not exists
+      runValidators: true, // Validate update
+    }).exec();
+  }
 }

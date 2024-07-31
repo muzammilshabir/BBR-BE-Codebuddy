@@ -22,7 +22,7 @@ export class ResidenceTypeSeeder extends AbstractSeeder {
       ];
 
       for (const type of residenceTypes) {
-        await this.residenceTypeRepository.create(type);
+        await this.residenceTypeRepository.upsert({type:type.type},type);
       }
 
     } catch (error) {
