@@ -9,6 +9,7 @@ import { MailerCoreModule } from '@bbr/api-core/modules/mailer/mailer.module';
 import { ResidenceTypeModule } from './residenceType/residenceType.module';
 import { LocationModule } from './location/location.module';
 import { BrandModule } from './brand/brand.module';
+import { ResidenceFeatureModule } from './residenceFeatures/residenceFeatures.module';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -21,7 +22,8 @@ import { BrandModule } from './brand/brand.module';
     MailerCoreModule,
     ResidenceTypeModule,
     LocationModule,
-    BrandModule
+    BrandModule,
+    ResidenceFeatureModule
   ],
   controllers: [],
   providers: [],
