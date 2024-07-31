@@ -1,8 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { AbstractSeeder } from '@bbr/api-core/modules/seeder/abstractSeeder.service';
 import { ResidenceTypeRepository } from './residenceType.repository';
-import { InjectConnection } from '@nestjs/mongoose';
-import { Connection } from 'mongoose';
 
 @Injectable()
 export class ResidenceTypeSeeder extends AbstractSeeder {
@@ -11,18 +9,12 @@ export class ResidenceTypeSeeder extends AbstractSeeder {
 
   constructor(
     private readonly residenceTypeRepository: ResidenceTypeRepository,
-    @InjectConnection() private readonly connection: Connection,
   ) {
     super();
   }
 
   async seed() {
     try {
-      // Ensure the MongoDB connection is established
-      if (this.connection.readyState !== 1) {
-        await this.connection.openUri(process.env.DB_URI);  // Use the appropriate URI for your environment
-      }
-
       const residenceTypes = [
         { type: 'Condo' },
         { type: 'Villa' },

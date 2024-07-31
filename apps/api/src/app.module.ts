@@ -7,6 +7,7 @@ import { BbrCoreModule } from '@bbr/api-core/modules/core.module';
 import { TokenGenerationModule } from '@bbr/api-core/modules/token-generation/token.module';
 import { MailerCoreModule } from '@bbr/api-core/modules/mailer/mailer.module';
 import { ResidenceTypeModule } from './residenceType/residenceType.module';
+import { LocationModule } from './location/location.module';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -17,8 +18,8 @@ import { ResidenceTypeModule } from './residenceType/residenceType.module';
     UserModule,
     TokenGenerationModule,
     MailerCoreModule,
-    ResidenceTypeModule
-    
+    ResidenceTypeModule,
+    LocationModule
   ],
   controllers: [],
   providers: [],
