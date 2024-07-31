@@ -8,6 +8,7 @@ import { HealthCheckModule } from './health-check/health-check.module';
 import { LoggerModule } from './logger/logger.module';
 import { BbrDbModule } from './db/db.module';
 import { FixturesModule } from './fixture/fixture.module';
+import { SeederModule } from './seeder/seeder.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { FixturesModule } from './fixture/fixture.module';
     BbrDbModule,
     HealthCheckModule,
     FixturesModule,
+    SeederModule
   ],
   exports: [
     JoiPipeModule,
@@ -29,6 +31,7 @@ import { FixturesModule } from './fixture/fixture.module';
     BbrDbModule,
     HealthCheckModule,
     FixturesModule,
+    SeederModule
   ],
 })
 export class BbrCoreModule {}
