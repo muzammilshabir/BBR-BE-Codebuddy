@@ -5,11 +5,12 @@ import { LocationService } from './location.service';
 import { LocationController } from './location.controller';
 import { LocationRepository } from './location.repository';
 import { LocationSeeder } from './location.seeder';
+import { LocationFixture } from './location.fixture';
 
 @Module({
   imports: [MongooseModule.forFeature([{ name: Location.name, schema: LocationSchema }])],
-  providers: [LocationService, LocationRepository, LocationSeeder],
-  exports: [LocationSeeder],
+  providers: [LocationService, LocationRepository, LocationSeeder,LocationFixture],
+  exports: [LocationSeeder,LocationFixture],
   controllers: [LocationController],
 })
 export class LocationModule {}

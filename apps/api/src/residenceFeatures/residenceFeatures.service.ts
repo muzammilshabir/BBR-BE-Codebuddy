@@ -23,6 +23,6 @@ export class ResidenceFeatureService {
       listResidenceFeaturesDto
     );
 
-    return { pagination, residenceType: data };
+    return { pagination, residenceFeature: data };
   }
 }
