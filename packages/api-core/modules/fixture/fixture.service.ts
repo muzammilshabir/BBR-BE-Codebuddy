@@ -22,7 +22,6 @@ export class FixturesService {
   }
 
   private async clearDatabase(): Promise<void> {
-    // Example: Dropping the database, be cautious with this approach
     await this.dbConnection.dropDatabase();
   }
 
