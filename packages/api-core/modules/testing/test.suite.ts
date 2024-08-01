@@ -30,8 +30,8 @@ export class TestSuite {
       process.env.DATABASE_NAME = dbName;
 
       const uri = process.env.__DB_URI;
-
-      process.env.DB_URI = uri;
+      const dbUri = uri.replace(/\/\?/, `/${dbName}?`);
+      process.env.DB_URI = dbUri;
 
       this.mockHttpServer.listen({
         onUnhandledRequest: 'bypass',

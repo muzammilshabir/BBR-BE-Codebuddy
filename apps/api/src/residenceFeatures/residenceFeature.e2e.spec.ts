@@ -29,5 +29,4 @@ describe('ResidenceFeatureModule', () => {
       expect(res.body.data.residenceFeature[0].name).toEqual('Gym');
     });
   });
-
 });
