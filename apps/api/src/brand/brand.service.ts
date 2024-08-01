@@ -22,7 +22,7 @@ export class BrandService {
 
     const { pagination } = PaginationService.paginate({ rows: data, count }, listBrandDto);
 
-    return { pagination, residenceType: data };
+    return { pagination, brands: data };
   }
 
 }

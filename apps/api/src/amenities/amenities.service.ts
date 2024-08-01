@@ -22,7 +22,7 @@ export class AmenityService {
 
     const { pagination } = PaginationService.paginate({ rows: data, count }, listAmenitiesDto);
 
-    return { pagination, residenceType: data };
+    return { pagination, amenities: data };
   }
 
 }
