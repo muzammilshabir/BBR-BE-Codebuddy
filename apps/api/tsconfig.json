@@ -20,7 +20,8 @@
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
     "paths": {
-      "@bbr/*": ["../../packages/*"]
+      "@bbr/*": ["../../packages/*"],
+      "src/*": ["./src/*"]
     }
   },
   "include": ["**/*.json", "**/*.ts", "**/*.js"]
