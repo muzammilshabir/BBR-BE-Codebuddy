@@ -1,14 +1,11 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { UploadRepository } from './upload.repository';
-import { ListAmenitiesDto } from './dto/file.dto';
-import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
 import { S3Client } from '@aws-sdk/client-s3';
 import { ServiceConfig } from 'src/config';
 import VolatileFile from 'formidable/VolatileFile';
-import { PassThrough, Readable, Writable } from 'stream';
+import { PassThrough, Writable } from 'stream';
 import { Upload } from '@aws-sdk/lib-storage';
 import * as shortUUID from 'short-uuid';
-import { Upload as UploadDocument } from './schema/upload.schema';
 import { formidableOptions } from './formidable.config';
 import { S3ClientFactory } from './s3.client';
 import formidable, { File } from 'formidable';
@@ -28,7 +25,6 @@ export class UploadService {
   async uploadFile(req: Request) {
     const client = this.s3Client;
     const config = this.config;
-    console.log('Inside upload api');
 
     return new Promise((resolve, reject) => {
       const s3Uploads = [];
@@ -42,7 +38,6 @@ export class UploadService {
             Bucket: config.s3.bucket,
             Key: formidableFile.newFilename,
             ContentType: formidableFile.mimetype,
-            ACL: 'public-read',
             Body: body,
           },
         });
@@ -50,14 +45,13 @@ export class UploadService {
           const fileDocument = {
             originalFileKey: formidableFile.newFilename,
             fileKey: response.Key,
+            // url: `https://${config.s3.bucket}.${config.s3.endpoint}/${response.Key}`,
             url: `${config.s3.cdnUrl}/${response.Key}`,
             mimeType: formidableFile.mimetype,
             size: formidableFile.size,
             driver: 'S3',
             createdById: '60d5f485f7c6a4b2b8e8b5f7', // Assuming you have user authentication in place
           };
-          // store in db logic
-          console.log('fileDocument :>> ', fileDocument);
           return fileDocument;
         });
         s3Uploads.push(uploadRequest);
@@ -79,6 +73,7 @@ export class UploadService {
         }
         Promise.all(s3Uploads)
           .then(async (files) => {
+            files.map((file) => this.uploadRepository.create(file));
             resolve(files);
           })
           .catch(reject);
@@ -88,7 +83,7 @@ export class UploadService {
 
   mapError(error) {
     const code = error.Code || error.code;
-    // this.logger.error(error);
+    this.logger.error(error);
 
     switch (code) {
       case 'InvalidAccessKeyId':
@@ -102,21 +97,5 @@ export class UploadService {
       default:
         throw new BadRequestException('Error uploading file');
     }
-  }
-
-  async findAll(listAmenitiesDto: ListAmenitiesDto) {
-    const filter = listAmenitiesDto.search
-      ? {
-          $or: [{ name: { $regex: listAmenitiesDto.search, $options: 'i' } }],
-        }
-      : {};
-
-    const options = PaginationService.prepareOptions(listAmenitiesDto);
-
-    const { data, count } = await this.uploadRepository.findAll(filter, options);
-
-    const { pagination } = PaginationService.paginate({ rows: data, count }, listAmenitiesDto);
-
-    return { pagination, uploads: data };
   }
 }
