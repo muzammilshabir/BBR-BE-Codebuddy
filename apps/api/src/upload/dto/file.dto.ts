@@ -15,3 +15,13 @@ export class ListAmenitiesDto extends ListPropsDto {
   })
   search?: string;
 }
+
+export class FilesUploadDto {
+  @ApiProperty({
+    description: 'Maximum file size allowed is 512MB for each file.',
+    type: 'array',
+    items: { type: 'string', format: 'binary', required: ['files'] },
+    required: true,
+  })
+  files: any[];
+}

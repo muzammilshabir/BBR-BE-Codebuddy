@@ -28,4 +28,11 @@ readonly nodemailer = {
     nodemailerPass : this.getOrThrow('NODMAILER_PASS')
   };
 
+  readonly s3 = {
+    region: this.getOrThrow('AWS_S3_BUCKET_REGION'),
+    accessKeyId: this.getOrThrow('AWS_S3_USER_ACCESS_KEY_ID'),
+    secretAccessKey: this.getOrThrow('AWS_S3_USER_SECRET'),
+    bucket: this.getOrThrow('AWS_S3_BUCKET_NAME'),
+    cdnUrl: this.getOrThrow('AWS_S3_CDN_URL'),
+  };
 }
