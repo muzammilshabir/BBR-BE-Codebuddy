@@ -43,7 +43,7 @@ export class UploadService {
         });
         const uploadRequest = upload.done().then(async (response) => {
           const fileDocument = {
-            originalFileKey: formidableFile.newFilename,
+            originalFileKey: formidableFile.originalFilename,
             fileKey: response.Key,
             // url: `https://${config.s3.bucket}.${config.s3.endpoint}/${response.Key}`,
             url: `${config.s3.cdnUrl}/${response.Key}`,
@@ -52,6 +52,7 @@ export class UploadService {
             driver: 'S3',
             createdById: '60d5f485f7c6a4b2b8e8b5f7', // Assuming you have user authentication in place
           };
+          console.log('fileDocument :>> ', fileDocument);
           return fileDocument;
         });
         s3Uploads.push(uploadRequest);
