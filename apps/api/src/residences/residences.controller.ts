@@ -7,6 +7,7 @@ import { ResidenceService } from './residences.service';
 import { CreateResidenceDto, createResidenceSchema } from './dto/create-residence.dto';
 import { UpdateResidenceDto, updateResidenceSchema } from './dto/update-residence.dto';
 import { AddKeyFeaturesDto, addKeyFeaturesSchema } from './dto/residenceKeyFeatures.dto';
+import { AddVisualsDto, addVisualsSchema } from './dto/add-visuals.dto';
 
 @ApiTags('Residence')
 @Controller('residence')
@@ -46,5 +47,18 @@ export class ResidenceController {
       { residence },
       'Residence key features added successfully'
     );
+  }
+
+  @Put(':id/visuals')
+  @ApiOperation({
+    summary: 'Add or update visuals for a residence',
+  })
+  @UsePipes(new JoiValidationPipe(addVisualsSchema, 'body'))
+  async addVisuals(@Param('id') id: string, @Body() addVisualsDto: AddVisualsDto) {
+    const residence = await this.residenceService.addVisuals(id, addVisualsDto);
+    return {
+      message: 'Residence visuals updated successfully',
+      residence,
+    };
   }
 }

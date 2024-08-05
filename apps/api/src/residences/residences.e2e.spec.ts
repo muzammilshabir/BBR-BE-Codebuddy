@@ -126,6 +126,36 @@ describe('ResidenceController', () => {
       });
 
       expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Residence key features added successfully');
+    });
+  });
+
+  describe('Add Visuals', () => {
+    it('Should update visuals of an existing Residence', async () => {
+      const existingResidence = app.getReference(ResidencesFixture.RESIDENCE1);
+      const mainGalleryPhotos = app.getReference(UploadFixture.UPLOAD_1);
+      const secondGalleryPhotos = app.getReference(UploadFixture.UPLOAD_2);
+      const videoTour = app.getReference(UploadFixture.UPLOAD_2);
+      const updateVisualsDto = {
+        mainGalleryPhotos: [mainGalleryPhotos.id, secondGalleryPhotos.id],
+        secondGalleryPhotos: [secondGalleryPhotos.id],
+        videoTour: videoTour.id,
+        videoTourLink: 'http://example.com/video',
+      };
+
+      const body = JSON.stringify(updateVisualsDto);
+
+      const res = await app.exec('PUT', `${url}/${existingResidence.id}/visuals`, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        data: body,
+      });
+
+      // Check response status and data
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Residence visuals updated successfully');
+      expect(res.body.residence.visuals).toEqual(expect.objectContaining(updateVisualsDto));
     });
   });
 });

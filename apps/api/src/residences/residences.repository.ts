@@ -4,6 +4,7 @@ import { Model } from 'mongoose';
 import { Residence } from './schema/residences.schema';
 import { BaseRepository } from '@bbr/api-core/modules/db/base.repository';
 import { AddKeyFeaturesDto } from './dto/residenceKeyFeatures.dto';
+import { AddVisualsDto } from './dto/add-visuals.dto';
 
 @Injectable()
 export class ResidenceRepository extends BaseRepository<Residence> {
@@ -14,6 +15,14 @@ export class ResidenceRepository extends BaseRepository<Residence> {
     return await this.residenceModel.findByIdAndUpdate(
       id,
       { $set: { residenceKeyFeatures: { ...addKeyFeaturesDto } } },
+      { new: true }
+    );
+  }
+
+  async addVisuals(id: string, addVisualsDto: AddVisualsDto): Promise<Residence> {
+    return await this.residenceModel.findByIdAndUpdate(
+      id,
+      { $set: { visuals: { ...addVisualsDto } } },
       { new: true }
     );
   }
