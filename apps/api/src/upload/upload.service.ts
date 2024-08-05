@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { UploadRepository } from './upload.repository';
 import { S3Client } from '@aws-sdk/client-s3';
-import { ServiceConfig } from 'src/config';
+import { ServiceConfig } from '../config';
 import VolatileFile from 'formidable/VolatileFile';
 import { PassThrough, Writable } from 'stream';
 import { Upload } from '@aws-sdk/lib-storage';
