@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ServiceConfig } from '../config';
 import { S3Client as S3 } from '@aws-sdk/client-s3';
-import { BbrStatefulServiceConfig } from '../../../../packages/api-core/modules/config/bbrStateFullConfig';
+import { BbrStatefulServiceConfig } from '@bbr/api-core/modules/config/bbrStateFullConfig';
 
 @Injectable()
 export class S3ClientFactory {
