@@ -24,6 +24,8 @@
     "test": "pnpm copy-env; jest --maxWorkers=50% --workerIdleMemoryLimit='1024MB'"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.622.0",
+    "@aws-sdk/lib-storage": "^3.622.0",
     "@bbr/api-core": "workspace:^",
     "@joi/date": "^2.1.1",
     "@nestjs-modules/mailer": "^2.0.2",
@@ -34,17 +36,20 @@
     "@nestjs/platform-express": "^9.4.3",
     "@nestjs/swagger": "^7.3.1",
     "@types/express": "^4.17.21",
+    "@types/formidable": "^3.4.5",
     "bcryptjs": "^2.4.3",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "formidable": "^3.5.1",
     "inquirer": "8.0.0",
     "joi": "^17.13.1",
     "mongoose": "^8.5.1",
     "nestjs-joi": "^1.10.0",
     "nodemailer": "^6.9.14",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "short-uuid": "^5.2.0"
   },
   "devDependencies": {
     "@bbr/prettier": "workspace:^",
