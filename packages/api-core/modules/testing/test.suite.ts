@@ -79,6 +79,8 @@ export class TestSuite {
   }
 
   getReference(name): any {
+    console.log('gg test', this.references);
+    
     return this.references.getReference(name);
   }
 

@@ -22,10 +22,8 @@ describe('ResidenceController', () => {
 
   describe('Create Residence', () => {
     it('Should create a new Residence', async () => {
-      // const location = app.getReference(LocationFixture.TAG_UAE);
-      // const residenceType = app.getReference(ResidenceTypeFixture.TAG_1);
-      // const brand = app.getReference(BrandFixture.TAG_ASTON_MARTIN);
-      // Define the createResidenceDto object
+      const location = app.getReference(LocationFixture.TAG_UAE);
+      console.log('mmlocal', location);
       const createResidenceDto = {
         name: 'Ritz Carlton Miami',
         // residenceTypeId: residenceType._id,

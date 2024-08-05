@@ -9,8 +9,9 @@ import { LocationFixture } from './location.fixture';
 
 @Module({
   imports: [MongooseModule.forFeature([{ name: Location.name, schema: LocationSchema }])],
-  providers: [LocationService, LocationRepository, LocationSeeder,LocationFixture],
-  exports: [LocationSeeder,LocationFixture],
+  providers: [LocationService, LocationRepository, LocationSeeder, LocationFixture],
+  exports: [LocationSeeder, LocationFixture],
   controllers: [LocationController],
 })
 export class LocationModule {}
+

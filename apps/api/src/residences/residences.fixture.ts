@@ -28,11 +28,10 @@ export class ResidencesFixture extends AbstractFixture {
   }
   static RESIDENCE1 = 'RESIDENCE1';
   async load() {
-    // Retrieve reference IDs from other fixtures
-    const residenceTypeId = this.getReference(ResidenceTypeFixture.TAG_1)._id;
+    const residenceTypeId = this.getReference(ResidenceTypeFixture.RESIDENCE_TYPE_1)._id;
     const locationId = this.getReference(LocationFixture.TAG_UAE)._id;
     const associatedBrandId = this.getReference(BrandFixture.TAG_PRIVATE_HOMES)._id;
-    const featuresId = this.getReference(ResidenceFeatureFixture.TAG_1)._id;
+    const featuresId = this.getReference(ResidenceFeatureFixture.RESIDENCE_FEATURE_1)._id;
     const mainGalleryPhotosId = this.getReference(UploadFixture.UPLOAD_1)._id;
     const secondGalleryPhotosId = this.getReference(UploadFixture.UPLOAD_2)._id;
     const videoTourId = this.getReference(UploadFixture.UPLOAD_2)._id;
