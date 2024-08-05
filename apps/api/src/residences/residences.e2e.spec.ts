@@ -106,8 +106,9 @@ describe('ResidenceController', () => {
   describe('Add Key Features', () => {
     it('Should add key features to an existing Residence', async () => {
       const existingResidence = app.getReference(ResidencesFixture.RESIDENCE1);
+      const residenceFeature = app.getReference(ResidenceFeatureFixture.RESIDENCE_FEATURE_1);
       const addKeyFeaturesDto = {
-        featureIds: ['feature-id-1'],
+        featureIds: [residenceFeature.id],
         developmentInfo: {
           yearOfBuild: 2021,
           rentalPotential: 'Medium',
