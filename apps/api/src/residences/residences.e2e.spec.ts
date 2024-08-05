@@ -23,13 +23,12 @@ describe('ResidenceController', () => {
   describe('Create Residence', () => {
     it('Should create a new Residence', async () => {
       const location = app.getReference(LocationFixture.TAG_UAE);
-      console.log('mmlocal', location);
       const createResidenceDto = {
         name: 'Ritz Carlton Miami',
         // residenceTypeId: residenceType._id,
         residenceTypeId: '60d9c6a0a11c3c6c6a9a1a2a',
         // locationId: location._id,
-        locationId: '60d9c6a0a11c3c6c6a9a1a1a',
+        locationId: location.id,
         websiteLink: 'https://dummywebsite.com',
         // associatedBrandId: brand._id,
         associatedBrandId: '60d9c6a0a11c3c6c6a9a1a1b',

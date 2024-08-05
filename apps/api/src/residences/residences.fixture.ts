@@ -30,7 +30,7 @@ export class ResidencesFixture extends AbstractFixture {
   async load() {
     const residenceTypeId = this.getReference(ResidenceTypeFixture.RESIDENCE_TYPE_1)._id;
     const locationId = this.getReference(LocationFixture.TAG_UAE)._id;
-    const associatedBrandId = this.getReference(BrandFixture.TAG_PRIVATE_HOMES)._id;
+    const associatedBrandId = this.getReference(BrandFixture.BRAND_PRIVATE_HOMES)._id;
     const featuresId = this.getReference(ResidenceFeatureFixture.RESIDENCE_FEATURE_1)._id;
     const mainGalleryPhotosId = this.getReference(UploadFixture.UPLOAD_1)._id;
     const secondGalleryPhotosId = this.getReference(UploadFixture.UPLOAD_2)._id;
