@@ -102,4 +102,29 @@ describe('ResidenceController', () => {
       expect(res.status).toBe(200);
     });
   });
+
+  describe('Add Key Features', () => {
+    it('Should add key features to an existing Residence', async () => {
+      const existingResidence = app.getReference(ResidencesFixture.RESIDENCE1);
+      const addKeyFeaturesDto = {
+        featureIds: ['feature-id-1'],
+        developmentInfo: {
+          yearOfBuild: 2021,
+          rentalPotential: 'Medium',
+          developmentStatus: 'Under Construction',
+          floorAreaSqFt: 1600,
+        },
+        petPolicy: 'No pet Allowed',
+      };
+
+      const res = await app.exec('PUT', `${url}/${existingResidence.id}/key-features`, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        data: JSON.stringify(addKeyFeaturesDto),
+      });
+
+      expect(res.status).toBe(200);
+    });
+  });
 });

@@ -18,12 +18,10 @@ export class ResidencesFixture extends AbstractFixture {
     BrandFixture,
     ResidenceFeatureFixture,
     UploadFixture,
-    AmenityFixture
+    AmenityFixture,
   ];
 
-  constructor(
-    @InjectModel(Residence.name) private readonly residenceModel: Model<Residence>,
-  ) {
+  constructor(@InjectModel(Residence.name) private readonly residenceModel: Model<Residence>) {
     super();
   }
   static RESIDENCE1 = 'RESIDENCE1';
@@ -31,14 +29,14 @@ export class ResidencesFixture extends AbstractFixture {
     const residenceTypeId = this.getReference(ResidenceTypeFixture.RESIDENCE_TYPE_1)._id;
     const locationId = this.getReference(LocationFixture.TAG_UAE)._id;
     const associatedBrandId = this.getReference(BrandFixture.BRAND_PRIVATE_HOMES)._id;
-    const featuresId = this.getReference(ResidenceFeatureFixture.RESIDENCE_FEATURE_1)._id;
+    const featureIds = this.getReference(ResidenceFeatureFixture.RESIDENCE_FEATURE_1)._id;
     const mainGalleryPhotosId = this.getReference(UploadFixture.UPLOAD_1)._id;
     const secondGalleryPhotosId = this.getReference(UploadFixture.UPLOAD_2)._id;
     const videoTourId = this.getReference(UploadFixture.UPLOAD_2)._id;
     const amenitiesListId = this.getReference(AmenityFixture.TAG_PRIVATE_BEACH_ACCESS)._id;
 
     // Create a new Residence document
-    const residence1 =  await this.residenceModel.create({
+    const residence1 = await this.residenceModel.create({
       name: 'Sample Residence',
       residenceTypeId: residenceTypeId,
       locationId: locationId,
@@ -46,7 +44,7 @@ export class ResidencesFixture extends AbstractFixture {
       associatedBrandId: associatedBrandId,
       briefOverview: {
         subtitle: 'Beautiful Residence',
-        briefDescription: 'A luxurious residence with beautiful views.'
+        briefDescription: 'A luxurious residence with beautiful views.',
       },
       comprehensiveOverview: {
         subtitle: 'Luxurious Residence',
@@ -54,27 +52,27 @@ export class ResidencesFixture extends AbstractFixture {
         community: 'Upscale community.',
         recentRenovation: 'Renovated in 2022.',
         localAttractions: 'Close to parks and shopping centers.',
-        futureDevelopmentPlans: 'New development projects in the vicinity.'
+        futureDevelopmentPlans: 'New development projects in the vicinity.',
       },
       budgetLimitationsRange: {
         startRange: 500000,
-        endRange: 1000000
+        endRange: 1000000,
       },
       residenceKeyFeatures: {
-        featuresId: [featuresId],
+        featureIds: [featureIds],
         developmentInfo: {
           yearOfBuild: 2020,
           rentalPotential: 'High',
           developmentStatus: 'Completed',
-          floorAreaSqFt: 1500
+          floorAreaSqFt: 1500,
         },
-        petPolicy: 'petFriendly'
+        petPolicy: 'petFriendly',
       },
       visuals: {
         mainGalleryPhotos: [mainGalleryPhotosId],
         secondGalleryPhotos: [secondGalleryPhotosId],
         videoTour: videoTourId,
-        videoTourLink: 'http://example.com/video'
+        videoTourLink: 'http://example.com/video',
       },
       nearbyAmenities: {
         amenitiesList: [amenitiesListId],
@@ -82,16 +80,16 @@ export class ResidencesFixture extends AbstractFixture {
           {
             name: 'Private Beach Access',
             generalDescription: 'Access to a private beach.',
-            imageId: amenitiesListId
-          }
-        ]
+            imageId: amenitiesListId,
+          },
+        ],
       },
       status: 'draft',
       unitIds: [],
       createdById: '60d5f485f7c6a4b2b8e8b601', // Replace with actual user ID
       createdAt: new Date(),
       updatedAt: new Date(),
-      submissionDate: new Date()
+      submissionDate: new Date(),
     });
 
     this.addReference(ResidencesFixture.RESIDENCE1, residence1);

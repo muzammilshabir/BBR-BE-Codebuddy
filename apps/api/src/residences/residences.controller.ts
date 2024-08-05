@@ -6,6 +6,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ResidenceService } from './residences.service';
 import { CreateResidenceDto, createResidenceSchema } from './dto/create-residence.dto';
 import { UpdateResidenceDto, updateResidenceSchema } from './dto/update-residence.dto';
+import { AddKeyFeaturesDto, addKeyFeaturesSchema } from './dto/residenceKeyFeatures.dto';
 
 @ApiTags('Residence')
 @Controller('residence')
@@ -30,7 +31,20 @@ export class ResidenceController {
   @Public()
   @UsePipes(new JoiValidationPipe(updateResidenceSchema, 'body'))
   async update(@Param('id') id: string, @Body() updateResidenceDto: UpdateResidenceDto) {
-    const residence = await this.residenceService.update(id, updateResidenceDto);
+    const residence = await this.residenceService.updateGeneralInfo(id, updateResidenceDto);
     return ResponseService.buildResponse({ residence }, 'Residence updated successfully');
+  }
+
+  @Put(':id/key-features')
+  @ApiOperation({
+    summary: 'Add Residence Key Features',
+  })
+  @UsePipes(new JoiValidationPipe(addKeyFeaturesSchema, 'body'))
+  async addKeyFeatures(@Param('id') id: string, @Body() addKeyFeaturesDto: AddKeyFeaturesDto) {
+    const residence = await this.residenceService.addKeyFeatures(id, addKeyFeaturesDto);
+    return ResponseService.buildResponse(
+      { residence },
+      'Residence key features added successfully'
+    );
   }
 }

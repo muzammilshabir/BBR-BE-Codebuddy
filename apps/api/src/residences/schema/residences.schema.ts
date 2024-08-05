@@ -23,7 +23,7 @@ export class Residence extends Document {
       subtitle: String,
       briefDescription: String,
     },
-    _id: false
+    _id: false,
   })
   briefOverview: {
     subtitle: string;
@@ -39,7 +39,7 @@ export class Residence extends Document {
       localAttractions: String,
       futureDevelopmentPlans: String,
     },
-    _id: false
+    _id: false,
   })
   comprehensiveOverview: {
     subtitle: string;
@@ -55,7 +55,7 @@ export class Residence extends Document {
       startRange: Number,
       endRange: Number,
     },
-    _id: false
+    _id: false,
   })
   budgetLimitationsRange: {
     startRange: number;
@@ -64,76 +64,77 @@ export class Residence extends Document {
 
   @Prop({
     type: {
-      featuresId: [String], // 
+      featureIds: [String],
       developmentInfo: {
         yearOfBuild: Number,
-        rentalPotential: String, // Consider using an enum for better validation
-        developmentStatus: String, // Consider using an enum for better validation
-        floorAreaSqFt: Number
+        rentalPotential: String,
+        developmentStatus: String,
+        floorAreaSqFt: Number,
       },
-      petPolicy: String // Enum values: "petFriendly", "No pet Allowed"
+      petPolicy: String, // Enum values: "petFriendly", "No pet Allowed"
     },
-    _id: false
+    _id: false,
   })
   residenceKeyFeatures: {
-    featuresId: string[];
+    featureIds: string[];
     developmentInfo: {
       yearOfBuild: number;
-      rentalPotential: string; // Consider using an enum for better validation
-      developmentStatus: string; // Consider using an enum for better validation
+      rentalPotential: string;
+      developmentStatus: string;
       floorAreaSqFt: number;
     };
-    petPolicy: string; // Enum values: "petFriendly", "No pet Allowed"
+    petPolicy: string;
   };
 
   @Prop({
     type: {
-      mainGalleryPhotos: [String], 
-      secondGalleryPhotos: [String], 
-      videoTour: String // ObjectId reference or URL
+      mainGalleryPhotos: [String],
+      secondGalleryPhotos: [String],
+      videoTour: String, // ObjectId reference or URL
+      videoTourLink: String,
     },
-    _id: false
+    _id: false,
   })
   visuals: {
     mainGalleryPhotos: string[];
     secondGalleryPhotos: string[];
     videoTour: string;
-    videoTourLink:string;
+    videoTourLink: string;
   };
 
   @Prop({
     type: {
-      amenitiesList: [String], 
+      amenitiesList: [String],
       highlightedAmenities: [
         {
           name: String,
           generalDescription: String,
-          imageId: String 
-        }
-      ]
+          imageId: String,
+        },
+      ],
     },
-    _id: false
+    _id: false,
   })
   nearbyAmenities: {
     amenitiesList: string[];
     highlightedAmenities: {
       name: string;
       generalDescription: string;
-      imageId: string; 
+      imageId: string;
     }[];
   };
 
   @Prop({
     type: String,
     enum: ['active', 'pending', 'draft', 'sold', 'rejected'],
-    default: 'draft'
+    default: 'draft',
   })
   status: string;
 
-  @Prop([String]) 
+  @Prop([String])
   unitIds: string[];
 
-  @Prop({ type: String }) 
+  @Prop({ type: String })
   createdById: string;
 
   @Prop({ type: Date })
