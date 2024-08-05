@@ -32,10 +32,12 @@ export class BaseRepository<T extends Document> {
   }
 
   async upsert(filter: any, updateDto: any): Promise<T> {
-    return this.model.findOneAndUpdate(filter, updateDto, {
-      new: true, // Return the updated document
-      upsert: true, // Create if not exists
-      runValidators: true, // Validate update
-    }).exec();
+    return this.model
+      .findOneAndUpdate(filter, updateDto, {
+        new: true, // Return the updated document
+        upsert: true, // Create if not exists
+        runValidators: true, // Validate update
+      })
+      .exec();
   }
 }

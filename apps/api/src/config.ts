@@ -14,18 +14,24 @@ export class ServiceConfig extends BbrStatefulServiceConfig {
   };
 
   readonly db = {
-    mongodbUri : this.getOrThrow('DB_URI')
+    mongodbUri: this.getOrThrow('DB_URI'),
   };
   readonly Jwt = {
-    jwtSecretKey : this.getOrThrow('JWT_SECRET_KEY')
+    jwtSecretKey: this.getOrThrow('JWT_SECRET_KEY'),
   };
 
-
-readonly nodemailer = {
-    nodemailerHost : this.getOrThrow('NODMAILER_HOST'),
-    nodemailerPort : this.getOrThrow('NODMAILER_PORT'),
-    nodemailerUser : this.getOrThrow('NODMAILER_USER'),
-    nodemailerPass : this.getOrThrow('NODMAILER_PASS')
+  readonly nodemailer = {
+    nodemailerHost: this.getOrThrow('NODMAILER_HOST'),
+    nodemailerPort: this.getOrThrow('NODMAILER_PORT'),
+    nodemailerUser: this.getOrThrow('NODMAILER_USER'),
+    nodemailerPass: this.getOrThrow('NODMAILER_PASS'),
   };
 
+  readonly s3 = {
+    region: this.getOrThrow('AWS_S3_BUCKET_REGION'),
+    accessKeyId: this.getOrThrow('AWS_S3_USER_ACCESS_KEY_ID'),
+    secretAccessKey: this.getOrThrow('AWS_S3_USER_SECRET'),
+    bucket: this.getOrThrow('AWS_S3_BUCKET_NAME'),
+    endpoint: this.getOrThrow('END_POINT'),
+  };
 }

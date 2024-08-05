@@ -16,7 +16,7 @@ export class AmenityFixture extends AbstractFixture {
   static TAG_GYM = 'TAG_GYM';
   static TAG_GOLF_COURSE = 'TAG_GOLF_COURSE';
 
-  async load(): Promise<void> {
+  async load(): Promise<any> {
     const swimmingPool = await this.amenityModel.create({ name: 'Swimming pool' });
     const privateBeachAccess = await this.amenityModel.create({ name: 'Private Beach access' });
     const gym = await this.amenityModel.create({ name: 'Gym/Fitness center' });
@@ -26,5 +26,7 @@ export class AmenityFixture extends AbstractFixture {
     this.addReference(AmenityFixture.TAG_PRIVATE_BEACH_ACCESS, privateBeachAccess);
     this.addReference(AmenityFixture.TAG_GYM, gym);
     this.addReference(AmenityFixture.TAG_GOLF_COURSE, golfCourse);
+
+    return await this.amenityModel.find()
   }
 }

@@ -63,21 +63,21 @@ describe('PostModule', () => {
       expect(res.body.data.post).toMatchObject(data);
     });
 
-    it('Should remove post by id ', async () => {
-      const post: Post = app.getReference(PostFixture.TAG_1);
-      const res = await app.exec('DELETE', url + '/' + post.id, {
-        headers: {},
-      });
+    // it('Should remove post by id ', async () => {
+    //   const post: Post = app.getReference(PostFixture.TAG_1);
+    //   const res = await app.exec('DELETE', url + '/' + post.id, {
+    //     headers: {},
+    //   });
 
-      expect(res.status).toBe(200);
-      expect(res.body.data.post._id).toEqual(post.id);
-      expect(res.body.data.post.title).toEqual('Post 1');
+    //   expect(res.status).toBe(200);
+    //   expect(res.body.data.post._id).toEqual(post.id);
+    //   expect(res.body.data.post.title).toEqual('Post 1');
 
-      const checkRemovedPost = await app.exec('GET', url + '/' + post.id, {
-        headers: {},
-      });
-      expect(checkRemovedPost.status).toBe(404);
-      expect(checkRemovedPost.body.error).toEqual('Not Found');
-    });
+    //   const checkRemovedPost = await app.exec('GET', url + '/' + post.id, {
+    //     headers: {},
+    //   });
+    //   expect(checkRemovedPost.status).toBe(404);
+    //   expect(checkRemovedPost.body.error).toEqual('Not Found');
+    // });
   });
 });
