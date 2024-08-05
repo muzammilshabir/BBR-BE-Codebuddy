@@ -13,7 +13,7 @@ export class S3ClientFactory {
   createClient() {
     return new S3({
       region: this.config.s3.region,
-      endpoint: 'https://s3.eu-central-003.backblazeb2.com',
+      endpoint: `https://${this.config.s3.endpoint}`,
       credentials: {
         accessKeyId: this.config.s3.accessKeyId,
         secretAccessKey: this.config.s3.secretAccessKey,
