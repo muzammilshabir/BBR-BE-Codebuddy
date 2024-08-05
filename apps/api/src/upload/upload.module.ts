@@ -6,11 +6,20 @@ import { UploadController } from './upload.controller';
 import { UploadRepository } from './upload.repository';
 import { UploadFixture } from './upload.fixture';
 import { UploadSeeder } from './upload.seeder';
+import { ServiceConfig } from '../config';
+import { S3ClientFactory } from './s3.client';
 
 @Module({
   imports: [MongooseModule.forFeature([{ name: Upload.name, schema: UploadSchema }])],
-  providers: [UploadService, UploadRepository,UploadFixture,UploadSeeder],
-  exports: [UploadFixture,UploadSeeder],
+  providers: [
+    UploadService,
+    UploadRepository,
+    UploadFixture,
+    UploadSeeder,
+    ServiceConfig,
+    S3ClientFactory,
+  ],
+  exports: [UploadFixture, UploadSeeder],
   controllers: [UploadController],
 })
 export class UploadModule {}

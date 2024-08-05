@@ -17,7 +17,7 @@ export class UploadSeeder extends AbstractSeeder {
         {
           originalFileKey: 'staff.png',
           fileKey: 'public/staff_5e8454866b106d8d.png',
-          url: 'https://d1gi1hhecs55o9.cloudfront.net/public/staff_5e8454866b106d8d.png',
+          url: 'https://bbr-dev-001.s3.eu-central-003.backblazeb2.com/7xoQpkZHFZUnB9LfZ4r5oQ',
           mimeType: 'image/png',
           size: 32801,
           driver: 'AWS_S3',
@@ -28,7 +28,7 @@ export class UploadSeeder extends AbstractSeeder {
         {
           originalFileKey: 'document.pdf',
           fileKey: 'public/documents/5e8454866b106d8d.pdf',
-          url: 'https://d1gi1hhecs55o9.cloudfront.net/public/documents/5e8454866b106d8d.pdf',
+          url: 'https://bbr-dev-001.s3.eu-central-003.backblazeb2.com/7xoQpkZHFZUnB9LfZ4r5oQ',
           mimeType: 'application/pdf',
           size: 1048576,
           driver: 'AWS_S3',
