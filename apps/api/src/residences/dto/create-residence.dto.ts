@@ -1,34 +1,56 @@
-
-
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString, IsNotEmpty, IsObject, IsNumber, ValidateNested } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsNotEmpty,
+  IsObject,
+  IsNumber,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import * as Joi from 'joi';
 
-class BriefOverview {
-  @ApiProperty({ example: 'An idyllic coastal destination that combines natural beauty & iconic architecture', required: false })
+export class BriefOverview {
+  @ApiProperty({
+    example: 'An idyllic coastal destination that combines natural beauty & iconic architecture',
+    required: false,
+  })
   @IsString()
   @IsOptional()
   subtitle?: string;
 
-  @ApiProperty({ example: 'The remarkable structure features a single, 15-story tower, boasting a total of 30 exclusive units', required: false })
+  @ApiProperty({
+    example:
+      'The remarkable structure features a single, 15-story tower, boasting a total of 30 exclusive units',
+    required: false,
+  })
   @IsString()
   @IsOptional()
   briefDescription?: string;
 }
 
-class ComprehensiveOverview {
-  @ApiProperty({ example: 'An idyllic coastal destination that combines natural beauty & iconic architecture', required: false })
+export class ComprehensiveOverview {
+  @ApiProperty({
+    example: 'An idyllic coastal destination that combines natural beauty & iconic architecture',
+    required: false,
+  })
   @IsString()
   @IsOptional()
   subtitle?: string;
 
-  @ApiProperty({ example: 'The remarkable structure features a single, 15-story tower, boasting a total of 30 exclusive units', required: false })
+  @ApiProperty({
+    example:
+      'The remarkable structure features a single, 15-story tower, boasting a total of 30 exclusive units',
+    required: false,
+  })
   @IsString()
   @IsOptional()
   generalDescription?: string;
 
-  @ApiProperty({ example: 'Fine dining, park and excellent schools just minutes away', required: false })
+  @ApiProperty({
+    example: 'Fine dining, park and excellent schools just minutes away',
+    required: false,
+  })
   @IsString()
   @IsOptional()
   community?: string;
@@ -49,7 +71,7 @@ class ComprehensiveOverview {
   futureDevelopmentPlans?: string;
 }
 
-class BudgetLimitationsRange {
+export class BudgetLimitationsRange {
   @ApiProperty({ example: 10000, required: false })
   @IsNumber()
   @IsOptional()
@@ -115,7 +137,7 @@ export const createResidenceSchema = Joi.object({
   associatedBrandId: Joi.string().optional(),
   briefOverview: Joi.object({
     subtitle: Joi.string().optional(),
-    briefDescription: Joi.string().optional()
+    briefDescription: Joi.string().optional(),
   }).optional(),
   comprehensiveOverview: Joi.object({
     subtitle: Joi.string().optional(),
@@ -123,10 +145,10 @@ export const createResidenceSchema = Joi.object({
     community: Joi.string().optional(),
     recentRenovation: Joi.string().optional(),
     localAttractions: Joi.string().optional(),
-    futureDevelopmentPlans: Joi.string().optional()
+    futureDevelopmentPlans: Joi.string().optional(),
   }).optional(),
   budgetLimitationsRange: Joi.object({
     startRange: Joi.number().optional(),
-    endRange: Joi.number().optional()
-  }).optional()
+    endRange: Joi.number().optional(),
+  }).optional(),
 });
