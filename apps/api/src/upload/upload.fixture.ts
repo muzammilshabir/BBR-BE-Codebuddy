@@ -11,14 +11,14 @@ export class UploadFixture extends AbstractFixture {
   }
 
   name = UploadFixture.name;
-  static UPLOAD_1='UPLOAD_1';
-  static UPLOAD_2='UPLOAD_2';
+  static UPLOAD_1 = 'UPLOAD_1';
+  static UPLOAD_2 = 'UPLOAD_2';
 
   async load(): Promise<any> {
     const upload1 = await this.uploadModel.create({
       originalFileKey: 'staff.png',
       fileKey: 'public/staff_5e8454866b106d8d.png',
-      url: 'https://d1gi1hhecs55o9.cloudfront.net/public/staff_5e8454866b106d8d.png',
+      url: 'https://bbr-dev-001.s3.eu-central-003.backblazeb2.com/7xoQpkZHFZUnB9LfZ4r5oQ',
       mimeType: 'image/png',
       size: 32801,
       driver: 'AWS_S3',
@@ -29,7 +29,7 @@ export class UploadFixture extends AbstractFixture {
     const upload2 = await this.uploadModel.create({
       originalFileKey: 'staff.png',
       fileKey: 'public/staff_767b306d2d78c079.png',
-      url: 'https://d1gi1hhecs55o9.cloudfront.net/public/staff_767b306d2d78c079.png',
+      url: 'https://bbr-dev-001.s3.eu-central-003.backblazeb2.com/7xoQpkZHFZUnB9LfZ4r5oQ',
       mimeType: 'image/png',
       size: 32801,
       driver: 'AWS_S3',
@@ -41,6 +41,6 @@ export class UploadFixture extends AbstractFixture {
     this.addReference(UploadFixture.UPLOAD_1, upload1);
     this.addReference(UploadFixture.UPLOAD_2, upload2);
 
-    return await this.uploadModel.find()
+    return await this.uploadModel.find();
   }
 }
