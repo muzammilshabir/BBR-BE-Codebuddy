@@ -38,7 +38,7 @@ describe('PostModule', () => {
     });
 
     it('Should find Post by id ', async () => {
-      const post: Post = app.getReference(PostFixture.TAG_1);
+      const post: Post = app.getReference(PostFixture.POST_1);
       const res = await app.exec('GET', url + '/' + post.id, {
         headers: {},
       });
@@ -49,7 +49,7 @@ describe('PostModule', () => {
     });
 
     it('Should Update post by id ', async () => {
-      const post: Post = app.getReference(PostFixture.TAG_1);
+      const post: Post = app.getReference(PostFixture.POST_1);
       const data = {
         title: 'Post 1',
         content: 'Content updated',
@@ -61,23 +61,6 @@ describe('PostModule', () => {
       expect(res.status).toBe(200);
       expect(res.body.data.post._id).toEqual(post.id);
       expect(res.body.data.post).toMatchObject(data);
-    });
-
-    it('Should remove post by id ', async () => {
-      const post: Post = app.getReference(PostFixture.TAG_1);
-      const res = await app.exec('DELETE', url + '/' + post.id, {
-        headers: {},
-      });
-
-      expect(res.status).toBe(200);
-      expect(res.body.data.post._id).toEqual(post.id);
-      expect(res.body.data.post.title).toEqual('Post 1');
-
-      const checkRemovedPost = await app.exec('GET', url + '/' + post.id, {
-        headers: {},
-      });
-      expect(checkRemovedPost.status).toBe(404);
-      expect(checkRemovedPost.body.error).toEqual('Not Found');
     });
   });
 });

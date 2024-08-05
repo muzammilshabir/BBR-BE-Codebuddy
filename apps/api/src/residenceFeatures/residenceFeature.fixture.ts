@@ -11,16 +11,18 @@ export class ResidenceFeatureFixture extends AbstractFixture {
   }
 
   name = ResidenceFeatureFixture.name;
-  static TAG_1 = 'TAG_1';
-  static TAG_2 = 'TAG_2';
-  static TAG_3 = 'TAG_3';
+  static RESIDENCE_FEATURE_1 = 'Swimming Pool';
+  static RESIDENCE_FEATURE_2 = 'Gym';
+  static RESIDENCE_FEATURE_3 = 'Parking';
 
-  async load(): Promise<void> {
+  async load(): Promise<any> {
     const residenceFeature1 = await this.yourModel.create({ name: 'Swimming Pool' });
     const residenceFeature2 = await this.yourModel.create({ name: 'Gym' });
     const residenceFeature3 = await this.yourModel.create({ name: 'Parking' });
-    this.addReference(ResidenceFeatureFixture.TAG_1, residenceFeature1);
-    this.addReference(ResidenceFeatureFixture.TAG_2, residenceFeature2);
-    this.addReference(ResidenceFeatureFixture.TAG_3, residenceFeature3);
+    this.addReference(ResidenceFeatureFixture.RESIDENCE_FEATURE_1, residenceFeature1);
+    this.addReference(ResidenceFeatureFixture.RESIDENCE_FEATURE_2, residenceFeature2);
+    this.addReference(ResidenceFeatureFixture.RESIDENCE_FEATURE_3, residenceFeature3);
+
+    return await this.yourModel.find()
   }
 }

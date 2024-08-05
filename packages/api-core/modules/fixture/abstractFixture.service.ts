@@ -3,7 +3,8 @@ import { FixtureReferenceService } from './fixtureReference.service';
 
 @Injectable()
 export abstract class AbstractFixture {
-  public dependsOn: (typeof AbstractFixture)[] = [];
+  // public dependsOn: (typeof AbstractFixture)[] = [];
+  public dependsOn: (new (...args: any[]) => AbstractFixture)[] = [];
   public name = 'AbstractFixture';
 
   @Inject()
