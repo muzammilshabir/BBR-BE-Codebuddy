@@ -52,7 +52,6 @@ export class UploadService {
             driver: 'S3',
             createdById: '60d5f485f7c6a4b2b8e8b5f7', // Assuming you have user authentication in place
           };
-          console.log('fileDocument :>> ', fileDocument);
           return fileDocument;
         });
         s3Uploads.push(uploadRequest);
@@ -74,8 +73,11 @@ export class UploadService {
         }
         Promise.all(s3Uploads)
           .then(async (files) => {
-            files.map((file) => this.uploadRepository.create(file));
-            resolve(files);
+            // Store all files in the database and wait for the operation to complete
+            const storedFiles = await Promise.all(
+              files.map((file) => this.uploadRepository.create(file))
+            );
+            resolve(storedFiles);
           })
           .catch(reject);
       });
