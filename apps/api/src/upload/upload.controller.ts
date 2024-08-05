@@ -14,7 +14,7 @@ export class UploadController {
   @ApiOperation({ summary: 'Upload file' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
-    description: 'List of files to upload',
+    description: 'upload files',
     type: FilesUploadDto,
   })
   @Post()
