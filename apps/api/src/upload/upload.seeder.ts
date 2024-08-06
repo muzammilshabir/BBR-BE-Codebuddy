@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { UploadRepository } from './upload.repository';
 import { AbstractSeeder } from '@bbr/api-core/modules/seeder/abstractSeeder.service';
+import { Types } from 'mongoose';
 
 @Injectable()
 export class UploadSeeder extends AbstractSeeder {
@@ -21,7 +22,7 @@ export class UploadSeeder extends AbstractSeeder {
           mimeType: 'image/png',
           size: 32801,
           driver: 'AWS_S3',
-          createdById: '60d5f485f7c6a4b2b8e8b5f7', // Example ObjectId
+          createdById: new Types.ObjectId('60d5f485f7c6a4b2b8e8b5f7'), // Example ObjectId
           createdAt: new Date(),
           updatedAt: new Date(),
         },
@@ -32,7 +33,7 @@ export class UploadSeeder extends AbstractSeeder {
           mimeType: 'application/pdf',
           size: 1048576,
           driver: 'AWS_S3',
-          createdById: '60d5f485f7c6a4b2b8e8b5f8', // Example ObjectId
+          createdById: new Types.ObjectId('60d5f485f7c6a4b2b8e8b5f8'), // Example ObjectId
           createdAt: new Date(),
           updatedAt: new Date(),
         },

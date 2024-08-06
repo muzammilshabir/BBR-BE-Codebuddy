@@ -1,22 +1,22 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
 
 @Schema({ timestamps: true })
 export class Residence extends Document {
   @Prop({ required: true })
   name: string;
 
-  @Prop({ required: true })
-  residenceTypeId: string;
+  @Prop({ required: true, type: Types.ObjectId, ref: 'ResidenceType' })
+  residenceTypeId: Types.ObjectId;
 
-  @Prop({ required: true })
-  locationId: string;
+  @Prop({ required: true, type: Types.ObjectId, ref: 'Location' })
+  locationId: Types.ObjectId;
 
   @Prop({ required: true })
   websiteLink: string;
 
-  @Prop({ required: true })
-  associatedBrandId: string;
+  @Prop({ required: true, type: Types.ObjectId, ref: 'Brand' })
+  associatedBrandId: Types.ObjectId;
 
   @Prop({
     type: {
@@ -64,7 +64,7 @@ export class Residence extends Document {
 
   @Prop({
     type: {
-      featureIds: [String],
+      featureIds: [{ type: Types.ObjectId, ref: 'ResidenceFeature' }],
       developmentInfo: {
         yearOfBuild: Number,
         rentalPotential: String,
@@ -76,7 +76,7 @@ export class Residence extends Document {
     _id: false,
   })
   residenceKeyFeatures: {
-    featureIds: string[];
+    featureIds: Types.ObjectId[];
     developmentInfo: {
       yearOfBuild: number;
       rentalPotential: string;
@@ -88,39 +88,39 @@ export class Residence extends Document {
 
   @Prop({
     type: {
-      mainGalleryPhotos: [String],
-      secondGalleryPhotos: [String],
-      videoTour: String, // ObjectId reference or URL
+      mainGalleryPhotos: [{ type: Types.ObjectId, ref: 'Upload' }],
+      secondGalleryPhotos: [{ type: Types.ObjectId, ref: 'Upload' }],
+      videoTour: { type: Types.ObjectId, ref: 'Upload' },
       videoTourLink: String,
     },
     _id: false,
   })
   visuals: {
-    mainGalleryPhotos: string[];
-    secondGalleryPhotos: string[];
-    videoTour: string;
+    mainGalleryPhotos: Types.ObjectId[];
+    secondGalleryPhotos: Types.ObjectId[];
+    videoTour: Types.ObjectId;
     videoTourLink: string;
   };
 
   @Prop({
     type: {
-      amenitiesList: [String],
+      amenitiesList: [{ type: Types.ObjectId, ref: 'Amenity' }],
       highlightedAmenities: [
         {
           name: String,
           generalDescription: String,
-          imageId: String,
+          imageId: { type: Types.ObjectId, ref: 'Upload' },
         },
       ],
     },
     _id: false,
   })
   nearbyAmenities: {
-    amenitiesList: string[];
+    amenitiesList: Types.ObjectId[];
     highlightedAmenities: {
       name: string;
       generalDescription: string;
-      imageId: string;
+      imageId: Types.ObjectId;
     }[];
   };
 
@@ -131,11 +131,11 @@ export class Residence extends Document {
   })
   status: string;
 
-  @Prop([String])
-  unitIds: string[];
+  @Prop([{ type: Types.ObjectId, ref: 'Unit' }]) // add unit collection ref
+  unitIds: Types.ObjectId[];
 
-  @Prop({ type: String })
-  createdById: string;
+  @Prop({ type: Types.ObjectId, ref: 'User' })
+  createdById: Types.ObjectId;
 
   @Prop({ type: Date })
   createdAt: Date;

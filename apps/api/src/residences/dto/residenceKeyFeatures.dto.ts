@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import * as Joi from 'joi';
+import { Types } from 'mongoose';
 
 export enum RentalPotential {
   High = 'High',
@@ -33,8 +34,8 @@ export class DevelopmentInfo {
 }
 
 export class AddKeyFeaturesDto {
-  @ApiProperty({ example: ['feature1', 'feature2'] })
-  featureIds: string[];
+  @ApiProperty({ example: ['60d9c6a0a11c3c6c6a9a1a2a', '60d9c6a0a11c3c6c6a9a1a2b'] })
+  featureIds: Types.ObjectId[];
 
   @ApiProperty()
   developmentInfo: DevelopmentInfo;
@@ -44,7 +45,18 @@ export class AddKeyFeaturesDto {
 }
 
 export const addKeyFeaturesSchema = Joi.object({
-  featureIds: Joi.array().items(Joi.string().required()).required(),
+  featureIds: Joi.array()
+    .items(
+      Joi.string()
+        .custom((value, helpers) => {
+          if (!Types.ObjectId.isValid(value)) {
+            return helpers.message({ custom: 'Invalid ObjectId for featureIds' });
+          }
+          return value;
+        })
+        .required()
+    )
+    .required(),
   developmentInfo: Joi.object({
     yearOfBuild: Joi.number().required(),
     rentalPotential: Joi.string()

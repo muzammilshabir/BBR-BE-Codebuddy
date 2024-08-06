@@ -1,5 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import * as Joi from 'joi';
+import { Types } from 'mongoose';
+import { isValidObjectId } from '@bbr/api-core/modules/custome-validations/custome-validations';
 
 export class BriefOverview {
   @ApiProperty({
@@ -58,17 +60,17 @@ export class CreateResidenceDto {
   @ApiProperty({ example: 'Ritz Carlton Miami', required: true })
   name: string;
 
-  @ApiProperty({ example: '60d9c6a0a11c3c6c6a9a1a2a', required: true })
-  residenceTypeId: string;
+  @ApiProperty({ example: '60d9c6a0a11c3c6c6a9a1a2a', required: true, type: String })
+  residenceTypeId: Types.ObjectId;
 
-  @ApiProperty({ example: '60d9c6a0a11c3c6c6a9a1a1a', required: true })
-  locationId: string;
+  @ApiProperty({ example: '60d9c6a0a11c3c6c6a9a1a1a', required: true, type: String })
+  locationId: Types.ObjectId;
 
   @ApiProperty({ example: 'https://dummywebsite.com', required: false })
   websiteLink?: string;
 
-  @ApiProperty({ example: '60d9c6a0a11c3c6c6a9a1a1b', required: false })
-  associatedBrandId?: string;
+  @ApiProperty({ example: '60d9c6a0a11c3c6c6a9a1a1b', required: false, type: String })
+  associatedBrandId?: Types.ObjectId;
 
   @ApiProperty({ required: false })
   briefOverview?: BriefOverview;
@@ -82,10 +84,31 @@ export class CreateResidenceDto {
 
 export const createResidenceSchema = Joi.object({
   name: Joi.string().required(),
-  residenceTypeId: Joi.string().required(),
-  locationId: Joi.string().required(),
+  residenceTypeId: Joi.string()
+    .custom((value, helpers) => {
+      if (!isValidObjectId(value)) {
+        return helpers.message({ custom: 'Invalid ObjectId for residenceTypeId' });
+      }
+      return value;
+    })
+    .required(),
+  locationId: Joi.string()
+    .custom((value, helpers) => {
+      if (!isValidObjectId(value)) {
+        return helpers.message({ custom: 'Invalid ObjectId for locationId' });
+      }
+      return value;
+    })
+    .required(),
   websiteLink: Joi.string().optional(),
-  associatedBrandId: Joi.string().optional(),
+  associatedBrandId: Joi.string()
+    .optional()
+    .custom((value, helpers) => {
+      if (value && !isValidObjectId(value)) {
+        return helpers.message({ custom: 'Invalid ObjectId for associatedBrandId' });
+      }
+      return value;
+    }),
   briefOverview: Joi.object({
     subtitle: Joi.string().optional(),
     briefDescription: Joi.string().optional(),
