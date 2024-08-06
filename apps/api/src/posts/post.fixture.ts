@@ -11,13 +11,13 @@ export class PostFixture extends AbstractFixture {
   }
 
   name = PostFixture.name;
-  static TAG_1 = 'TAG_1';
+  static POST_1 = 'POST_1';
 
   async load(): Promise<void> {
     const post1 = await this.yourModel.create({
       title: 'Post 1',
       content: 'Content 1',
     });
-    this.addReference(PostFixture.TAG_1, post1);
+    this.addReference(PostFixture.POST_1, post1);
   }
 }

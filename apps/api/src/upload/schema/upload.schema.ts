@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
 
 @Schema({ timestamps: true })
 export class Upload extends Document {
@@ -21,8 +21,8 @@ export class Upload extends Document {
   @Prop({ required: true })
   driver: string;
 
-  @Prop({ required: true })
-  createdById: string;
+  @Prop({ type: Types.ObjectId, ref: 'User' })
+  createdById: Types.ObjectId;
 
   @Prop({ type: Date })
   createdAt: Date;

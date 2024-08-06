@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { UploadRepository } from './upload.repository';
 import { S3Client } from '@aws-sdk/client-s3';
-import { ServiceConfig } from 'src/config';
+import { ServiceConfig } from '../config';
 import VolatileFile from 'formidable/VolatileFile';
 import { PassThrough, Writable } from 'stream';
 import { Upload } from '@aws-sdk/lib-storage';
@@ -10,6 +10,7 @@ import { formidableOptions } from './formidable.config';
 import { S3ClientFactory } from './s3.client';
 import formidable, { File } from 'formidable';
 import { Request } from 'express';
+import { Types } from 'mongoose';
 @Injectable()
 export class UploadService {
   private readonly s3Client: S3Client;
@@ -49,7 +50,7 @@ export class UploadService {
             mimeType: formidableFile.mimetype,
             size: formidableFile.size,
             driver: 'S3',
-            createdById: '60d5f485f7c6a4b2b8e8b5f7', // Assuming you have user authentication in place
+            createdById: new Types.ObjectId('60d5f485f7c6a4b2b8e8b5f7'), // Assuming you have user authentication in place
           };
           return fileDocument;
         });

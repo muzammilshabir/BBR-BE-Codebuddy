@@ -12,6 +12,7 @@ import { BrandModule } from './brand/brand.module';
 import { ResidenceFeatureModule } from './residenceFeatures/residenceFeatures.module';
 import { AmenitiesModule } from './amenities/amenities.module';
 import { UploadModule } from './upload/upload.module';
+import { ResidenceModule } from './residences/residences.module';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -28,6 +29,7 @@ import { UploadModule } from './upload/upload.module';
     ResidenceFeatureModule,
     AmenitiesModule,
     UploadModule,
+    ResidenceModule,
   ],
   controllers: [],
   providers: [],

@@ -11,8 +11,13 @@ import { ResidenceFeatureFixture } from './residenceFeature.fixture';
   imports: [
     MongooseModule.forFeature([{ name: ResidenceFeature.name, schema: ResidenceFeatureSchema }]),
   ],
-  providers: [ResidenceFeatureService, ResidenceFeatureRepository, ResidenceFeatureSeeder,ResidenceFeatureFixture],
-  exports: [ResidenceFeatureSeeder,ResidenceFeatureFixture],
+  providers: [
+    ResidenceFeatureService,
+    ResidenceFeatureRepository,
+    ResidenceFeatureSeeder,
+    ResidenceFeatureFixture,
+  ],
+  exports: [ResidenceFeatureSeeder, ResidenceFeatureFixture],
   controllers: [ResidenceFeatureController],
 })
 export class ResidenceFeatureModule {}
