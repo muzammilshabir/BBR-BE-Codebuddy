@@ -1,6 +1,4 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsEnum, IsNotEmpty, IsNumber, IsString, ValidateNested } from 'class-validator';
-import { Type } from 'class-transformer';
 import * as Joi from 'joi';
 
 export enum RentalPotential {
@@ -22,40 +20,26 @@ export enum PetPolicy {
 
 export class DevelopmentInfo {
   @ApiProperty({ example: 2020 })
-  @IsNotEmpty()
-  @IsNumber()
   yearOfBuild: number;
 
   @ApiProperty({ example: 'High' })
-  @IsNotEmpty()
-  @IsEnum(RentalPotential)
   rentalPotential: RentalPotential;
 
   @ApiProperty({ example: 'Completed' })
-  @IsNotEmpty()
-  @IsEnum(DevelopmentStatus)
   developmentStatus: DevelopmentStatus;
 
   @ApiProperty({ example: 1500 })
-  @IsNotEmpty()
-  @IsNumber()
   floorAreaSqFt: number;
 }
 
 export class AddKeyFeaturesDto {
   @ApiProperty({ example: ['feature1', 'feature2'] })
-  @IsArray()
-  @IsString({ each: true })
-  @IsNotEmpty({ each: true })
   featureIds: string[];
 
   @ApiProperty()
-  @ValidateNested()
-  @Type(() => DevelopmentInfo)
   developmentInfo: DevelopmentInfo;
 
   @ApiProperty({ example: 'petFriendly' })
-  @IsEnum(PetPolicy)
   petPolicy: PetPolicy;
 }
 
