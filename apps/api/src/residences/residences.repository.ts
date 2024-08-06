@@ -5,6 +5,7 @@ import { Residence } from './schema/residences.schema';
 import { BaseRepository } from '@bbr/api-core/modules/db/base.repository';
 import { AddKeyFeaturesDto } from './dto/residenceKeyFeatures.dto';
 import { AddVisualsDto } from './dto/add-visuals.dto';
+import { UpdateNearbyAmenitiesDto } from './dto/update-nearby-amenities.dto';
 
 @Injectable()
 export class ResidenceRepository extends BaseRepository<Residence> {
@@ -23,6 +24,17 @@ export class ResidenceRepository extends BaseRepository<Residence> {
     return await this.residenceModel.findByIdAndUpdate(
       id,
       { $set: { visuals: { ...addVisualsDto } } },
+      { new: true }
+    );
+  }
+
+  async updateNearbyAmenities(
+    id: string,
+    updateNearbyAmenitiesDto: UpdateNearbyAmenitiesDto
+  ): Promise<Residence> {
+    return await this.residenceModel.findByIdAndUpdate(
+      id,
+      { $set: { nearbyAmenities: { ...updateNearbyAmenitiesDto } } },
       { new: true }
     );
   }

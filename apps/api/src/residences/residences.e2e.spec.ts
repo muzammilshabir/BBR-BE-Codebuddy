@@ -158,4 +158,92 @@ describe('ResidenceController', () => {
       expect(res.body.residence.visuals).toEqual(expect.objectContaining(updateVisualsDto));
     });
   });
+
+  describe('Update Nearby Amenities', () => {
+    it('Should update nearby amenities of an existing Residence', async () => {
+      const existingResidence = app.getReference(ResidencesFixture.RESIDENCE1);
+      const amenity1 = app.getReference(AmenityFixture.TAG_GOLF_COURSE);
+      const amenity2 = app.getReference(AmenityFixture.TAG_SWIMMING_POOL);
+      const uploadImage = app.getReference(UploadFixture.UPLOAD_1);
+
+      const updateNearbyAmenitiesDto = {
+        amenitiesList: [amenity1.id, amenity2.id],
+        highlightedAmenities: [
+          {
+            name: 'Updated Park',
+            generalDescription: 'An updated large public park with playgrounds.',
+            imageId: uploadImage.id,
+          },
+        ],
+      };
+
+      const body = JSON.stringify(updateNearbyAmenitiesDto);
+
+      const res = await app.exec('PUT', `${url}/${existingResidence.id}/nearby-amenities`, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        data: body,
+      });
+
+      // Check response status and data
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Residence nearby amenities updated successfully');
+      expect(res.body.data.residence.nearbyAmenities).toEqual(
+        expect.objectContaining(updateNearbyAmenitiesDto)
+      );
+    });
+
+    it('Should update nearby amenities with partial highlightedAmenities of an existing Residence', async () => {
+      const existingResidence = app.getReference(ResidencesFixture.RESIDENCE1);
+      const amenity1 = app.getReference(AmenityFixture.TAG_GOLF_COURSE);
+      const amenity2 = app.getReference(AmenityFixture.TAG_SWIMMING_POOL);
+      const uploadImage = app.getReference(UploadFixture.UPLOAD_1);
+
+      const updateNearbyAmenitiesDto = {
+        amenitiesList: [amenity1.id, amenity2.id],
+        highlightedAmenities: [
+          {
+            name: 'Updated Park',
+            generalDescription: 'An updated large public park with playgrounds.',
+            // imageId is omitted
+          },
+          {
+            name: 'New Gym',
+            generalDescription: 'A brand new gym with modern equipment.',
+            imageId: uploadImage.id,
+          },
+        ],
+      };
+
+      const body = JSON.stringify(updateNearbyAmenitiesDto);
+
+      const res = await app.exec('PUT', `${url}/${existingResidence.id}/nearby-amenities`, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        data: body,
+      });
+
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Residence nearby amenities updated successfully');
+      expect(res.body.data.residence.nearbyAmenities).toEqual(
+        expect.objectContaining({
+          amenitiesList: expect.arrayContaining(updateNearbyAmenitiesDto.amenitiesList),
+          highlightedAmenities: expect.arrayContaining([
+            expect.objectContaining({
+              name: 'Updated Park',
+              generalDescription: 'An updated large public park with playgrounds.',
+              // imageId should be undefined or not present
+            }),
+            expect.objectContaining({
+              name: 'New Gym',
+              generalDescription: 'A brand new gym with modern equipment.',
+              imageId: uploadImage.id,
+            }),
+          ]),
+        })
+      );
+    });
+  });
 });

@@ -110,6 +110,7 @@ export class Residence extends Document {
           name: String,
           generalDescription: String,
           imageId: { type: Types.ObjectId, ref: 'Upload' },
+          _id: false,
         },
       ],
     },

@@ -7,6 +7,7 @@ import { BadRequestException, NotFoundException } from '@bbr/api-core/modules/ex
 import { AddKeyFeaturesDto } from './dto/residenceKeyFeatures.dto';
 import { AddVisualsDto } from './dto/add-visuals.dto';
 import { Types } from 'mongoose';
+import { UpdateNearbyAmenitiesDto } from './dto/update-nearby-amenities.dto';
 @Injectable()
 export class ResidenceService {
   constructor(private readonly residenceRepository: ResidenceRepository) {}
@@ -86,6 +87,41 @@ export class ResidenceService {
           : undefined,
       };
       const existingResidence = await this.residenceRepository.addVisuals(id, transformedDto);
+      if (!existingResidence) {
+        throw new NotFoundException(`Residence with ID ${id} not found`);
+      }
+      return existingResidence;
+    } catch (error) {
+      if (error.response && error.response.statusCode === 400) {
+        throw new BadRequestException(error.response.message);
+      }
+      throw new InternalServerErrorException('Internal Server Error');
+    }
+  }
+
+  async updateNearbyAmenities(
+    id: string,
+    updateNearbyAmenitiesDto: UpdateNearbyAmenitiesDto
+  ): Promise<Residence> {
+    try {
+      const transformedDto = {
+        ...updateNearbyAmenitiesDto,
+        amenitiesList: updateNearbyAmenitiesDto.amenitiesList.map(
+          (amenityId) => new Types.ObjectId(amenityId)
+        ),
+        highlightedAmenities: updateNearbyAmenitiesDto.highlightedAmenities.map(
+          (highlightedAmenity) => ({
+            ...highlightedAmenity,
+            imageId: highlightedAmenity.imageId
+              ? new Types.ObjectId(highlightedAmenity.imageId)
+              : undefined,
+          })
+        ),
+      };
+
+      const existingResidence = await this.residenceRepository.update(id, {
+        nearbyAmenities: transformedDto,
+      });
       if (!existingResidence) {
         throw new NotFoundException(`Residence with ID ${id} not found`);
       }
