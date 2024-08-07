@@ -1,24 +1,24 @@
-// src/unit/unit.e2e.spec.ts
 import { AppModule } from '../app.module';
 import { TestSuite } from '@bbr/api-core/modules/testing/test.suite';
 import { ResidencesFixture } from '../residences/residences.fixture';
 import { UnitFixture } from './unit.fixture';
+import { Recurrence, ServiceType } from './enum/unit-enum';
+import { UploadFixture } from '../upload/upload.fixture';
 import { ResidenceTypeFixture } from '../residenceType/residenceType.fixture';
 import { LocationFixture } from '../location/location.fixture';
 import { BrandFixture } from '../brand/brand.fixture';
 import { ResidenceFeatureFixture } from '../residenceFeatures/residenceFeature.fixture';
-import { UploadFixture } from '../upload/upload.fixture';
 import { AmenityFixture } from '../amenities/amenities.fixture';
 
 describe('UnitController', () => {
   const app = new TestSuite(AppModule, [
-    ResidencesFixture,
     UnitFixture,
+    ResidencesFixture,
+    UploadFixture,
     ResidenceTypeFixture,
     LocationFixture,
     BrandFixture,
     ResidenceFeatureFixture,
-    UploadFixture,
     AmenityFixture,
   ]);
   const url = '/unit';
@@ -77,6 +77,50 @@ describe('UnitController', () => {
             subTitle: 'Spacious Unit',
             description: 'A spacious unit with modern amenities.',
           }),
+        })
+      );
+    });
+  });
+
+  describe('Add Unit Key Features', () => {
+    it('Should add key features to a Unit', async () => {
+      const unit = app.getReference(UnitFixture.UNIT1); // Adjust to get the unit reference
+
+      const addUnitKeyFeaturesDto = {
+        features: ['Balcony with ocean view', 'Marble walls & floor'],
+        residenceServices: [
+          {
+            serviceType: ServiceType.COOKING,
+            amount: 100,
+            recurrence: Recurrence.DAILY,
+          },
+        ],
+      };
+
+      // Convert the addUnitKeyFeaturesDto to a JSON string
+      const body = JSON.stringify(addUnitKeyFeaturesDto);
+
+      // Send POST request
+      const res = await app.exec('POST', `${url}/${unit._id}/key-features`, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        data: body,
+      });
+
+      // Check response status and data
+      expect(res.status).toBe(201); // Assuming success response status code
+      expect(res.body.message).toBe('Unit key features added successfully');
+      expect(res.body.data.unitKeyFeatures).toEqual(
+        expect.objectContaining({
+          features: expect.arrayContaining(['Balcony with ocean view', 'Marble walls & floor']),
+          residenceServices: expect.arrayContaining([
+            expect.objectContaining({
+              serviceType: ServiceType.COOKING,
+              amount: 100,
+              recurrence: Recurrence.DAILY,
+            }),
+          ]),
         })
       );
     });
