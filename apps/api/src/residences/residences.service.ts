@@ -99,9 +99,10 @@ export class ResidenceService {
       ),
     };
 
-    const existingResidence = await this.residenceRepository.update(id, {
-      nearbyAmenities: transformedDto,
-    });
+    const existingResidence = await this.residenceRepository.updateNearbyAmenities(
+      id,
+      transformedDto
+    );
     if (!existingResidence) {
       throw new NotFoundException(`Residence with ID ${id} not found`);
     }
