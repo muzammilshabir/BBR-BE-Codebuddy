@@ -7,3 +7,13 @@ export enum RoomType {
   GYM = 'Gym',
   PARKING_PLACE = 'Parking Place',
 }
+export enum ServiceType {
+  COOKING = 'Cooking',
+  CLEANING = 'Cleaning',
+  LAUNDRY = 'Laundry',
+}
+
+export enum Recurrence {
+  DAILY = 'daily',
+  WEEKLY = 'weekly',
+}

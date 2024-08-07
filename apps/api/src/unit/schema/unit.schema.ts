@@ -77,7 +77,7 @@ export class Unit extends Document {
           type: {
             serviceType: String,
             amount: Number,
-            recurrence: [String],
+            recurrence: String,
           },
           _id: false,
         },
@@ -90,7 +90,7 @@ export class Unit extends Document {
     residenceServices: {
       serviceType: string;
       amount: number;
-      recurrence: string[];
+      recurrence: string;
     }[];
   };
 
