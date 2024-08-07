@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import * as Joi from 'joi';
 import { Types } from 'mongoose';
-import { isValidObjectId } from '@bbr/api-core/modules/custome-validations/custome-validations';
+import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
 import {
   BriefOverview,
   BudgetLimitationsRange,
@@ -36,31 +36,10 @@ export class UpdateResidenceDto {
 
 export const updateResidenceSchema = Joi.object({
   name: Joi.string().optional(),
-  residenceTypeId: Joi.string()
-    .custom((value, helpers) => {
-      if (value && !isValidObjectId(value)) {
-        return helpers.message({ custom: 'Invalid ObjectId for residenceTypeId' });
-      }
-      return value;
-    })
-    .optional(),
-  locationId: Joi.string()
-    .custom((value, helpers) => {
-      if (value && !isValidObjectId(value)) {
-        return helpers.message({ custom: 'Invalid ObjectId for locationId' });
-      }
-      return value;
-    })
-    .optional(),
+  residenceTypeId: Joi.string().optional().custom(joiObjectIdValidator('residenceTypeId')),
+  locationId: Joi.string().optional().custom(joiObjectIdValidator('locationId')),
   websiteLink: Joi.string().optional(),
-  associatedBrandId: Joi.string()
-    .optional()
-    .custom((value, helpers) => {
-      if (value && !isValidObjectId(value)) {
-        return helpers.message({ custom: 'Invalid ObjectId for associatedBrandId' });
-      }
-      return value;
-    }),
+  associatedBrandId: Joi.string().optional().custom(joiObjectIdValidator('associatedBrandId')),
   briefOverview: Joi.object({
     subtitle: Joi.string().optional(),
     briefDescription: Joi.string().optional(),

@@ -8,6 +8,10 @@ import { CreateResidenceDto, createResidenceSchema } from './dto/create-residenc
 import { UpdateResidenceDto, updateResidenceSchema } from './dto/update-residence.dto';
 import { AddKeyFeaturesDto, addKeyFeaturesSchema } from './dto/residenceKeyFeatures.dto';
 import { AddVisualsDto, addVisualsSchema } from './dto/add-visuals.dto';
+import {
+  UpdateNearbyAmenitiesDto,
+  updateNearbyAmenitiesSchema,
+} from './dto/update-nearby-amenities.dto';
 
 @ApiTags('Residence')
 @Controller('residence')
@@ -60,5 +64,24 @@ export class ResidenceController {
       message: 'Residence visuals updated successfully',
       residence,
     };
+  }
+
+  @Put(':id/nearby-amenities')
+  @ApiOperation({
+    summary: 'Add or update nearby amenities for a residence',
+  })
+  @UsePipes(new JoiValidationPipe(updateNearbyAmenitiesSchema, 'body'))
+  async updateNearbyAmenities(
+    @Param('id') id: string,
+    @Body() updateNearbyAmenitiesDto: UpdateNearbyAmenitiesDto
+  ) {
+    const residence = await this.residenceService.updateNearbyAmenities(
+      id,
+      updateNearbyAmenitiesDto
+    );
+    return ResponseService.buildResponse(
+      { residence },
+      'Residence nearby amenities updated successfully'
+    );
   }
 }

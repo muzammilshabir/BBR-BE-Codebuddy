@@ -1,18 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { ListPropsDto, PaginationSchema } from '@bbr/api-core/modules/dto/listProps.dto';
 import * as Joi from 'joi';
-import { isValidObjectId } from '@bbr/api-core/modules/custome-validations/custome-validations'; 
+import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
 
 export const listLocationSchema = PaginationSchema.append({
   search: Joi.string().trim().max(100),
   locationFilter: Joi.string().valid('country', 'city').optional(),
-  parentId: Joi.string()
-  .custom((value, helpers) => {
-    if (!isValidObjectId(value)) {
-      return helpers.message({ custom: 'Invalid ObjectId' });
-    }
-    return value;
-  }).optional(),
+  parentId: Joi.string().custom(joiObjectIdValidator('parentId')).optional(),
 });
 
 export class ListLocationDto extends ListPropsDto {
