@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import * as Joi from 'joi';
 import { Types } from 'mongoose';
+import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
 
 export enum RentalPotential {
   High = 'High',
@@ -46,16 +47,7 @@ export class AddKeyFeaturesDto {
 
 export const addKeyFeaturesSchema = Joi.object({
   featureIds: Joi.array()
-    .items(
-      Joi.string()
-        .custom((value, helpers) => {
-          if (!Types.ObjectId.isValid(value)) {
-            return helpers.message({ custom: 'Invalid ObjectId for featureIds' });
-          }
-          return value;
-        })
-        .required()
-    )
+    .items(Joi.string().custom(joiObjectIdValidator('featureIds')).required())
     .required(),
   developmentInfo: Joi.object({
     yearOfBuild: Joi.number().required(),

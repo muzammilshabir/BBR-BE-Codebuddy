@@ -89,6 +89,9 @@ export class ResidenceService {
       highlightedAmenities: updateNearbyAmenitiesDto.highlightedAmenities.map(
         (highlightedAmenity) => ({
           ...highlightedAmenity,
+          amenitieId: highlightedAmenity.amenitieId
+            ? new Types.ObjectId(highlightedAmenity.amenitieId)
+            : undefined,
           imageId: highlightedAmenity.imageId
             ? new Types.ObjectId(highlightedAmenity.imageId)
             : undefined,

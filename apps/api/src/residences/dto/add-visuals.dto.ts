@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import * as Joi from 'joi';
 import { Types } from 'mongoose';
-import { isValidObjectId } from '@bbr/api-core/modules/custome-validations/custome-validations';
+import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
 
 export class AddVisualsDto {
   @ApiProperty({
@@ -31,32 +31,11 @@ export class AddVisualsDto {
 
 export const addVisualsSchema = Joi.object({
   mainGalleryPhotos: Joi.array()
-    .items(
-      Joi.string().custom((value, helpers) => {
-        if (!isValidObjectId(value)) {
-          return helpers.message({ custom: 'Invalid ObjectId for mainGalleryPhotos' });
-        }
-        return value;
-      })
-    )
+    .items(Joi.string().custom(joiObjectIdValidator('mainGalleryPhotos')))
     .required(),
   secondGalleryPhotos: Joi.array()
-    .items(
-      Joi.string().custom((value, helpers) => {
-        if (value && !isValidObjectId(value)) {
-          return helpers.message({ custom: 'Invalid ObjectId for secondGalleryPhotos' });
-        }
-        return value;
-      })
-    )
+    .items(Joi.string().custom(joiObjectIdValidator('secondGalleryPhotos')))
     .optional(),
-  videoTour: Joi.string()
-    .optional()
-    .custom((value, helpers) => {
-      if (value && !isValidObjectId(value)) {
-        return helpers.message({ custom: 'Invalid ObjectId for videoTour' });
-      }
-      return value;
-    }),
+  videoTour: Joi.string().optional().custom(joiObjectIdValidator('videoTour')),
   videoTourLink: Joi.string().uri().optional(),
 });

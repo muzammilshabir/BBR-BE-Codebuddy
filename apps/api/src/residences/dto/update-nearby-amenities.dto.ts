@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import * as Joi from 'joi';
 import { Types } from 'mongoose';
-import { isValidObjectId } from '@bbr/api-core/modules/custome-validations/custome-validations';
+import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
 
 export class UpdateNearbyAmenitiesDto {
   @ApiProperty({
@@ -13,7 +13,7 @@ export class UpdateNearbyAmenitiesDto {
   @ApiProperty({
     example: [
       {
-        name: 'Park',
+        amenitieId: '66ab4bd5161117eabe919e57',
         generalDescription: 'A large public park with playgrounds.',
         imageId: '66acda8b857c576159b74da4',
       },
@@ -21,7 +21,7 @@ export class UpdateNearbyAmenitiesDto {
     required: true,
   })
   highlightedAmenities: {
-    name: string;
+    amenitieId: Types.ObjectId;
     generalDescription: string;
     imageId?: Types.ObjectId;
   }[];
@@ -29,28 +29,14 @@ export class UpdateNearbyAmenitiesDto {
 
 export const updateNearbyAmenitiesSchema = Joi.object({
   amenitiesList: Joi.array()
-    .items(
-      Joi.string().custom((value, helpers) => {
-        if (!isValidObjectId(value)) {
-          return helpers.message({ custom: 'Invalid ObjectId for amenitiesList' });
-        }
-        return value;
-      })
-    )
+    .items(Joi.string().custom(joiObjectIdValidator('amenitiesList')))
     .required(),
   highlightedAmenities: Joi.array()
     .items(
       Joi.object({
-        name: Joi.string().required(),
+        amenitieId: Joi.string().custom(joiObjectIdValidator('amenitieId')).required(),
         generalDescription: Joi.string().required(),
-        imageId: Joi.string()
-          .optional()
-          .custom((value, helpers) => {
-            if (value && !isValidObjectId(value)) {
-              return helpers.message({ custom: 'Invalid ObjectId for imageId' });
-            }
-            return value;
-          }),
+        imageId: Joi.string().optional().custom(joiObjectIdValidator('imageId')),
       })
     )
     .required(),
