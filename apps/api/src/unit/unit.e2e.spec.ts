@@ -97,19 +97,16 @@ describe('UnitController', () => {
         ],
       };
 
-      // Convert the addUnitKeyFeaturesDto to a JSON string
       const body = JSON.stringify(addUnitKeyFeaturesDto);
 
-      // Send POST request
-      const res = await app.exec('POST', `${url}/${unit._id}/key-features`, {
+      const res = await app.exec('PUT', `${url}/${unit._id}/key-features`, {
         headers: {
           'Content-Type': 'application/json',
         },
         data: body,
       });
 
-      // Check response status and data
-      expect(res.status).toBe(201); // Assuming success response status code
+      expect(res.status).toBe(200);
       expect(res.body.message).toBe('Unit key features added successfully');
       expect(res.body.data.unitKeyFeatures).toEqual(
         expect.objectContaining({
@@ -121,6 +118,40 @@ describe('UnitController', () => {
               recurrence: Recurrence.DAILY,
             }),
           ]),
+        })
+      );
+    });
+  });
+
+  describe('Add Visuals to Unit', () => {
+    it('Should update visuals of a Unit', async () => {
+      const unit = app.getReference(UnitFixture.UNIT1);
+      const mainGalleryPhotoId = app.getReference(UploadFixture.UPLOAD_1)._id;
+      const secondGalleryPhotoId = app.getReference(UploadFixture.UPLOAD_2)._id;
+      const videoTourId = app.getReference(UploadFixture.UPLOAD_1)._id;
+
+      const addVisualsDto = {
+        mainGalleryPhotos: [mainGalleryPhotoId],
+        secondGalleryPhotos: [secondGalleryPhotoId],
+        videoTour: videoTourId,
+      };
+
+      const body = JSON.stringify(addVisualsDto);
+
+      const res = await app.exec('PUT', `${url}/${unit._id}/visuals`, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        data: body,
+      });
+
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Unit visuals updated successfully');
+      expect(res.body.data.visuals).toEqual(
+        expect.objectContaining({
+          mainGalleryPhotos: expect.arrayContaining([mainGalleryPhotoId.toString()]),
+          secondGalleryPhotos: expect.arrayContaining([secondGalleryPhotoId.toString()]),
+          videoTour: videoTourId.toString(),
         })
       );
     });
