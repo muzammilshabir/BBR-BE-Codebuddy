@@ -61,7 +61,7 @@ export class ResidenceSeeder extends AbstractSeeder {
             amenitiesList: [new Types.ObjectId('60d5f485f7c6a4b2b8e8b5fd')],
             highlightedAmenities: [
               {
-                name: 'Security Staff',
+                amenityId: new Types.ObjectId('60d5f485f7c6a4b2b8e8b5fd'),
                 generalDescription:
                   'The remarkable structure features a single, 15-story tower, boasting a total of 30 exclusive units',
                 imageId: new Types.ObjectId('60d5f485f7c6a4b2b8e8b5fe'),
@@ -119,7 +119,7 @@ export class ResidenceSeeder extends AbstractSeeder {
             amenitiesList: [new Types.ObjectId('60d5f485f7c6a4b2b8e8b607')],
             highlightedAmenities: [
               {
-                name: 'Valet Parking',
+                amenityId: new Types.ObjectId('60d5f485f7c6a4b2b8e8b5fd'),
                 generalDescription: 'Convenient and secure valet parking service',
                 imageId: new Types.ObjectId('60d5f485f7c6a4b2b8e8b608'),
               },
@@ -174,7 +174,7 @@ export class ResidenceSeeder extends AbstractSeeder {
             amenitiesList: [new Types.ObjectId('60d5f485f7c6a4b2b8e8b611')],
             highlightedAmenities: [
               {
-                name: 'Beach Access',
+                amenityId: new Types.ObjectId('60d5f485f7c6a4b2b8e8b611'),
                 generalDescription: 'Direct access to a private beach',
                 imageId: new Types.ObjectId('60d5f485f7c6a4b2b8e8b612'),
               },
