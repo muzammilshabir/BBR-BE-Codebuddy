@@ -24,6 +24,7 @@ export class ResidencesFixture extends AbstractFixture {
   constructor(@InjectModel(Residence.name) private readonly residenceModel: Model<Residence>) {
     super();
   }
+  name = ResidencesFixture.name;
   static RESIDENCE1 = 'RESIDENCE1';
   async load() {
     const residenceTypeId = this.getReference(ResidenceTypeFixture.RESIDENCE_TYPE_1)._id;

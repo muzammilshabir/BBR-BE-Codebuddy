@@ -13,6 +13,7 @@ import { ResidenceFeatureModule } from './residenceFeatures/residenceFeatures.mo
 import { AmenitiesModule } from './amenities/amenities.module';
 import { UploadModule } from './upload/upload.module';
 import { ResidenceModule } from './residences/residences.module';
+import { UnitModule } from './unit/unit.module';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -30,6 +31,7 @@ import { ResidenceModule } from './residences/residences.module';
     AmenitiesModule,
     UploadModule,
     ResidenceModule,
+    UnitModule,
   ],
   controllers: [],
   providers: [],
