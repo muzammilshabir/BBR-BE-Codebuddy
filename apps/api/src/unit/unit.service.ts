@@ -14,7 +14,7 @@ export class UnitService {
   async addUnit(addUnitDto: AddUnitDto, residenceId: string): Promise<Unit> {
     const transformedDto = {
       ...addUnitDto,
-      residenceId: new Types.ObjectId(addUnitDto.residenceId),
+      residenceId: new Types.ObjectId(residenceId),
     };
     return await this.unitRepository.create(transformedDto);
   }
@@ -38,5 +38,13 @@ export class UnitService {
       throw new NotFoundException(`Unit with ID ${unitId} not found`);
     }
     return updatedUnit;
+  }
+
+  async getUnitById(unitId: string): Promise<Unit> {
+    const unitDetails = await this.unitRepository.findById(unitId);
+    if (!unitDetails) {
+      throw new NotFoundException(`Unit with ID ${unitId} not found`);
+    }
+    return unitDetails;
   }
 }

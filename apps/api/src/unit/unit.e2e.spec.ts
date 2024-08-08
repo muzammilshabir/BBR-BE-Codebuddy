@@ -27,7 +27,6 @@ describe('UnitController', () => {
     it('Should add a new Unit to a Residence', async () => {
       const residence = app.getReference(ResidencesFixture.RESIDENCE1);
       const createUnitDto = {
-        residenceId: residence._id,
         unitName: 'Unit A',
         specs: {
           unitNumber: '101',

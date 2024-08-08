@@ -78,6 +78,7 @@ export class Unit extends Document {
             serviceType: String,
             amount: Number,
             recurrence: String,
+            _id: false,
           },
           _id: false,
         },

@@ -6,12 +6,6 @@ import { RoomType } from '../enum/unit-enum';
 
 export class AddUnitDto {
   @ApiProperty({
-    example: '66ab4bd5161117eabe919e57',
-    required: true,
-  })
-  residenceId: Types.ObjectId;
-
-  @ApiProperty({
     example: 'Unit A',
     required: true,
   })
@@ -83,7 +77,6 @@ export class AddUnitDto {
 }
 
 export const addUnitSchema = Joi.object({
-  residenceId: Joi.string().custom(joiObjectIdValidator('residenceId')).required(),
   unitName: Joi.string().required(),
   specs: Joi.object({
     unitNumber: Joi.string().optional(),
