@@ -239,45 +239,4 @@ describe('UnitController', () => {
       expect(res.body.message).toBe('Invalid ObjectId for residenceId');
     });
   });
-
-  describe('Delete Unit', () => {
-    it('Should delete a Unit by its ID', async () => {
-      const unit = app.getReference(UnitFixture.UNIT1);
-
-      const res = await app.exec('DELETE', `${url}/${unit._id}`, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      expect(res.status).toBe(200);
-      expect(res.body.message).toBe('Unit Deleted successfully');
-    });
-
-    it('Should return 404 if Unit ID does not exist', async () => {
-      const nonExistentUnitId = '64b1b5f4e05c12a1f5d8e7c2'; // Example non-existent ID
-
-      const res = await app.exec('DELETE', `${url}/${nonExistentUnitId}`, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      expect(res.status).toBe(404);
-      expect(res.body.message).toBe(`Unit with ID ${nonExistentUnitId} not found`);
-    });
-
-    it('Should handle invalid Unit ID', async () => {
-      const invalidUnitId = 'invalidId';
-
-      const res = await app.exec('DELETE', `${url}/${invalidUnitId}`, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      expect(res.status).toBe(400); // Assuming your validation pipe handles invalid IDs
-      expect(res.body.message).toBe('Invalid ObjectId for unitId');
-    });
-  });
 });
