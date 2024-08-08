@@ -13,7 +13,7 @@ export class UnitFixture extends AbstractFixture {
   constructor(@InjectModel(Unit.name) private readonly unitModel: Model<Unit>) {
     super();
   }
-
+  name = UnitFixture.name;
   static UNIT1 = 'UNIT1';
   static UNIT2 = 'UNIT2';
 
@@ -57,7 +57,7 @@ export class UnitFixture extends AbstractFixture {
           {
             serviceType: 'Cleaning Service',
             amount: 100,
-            recurrence: ['Weekly'],
+            recurrence: 'Weekly',
           },
         ],
       },
@@ -106,7 +106,7 @@ export class UnitFixture extends AbstractFixture {
           {
             serviceType: 'Gym Access',
             amount: 50,
-            recurrence: ['Monthly'],
+            recurrence: 'Monthly',
           },
         ],
       },

@@ -6,6 +6,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UnitService } from './unit.service';
 import { AddUnitDto, addUnitSchema } from './dto/add-unit.dto';
 import { AddUnitKeyFeaturesDto, addUnitKeyFeaturesSchema } from './dto/unit-key-features.dto';
+import { AddVisualsDto, addVisualsSchema } from './dto/add-visuals.dto';
 
 @ApiTags('Unit')
 @Controller('unit')
@@ -22,7 +23,7 @@ export class UnitController {
     return ResponseService.buildResponse({ unit }, 'Unit added successfully');
   }
 
-  @Post(':unitId/key-features')
+  @Put(':unitId/key-features')
   @ApiOperation({
     summary: 'Add key features in Unit',
   })
@@ -35,6 +36,19 @@ export class UnitController {
     return {
       message: 'Unit key features added successfully',
       data: unitKeyFeatures,
+    };
+  }
+
+  @Put(':unitId/visuals')
+  @ApiOperation({
+    summary: 'Update visuals of a Unit',
+  })
+  @UsePipes(new JoiValidationPipe(addVisualsSchema, 'body'))
+  async addVisuals(@Param('unitId') unitId: string, @Body() addVisualsDto: AddVisualsDto) {
+    const updatedUnit = await this.unitService.addVisuals(addVisualsDto, unitId);
+    return {
+      message: 'Unit visuals updated successfully',
+      data: updatedUnit,
     };
   }
 }
