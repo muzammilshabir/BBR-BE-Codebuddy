@@ -175,4 +175,68 @@ describe('UnitController', () => {
       expect(res.body.message).toBe(`Unit with ID ${nonExistentUnitId} not found`);
     });
   });
+
+  describe('List Units', () => {
+    it('Should list units with pagination and optional residenceId filter', async () => {
+      const residence = app.getReference(ResidencesFixture.RESIDENCE1);
+      const urlWithParams = `${url}?page=1&limit=10&sortBy=createdAt&sortOrder=desc&residenceId=${residence._id}`;
+
+      const res = await app.exec('GET', urlWithParams, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Units retrieved successfully');
+      expect(res.body.data.units).toBeDefined();
+      expect(res.body.data.units.pagination).toEqual(
+        expect.objectContaining({
+          limit: expect.any(Number),
+          currentPage: expect.any(Number),
+          totalDocs: expect.any(Number),
+          totalPages: expect.any(Number),
+          hasNextPage: expect.any(Boolean),
+          hasPrevPage: expect.any(Boolean),
+        })
+      );
+    });
+
+    it('Should list units without residenceId filter', async () => {
+      const urlWithParams = `${url}?page=1&limit=10&sortBy=createdAt&sortOrder=desc`;
+
+      const res = await app.exec('GET', urlWithParams, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Units retrieved successfully');
+      expect(res.body.data.units).toBeDefined();
+      expect(res.body.data.units.pagination).toEqual(
+        expect.objectContaining({
+          limit: expect.any(Number),
+          currentPage: expect.any(Number),
+          totalDocs: expect.any(Number),
+          totalPages: expect.any(Number),
+          hasNextPage: expect.any(Boolean),
+          hasPrevPage: expect.any(Boolean),
+        })
+      );
+    });
+
+    it('Should handle invalid residenceId', async () => {
+      const urlWithParams = `${url}?page=1&limit=10&sortBy=createdAt&sortOrder=desc&residenceId=invalidId`;
+
+      const res = await app.exec('GET', urlWithParams, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toBe('Invalid ObjectId for residenceId');
+    });
+  });
 });

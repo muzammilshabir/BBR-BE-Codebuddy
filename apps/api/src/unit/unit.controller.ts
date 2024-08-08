@@ -1,13 +1,14 @@
 import { Public } from '@bbr/api-core/modules/decorators';
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
-import { Body, Controller, Get, Param, Post, Put, UsePipes } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, Query, UsePipes } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UnitService } from './unit.service';
 import { AddUnitDto, addUnitSchema } from './dto/add-unit.dto';
 import { AddUnitKeyFeaturesDto, addUnitKeyFeaturesSchema } from './dto/unit-key-features.dto';
 import { AddVisualsDto, addVisualsSchema } from './dto/add-visuals.dto';
 import { GetUnitByIdDto, getUnitByIdSchema } from './dto/get-unit-by-id.dto';
+import { ListUnitDto, listUnitSchema } from './dto/list-unit.dto';
 
 @ApiTags('Unit')
 @Controller('unit')
@@ -51,6 +52,16 @@ export class UnitController {
       message: 'Unit visuals updated successfully',
       data: updatedUnit,
     };
+  }
+
+  @Get('/')
+  @ApiOperation({
+    summary: 'List Units with optional residenceId filter',
+  })
+  @UsePipes(new JoiValidationPipe(listUnitSchema, 'query'))
+  async listUnits(@Query() query: ListUnitDto) {
+    const units = await this.unitService.listUnits(query);
+    return ResponseService.buildResponse({ units }, 'Units retrieved successfully');
   }
 
   @Get(':unitId')
