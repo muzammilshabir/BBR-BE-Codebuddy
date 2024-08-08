@@ -111,6 +111,9 @@ export class Unit extends Document {
     videoTourLink: string;
   };
 
+  @Prop({ type: Boolean, default: false })
+  isDeleted: boolean;
+
   @Prop({ type: Types.ObjectId, ref: 'User' })
   createdById: Types.ObjectId;
 
