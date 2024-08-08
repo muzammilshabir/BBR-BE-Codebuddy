@@ -170,7 +170,7 @@ describe('ResidenceController', () => {
         amenitiesList: [amenity1.id, amenity2.id],
         highlightedAmenities: [
           {
-            amenitieId: amenity1.id,
+            amenityId: amenity1.id,
             generalDescription: 'An updated large public park with playgrounds.',
             imageId: uploadImage.id,
           },
@@ -204,12 +204,12 @@ describe('ResidenceController', () => {
         amenitiesList: [amenity1.id, amenity2.id],
         highlightedAmenities: [
           {
-            amenitieId: amenity1.id,
+            amenityId: amenity1.id,
             generalDescription: 'An updated large public park with playgrounds.',
             // imageId is omitted
           },
           {
-            amenitieId: amenity1.id,
+            amenityId: amenity1.id,
             generalDescription: 'A brand new gym with modern equipment.',
             imageId: uploadImage.id,
           },
@@ -232,12 +232,12 @@ describe('ResidenceController', () => {
           amenitiesList: expect.arrayContaining(updateNearbyAmenitiesDto.amenitiesList),
           highlightedAmenities: expect.arrayContaining([
             expect.objectContaining({
-              amenitieId: amenity1.id,
+              amenityId: amenity1.id,
               generalDescription: 'An updated large public park with playgrounds.',
               // imageId should be undefined or not present
             }),
             expect.objectContaining({
-              amenitieId: amenity1.id,
+              amenityId: amenity1.id,
               generalDescription: 'A brand new gym with modern equipment.',
               imageId: uploadImage.id,
             }),

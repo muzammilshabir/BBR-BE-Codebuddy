@@ -52,7 +52,9 @@ export class ResidenceService {
       featureIds: addKeyFeaturesDto.featureIds.map((featureId) => new Types.ObjectId(featureId)),
     };
 
-    const existingResidence = await this.residenceRepository.addKeyFeatures(id, transformedDto);
+    const existingResidence = await this.residenceRepository.update(id, {
+      residenceKeyFeatures: transformedDto,
+    });
     if (!existingResidence) {
       throw new NotFoundException(`Residence with ID ${id} not found`);
     }
@@ -70,7 +72,9 @@ export class ResidenceService {
       ),
       videoTour: addVisualsDto.videoTour ? new Types.ObjectId(addVisualsDto.videoTour) : undefined,
     };
-    const existingResidence = await this.residenceRepository.addVisuals(id, transformedDto);
+    const existingResidence = await this.residenceRepository.update(id, {
+      visuals: transformedDto,
+    });
     if (!existingResidence) {
       throw new NotFoundException(`Residence with ID ${id} not found`);
     }
@@ -89,8 +93,8 @@ export class ResidenceService {
       highlightedAmenities: updateNearbyAmenitiesDto.highlightedAmenities.map(
         (highlightedAmenity) => ({
           ...highlightedAmenity,
-          amenitieId: highlightedAmenity.amenitieId
-            ? new Types.ObjectId(highlightedAmenity.amenitieId)
+          amenityId: highlightedAmenity.amenityId
+            ? new Types.ObjectId(highlightedAmenity.amenityId)
             : undefined,
           imageId: highlightedAmenity.imageId
             ? new Types.ObjectId(highlightedAmenity.imageId)
@@ -99,10 +103,9 @@ export class ResidenceService {
       ),
     };
 
-    const existingResidence = await this.residenceRepository.updateNearbyAmenities(
-      id,
-      transformedDto
-    );
+    const existingResidence = await this.residenceRepository.update(id, {
+      nearbyAmenities: transformedDto,
+    });
     if (!existingResidence) {
       throw new NotFoundException(`Residence with ID ${id} not found`);
     }
