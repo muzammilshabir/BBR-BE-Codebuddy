@@ -19,7 +19,6 @@ export class UnitRepository extends BaseRepository<Unit> {
         { path: 'visuals.secondGalleryPhotos', model: 'Upload' },
         { path: 'visuals.videoTour', model: 'Upload' },
         { path: 'createdById', model: 'User' },
-      ])
-      .exec();
+      ]);
   }
 }

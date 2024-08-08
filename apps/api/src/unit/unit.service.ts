@@ -43,7 +43,7 @@ export class UnitService {
   async getUnitById(unitId: string): Promise<Unit> {
     const unitDetails = await this.unitRepository.findById(unitId);
     if (!unitDetails) {
-      throw new NotFoundException(`Unit with ID ${unitId} not found`);
+      throw new NotFoundException(`Unit with ID ${unitId}`);
     }
     return unitDetails;
   }

@@ -155,4 +155,24 @@ describe('UnitController', () => {
       );
     });
   });
+
+  describe('Get Unit by ID', () => {
+    it('Should retrieve a Unit by its ID', async () => {
+      const unit = app.getReference(UnitFixture.UNIT1);
+
+      const res = await app.exec('GET', `${url}/${unit._id}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Unit retrieved successfully');
+    });
+
+    it('Should return 404 if Unit ID does not exist', async () => {
+      const nonExistentUnitId = '64b1b5f4e05c12a1f5d8e7c2'; // Example non-existent ID
+
+      const res = await app.exec('GET', `${url}/${nonExistentUnitId}`);
+
+      expect(res.status).toBe(404);
+      expect(res.body.message).toBe(`Unit with ID ${nonExistentUnitId} not found`);
+    });
+  });
 });
