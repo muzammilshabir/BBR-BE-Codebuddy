@@ -107,7 +107,7 @@ export class Residence extends Document {
       amenitiesList: [{ type: Types.ObjectId, ref: 'Amenity' }],
       highlightedAmenities: [
         {
-          amenitieId: { type: Types.ObjectId, ref: 'Amenity' },
+          amenityId: { type: Types.ObjectId, ref: 'Amenity' },
           generalDescription: String,
           imageId: { type: Types.ObjectId, ref: 'Upload' },
           _id: false,
@@ -119,7 +119,7 @@ export class Residence extends Document {
   nearbyAmenities: {
     amenitiesList: Types.ObjectId[];
     highlightedAmenities: {
-      amenitieId: Types.ObjectId;
+      amenityId: Types.ObjectId;
       generalDescription: string;
       imageId: Types.ObjectId;
     }[];

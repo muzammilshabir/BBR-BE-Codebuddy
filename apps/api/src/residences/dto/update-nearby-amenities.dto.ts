@@ -13,7 +13,7 @@ export class UpdateNearbyAmenitiesDto {
   @ApiProperty({
     example: [
       {
-        amenitieId: '66ab4bd5161117eabe919e57',
+        amenityId: '66ab4bd5161117eabe919e57',
         generalDescription: 'A large public park with playgrounds.',
         imageId: '66acda8b857c576159b74da4',
       },
@@ -21,7 +21,7 @@ export class UpdateNearbyAmenitiesDto {
     required: true,
   })
   highlightedAmenities: {
-    amenitieId: Types.ObjectId;
+    amenityId: Types.ObjectId;
     generalDescription: string;
     imageId?: Types.ObjectId;
   }[];
@@ -34,7 +34,7 @@ export const updateNearbyAmenitiesSchema = Joi.object({
   highlightedAmenities: Joi.array()
     .items(
       Joi.object({
-        amenitieId: Joi.string().custom(joiObjectIdValidator('amenitieId')).required(),
+        amenityId: Joi.string().custom(joiObjectIdValidator('amenityId')).required(),
         generalDescription: Joi.string().required(),
         imageId: Joi.string().optional().custom(joiObjectIdValidator('imageId')),
       })
