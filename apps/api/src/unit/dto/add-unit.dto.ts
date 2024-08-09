@@ -1,8 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import * as Joi from 'joi';
-import { Types } from 'mongoose';
-import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
 import { RoomType } from '../enum/unit-enum';
+import { joiObjectIdValidator } from '../../../../../packages/api-core/modules/custome-validations/custome-validations';
 
 export class AddUnitDto {
   @ApiProperty({
@@ -103,4 +102,26 @@ export const addUnitSchema = Joi.object({
     subTitle: Joi.string().required(),
     description: Joi.string().required(),
   }).required(),
+});
+
+export class FileUploadDto {
+  @ApiProperty({
+    description: 'File to upload',
+    type: 'string',
+    format: 'binary',
+    required: true,
+  })
+  file: any;
+}
+export class ResidenceIdDto {
+  @ApiProperty({
+    example: '64b1b5f4e05c12a1f5d8e7c2',
+    description: 'ID of the Unit',
+    required: true,
+  })
+  residenceId: string;
+}
+
+export const residenceIdSchema = Joi.object({
+  residenceId: Joi.string().custom(joiObjectIdValidator('residenceId')).required(),
 });
