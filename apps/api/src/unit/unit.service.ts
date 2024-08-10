@@ -6,7 +6,8 @@ import { Types } from 'mongoose';
 import { AddUnitKeyFeaturesDto } from './dto/unit-key-features.dto';
 import { AddVisualsDto } from './dto/add-visuals.dto';
 import { NotFoundException } from '../../../../packages/api-core/modules/exceptions';
-
+import { ListUnitDto } from './dto/list-unit.dto';
+import { PaginationService } from '../../../../packages/api-core/modules/pagination/pagination.service';
 @Injectable()
 export class UnitService {
   constructor(private readonly unitRepository: UnitRepository) {}
@@ -14,7 +15,7 @@ export class UnitService {
   async addUnit(addUnitDto: AddUnitDto, residenceId: string): Promise<Unit> {
     const transformedDto = {
       ...addUnitDto,
-      residenceId: new Types.ObjectId(addUnitDto.residenceId),
+      residenceId: new Types.ObjectId(residenceId),
     };
     return await this.unitRepository.create(transformedDto);
   }
@@ -38,5 +39,28 @@ export class UnitService {
       throw new NotFoundException(`Unit with ID ${unitId} not found`);
     }
     return updatedUnit;
+  }
+
+  async getUnitById(unitId: string): Promise<Unit> {
+    const unitDetails = await this.unitRepository.findById(unitId);
+    if (!unitDetails) {
+      throw new NotFoundException(`Unit with ID ${unitId}`);
+    }
+    return unitDetails;
+  }
+
+  async listUnits(listUnitDto: ListUnitDto) {
+    const filter: any = {};
+
+    if (listUnitDto.residenceId) {
+      filter.residenceId = new Types.ObjectId(listUnitDto.residenceId);
+    }
+    const options = PaginationService.prepareOptions(listUnitDto);
+
+    const { data, count } = await this.unitRepository.findAll(filter, options);
+
+    const { pagination } = PaginationService.paginate({ rows: data, count }, listUnitDto);
+
+    return { pagination, units: data };
   }
 }

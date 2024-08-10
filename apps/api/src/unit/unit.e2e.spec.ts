@@ -27,7 +27,6 @@ describe('UnitController', () => {
     it('Should add a new Unit to a Residence', async () => {
       const residence = app.getReference(ResidencesFixture.RESIDENCE1);
       const createUnitDto = {
-        residenceId: residence._id,
         unitName: 'Unit A',
         specs: {
           unitNumber: '101',
@@ -154,6 +153,90 @@ describe('UnitController', () => {
           videoTour: videoTourId.toString(),
         })
       );
+    });
+  });
+
+  describe('Get Unit by ID', () => {
+    it('Should retrieve a Unit by its ID', async () => {
+      const unit = app.getReference(UnitFixture.UNIT1);
+
+      const res = await app.exec('GET', `${url}/${unit._id}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Unit retrieved successfully');
+    });
+
+    it('Should return 404 if Unit ID does not exist', async () => {
+      const nonExistentUnitId = '64b1b5f4e05c12a1f5d8e7c2'; // Example non-existent ID
+
+      const res = await app.exec('GET', `${url}/${nonExistentUnitId}`);
+
+      expect(res.status).toBe(404);
+      expect(res.body.message).toBe(`Unit with ID ${nonExistentUnitId} not found`);
+    });
+  });
+
+  describe('List Units', () => {
+    it('Should list units with pagination and optional residenceId filter', async () => {
+      const residence = app.getReference(ResidencesFixture.RESIDENCE1);
+      const urlWithParams = `${url}?page=1&limit=10&sortBy=createdAt&sortOrder=desc&residenceId=${residence._id}`;
+
+      const res = await app.exec('GET', urlWithParams, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Units retrieved successfully');
+      expect(res.body.data.units).toBeDefined();
+      expect(res.body.data.units.pagination).toEqual(
+        expect.objectContaining({
+          limit: expect.any(Number),
+          currentPage: expect.any(Number),
+          totalDocs: expect.any(Number),
+          totalPages: expect.any(Number),
+          hasNextPage: expect.any(Boolean),
+          hasPrevPage: expect.any(Boolean),
+        })
+      );
+    });
+
+    it('Should list units without residenceId filter', async () => {
+      const urlWithParams = `${url}?page=1&limit=10&sortBy=createdAt&sortOrder=desc`;
+
+      const res = await app.exec('GET', urlWithParams, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Units retrieved successfully');
+      expect(res.body.data.units).toBeDefined();
+      expect(res.body.data.units.pagination).toEqual(
+        expect.objectContaining({
+          limit: expect.any(Number),
+          currentPage: expect.any(Number),
+          totalDocs: expect.any(Number),
+          totalPages: expect.any(Number),
+          hasNextPage: expect.any(Boolean),
+          hasPrevPage: expect.any(Boolean),
+        })
+      );
+    });
+
+    it('Should handle invalid residenceId', async () => {
+      const urlWithParams = `${url}?page=1&limit=10&sortBy=createdAt&sortOrder=desc&residenceId=invalidId`;
+
+      const res = await app.exec('GET', urlWithParams, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toBe('Invalid ObjectId for residenceId');
     });
   });
 });
