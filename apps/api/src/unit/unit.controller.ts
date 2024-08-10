@@ -1,6 +1,6 @@
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
-import { Body, Controller, Get, Param, Post, Put, Query, UsePipes } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query, UsePipes } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UnitService } from './unit.service';
 import { AddUnitDto, addUnitSchema } from './dto/add-unit.dto';
@@ -71,5 +71,15 @@ export class UnitController {
   async getUnitById(@Param() params: GetUnitByIdDto) {
     const unit = await this.unitService.getUnitById(params.unitId);
     return ResponseService.buildResponse({ unit }, 'Unit retrieved successfully');
+  }
+
+  @Delete(':unitId')
+  @ApiOperation({
+    summary: 'Delete Unit by ID',
+  })
+  @UsePipes(new JoiValidationPipe(getUnitByIdSchema, 'param'))
+  async deleteUnit(@Param() params: GetUnitByIdDto) {
+    const unit = await this.unitService.deleteUnit(params.unitId);
+    return ResponseService.buildResponse({ unit }, 'Unit Deleted successfully');
   }
 }

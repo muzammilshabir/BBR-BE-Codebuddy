@@ -17,3 +17,8 @@ export enum Recurrence {
   DAILY = 'daily',
   WEEKLY = 'weekly',
 }
+
+export enum DeletionStatus {
+  ACTIVE = 0,
+  DELETED = 1,
+}
