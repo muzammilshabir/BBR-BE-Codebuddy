@@ -1,0 +1,25 @@
+import { Injectable } from '@nestjs/common';
+import { LifeStyleRepository } from './lifeStyle.repository';
+import { ListLifeStylesDto } from './dto/listLifeStyles.dto';
+import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
+
+@Injectable()
+export class ListLifeStyleService {
+  constructor(private readonly lifeStyleRepository: LifeStyleRepository) {}
+
+  async findAll(listAmenitiesDto: ListLifeStylesDto) {
+    const filter = listAmenitiesDto.search
+      ? {
+          $or: [{ name: { $regex: listAmenitiesDto.search, $options: 'i' } }],
+        }
+      : {};
+
+    const options = PaginationService.prepareOptions(listAmenitiesDto);
+
+    const { data, count } = await this.lifeStyleRepository.findAll(filter, options);
+
+    const { pagination } = PaginationService.paginate({ rows: data, count }, listAmenitiesDto);
+
+    return { pagination, lifeStyles: data };
+  }
+}

@@ -14,6 +14,7 @@ import { AmenitiesModule } from './amenities/amenities.module';
 import { UploadModule } from './upload/upload.module';
 import { ResidenceModule } from './residences/residences.module';
 import { UnitModule } from './unit/unit.module';
+import { LifeStyleModule } from './lifestyles/lifeStyle.module';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -32,6 +33,7 @@ import { UnitModule } from './unit/unit.module';
     UploadModule,
     ResidenceModule,
     UnitModule,
+    LifeStyleModule,
   ],
   controllers: [],
   providers: [],
