@@ -1,12 +1,21 @@
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
-import { CreateUserDto, createUserSchema } from './dto/createUser.dto';
+import { ResponseService } from '@bbr/api-core/modules/response/response.service';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Query,
+  UnauthorizedException,
+  UsePipes,
+} from '@nestjs/common';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { LoginDto, loginSchema } from './dto/createLogin.dto';
+import { CreateUserDto, createUserSchema } from './dto/createUser.dto';
 import { ForgotPasswordDto, forgotPasswordSchema } from './dto/forgotPassword.dto';
 import { ResetPasswordDto, resetPasswordSchema } from './dto/resetPassword.dto'; // Add this import
-import { Body, Controller, Post, UsePipes, Get, Query, UnauthorizedException } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { UserType } from './enum/user.enum';
 import { UserService } from './user.service';
-import { ResponseService } from '@bbr/api-core/modules/response/response.service';
 
 @ApiTags('Users')
 @Controller('users')
@@ -51,19 +60,22 @@ export class UserController {
   @ApiOperation({ summary: 'Reset password using a token' })
   @UsePipes(new JoiValidationPipe(resetPasswordSchema, 'body'))
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
-    await this.userService.resetPassword(resetPasswordDto.id, resetPasswordDto.token, resetPasswordDto.password);
+    await this.userService.resetPassword(
+      resetPasswordDto.id,
+      resetPasswordDto.token,
+      resetPasswordDto.password
+    );
     return ResponseService.buildResponse({}, 'Password has been reset successfully');
   }
 
   @Get('verify-email')
   @ApiOperation({ summary: 'For verifying the email' })
-  async verifyEmail(@Query('token') token: string, @Query('uid') _id: string) {
+  async verifyEmail(@Query('token') token: string, @Query('email') email: string) {
     try {
-      const result = await this.userService.verifyUserEmail(token, _id);
+      const result = await this.userService.verifyUserEmail(token, email, UserType.Buyer);
       return { message: 'Email verified successfully', result };
     } catch (error) {
       return { error: error.message };
     }
   }
-
 }
