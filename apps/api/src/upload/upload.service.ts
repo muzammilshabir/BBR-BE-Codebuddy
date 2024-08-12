@@ -104,26 +104,36 @@ export class UploadService {
   }
 
   async downloadFile(publicUrl: string, userId: string) {
-    const { passThrough, filename, contentType, size } = await this.downloadImage(publicUrl);
-
-    return await this.uploadImageToS3(passThrough, filename, contentType, size, userId);
+    try {
+      const { passThrough, filename, contentType, size } = await this.downloadImage(publicUrl);
+      return await this.uploadImageToS3(passThrough, filename, contentType, size, userId);
+    } catch (error) {
+      console.error(`Failed to download image from URL: ${publicUrl}`, error.message);
+      return null;
+    }
   }
   async downloadImage(url: string): Promise<any> {
-    const response = await axios({
-      url,
-      method: 'GET',
-      responseType: 'stream',
-    });
-    const passThrough = new PassThrough();
-    response.data.pipe(passThrough);
-    // Extract filename from URL or generate a unique one
-    const urlParts = url.split('/');
-    const fileName = urlParts[urlParts.length - 1] || shortUUID.generate(); // Default to a unique ID if filename is not present
+    try {
+      const response = await axios({
+        url,
+        method: 'GET',
+        responseType: 'stream',
+      });
 
-    // Extract Content-Type and Content-Length from response headers
-    const contentType = response.headers['content-type'] || 'image/jpeg';
-    const contentLength = parseInt(response.headers['content-length'], 10) || 0;
-    return { passThrough, filename: fileName, contentType, size: contentLength };
+      const passThrough = new PassThrough();
+      response.data.pipe(passThrough);
+
+      const urlParts = url.split('/');
+      const fileName = urlParts[urlParts.length - 1] || shortUUID.generate(); // Default to a unique ID if filename is not present
+
+      // Extract Content-Type and Content-Length from response headers
+      const contentType = response.headers['content-type'] || 'image/jpeg';
+      const contentLength = parseInt(response.headers['content-length'], 10) || 0;
+
+      return { passThrough, filename: fileName, contentType, size: contentLength };
+    } catch (error) {
+      console.error(`Error downloading image from URL: ${url}`, error.message);
+    }
   }
 
   async uploadImageToS3(
