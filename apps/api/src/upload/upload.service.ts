@@ -1,9 +1,9 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { UploadRepository } from './upload.repository';
-import { S3Client } from '@aws-sdk/client-s3';
+import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { ServiceConfig } from '../config';
 import VolatileFile from 'formidable/VolatileFile';
-import { PassThrough, Writable } from 'stream';
+import { PassThrough, Readable, Writable } from 'stream';
 import { Upload } from '@aws-sdk/lib-storage';
 import * as shortUUID from 'short-uuid';
 import { formidableOptions } from './formidable.config';
@@ -12,6 +12,10 @@ import formidable, { File } from 'formidable';
 import { Request } from 'express';
 import { Types } from 'mongoose';
 import axios from 'axios';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
+import { NotFoundException } from '@bbr/api-core/modules/exceptions';
 @Injectable()
 export class UploadService {
   private readonly s3Client: S3Client;
@@ -180,5 +184,42 @@ export class UploadService {
         reject(error);
       });
     });
+  }
+
+  async saveFileTemp(key: string): Promise<string> {
+    const command = new GetObjectCommand({
+      Key: key,
+      Bucket: this.config.s3.bucket,
+    });
+
+    try {
+      const response = await this.s3Client.send(command);
+      const tempFilePath = path.join(os.tmpdir(), key);
+      const writeStream = fs.createWriteStream(tempFilePath);
+
+      if (response.Body instanceof Readable) {
+        response.Body.pipe(writeStream);
+      }
+
+      await new Promise((resolve, reject) => {
+        writeStream.on('finish', resolve);
+        writeStream.on('error', reject);
+      });
+
+      this.logger.log(`File saved temporarily at ${tempFilePath}`);
+
+      return tempFilePath;
+    } catch (error) {
+      this.logger.error(`Error retrieving file from S3: ${error.message}`);
+      throw new Error('Failed to save file temporarily');
+    }
+  }
+
+  async getfileById(fileId: string): Promise<any> {
+    const file = await this.uploadRepository.findOne(fileId);
+    if (!file) {
+      throw new NotFoundException(`File with ID ${fileId} not found`);
+    }
+    return file;
   }
 }

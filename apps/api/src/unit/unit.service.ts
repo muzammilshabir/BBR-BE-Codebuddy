@@ -12,16 +12,19 @@ import {
 import { ListUnitDto } from './dto/list-unit.dto';
 import { PaginationService } from '../../../../packages/api-core/modules/pagination/pagination.service';
 import { DeletionStatus, Recurrence, RoomType, ServiceType } from './enum/unit-enum';
-import * as csv from 'csv-parser'; // Add relevant libraries for file parsing
+import * as csv from 'csv-parser';
 import * as xlsx from 'xlsx';
 import { Readable } from 'stream';
 import { UploadService } from '../upload/upload.service';
+import * as fs from 'fs';
+import { ResidenceService } from '../residences/residences.service';
 
 @Injectable()
 export class UnitService {
   constructor(
     private readonly unitRepository: UnitRepository,
-    private readonly uploadService: UploadService
+    private readonly uploadService: UploadService,
+    private readonly residenceService: ResidenceService
   ) {}
 
   async addUnit(addUnitDto: AddUnitDto, residenceId: string, userId: string): Promise<Unit> {
@@ -87,36 +90,37 @@ export class UnitService {
     return updatedUnit;
   }
 
-  async processUploadedFile(
-    file: Express.Multer.File,
-    residenceId: string,
-    userId: string
-  ): Promise<Unit[]> {
-    if (!file || !residenceId) {
-      throw new BadRequestException('Invalid file or residence ID');
-    }
+  async processUploadedFile(residenceId: string, fileId: string, userId: string): Promise<any> {
+    const fileDetails = await this.uploadService.getfileById(fileId);
 
+    const tempFilePath = await this.uploadService.saveFileTemp(fileDetails?.fileKey);
+
+    const fileBuffer = fs.readFileSync(tempFilePath);
+    const fileStream = Readable.from(fileBuffer);
     let fileData: any[];
-    const fileStream = Readable.from(file.buffer);
 
-    if (file.mimetype === 'text/csv') {
-      fileData = await new Promise((resolve, reject) => {
-        const rows: any[] = [];
-        fileStream
-          .pipe(csv())
-          .on('data', (row) => rows.push(row))
-          .on('end', () => resolve(rows))
-          .on('error', (error) => reject(error));
-      });
-    } else if (
-      file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    ) {
-      const workbook = xlsx.read(file.buffer, { type: 'buffer' });
-      const sheetName = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[sheetName];
-      fileData = xlsx.utils.sheet_to_json(sheet);
-    } else {
-      throw new BadRequestException('Unsupported file format');
+    try {
+      if (fileDetails.mimeType === 'text/csv') {
+        fileData = await new Promise((resolve, reject) => {
+          const rows: any[] = [];
+          fileStream
+            .pipe(csv())
+            .on('data', (row) => rows.push(row))
+            .on('end', () => resolve(rows))
+            .on('error', (error) => reject(error));
+        });
+      } else if (
+        fileDetails.mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      ) {
+        const workbook = xlsx.read(fileBuffer, { type: 'buffer' });
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        fileData = xlsx.utils.sheet_to_json(sheet);
+      } else {
+        throw new BadRequestException('Unsupported file format');
+      }
+    } finally {
+      fs.unlinkSync(tempFilePath);
     }
 
     // Process and save file data
@@ -141,6 +145,7 @@ export class UnitService {
   }
   private async saveFileData(data: any[], residenceId: string, userId: string): Promise<Unit[]> {
     const addedUnits: Unit[] = [];
+    await this.residenceService.getResidenceById(residenceId);
 
     for (const item of data) {
       const addUnitDto: AddUnitDto = {
@@ -177,7 +182,7 @@ export class UnitService {
       };
 
       const unitDetails = await this.addUnit(addUnitDto, residenceId, userId);
-      const unitId = unitDetails._id.toString();
+      const unitId = unitDetails.id;
 
       const addUnitKeyFeaturesDto: AddUnitKeyFeaturesDto = {
         features: item['unitKeyFeatures.features']

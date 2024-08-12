@@ -111,4 +111,12 @@ export class ResidenceService {
     }
     return existingResidence;
   }
+
+  async getResidenceById(residenceId: string): Promise<any> {
+    const residence = await this.residenceRepository.findOne(residenceId);
+    if (!residence) {
+      throw new NotFoundException(`residence with ID ${residenceId} not found`);
+    }
+    return residence;
+  }
 }
