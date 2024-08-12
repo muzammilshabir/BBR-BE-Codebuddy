@@ -87,23 +87,27 @@ export class UnitService {
     return updatedUnit;
   }
 
-  async processUploadedFile(file: Express.Multer.File, residenceId: string, userId: string) {
+  async processUploadedFile(
+    file: Express.Multer.File,
+    residenceId: string,
+    userId: string
+  ): Promise<Unit[]> {
     if (!file || !residenceId) {
       throw new BadRequestException('Invalid file or residence ID');
     }
 
-    let fileData;
+    let fileData: any[];
     const fileStream = Readable.from(file.buffer);
 
     if (file.mimetype === 'text/csv') {
-      fileData = [];
-      fileStream
-        .pipe(csv())
-        .on('data', (row) => fileData.push(row))
-        .on('end', async () => {
-          // Process and save file data
-          await this.saveFileData(fileData, residenceId, userId);
-        });
+      fileData = await new Promise((resolve, reject) => {
+        const rows: any[] = [];
+        fileStream
+          .pipe(csv())
+          .on('data', (row) => rows.push(row))
+          .on('end', () => resolve(rows))
+          .on('error', (error) => reject(error));
+      });
     } else if (
       file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     ) {
@@ -111,13 +115,12 @@ export class UnitService {
       const sheetName = workbook.SheetNames[0];
       const sheet = workbook.Sheets[sheetName];
       fileData = xlsx.utils.sheet_to_json(sheet);
-      console.log('fileData excel :>> ', fileData);
-      await this.saveFileData(fileData, residenceId, userId);
     } else {
       throw new BadRequestException('Unsupported file format');
     }
 
-    return { message: 'File processed successfully' };
+    // Process and save file data
+    return await this.saveFileData(fileData, residenceId, userId);
   }
 
   private normalizeString(str: string): string {
@@ -130,50 +133,62 @@ export class UnitService {
 
     return serviceTypes.map((serviceType: string, index: number) => ({
       serviceType: ServiceType[this.normalizeString(serviceType)],
-      amount: Number(amounts[index]),
-      recurrence: Recurrence[this.normalizeString(recurrences[index])],
+      amount: amounts[index] ? Number(amounts[index]) : undefined,
+      recurrence: recurrences[index]
+        ? Recurrence[this.normalizeString(recurrences[index])]
+        : undefined,
     }));
   }
-  private async saveFileData(data: any[], residenceId: string, userId: string) {
+  private async saveFileData(data: any[], residenceId: string, userId: string): Promise<Unit[]> {
+    const addedUnits: Unit[] = [];
+
     for (const item of data) {
       const addUnitDto: AddUnitDto = {
         unitName: item.unitName,
         specs: {
-          unitNumber: item['specs.unitNumber'],
-          generalUnitSpaceSqFt: Number(item['specs.generalUnitSpaceSqFt']),
-          floor: Number(item['specs.floor']),
+          unitNumber: item['specs.unitNumber'] ? item['specs.unitNumber'] : undefined,
+          generalUnitSpaceSqFt: item['specs.generalUnitSpaceSqFt']
+            ? Number(item['specs.generalUnitSpaceSqFt'])
+            : undefined,
+          floor: item['specs.floor'] ? Number(item['specs.floor']) : undefined,
         },
-        unitPrice: Number(item.unitPrice),
+        unitPrice: item.unitPrice ? Number(item.unitPrice) : undefined,
         exclusiveOffer: {
-          exclusiveUnitPrice: Number(item['exclusiveOffer.exclusiveUnitPrice']),
-          OfferStartDate: new Date(item['exclusiveOffer.OfferStartDate']),
-          OfferEndDate: new Date(item['exclusiveOffer.OfferEndDate']),
+          exclusiveUnitPrice: item['exclusiveOffer.exclusiveUnitPrice']
+            ? Number(item['exclusiveOffer.exclusiveUnitPrice'])
+            : undefined,
+          OfferStartDate: item['exclusiveOffer.OfferStartDate']
+            ? new Date(item['exclusiveOffer.OfferStartDate'])
+            : undefined,
+          OfferEndDate: item['exclusiveOffer.OfferEndDate']
+            ? new Date(item['exclusiveOffer.OfferEndDate'])
+            : undefined,
         },
-        rooms: item['rooms.roomType'].split(',').map((roomType, index) => ({
-          roomType: RoomType[this.normalizeString(roomType)],
-          unit: Number(item['rooms.unit'].split(',')[index]),
-        })),
+        rooms: item['rooms.roomType']
+          ? item['rooms.roomType'].split(',').map((roomType, index) => ({
+              roomType: RoomType[this.normalizeString(roomType)],
+              unit: Number(item['rooms.unit'].split(',')[index]),
+            }))
+          : undefined,
         briefOverview: {
           subTitle: item['briefOverview.subTitle'],
           description: item['briefOverview.description'],
         },
       };
-      // Call the addUnit service method
-      const unitDetails = await this.addUnit(addUnitDto, residenceId, userId);
-      const unitId = unitDetails._id.toString(); // Assuming _id is an ObjectId
-      console.log('unitId :>> ', unitId);
 
-      // Construct the AddUnitKeyFeaturesDto object
+      const unitDetails = await this.addUnit(addUnitDto, residenceId, userId);
+      const unitId = unitDetails._id.toString();
+
       const addUnitKeyFeaturesDto: AddUnitKeyFeaturesDto = {
         features: item['unitKeyFeatures.features']
           .split(',')
           .map((feature: string) => feature.trim()),
-
-        residenceServices: this.parseResidenceServices(item),
+        residenceServices: item['unitKeyFeatures.residenceServices.serviceType']
+          ? this.parseResidenceServices(item)
+          : undefined,
       };
       await this.addUnitKeyFeatures(addUnitKeyFeaturesDto, unitId);
 
-      // Initialize the AddVisualsDto object
       const addVisualsDto: AddVisualsDto = {
         mainGalleryPhotos: [],
         secondGalleryPhotos: [],
@@ -195,6 +210,7 @@ export class UnitService {
           }
         }
       }
+
       if (item['visuals.videoTour']) {
         const fileMetadata: any = await this.uploadService.downloadFile(
           item['visuals.videoTour'],
@@ -204,11 +220,15 @@ export class UnitService {
           addVisualsDto.videoTour = fileMetadata._id;
         }
       }
+
       if (item['visuals.videoTourLink']) {
         addVisualsDto.videoTourLink = item['visuals.videoTourLink'];
       }
 
-      await this.addVisuals(addVisualsDto, unitId);
+      const unit = await this.addVisuals(addVisualsDto, unitId);
+      addedUnits.push(unit);
     }
+
+    return addedUnits;
   }
 }

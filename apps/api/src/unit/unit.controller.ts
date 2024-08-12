@@ -108,7 +108,7 @@ export class UnitController {
   @ApiOperation({ summary: 'Upload file for bulk add units' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
-    description: 'Upload file for units in the residence',
+    description: 'Upload file for add units in the residence',
     type: FileUploadDto,
   })
   @UseInterceptors(FileInterceptor('file'))

@@ -104,10 +104,8 @@ export class UploadService {
   }
 
   async downloadFile(publicUrl: string, userId: string) {
-    // Download the image and get filename and content type
     const { passThrough, filename, contentType, size } = await this.downloadImage(publicUrl);
 
-    // Upload the image to S3
     return await this.uploadImageToS3(passThrough, filename, contentType, size, userId);
   }
   async downloadImage(url: string): Promise<any> {
