@@ -1,12 +1,21 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { CreateUserDto } from './dto/createUser.dto';
-import { User } from './user.schema';
-import * as bcrypt from 'bcryptjs';
-import { JwtService } from '@nestjs/jwt';
-import { TokenService } from '@bbr/api-core/modules/token-generation/token.service';
 import { MailerService } from '@bbr/api-core/modules/mailer/mailer.service';
+import { TokenService } from '@bbr/api-core/modules/token-generation/token.service';
+import { JwtResponseType, JwtTokenType } from '@bbr/api-core/modules/types/jwtToken.type';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { InjectModel } from '@nestjs/mongoose';
+import * as bcrypt from 'bcryptjs';
+import { Model } from 'mongoose';
+import { ServiceConfig } from '../config';
+import { CreateUserDto } from './dto/createUser.dto';
+import { UserRole } from './enum/user.enum';
+import { User } from './schema/user.schema';
+
 @Injectable()
 export class UserService {
   constructor(
@@ -14,11 +23,15 @@ export class UserService {
     private readonly jwtService: JwtService,
     private readonly tokenService: TokenService,
     private readonly mailerService: MailerService,
+    private readonly configService: ServiceConfig
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
     // Check if user with the given email already exists
-    const existingUser = await this.userModel.findOne({ email: createUserDto.email }).exec();
+    const existingUser = await this.userModel
+      .findOne({ email: createUserDto.email, role: createUserDto.role })
+      .exec();
+
     if (existingUser) {
       throw new ConflictException('User already exists');
     }
@@ -41,9 +54,6 @@ export class UserService {
       // Save the user to the database
       await newUser.save();
 
-      // Send verification email
-      await this.mailerService.sendVerificationEmail(newUser.id, newUser.verificationToken, newUser.email);
-
       return newUser;
     } catch (error) {
       console.error('Error creating user:', error);
@@ -51,17 +61,30 @@ export class UserService {
     }
   }
 
-  async verifyUserEmail(token: string, _id: string): Promise<string> {
-    const user = await this.userModel.findOne({ _id, verificationToken: token }).exec();
+  async verifyUserEmail(token: string, email: string, role: UserRole): Promise<JwtResponseType> {
+    const user = await this.userModel.findOne({ email, verificationToken: token, role }).exec();
+
     if (!user) {
-      throw new NotFoundException('User not found or invalid verification token');
+      throw new NotFoundException('Invalid email or verification token');
+    }
+
+    if (user.isVerified) {
+      throw new BadRequestException('User already verified');
+    }
+
+    if (!user.verificationToken) {
+      throw new BadRequestException('Invalid verification token');
+    }
+
+    if (user.verificationToken !== token) {
+      throw new BadRequestException('Invalid verification token');
     }
 
     user.isVerified = true;
     user.verificationToken = null;
     await user.save();
 
-    return 'User email verified successfully';
+    return await this.generateJwtToken(user);
   }
 
   async findByEmail(email: string): Promise<User> {
@@ -70,22 +93,43 @@ export class UserService {
 
   async validateUser(email: string, password: string): Promise<User> {
     const user = await this.findByEmail(email);
-    if (user && await bcrypt.compare(password, user.password)) {
+    if (user && (await bcrypt.compare(password, user.password))) {
       return user;
     }
     return null;
   }
 
-  async generateJwtToken(user: User): Promise<string> {
-    const payload = { email: user.email, sub: user.id };
-    return this.jwtService.signAsync(payload, { expiresIn: '1h' });
+  async generateJwtToken(user: User): Promise<JwtResponseType> {
+    const payload = { email: user.email, sub: user.id, role: user.role };
+
+    const [at, rt] = await Promise.all([
+      this.jwtService.signAsync(
+        { ...payload, tokenType: JwtTokenType.ACCESS },
+        {
+          secret: this.configService.jwt.atSecret,
+          expiresIn: '1h',
+        }
+      ),
+      this.jwtService.signAsync(
+        { ...payload, tokenType: JwtTokenType.REFRESH },
+        {
+          secret: this.configService.jwt.rtSecret,
+          expiresIn: '7d',
+        }
+      ),
+    ]);
+
+    return {
+      accessToken: at,
+      refreshToken: rt,
+    };
   }
 
   async resendVerificationEmail(user: User): Promise<void> {
     const verifyToken = this.tokenService.generateVerificationToken();
     user.verificationToken = verifyToken;
     await user.save();
-    await this.mailerService.sendVerificationEmail(user.id, verifyToken,user.email);
+    await this.mailerService.sendVerificationEmail(verifyToken, user.email);
   }
 
   async forgotPassword(email: string): Promise<void> {
@@ -99,7 +143,7 @@ export class UserService {
     user.verificationToken = resetToken;
     await user.save();
 
-    await this.mailerService.sendResetPasswordEmail(user.id, user.email, resetToken);
+    await this.mailerService.sendResetPasswordEmail(user.email, resetToken);
   }
 
   async resetPassword(_id: string, token: string, newPassword: string): Promise<void> {
@@ -113,5 +157,4 @@ export class UserService {
     user.verificationToken = null;
     await user.save();
   }
-
 }

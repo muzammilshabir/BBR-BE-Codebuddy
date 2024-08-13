@@ -1,15 +1,20 @@
-import { Injectable } from '@nestjs/common';
 import { MailerService as NestMailerService } from '@nestjs-modules/mailer';
+import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class MailerService {
-  constructor(private readonly mailerService: NestMailerService) {}
+  constructor(
+    private readonly mailerService: NestMailerService,
+    private readonly configService: ConfigService
+  ) {}
 
-  async sendVerificationEmail(uid: any, verifyToken: string, email: string) {
-    const verificationLink = `${process.env.SERVICE_URL}/api/verify-email?token=${verifyToken}&uid=${uid}`;
+  async sendVerificationEmail(verifyToken: string, email: string) {
+    const verificationLink = `${process.env.SERVICE_URL}/api/verify-email?token=${verifyToken}&email=${email}`;
 
     try {
       await this.mailerService.sendMail({
+        from: this.configService.get<string>('MAILER_FROM'),
         to: email,
         subject: 'Verify Your Email Address',
         text: `Please click the following link to verify your email address: ${verificationLink}`,
@@ -22,8 +27,8 @@ export class MailerService {
     }
   }
 
-  async sendResetPasswordEmail(uid: string, email: string, resetToken: string) {
-    const resetLink = `${process.env.SERVICE_URL}/api/reset-password?token=${resetToken}&uid=${uid}`;
+  async sendResetPasswordEmail(email: string, resetToken: string) {
+    const resetLink = `${process.env.SERVICE_URL}/api/reset-password?token=${resetToken}&uid=${email}`;
 
     try {
       await this.mailerService.sendMail({
