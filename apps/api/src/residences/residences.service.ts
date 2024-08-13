@@ -120,7 +120,7 @@ export class ResidenceService {
   async updateResidenceStatus(residenceId: string, status: string): Promise<any> {
     const existingResidence = await this.residenceRepository.update(residenceId, { status });
     if (!existingResidence) {
-      throw new NotFoundException(`Residence with ID ${residenceId} not found`);
+      throw new NotFoundException(`Residence with ID ${residenceId}`);
     }
     return existingResidence;
   }
