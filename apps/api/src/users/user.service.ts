@@ -1,14 +1,17 @@
 import { MailerService } from '@bbr/api-core/modules/mailer/mailer.service';
 import { TokenService } from '@bbr/api-core/modules/token-generation/token.service';
+import { JwtResponseType, JwtTokenType } from '@bbr/api-core/modules/types/jwtToken.type';
 import {
   BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import * as bcrypt from 'bcryptjs';
 import { Model } from 'mongoose';
+import { ServiceConfig } from '../config';
 import { CreateUserDto } from './dto/createUser.dto';
 import { UserRole } from './enum/user.enum';
 import { User } from './schema/user.schema';
@@ -17,8 +20,10 @@ import { User } from './schema/user.schema';
 export class UserService {
   constructor(
     @InjectModel(User.name) private readonly userModel: Model<User>,
+    private readonly jwtService: JwtService,
     private readonly tokenService: TokenService,
-    private readonly mailerService: MailerService
+    private readonly mailerService: MailerService,
+    private readonly configService: ServiceConfig
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
@@ -31,12 +36,16 @@ export class UserService {
       throw new ConflictException('User already exists');
     }
 
+    // Hash the password before saving to the database
+    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+
     // Generate a random verification token
     const verifyToken = this.tokenService.generateVerificationToken();
 
     // Create a new user object with hashed password, default isVerified=false, and verifyToken
     const newUser = new this.userModel({
       ...createUserDto,
+      password: hashedPassword,
       isVerified: false,
       verificationToken: verifyToken,
     });
@@ -52,7 +61,7 @@ export class UserService {
     }
   }
 
-  async verifyUserEmail(token: string, email: string, role: UserRole): Promise<boolean> {
+  async verifyUserEmail(token: string, email: string, role: UserRole): Promise<JwtResponseType> {
     const user = await this.userModel.findOne({ email, verificationToken: token, role }).exec();
 
     if (!user) {
@@ -75,19 +84,11 @@ export class UserService {
     user.verificationToken = null;
     await user.save();
 
-    return true;
+    return await this.generateJwtToken(user);
   }
 
   async findByEmail(email: string): Promise<User> {
     return this.userModel.findOne({ email }).exec();
-  }
-
-  async findById(id: string): Promise<User> {
-    return this.userModel.findOne({ _id: id }).exec();
-  }
-
-  async findByEmailAndRole(email: string, role: UserRole): Promise<User> {
-    return this.userModel.findOne({ email, role }).exec();
   }
 
   async validateUser(email: string, password: string): Promise<User> {
@@ -96,6 +97,32 @@ export class UserService {
       return user;
     }
     return null;
+  }
+
+  async generateJwtToken(user: User): Promise<JwtResponseType> {
+    const payload = { email: user.email, sub: user.id, role: user.role };
+
+    const [at, rt] = await Promise.all([
+      this.jwtService.signAsync(
+        { ...payload, tokenType: JwtTokenType.ACCESS },
+        {
+          secret: this.configService.jwt.atSecret,
+          expiresIn: '1h',
+        }
+      ),
+      this.jwtService.signAsync(
+        { ...payload, tokenType: JwtTokenType.REFRESH },
+        {
+          secret: this.configService.jwt.rtSecret,
+          expiresIn: '7d',
+        }
+      ),
+    ]);
+
+    return {
+      accessToken: at,
+      refreshToken: rt,
+    };
   }
 
   async resendVerificationEmail(user: User): Promise<void> {
