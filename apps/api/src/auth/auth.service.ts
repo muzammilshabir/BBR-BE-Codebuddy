@@ -75,7 +75,7 @@ export class AuthService {
     }
 
     const isPasswordMatch = await argon.verify(user.password, loginDto.password);
-    console.log('isPasswordMatch', isPasswordMatch, loginDto.password, user.password);
+
     if (!isPasswordMatch) throw new ForbiddenException('Invalid credentials');
 
     return { tokens: await this.generateJwtToken(user) };
