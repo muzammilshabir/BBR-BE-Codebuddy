@@ -1,11 +1,13 @@
-import { MailerService } from '@bbr/api-core/modules/mailer/mailer.service';
 import { JwtResponseType, JwtTokenType } from '@bbr/api-core/modules/types/jwtToken.type';
+import { MailerService } from '@nestjs-modules/mailer';
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { NotFoundException } from '@nestjs/common/exceptions';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { JwtService } from '@nestjs/jwt';
 import * as argon from 'argon2';
 import { ExceptionCodes } from '../../../../packages/api-core/modules/types/exceptionCodes.type';
 import { ServiceConfig } from '../config';
+import { SendEmailEvent } from '../mailer/events/send-email.event';
 import { SignupMethod, UserRole } from '../users/enum/user.enum';
 import { User } from '../users/schema/user.schema';
 import { UserService } from '../users/user.service';
@@ -21,8 +23,14 @@ export class AuthService {
     private readonly userService: UserService,
     private readonly mailerService: MailerService,
     private readonly configService: ServiceConfig,
-    private readonly jwtService: JwtService
+    private readonly jwtService: JwtService,
+    private readonly eventEmitter: EventEmitter2
   ) {}
+
+  static generateVerificationLink(email: string, verifyToken: string) {
+    return `${process.env.SERVICE_URL}/api/verify-email?token=${verifyToken}&email=${email}`;
+  }
+
   async signupBuyer(buyerSignupDto: BuyerSignupDto) {
     const user = await this.userService.create({
       fullName: buyerSignupDto.fullName,
@@ -33,8 +41,7 @@ export class AuthService {
       role: UserRole.BUYER,
     });
 
-    // Send verification email
-    await this.mailerService.sendVerificationEmail(user.verificationToken, user.email);
+    this.sendVerificationEmail(user.email, user.verificationToken);
 
     return user;
   }
@@ -54,10 +61,10 @@ export class AuthService {
   }
 
   async resendVerificationEmail(resendVerificationEmailDo: ResendVerificationEmailDto) {
-    const user = await this.userService.findByEmail(resendVerificationEmailDo.email);
+    const user = await this.userService.assignVerificationToken(resendVerificationEmailDo.email);
 
     if (user && !user.isVerified) {
-      await this.userService.resendVerificationEmail(user);
+      this.sendVerificationEmail(user.email, user.verificationToken);
     }
   }
 
@@ -113,5 +120,20 @@ export class AuthService {
       accessToken: at,
       refreshToken: rt,
     };
+  }
+
+  private async sendVerificationEmail(email: string, verifyToken: string) {
+    this.eventEmitter.emit(
+      SendEmailEvent.event,
+      new SendEmailEvent({
+        context: {
+          email,
+          deeplink: AuthService.generateVerificationLink(email, verifyToken),
+        },
+        template: 'verify-user',
+        subject: 'Verify Your Email Address',
+        toEmail: email,
+      })
+    );
   }
 }

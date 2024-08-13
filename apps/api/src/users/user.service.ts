@@ -1,4 +1,3 @@
-import { MailerService } from '@bbr/api-core/modules/mailer/mailer.service';
 import { TokenService } from '@bbr/api-core/modules/token-generation/token.service';
 import {
   BadRequestException,
@@ -9,6 +8,7 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import * as bcrypt from 'bcryptjs';
 import { Model } from 'mongoose';
+import { MailerService } from 'src/mailer/mailer.service';
 import { CreateUserDto } from './dto/createUser.dto';
 import { UserRole } from './enum/user.enum';
 import { User } from './schema/user.schema';
@@ -102,7 +102,18 @@ export class UserService {
     const verifyToken = this.tokenService.generateVerificationToken();
     user.verificationToken = verifyToken;
     await user.save();
-    await this.mailerService.sendVerificationEmail(verifyToken, user.email);
+  }
+
+  async assignVerificationToken(email: string): Promise<User> {
+    const user = await this.userModel.findOne({ email }).exec();
+
+    if (user && !user.isVerified) {
+      const verifyToken = this.tokenService.generateVerificationToken();
+      user.verificationToken = verifyToken;
+      await user.save();
+    }
+
+    return user;
   }
 
   async forgotPassword(email: string): Promise<void> {
