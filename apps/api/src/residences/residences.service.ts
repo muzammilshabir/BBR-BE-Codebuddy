@@ -8,12 +8,15 @@ import { AddKeyFeaturesDto } from './dto/residenceKeyFeatures.dto';
 import { AddVisualsDto } from './dto/add-visuals.dto';
 import { Types } from 'mongoose';
 import { UpdateNearbyAmenitiesDto } from './dto/update-nearby-amenities.dto';
+import { ListResidenceDto } from './dto/list-residence.dto';
+import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
 
 @Injectable()
 export class ResidenceService {
   constructor(private readonly residenceRepository: ResidenceRepository) {}
 
   async create(createResidenceDto: CreateResidenceDto): Promise<Residence> {
+    const userId = '66bb48041c4f07b8d37ba240'; // we will take this id from auth
     const transformedDto = {
       ...createResidenceDto,
       residenceTypeId: new Types.ObjectId(createResidenceDto.residenceTypeId),
@@ -21,6 +24,7 @@ export class ResidenceService {
       associatedBrandId: createResidenceDto.associatedBrandId
         ? new Types.ObjectId(createResidenceDto.associatedBrandId)
         : undefined,
+      createdById: new Types.ObjectId(userId),
     };
     return await this.residenceRepository.create(transformedDto);
   }
@@ -123,5 +127,36 @@ export class ResidenceService {
       throw new NotFoundException(`Residence with ID ${residenceId}`);
     }
     return existingResidence;
+  }
+
+  async listResidences(listResidenceDto: ListResidenceDto) {
+    const filter: any = {};
+    if (listResidenceDto.status) {
+      filter.status = listResidenceDto.status;
+    }
+    if (listResidenceDto.locationId) {
+      filter.locationId = new Types.ObjectId(listResidenceDto.locationId);
+    }
+    if (listResidenceDto.sellerId) {
+      filter.createdById = new Types.ObjectId(listResidenceDto.locationId);
+    }
+
+    const options = PaginationService.prepareOptions(listResidenceDto);
+
+    const { data, count } = await this.residenceRepository.findAll(filter, options);
+
+    const updatedData = data.map((residence) => {
+      const cleanResidence = residence.toObject();
+
+      return {
+        ...cleanResidence,
+        residence: 0,
+        saves: 0,
+        inquiries: 0,
+      };
+    });
+
+    const { pagination } = PaginationService.paginate({ rows: data, count }, listResidenceDto);
+    return { pagination, residences: updatedData };
   }
 }

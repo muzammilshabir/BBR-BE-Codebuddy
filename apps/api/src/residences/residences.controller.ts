@@ -1,7 +1,7 @@
 import { Public } from '@bbr/api-core/modules/decorators';
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
-import { Body, Controller, Get, Param, Post, Put, UsePipes } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, Query, UsePipes } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ResidenceService } from './residences.service';
 import { CreateResidenceDto, createResidenceSchema } from './dto/create-residence.dto';
@@ -18,6 +18,7 @@ import {
   updateNearbyAmenitiesSchema,
 } from './dto/update-nearby-amenities.dto';
 import { GetResidenceByIdDto, getResidenceByIdSchema } from './dto/get-residence-by-id.dto';
+import { ListResidenceDto, listResidenceSchema } from './dto/list-residence.dto';
 
 @ApiTags('Residence')
 @Controller('residence')
@@ -115,6 +116,16 @@ export class ResidenceController {
       params.residenceId,
       body.status
     );
+    return ResponseService.buildResponse({ residence }, 'Residence retrieved successfully');
+  }
+
+  @Get('/') // move to top
+  @ApiOperation({
+    summary: 'List Residence',
+  })
+  @UsePipes(new JoiValidationPipe(listResidenceSchema, 'query'))
+  async listResidences(@Query() query: ListResidenceDto) {
+    const residence = await this.residenceService.listResidences(query);
     return ResponseService.buildResponse({ residence }, 'Residence retrieved successfully');
   }
 }
