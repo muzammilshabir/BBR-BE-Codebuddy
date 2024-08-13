@@ -2,7 +2,7 @@ import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
 import { Body, Controller, Post, UsePipes } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { UserType } from '../users/enum/user.enum';
+import { UserRole } from '../users/enum/user.enum';
 import { AuthService } from './auth.service';
 import {
   ResendVerificationEmailDto,
@@ -22,7 +22,8 @@ export class AuthController {
   @Post('/buyer/signup')
   @UsePipes(new JoiValidationPipe(buyerSignupSchema, 'body'))
   async signupBuyer(@Body() buyerSignupDto: BuyerSignupDto) {
-    return await this.authService.signupBuyer(buyerSignupDto);
+    const newUser = await this.authService.signupBuyer(buyerSignupDto);
+    return ResponseService.buildResponse(newUser, 'Buyer signed up successfully');
   }
 
   @ApiOperation({
@@ -31,7 +32,7 @@ export class AuthController {
   @Post('/buyer/verify')
   @UsePipes(new JoiValidationPipe(verifyUserSchema, 'body'))
   async verifyBuyer(@Body() verifyBuyerDto: VerifyUserDto) {
-    const tokens = await this.authService.verifyUser(verifyBuyerDto, UserType.Buyer);
+    const tokens = await this.authService.verifyUser(verifyBuyerDto, UserRole.BUYER);
 
     return ResponseService.buildResponse(tokens, 'Buyer verified successfully');
   }

@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
-import { SignupMethod, UserRole, UserType } from '../enum/user.enum';
+import { SignupMethod, UserRole } from '../enum/user.enum';
 import {
   UserCompanyInfo,
   UserContactInfo,
@@ -22,9 +22,6 @@ export class User extends Document {
 
   @Prop({ default: false })
   isVerified: boolean;
-
-  @Prop({ required: true, enum: UserType })
-  userType: string;
 
   @Prop({ required: true, enum: SignupMethod })
   signupMethod: SignupMethod;

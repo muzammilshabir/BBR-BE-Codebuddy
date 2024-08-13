@@ -13,7 +13,7 @@ import * as bcrypt from 'bcryptjs';
 import { Model } from 'mongoose';
 import { ServiceConfig } from '../config';
 import { CreateUserDto } from './dto/createUser.dto';
-import { UserType } from './enum/user.enum';
+import { UserRole } from './enum/user.enum';
 import { User } from './schema/user.schema';
 
 @Injectable()
@@ -28,7 +28,9 @@ export class UserService {
 
   async create(createUserDto: CreateUserDto): Promise<User> {
     // Check if user with the given email already exists
-    const existingUser = await this.userModel.findOne({ email: createUserDto.email }).exec();
+    const existingUser = await this.userModel
+      .findOne({ email: createUserDto.email, role: createUserDto.role })
+      .exec();
 
     if (existingUser) {
       throw new ConflictException('User already exists');
@@ -52,9 +54,6 @@ export class UserService {
       // Save the user to the database
       await newUser.save();
 
-      // Send verification email
-      await this.mailerService.sendVerificationEmail(newUser.verificationToken, newUser.email);
-
       return newUser;
     } catch (error) {
       console.error('Error creating user:', error);
@@ -62,17 +61,11 @@ export class UserService {
     }
   }
 
-  async verifyUserEmail(
-    token: string,
-    email: string,
-    userType: UserType
-  ): Promise<JwtResponseType> {
-    const user = await this.userModel
-      .findOne({ email, verificationToken: token, userType: userType })
-      .exec();
+  async verifyUserEmail(token: string, email: string, role: UserRole): Promise<JwtResponseType> {
+    const user = await this.userModel.findOne({ email, verificationToken: token, role }).exec();
 
     if (!user) {
-      throw new NotFoundException('User not found or invalid verification token');
+      throw new NotFoundException('Invalid email or verification token');
     }
 
     if (user.isVerified) {
@@ -107,7 +100,7 @@ export class UserService {
   }
 
   async generateJwtToken(user: User): Promise<JwtResponseType> {
-    const payload = { email: user.email, sub: user.id, userType: user.userType };
+    const payload = { email: user.email, sub: user.id, role: user.role };
 
     const [at, rt] = await Promise.all([
       this.jwtService.signAsync(

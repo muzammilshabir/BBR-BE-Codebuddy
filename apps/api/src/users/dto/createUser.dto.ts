@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import * as Joi from 'joi';
-import { SignupMethod, UserContactMethod, UserRole, UserType } from '../enum/user.enum';
+import { SignupMethod, UserContactMethod, UserRole } from '../enum/user.enum';
 import {
   UserContactInfo,
   UserContactPersonInfo,
@@ -67,7 +67,6 @@ export const createUserSchema = Joi.object({
         'password must be contain at least 1 uppercase letter, 1 lowercase letter, 1 digit and 1 special character',
     }),
   isVerified: Joi.boolean().default(false),
-  userType: Joi.string().valid(...Object.values(UserType)),
   signupMethod: Joi.string().valid(...Object.values(SignupMethod)),
   role: Joi.string().valid(...Object.values(UserRole)),
   verificationToken: Joi.string().allow(null),
@@ -99,17 +98,14 @@ export class CreateUserDto {
   @ApiProperty({ description: 'Password of the user', example: 'strongpassword123' })
   password: string;
 
-  @ApiProperty({ description: 'Type of the user', enum: UserType })
-  userType: UserType;
-
   @ApiProperty({ description: 'Method used for signup', enum: SignupMethod })
   signupMethod: SignupMethod;
 
-  @ApiProperty({ description: 'Indicates if the user is verified', example: false })
-  isVerified?: boolean;
-
   @ApiProperty({ description: 'Role of the user', enum: UserRole })
   role: UserRole;
+
+  @ApiProperty({ description: 'Indicates if the user is verified', example: false })
+  isVerified?: boolean;
 
   @ApiProperty({
     description: 'Verification token for email verification',

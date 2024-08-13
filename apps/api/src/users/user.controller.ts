@@ -14,7 +14,7 @@ import { LoginDto, loginSchema } from './dto/createLogin.dto';
 import { CreateUserDto, createUserSchema } from './dto/createUser.dto';
 import { ForgotPasswordDto, forgotPasswordSchema } from './dto/forgotPassword.dto';
 import { ResetPasswordDto, resetPasswordSchema } from './dto/resetPassword.dto'; // Add this import
-import { UserType } from './enum/user.enum';
+import { UserRole } from './enum/user.enum';
 import { UserService } from './user.service';
 
 @ApiTags('Users')
@@ -72,7 +72,7 @@ export class UserController {
   @ApiOperation({ summary: 'For verifying the email' })
   async verifyEmail(@Query('token') token: string, @Query('email') email: string) {
     try {
-      const result = await this.userService.verifyUserEmail(token, email, UserType.Buyer);
+      const result = await this.userService.verifyUserEmail(token, email, UserRole.BUYER);
       return { message: 'Email verified successfully', result };
     } catch (error) {
       return { error: error.message };

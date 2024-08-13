@@ -16,8 +16,3 @@ export enum UserContactMethod {
   PHONE = 'PHONE',
   WHATSAPP = 'WHATSAPP',
 }
-
-export enum UserType {
-  Seller = 'Seller',
-  Buyer = 'Buyer',
-}

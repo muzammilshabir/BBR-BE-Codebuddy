@@ -1,5 +1,6 @@
+import { MailerService } from '@bbr/api-core/modules/mailer/mailer.service';
 import { ForbiddenException, Injectable } from '@nestjs/common';
-import { SignupMethod, UserRole, UserType } from '../users/enum/user.enum';
+import { SignupMethod, UserRole } from '../users/enum/user.enum';
 import { UserService } from '../users/user.service';
 import { ResendVerificationEmailDto } from './dto/resendVerificationEmail';
 import { BuyerSignupDto } from './dto/signup.dto';
@@ -7,20 +8,27 @@ import { VerifyUserDto } from './dto/verifyUser.dto';
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly mailerService: MailerService
+  ) {}
   async signupBuyer(buyerSignupDto: BuyerSignupDto) {
-    return await this.userService.create({
+    const user = await this.userService.create({
       fullName: buyerSignupDto.fullName,
       email: buyerSignupDto.email,
       password: buyerSignupDto.password,
       agreeToTerms: true,
       signupMethod: SignupMethod.EMAIL,
-      userType: UserType.Buyer,
       role: UserRole.BUYER,
     });
+
+    // Send verification email
+    await this.mailerService.sendVerificationEmail(user.verificationToken, user.email);
+
+    return user;
   }
 
-  async verifyUser(verifyUserDto: VerifyUserDto, userType: UserType) {
+  async verifyUser(verifyUserDto: VerifyUserDto, role: UserRole) {
     const { email, token } = verifyUserDto;
 
     const user = await this.userService.findByEmail(email);
@@ -29,7 +37,7 @@ export class AuthService {
       throw new ForbiddenException('Email or token is invalid');
     }
 
-    return await this.userService.verifyUserEmail(token, email, userType);
+    return await this.userService.verifyUserEmail(token, email, role);
   }
 
   async resendVerificationEmail(resendVerificationEmailDo: ResendVerificationEmailDto) {
