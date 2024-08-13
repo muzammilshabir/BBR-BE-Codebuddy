@@ -1,6 +1,6 @@
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
-import { Body, Controller, Get, Post, UseGuards, UsePipes } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post, UseGuards, UsePipes } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '../users/enum/user.enum';
 import { AuthService } from './auth.service';
@@ -12,12 +12,15 @@ import {
   resendVerificationEmailSchema,
 } from './dto/resendVerificationEmail';
 import { BuyerSignupDto, buyerSignupSchema } from './dto/signup.dto';
+import { UpdateBuyerProfileDto, updateBuyerProfileSchema } from './dto/updateProfile';
 import { VerifyUserDto, verifyUserSchema } from './dto/verifyUser.dto';
+import { AtGuard } from './guards/at.guard';
 import { RtGuard } from './guards/rt.guard';
 import { JwtPayloadType } from './type/jwt-payload.type';
 
 @ApiTags('Auth')
 @Controller('auth')
+@UseGuards(AtGuard)
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
@@ -47,6 +50,20 @@ export class AuthController {
     const tokens = await this.authService.verifyUser(verifyBuyerDto, UserRole.BUYER);
 
     return ResponseService.buildResponse({ tokens }, 'Buyer verified successfully');
+  }
+
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Update Buyer Profile',
+  })
+  @Patch('buyer/me')
+  @UsePipes(new JoiValidationPipe(updateBuyerProfileSchema, 'body'))
+  async updateBuyer(
+    @GetCurrentUser() userFromToken: JwtPayloadType,
+    @Body() buyerSignupDto: UpdateBuyerProfileDto
+  ) {
+    const user = await this.authService.updateBuyer(userFromToken, buyerSignupDto);
+    return ResponseService.buildResponse(user, 'Buyer updated successfully');
   }
 
   @ApiOperation({

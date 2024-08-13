@@ -3,6 +3,7 @@ import { BbrCoreModule } from '@bbr/api-core/modules/core.module';
 import { TokenGenerationModule } from '@bbr/api-core/modules/token-generation/token.module';
 import { Module } from '@nestjs/common/decorators';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { JwtModule } from '@nestjs/jwt';
 import { MailerCoreModule } from 'src/mailer/mailer.module';
 import { AmenitiesModule } from './amenities/amenities.module';
 import { AuthModule } from './auth/auth.module';
@@ -16,12 +17,14 @@ import { ResidenceTypeModule } from './residenceType/residenceType.module';
 import { UnitModule } from './unit/unit.module';
 import { UploadModule } from './upload/upload.module';
 import { UserModule } from './users/user.module';
+import { jwtConfig } from './utils/jwt.config';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
       useClass: ServiceConfig,
     }),
     EventEmitterModule.forRoot(),
+    JwtModule.register(jwtConfig),
     BbrCoreModule,
     PostModule,
     UserModule,

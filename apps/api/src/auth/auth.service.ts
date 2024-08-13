@@ -1,7 +1,6 @@
 import { JwtResponseType, JwtTokenType } from '@bbr/api-core/modules/types/jwtToken.type';
-import { MailerService } from '@nestjs-modules/mailer';
 import { ForbiddenException, Injectable } from '@nestjs/common';
-import { NotFoundException } from '@nestjs/common/exceptions';
+import { NotFoundException, UnauthorizedException } from '@nestjs/common/exceptions';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { JwtService } from '@nestjs/jwt';
 import * as argon from 'argon2';
@@ -14,6 +13,7 @@ import { UserService } from '../users/user.service';
 import { LoginDto } from './dto/login.dto';
 import { ResendVerificationEmailDto } from './dto/resendVerificationEmail';
 import { BuyerSignupDto } from './dto/signup.dto';
+import { UpdateBuyerProfileDto } from './dto/updateProfile';
 import { VerifyUserDto } from './dto/verifyUser.dto';
 import { JwtPayloadType } from './type/jwt-payload.type';
 
@@ -21,7 +21,6 @@ import { JwtPayloadType } from './type/jwt-payload.type';
 export class AuthService {
   constructor(
     private readonly userService: UserService,
-    private readonly mailerService: MailerService,
     private readonly configService: ServiceConfig,
     private readonly jwtService: JwtService,
     private readonly eventEmitter: EventEmitter2
@@ -104,7 +103,7 @@ export class AuthService {
         { ...payload, tokenType: JwtTokenType.ACCESS },
         {
           secret: this.configService.jwt.atSecret,
-          expiresIn: '1h',
+          expiresIn: '1d',
         }
       ),
       this.jwtService.signAsync(
@@ -135,5 +134,13 @@ export class AuthService {
         toEmail: email,
       })
     );
+  }
+
+  async updateBuyer(loggedInUser: JwtPayloadType, updateBuyerDto: UpdateBuyerProfileDto) {
+    if (!loggedInUser || !loggedInUser.sub) throw new UnauthorizedException('Invalid token');
+
+    if (loggedInUser.role !== UserRole.BUYER) throw new UnauthorizedException('Invalid token');
+
+    return await this.userService.update(loggedInUser.sub, updateBuyerDto);
   }
 }
