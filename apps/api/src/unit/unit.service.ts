@@ -5,12 +5,9 @@ import { Unit } from './schema/unit.schema';
 import { Types } from 'mongoose';
 import { AddUnitKeyFeaturesDto, ResidenceServiceDto } from './dto/unit-key-features.dto';
 import { AddVisualsDto } from './dto/add-visuals.dto';
-import {
-  BadRequestException,
-  NotFoundException,
-} from '../../../../packages/api-core/modules/exceptions';
+import { BadRequestException, NotFoundException } from '@bbr/api-core/modules/exceptions';
 import { ListUnitDto } from './dto/list-unit.dto';
-import { PaginationService } from '../../../../packages/api-core/modules/pagination/pagination.service';
+import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
 import { DeletionStatus, Recurrence, RoomType, ServiceType } from './enum/unit-enum';
 import * as csv from 'csv-parser';
 import * as xlsx from 'xlsx';
@@ -131,9 +128,9 @@ export class UnitService {
     return str.trim().toUpperCase().replace(/\s+/g, '_');
   }
   private parseResidenceServices(item: any): ResidenceServiceDto[] {
-    const serviceTypes = item['unitKeyFeatures.residenceServices.serviceType']?.split(',') || [];
-    const amounts = item['unitKeyFeatures.residenceServices.amount']?.split(',') || [];
-    const recurrences = item['unitKeyFeatures.residenceServices.recurrence']?.split(',') || [];
+    const serviceTypes = item['Residence Services Type']?.split(',') || [];
+    const amounts = item['Residence Services Amount']?.split(',') || [];
+    const recurrences = item['Residence Services Recurrence']?.split(',') || [];
 
     return serviceTypes.map((serviceType: string, index: number) => ({
       serviceType: ServiceType[this.normalizeString(serviceType)],
@@ -148,36 +145,38 @@ export class UnitService {
     await this.residenceService.getResidenceById(residenceId);
 
     for (const item of data) {
+      const data = item;
+      console.log('item :>> ', item);
       const addUnitDto: AddUnitDto = {
-        unitName: item.unitName,
+        unitName: item['Unit Name'],
         specs: {
-          unitNumber: item['specs.unitNumber'] ? item['specs.unitNumber'] : undefined,
-          generalUnitSpaceSqFt: item['specs.generalUnitSpaceSqFt']
-            ? Number(item['specs.generalUnitSpaceSqFt'])
+          unitNumber: item.Number ? item.Number : undefined,
+          generalUnitSpaceSqFt: item['General Unit Space SqFt']
+            ? Number(item['General Unit Space SqFt'])
             : undefined,
-          floor: item['specs.floor'] ? Number(item['specs.floor']) : undefined,
+          floor: item.Floor ? Number(item.Floor) : undefined,
         },
         unitPrice: item.unitPrice ? Number(item.unitPrice) : undefined,
         exclusiveOffer: {
-          exclusiveUnitPrice: item['exclusiveOffer.exclusiveUnitPrice']
-            ? Number(item['exclusiveOffer.exclusiveUnitPrice'])
+          exclusiveUnitPrice: item['Exclusive Unit Price']
+            ? Number(item['Exclusive Unit Price'])
             : undefined,
-          OfferStartDate: item['exclusiveOffer.OfferStartDate']
-            ? new Date(item['exclusiveOffer.OfferStartDate'])
+          OfferStartDate: item['Exclusive Offer Start Date']
+            ? new Date(item['Exclusive Offer Start Date'])
             : undefined,
-          OfferEndDate: item['exclusiveOffer.OfferEndDate']
-            ? new Date(item['exclusiveOffer.OfferEndDate'])
+          OfferEndDate: item['Exclusive Offer End Date']
+            ? new Date(item['Exclusive Offer End Date'])
             : undefined,
         },
-        rooms: item['rooms.roomType']
-          ? item['rooms.roomType'].split(',').map((roomType, index) => ({
+        rooms: item['Room Type']
+          ? item['Room Type'].split(',').map((roomType, index) => ({
               roomType: RoomType[this.normalizeString(roomType)],
-              unit: Number(item['rooms.unit'].split(',')[index]),
+              unit: Number(item['Room Unit'].split(',')[index]),
             }))
           : undefined,
         briefOverview: {
-          subTitle: item['briefOverview.subTitle'],
-          description: item['briefOverview.description'],
+          subTitle: item['Brief Overview SubTitle'],
+          description: item['Brief Overview Description'],
         },
       };
 
@@ -185,10 +184,8 @@ export class UnitService {
       const unitId = unitDetails.id;
 
       const addUnitKeyFeaturesDto: AddUnitKeyFeaturesDto = {
-        features: item['unitKeyFeatures.features']
-          .split(',')
-          .map((feature: string) => feature.trim()),
-        residenceServices: item['unitKeyFeatures.residenceServices.serviceType']
+        features: item['Unit Key Features'].split(',').map((feature: string) => feature.trim()),
+        residenceServices: item['Residence Services Type']
           ? this.parseResidenceServices(item)
           : undefined,
       };
@@ -200,14 +197,14 @@ export class UnitService {
         videoTour: null,
       };
 
-      const mainGalleryUrls = item['visuals.mainGalleryPhotos'].split(',');
+      const mainGalleryUrls = item['Main Gallery Photos'].split(',');
       for (const url of mainGalleryUrls) {
         const fileMetadata: any = await this.uploadService.downloadFile(url, userId);
         addVisualsDto.mainGalleryPhotos.push(fileMetadata?._id);
       }
 
-      if (item['visuals.secondGalleryPhotos']) {
-        const secondGalleryUrls = item['visuals.secondGalleryPhotos'].split(',');
+      if (item['Second Gallery Photos']) {
+        const secondGalleryUrls = item['Second Gallery Photos'].split(',');
         for (const url of secondGalleryUrls) {
           const fileMetadata: any = await this.uploadService.downloadFile(url, userId);
           if (fileMetadata?._id) {
@@ -216,18 +213,15 @@ export class UnitService {
         }
       }
 
-      if (item['visuals.videoTour']) {
-        const fileMetadata: any = await this.uploadService.downloadFile(
-          item['visuals.videoTour'],
-          userId
-        );
+      if (item['Video Tour']) {
+        const fileMetadata: any = await this.uploadService.downloadFile(item['Video Tour'], userId);
         if (fileMetadata?._id) {
           addVisualsDto.videoTour = fileMetadata._id;
         }
       }
 
-      if (item['visuals.videoTourLink']) {
-        addVisualsDto.videoTourLink = item['visuals.videoTourLink'];
+      if (item['Video Tour Link']) {
+        addVisualsDto.videoTourLink = item['Video Tour Link'];
       }
 
       const unit = await this.addVisuals(addVisualsDto, unitId);

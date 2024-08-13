@@ -102,8 +102,8 @@ export class UnitController {
     try {
       const userId = '64b1b5f4e05c12a1f5d8e7c2'; // we will take this id from authentication
       const { residenceId, fileId } = params;
-      const result = await this.unitService.processUploadedFile(residenceId, fileId, userId);
-      return ResponseService.buildResponse({ result }, 'File uploaded and processed successfully');
+      const units = await this.unitService.processUploadedFile(residenceId, fileId, userId);
+      return ResponseService.buildResponse({ units }, 'File uploaded and processed successfully');
     } catch (error) {
       throw new BadRequestException('Error processing file: ' + error.message);
     }
