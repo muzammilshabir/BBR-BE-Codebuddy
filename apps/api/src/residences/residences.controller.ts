@@ -92,7 +92,7 @@ export class ResidenceController {
   })
   @UsePipes(new JoiValidationPipe(getResidenceByIdSchema, 'param'))
   async getResidenceById(@Param() params: GetResidenceByIdDto) {
-    const unit = await this.residenceService.getResidenceById(params.residenceId);
-    return ResponseService.buildResponse({ unit }, 'Residence retrieved successfully');
+    const residence = await this.residenceService.getResidenceById(params.residenceId);
+    return ResponseService.buildResponse({ residence }, 'Residence retrieved successfully');
   }
 }
