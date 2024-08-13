@@ -14,8 +14,9 @@ export enum ServiceType {
 }
 
 export enum Recurrence {
-  DAILY = 'daily',
-  WEEKLY = 'weekly',
+  DAILY = 'DAILY',
+  WEEKLY = 'WEEKLY',
+  MONTHLY = 'MONTHLY',
 }
 
 export enum DeletionStatus {

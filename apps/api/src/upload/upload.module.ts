@@ -19,7 +19,7 @@ import { S3ClientFactory } from './s3.client';
     ServiceConfig,
     S3ClientFactory,
   ],
-  exports: [UploadFixture, UploadSeeder],
+  exports: [UploadFixture, UploadSeeder, UploadService],
   controllers: [UploadController],
 })
 export class UploadModule {}
