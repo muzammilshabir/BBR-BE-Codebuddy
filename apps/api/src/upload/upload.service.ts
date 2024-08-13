@@ -136,7 +136,7 @@ export class UploadService {
 
       return { passThrough, filename: fileName, contentType, size: contentLength };
     } catch (error) {
-      console.error(`Error downloading image from URL: ${url}`, error.message);
+      this.logger.error(`Error downloading image from URL: ${url}`, error.message);
     }
   }
 
