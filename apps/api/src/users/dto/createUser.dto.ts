@@ -37,7 +37,15 @@ export const contactInfoSchema = Joi.object({
 
 export const budgetSchema = Joi.object({
   min: Joi.number().required(),
-  max: Joi.number().required(),
+  max: Joi.number()
+    .required()
+    .when('min', {
+      is: Joi.exist(),
+      then: Joi.number().greater(Joi.ref('min')),
+    })
+    .messages({
+      'number.greater': 'budget "max" must be greater than "min"',
+    }),
 });
 
 export const preferencesSchema = Joi.object({
