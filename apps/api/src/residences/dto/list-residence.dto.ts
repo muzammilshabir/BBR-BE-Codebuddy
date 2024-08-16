@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import * as Joi from 'joi';
 import { ListPropsDto, PaginationSchema } from '@bbr/api-core/modules/dto/listProps.dto';
 import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
-import { ResidenceStatus } from '../enum/residence-enum';
+import { FileType, ResidenceStatus } from '../enum/residence-enum';
 
 export class ListResidenceDto extends ListPropsDto {
   @ApiProperty({
@@ -17,7 +17,7 @@ export class ListResidenceDto extends ListPropsDto {
     example: ResidenceStatus.ACTIVE,
     enum: ResidenceStatus,
     description: 'The status of the residence',
-    required: false,
+    required: true,
   })
   status: ResidenceStatus;
 
@@ -28,6 +28,22 @@ export class ListResidenceDto extends ListPropsDto {
     type: String,
   })
   developerId?: string;
+
+  @ApiProperty({
+    description: 'Set to true if you want to download the data',
+    example: false,
+    required: false,
+    default: false,
+  })
+  isDownload?: boolean = false;
+
+  @ApiProperty({
+    description: 'File type for download (excel or csv)',
+    example: FileType.EXCEL,
+    enum: FileType,
+    required: false,
+  })
+  fileType?: FileType;
 }
 
 export const listResidenceSchema = PaginationSchema.append({
@@ -36,4 +52,8 @@ export const listResidenceSchema = PaginationSchema.append({
   status: Joi.string()
     .valid(...Object.values(ResidenceStatus))
     .required(),
+  isDownload: Joi.boolean().default(false).optional(),
+  fileType: Joi.string()
+    .valid(...Object.values(FileType))
+    .optional(),
 });

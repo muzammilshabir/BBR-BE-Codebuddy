@@ -10,6 +10,9 @@ import { Types } from 'mongoose';
 import { UpdateNearbyAmenitiesDto } from './dto/update-nearby-amenities.dto';
 import { ListResidenceDto } from './dto/list-residence.dto';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
+import * as XLSX from 'xlsx';
+import { format } from '@fast-csv/format';
+import { Writable } from 'stream';
 
 @Injectable()
 export class ResidenceService {
@@ -178,13 +181,21 @@ export class ResidenceService {
 
       return {
         ...cleanResidence,
-        residence: 0,
+        views: 0,
         saves: 0,
         inquiries: 0,
       };
     });
     const transformedResidence = await this.transformResidences(updatedData);
+    if (listResidenceDto.isDownload) {
+      if (listResidenceDto.fileType === 'csv') {
+        return this.generateCsv(transformedResidence);
+      } else if (listResidenceDto.fileType === 'excel') {
+        return this.generateExcel(transformedResidence);
+      }
+    }
     const { pagination } = PaginationService.paginate({ rows: data, count }, listResidenceDto);
+
     return { pagination, residences: transformedResidence };
   }
 
@@ -219,5 +230,75 @@ export class ResidenceService {
 
       return transformedResidence;
     });
+  }
+
+  private async generateCsv(residences: Residence[]): Promise<Buffer> {
+    const csvStream = format({ headers: true });
+    const bufferStream = new Writable();
+    const data: Buffer[] = [];
+
+    // Write chunks of data to a buffer array
+    bufferStream._write = (chunk, encoding, next) => {
+      data.push(chunk);
+      next();
+    };
+
+    csvStream.pipe(bufferStream);
+
+    // Writing each residence object to CSV
+    residences.forEach((residence: any) => {
+      const mainGalleryUrls = residence?.visuals?.mainGalleryPhotos
+        ? residence.visuals.mainGalleryPhotos.map((photo) => photo.url).join(', ')
+        : '';
+
+      csvStream.write({
+        'Residence Name': residence?.residenceType?.type || '',
+        'Main Gallery Photos': mainGalleryUrls,
+        'Submission Date': residence?.submissionDate || '',
+        'Views': residence?.views || 0,
+        'Saves': residence?.saves || 0,
+        'Inquiries': residence?.inquiries || 0,
+      });
+    });
+
+    csvStream.end();
+
+    // Await the CSV generation and return the file
+    const csvFile = await new Promise<Buffer>((resolve) => {
+      bufferStream.on('finish', () => {
+        resolve(Buffer.concat(data));
+      });
+    });
+
+    return csvFile;
+  }
+
+  private async generateExcel(residences: Residence[]): Promise<Buffer> {
+    const workbook = XLSX.utils.book_new();
+    const worksheetData = residences.map((residence: any) => {
+      const mainGalleryUrls = residence?.visuals?.mainGalleryPhotos
+        ? residence.visuals.mainGalleryPhotos.map((photo) => photo.url).join(', ')
+        : '';
+
+      return {
+        'Residence Name': residence?.residenceType?.type || '',
+        'Main Gallery Photos': mainGalleryUrls,
+        'Submission Date': residence?.submissionDate || '',
+        'Views': residence?.views || 0,
+        'Saves': residence?.saves || 0,
+        'Inquiries': residence?.inquiries || 0,
+      };
+    });
+
+    // Convert data to a worksheet
+    const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+
+    // Append the worksheet to the workbook
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Residences');
+
+    // Write the workbook to a buffer
+    const excelFileBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'buffer' });
+
+    return excelFileBuffer;
   }
 }
