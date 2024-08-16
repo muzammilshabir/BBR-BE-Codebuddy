@@ -1,6 +1,6 @@
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
-import { Body, Controller, Get, Patch, Post, UseGuards, UsePipes } from '@nestjs/common';
+import { Body, Controller, Get, Ip, Patch, Post, UseGuards, UsePipes } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '../users/enum/user.enum';
 import { AuthService } from './auth.service';
@@ -28,8 +28,8 @@ export class AuthController {
   @Public()
   @Post('/buyer/login/email')
   @UsePipes(new JoiValidationPipe(loginSchema, 'body'))
-  async loginWithEmailPassword(@Body() loginDto: LoginDto) {
-    const response = await this.authService.loginWithEmailPassword(loginDto, UserRole.BUYER);
+  async loginWithEmailPassword(@Body() loginDto: LoginDto, @Ip() ip: string) {
+    const response = await this.authService.loginWithEmailPassword(loginDto, UserRole.BUYER, ip);
     return ResponseService.buildResponse(response);
   }
 

@@ -1,10 +1,11 @@
+import { CaptchaRedisPrefix } from '@bbr/api-core/modules/types/captcha.type';
+import { ExceptionCodes } from '@bbr/api-core/modules/types/exceptionCodes.type';
 import { JwtResponseType, JwtTokenType } from '@bbr/api-core/modules/types/jwtToken.type';
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { NotFoundException, UnauthorizedException } from '@nestjs/common/exceptions';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { JwtService } from '@nestjs/jwt';
 import * as argon from 'argon2';
-import { ExceptionCodes } from '../../../../packages/api-core/modules/types/exceptionCodes.type';
 import { ServiceConfig } from '../config';
 import { SendEmailEvent } from '../mailer/events/send-email.event';
 import { SignupMethod, UserRole } from '../users/enum/user.enum';
@@ -15,6 +16,7 @@ import { ResendVerificationEmailDto } from './dto/resendVerificationEmail';
 import { BuyerSignupDto } from './dto/signup.dto';
 import { UpdateBuyerProfileDto } from './dto/updateProfile';
 import { VerifyUserDto } from './dto/verifyUser.dto';
+import { RedisService } from './redis/redis.service';
 import { JwtPayloadType } from './type/jwt-payload.type';
 
 @Injectable()
@@ -23,7 +25,8 @@ export class AuthService {
     private readonly userService: UserService,
     private readonly configService: ServiceConfig,
     private readonly jwtService: JwtService,
-    private readonly eventEmitter: EventEmitter2
+    private readonly eventEmitter: EventEmitter2,
+    private readonly redisService: RedisService
   ) {}
 
   static generateVerificationLink(email: string, verifyToken: string) {
@@ -67,10 +70,27 @@ export class AuthService {
     }
   }
 
-  async loginWithEmailPassword(loginDto: LoginDto, role: UserRole) {
+  async loginWithEmailPassword(loginDto: LoginDto, role: UserRole, ip: string) {
     const user = await this.userService.findByEmailAndRole(loginDto.email, role);
 
-    if (!user) throw new NotFoundException('Invalid credentials');
+    let failedCount = await this.redisService.get({
+      prefix: CaptchaRedisPrefix.PREFIX,
+      key: ip,
+    });
+
+    if (!failedCount) {
+      failedCount = '0';
+    }
+
+    if (!user) {
+      await this.redisService.set({
+        prefix: CaptchaRedisPrefix.PREFIX,
+        key: ip,
+        value: String(Number(failedCount) + 1),
+      });
+
+      throw new NotFoundException('Invalid credentials');
+    }
 
     if (!user.isVerified) {
       await this.resendVerificationEmail({ email: user.email });
@@ -82,7 +102,15 @@ export class AuthService {
 
     const isPasswordMatch = await argon.verify(user.password, loginDto.password);
 
-    if (!isPasswordMatch) throw new ForbiddenException('Invalid credentials');
+    if (!isPasswordMatch) {
+      await this.redisService.set({
+        prefix: CaptchaRedisPrefix.PREFIX,
+        key: ip,
+        value: String(Number(failedCount) + 1),
+      });
+
+      throw new ForbiddenException('Invalid credentials');
+    }
 
     return { tokens: await this.generateJwtToken(user) };
   }
