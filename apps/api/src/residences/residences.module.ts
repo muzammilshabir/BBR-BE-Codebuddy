@@ -9,13 +9,8 @@ import { ResidencesFixture } from './residences.fixture';
 
 @Module({
   imports: [MongooseModule.forFeature([{ name: Residence.name, schema: ResidenceSchema }])],
-  providers: [
-    ResidenceService,
-    ResidenceRepository,
-    ResidenceSeeder,
-    ResidencesFixture,
-  ],
-  exports: [ResidenceSeeder, ResidencesFixture],
+  providers: [ResidenceService, ResidenceRepository, ResidenceSeeder, ResidencesFixture],
+  exports: [ResidenceSeeder, ResidencesFixture, ResidenceService],
   controllers: [ResidenceController],
 })
 export class ResidenceModule {}
