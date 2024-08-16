@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
+import { RedisModule } from 'src/auth/redis/redis.module';
 import { MailerCoreModule } from 'src/mailer/mailer.module';
 import { ServiceConfig } from '../config';
 import { UserModule } from '../users/user.module';
@@ -10,7 +11,7 @@ import { AtStrategy } from './strategies/at.strategy';
 import { RtStrategy } from './strategies/rt.strategy';
 
 @Module({
-  imports: [UserModule, MailerCoreModule, JwtModule.register(jwtConfig)],
+  imports: [UserModule, MailerCoreModule, JwtModule.register(jwtConfig), RedisModule],
   providers: [AuthService, AtStrategy, RtStrategy, ServiceConfig],
   controllers: [AuthController],
 })

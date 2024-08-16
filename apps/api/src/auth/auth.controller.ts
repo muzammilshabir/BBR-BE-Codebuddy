@@ -5,6 +5,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '../users/enum/user.enum';
 import { AuthService } from './auth.service';
 import { GetCurrentUser } from './decorators/getCurrentUser.decorator';
+import { Public } from './decorators/public.decorator';
 import { Refresh } from './decorators/refresh.decorator';
 import { LoginDto, loginSchema } from './dto/login.dto';
 import {
@@ -17,7 +18,6 @@ import { VerifyUserDto, verifyUserSchema } from './dto/verifyUser.dto';
 import { AtGuard } from './guards/at.guard';
 import { RtGuard } from './guards/rt.guard';
 import { JwtPayloadType } from './type/jwt-payload.type';
-import { Public } from './decorators/public.decorator';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -25,6 +25,7 @@ import { Public } from './decorators/public.decorator';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @Public()
   @Post('/buyer/login/email')
   @UsePipes(new JoiValidationPipe(loginSchema, 'body'))
   async loginWithEmailPassword(@Body() loginDto: LoginDto) {
@@ -72,6 +73,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'Resend Verification Email',
   })
+  @Public()
   @Post('/resend-verification-email')
   @UsePipes(new JoiValidationPipe(resendVerificationEmailSchema, 'body'))
   async resendVerificationEmail(@Body() resendVerificationEmailDo: ResendVerificationEmailDto) {

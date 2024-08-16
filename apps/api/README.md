@@ -26,5 +26,6 @@ To start the application,run the following command:
 ```sh
 cd apps/api
 pnpm copy-env
+pnpm dev:redis
 pnpm dev
 ```
