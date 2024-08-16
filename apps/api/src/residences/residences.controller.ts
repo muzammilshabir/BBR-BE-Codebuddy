@@ -130,7 +130,7 @@ export class ResidenceController {
       }
     }
     return res.json(
-      ResponseService.buildResponse({ residence: result }, 'Residence retrieved successfully')
+      ResponseService.buildResponse({ residences: result }, 'Residence retrieved successfully')
     );
   }
 
