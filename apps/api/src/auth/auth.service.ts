@@ -8,6 +8,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as argon from 'argon2';
 import { ServiceConfig } from '../config';
 import { SendEmailEvent } from '../mailer/events/send-email.event';
+import { RedisService } from '../redis/redis.service';
 import { SignupMethod, UserRole } from '../users/enum/user.enum';
 import { User } from '../users/schema/user.schema';
 import { UserService } from '../users/user.service';
@@ -16,7 +17,6 @@ import { ResendVerificationEmailDto } from './dto/resendVerificationEmail';
 import { BuyerSignupDto } from './dto/signup.dto';
 import { UpdateBuyerProfileDto } from './dto/updateProfile';
 import { VerifyUserDto } from './dto/verifyUser.dto';
-import { RedisService } from './redis/redis.service';
 import { JwtPayloadType } from './type/jwt-payload.type';
 
 @Injectable()

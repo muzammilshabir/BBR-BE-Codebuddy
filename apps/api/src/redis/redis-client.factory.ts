@@ -1,6 +1,6 @@
 import { FactoryProvider } from '@nestjs/common';
 import { Redis } from 'ioredis';
-import { ServiceConfig } from '../../config';
+import { ServiceConfig } from '../config';
 
 export const redisClientFactory: FactoryProvider<Redis> = {
   provide: 'RedisClient',
