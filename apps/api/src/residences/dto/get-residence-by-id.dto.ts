@@ -8,9 +8,9 @@ export class GetResidenceByIdDto {
     description: 'ID of the Residence',
     required: true,
   })
-  residenceId: string;
+  id: string;
 }
 
 export const getResidenceByIdSchema = Joi.object({
-  residenceId: Joi.string().custom(joiObjectIdValidator('residenceId')).required(),
+  id: Joi.string().custom(joiObjectIdValidator('id')).required(),
 });

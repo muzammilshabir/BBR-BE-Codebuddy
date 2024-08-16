@@ -92,17 +92,7 @@ export class ResidenceController {
     );
   }
 
-  @Get(':residenceId')
-  @ApiOperation({
-    summary: 'Get Residence by ID',
-  })
-  @UsePipes(new JoiValidationPipe(getResidenceByIdSchema, 'param'))
-  async getResidenceById(@Param() params: GetResidenceByIdDto) {
-    const residence = await this.residenceService.getResidenceById(params.residenceId);
-    return ResponseService.buildResponse({ residence }, 'Residence retrieved successfully');
-  }
-
-  @Put('/update-status/:residenceId')
+  @Put('/:id/update-status')
   @ApiOperation({
     summary: 'Update Residence by ID',
   })
@@ -112,20 +102,27 @@ export class ResidenceController {
     @Param() params: GetResidenceByIdDto,
     @Body() body: ResidenceStatusDto
   ) {
-    const residence = await this.residenceService.updateResidenceStatus(
-      params.residenceId,
-      body.status
-    );
+    const residence = await this.residenceService.updateResidenceStatus(params.id, body.status);
     return ResponseService.buildResponse({ residence }, 'Residence retrieved successfully');
   }
 
-  @Get('/') // move to top
+  @Get('/')
   @ApiOperation({
     summary: 'List Residence',
   })
   @UsePipes(new JoiValidationPipe(listResidenceSchema, 'query'))
   async listResidences(@Query() query: ListResidenceDto) {
     const residence = await this.residenceService.listResidences(query);
+    return ResponseService.buildResponse({ residence }, 'Residence retrieved successfully');
+  }
+
+  @Get(':id')
+  @ApiOperation({
+    summary: 'Get Residence by ID',
+  })
+  @UsePipes(new JoiValidationPipe(getResidenceByIdSchema, 'param'))
+  async getResidenceById(@Param() params: GetResidenceByIdDto) {
+    const residence = await this.residenceService.getResidenceById(params.id);
     return ResponseService.buildResponse({ residence }, 'Residence retrieved successfully');
   }
 }

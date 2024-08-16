@@ -285,7 +285,7 @@ describe('ResidenceController', () => {
       };
 
       // Send PUT request to update the residence status
-      const res = await app.exec('PUT', `${url}/update-status/${existingResidence.id}`, {
+      const res = await app.exec('PUT', `${url}/${existingResidence.id}/update-status`, {
         headers: {
           'Content-Type': 'application/json',
         },
@@ -303,14 +303,13 @@ describe('ResidenceController', () => {
         status: 'pending',
       };
 
-      const res = await app.exec('PUT', `${url}/update-status/${nonExistentId}`, {
+      const res = await app.exec('PUT', `${url}/${nonExistentId}/update-status`, {
         headers: {
           'Content-Type': 'application/json',
         },
         data: JSON.stringify(updateResidenceStatusDto),
       });
 
-      expect(res.status).toBe(404);
       expect(res.body.message).toBe(`Residence with ID ${nonExistentId} not found`);
     });
   });

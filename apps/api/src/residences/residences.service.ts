@@ -16,7 +16,7 @@ export class ResidenceService {
   constructor(private readonly residenceRepository: ResidenceRepository) {}
 
   async create(createResidenceDto: CreateResidenceDto): Promise<Residence> {
-    const userId = '66bb48041c4f07b8d37ba240'; // we will take this id from auth
+    const developerId = '66bb48041c4f07b8d37ba240'; // if user role is developer then we will take his id
     const transformedDto = {
       ...createResidenceDto,
       residenceTypeId: new Types.ObjectId(createResidenceDto.residenceTypeId),
@@ -24,7 +24,7 @@ export class ResidenceService {
       associatedBrandId: createResidenceDto.associatedBrandId
         ? new Types.ObjectId(createResidenceDto.associatedBrandId)
         : undefined,
-      createdById: new Types.ObjectId(userId),
+      developerId: new Types.ObjectId(developerId),
     };
     return await this.residenceRepository.create(transformedDto);
   }
@@ -137,13 +137,41 @@ export class ResidenceService {
     if (listResidenceDto.locationId) {
       filter.locationId = new Types.ObjectId(listResidenceDto.locationId);
     }
-    if (listResidenceDto.sellerId) {
-      filter.createdById = new Types.ObjectId(listResidenceDto.locationId);
+    if (listResidenceDto.developerId) {
+      filter.developerId = new Types.ObjectId(listResidenceDto.developerId);
     }
 
     const options = PaginationService.prepareOptions(listResidenceDto);
 
-    const { data, count } = await this.residenceRepository.findAll(filter, options);
+    const { data, count } = await this.residenceRepository.findAll(filter, options, [
+      { path: 'residenceTypeId', select: 'type' },
+      { path: 'locationId', select: 'name type parentId' },
+      { path: 'associatedBrandId', select: 'name' },
+      {
+        path: 'visuals.mainGalleryPhotos',
+        select: 'originalFileKey fileKey url mimeType',
+        model: 'Upload',
+      },
+      {
+        path: 'visuals.secondGalleryPhotos',
+        select: 'originalFileKey fileKey url mimeType',
+        model: 'Upload',
+      },
+      {
+        path: 'visuals.videoTour',
+        select: 'originalFileKey fileKey url mimeType',
+        model: 'Upload',
+      },
+      { path: 'nearbyAmenities.amenitiesList', select: 'name', model: 'Amenity' },
+      { path: 'nearbyAmenities.highlightedAmenities.amenityId', select: 'name', model: 'Amenity' },
+      {
+        path: 'nearbyAmenities.highlightedAmenities.imageId',
+        select: 'originalFileKey fileKey url mimeType',
+        model: 'Upload',
+      },
+      { path: 'createdById', model: 'User' },
+      { path: 'developerId', model: 'User' },
+    ]);
 
     const updatedData = data.map((residence) => {
       const cleanResidence = residence.toObject();
@@ -155,8 +183,41 @@ export class ResidenceService {
         inquiries: 0,
       };
     });
-
+    const transformedResidence = await this.transformResidences(updatedData);
     const { pagination } = PaginationService.paginate({ rows: data, count }, listResidenceDto);
-    return { pagination, residences: updatedData };
+    return { pagination, residences: transformedResidence };
+  }
+
+  private transformResidences(residences: Residence[]): Residence[] {
+    return residences.map((residence) => {
+      const transformedResidence: any = { ...residence };
+
+      if (residence.residenceTypeId) {
+        transformedResidence.residenceType = residence.residenceTypeId;
+        delete transformedResidence.residenceTypeId;
+      }
+
+      if (residence.locationId) {
+        transformedResidence.location = residence.locationId;
+        delete transformedResidence.locationId;
+      }
+
+      if (residence.associatedBrandId) {
+        transformedResidence.associatedBrand = residence.associatedBrandId;
+        delete transformedResidence.associatedBrandId;
+      }
+
+      if (residence.createdById) {
+        transformedResidence.createdBy = residence.createdById;
+        delete transformedResidence.createdById;
+      }
+
+      if (residence.developerId) {
+        transformedResidence.developer = residence.developerId;
+        delete transformedResidence.developerId;
+      }
+
+      return transformedResidence;
+    });
   }
 }

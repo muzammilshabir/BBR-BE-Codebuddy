@@ -22,17 +22,17 @@ export class ListResidenceDto extends ListPropsDto {
   status: ResidenceStatus;
 
   @ApiProperty({
-    description: 'Filter by seller ID',
+    description: 'Filter by Developer ID',
     example: '60b6c0f53b5a5c1f88d25a1b',
     required: false,
     type: String,
   })
-  sellerId?: string;
+  developerId?: string;
 }
 
 export const listResidenceSchema = PaginationSchema.append({
   locationId: Joi.string().custom(joiObjectIdValidator('locationId')).optional(),
-  sellerId: Joi.string().custom(joiObjectIdValidator('sellerId')).optional(),
+  developerId: Joi.string().custom(joiObjectIdValidator('developerId')).optional(),
   status: Joi.string()
     .valid(...Object.values(ResidenceStatus))
     .required(),
