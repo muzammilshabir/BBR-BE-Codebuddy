@@ -132,9 +132,6 @@ export class Residence extends Document {
   })
   status: string;
 
-  @Prop([{ type: Types.ObjectId, ref: 'Unit' }]) // add unit collection ref
-  unitIds: Types.ObjectId[];
-
   @Prop({ type: Types.ObjectId, ref: 'User' })
   createdById: Types.ObjectId;
 

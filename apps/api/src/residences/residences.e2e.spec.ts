@@ -246,4 +246,72 @@ describe('ResidenceController', () => {
       );
     });
   });
+
+  describe('Get Residence by ID', () => {
+    it('Should retrieve a Residence by ID', async () => {
+      const existingResidence = app.getReference(ResidencesFixture.RESIDENCE1);
+
+      const res = await app.exec('GET', `${url}/${existingResidence.id}`, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Residence retrieved successfully');
+    });
+
+    it('Should return 404 if Residence ID does not exist', async () => {
+      const nonExistentId = '60f9c1e07c8b4b001c5c9c99';
+
+      // Send GET request with a non-existent ID
+      const res = await app.exec('GET', `${url}/${nonExistentId}`, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      expect(res.status).toBe(404);
+      expect(res.body.message).toBe(`Residence with ID ${nonExistentId} not found`);
+    });
+  });
+
+  describe('Update Residence Status', () => {
+    it('Should update the status of an existing Residence', async () => {
+      const existingResidence = app.getReference(ResidencesFixture.RESIDENCE1);
+
+      const updateResidenceStatusDto = {
+        status: 'pending', // Example status, active,pending,draft,sold,rejected
+      };
+
+      // Send PUT request to update the residence status
+      const res = await app.exec('PUT', `${url}/update-status/${existingResidence.id}`, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        data: JSON.stringify(updateResidenceStatusDto),
+      });
+
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Residence retrieved successfully');
+    });
+
+    it('Should return 404 if the Residence ID does not exist', async () => {
+      const nonExistentId = '60f9c1e07c8b4b001c5c9c99';
+
+      const updateResidenceStatusDto = {
+        status: 'pending',
+      };
+
+      const res = await app.exec('PUT', `${url}/update-status/${nonExistentId}`, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        data: JSON.stringify(updateResidenceStatusDto),
+      });
+
+      expect(res.status).toBe(404);
+      expect(res.body.message).toBe(`Residence with ID ${nonExistentId} not found`);
+    });
+  });
 });

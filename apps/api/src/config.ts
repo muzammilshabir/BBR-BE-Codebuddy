@@ -16,8 +16,9 @@ export class ServiceConfig extends BbrStatefulServiceConfig {
   readonly db = {
     mongodbUri: this.getOrThrow('DB_URI'),
   };
-  readonly Jwt = {
-    jwtSecretKey: this.getOrThrow('JWT_SECRET_KEY'),
+  readonly jwt = {
+    atSecret: this.getOrThrow('JWT_AT_SECRET'),
+    rtSecret: this.getOrThrow('JWT_AT_SECRET'),
   };
 
   readonly nodemailer = {

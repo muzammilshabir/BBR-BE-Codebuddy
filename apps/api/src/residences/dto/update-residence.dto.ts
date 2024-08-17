@@ -7,6 +7,7 @@ import {
   BudgetLimitationsRange,
   ComprehensiveOverview,
 } from './create-residence.dto';
+import { ResidenceStatus } from '../enum/residence-enum';
 
 export class UpdateResidenceDto {
   @ApiProperty({ example: 'Ritz Carlton Miami', required: false })
@@ -56,4 +57,20 @@ export const updateResidenceSchema = Joi.object({
     startRange: Joi.number().optional(),
     endRange: Joi.number().optional(),
   }).optional(),
+});
+
+export class ResidenceStatusDto {
+  @ApiProperty({
+    example: ResidenceStatus.PENDING,
+    enum: ResidenceStatus,
+    description: 'The status of the residence',
+    required: true,
+  })
+  status: ResidenceStatus;
+}
+
+export const updateResidenceStatusSchema = Joi.object({
+  status: Joi.string()
+    .valid(...Object.values(ResidenceStatus))
+    .required(),
 });

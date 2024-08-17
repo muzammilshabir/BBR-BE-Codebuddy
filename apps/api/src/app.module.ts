@@ -1,19 +1,20 @@
 import { BbrConfigModule } from '@bbr/api-core/modules/config/configModule';
-import { ServiceConfig } from './config';
-import { Module } from '@nestjs/common/decorators';
-import { PostModule } from './posts/post.module';
-import { UserModule } from './users/user.module';
 import { BbrCoreModule } from '@bbr/api-core/modules/core.module';
-import { TokenGenerationModule } from '@bbr/api-core/modules/token-generation/token.module';
 import { MailerCoreModule } from '@bbr/api-core/modules/mailer/mailer.module';
-import { ResidenceTypeModule } from './residenceType/residenceType.module';
-import { LocationModule } from './location/location.module';
-import { BrandModule } from './brand/brand.module';
-import { ResidenceFeatureModule } from './residenceFeatures/residenceFeatures.module';
+import { TokenGenerationModule } from '@bbr/api-core/modules/token-generation/token.module';
+import { Module } from '@nestjs/common/decorators';
 import { AmenitiesModule } from './amenities/amenities.module';
-import { UploadModule } from './upload/upload.module';
+import { AuthModule } from './auth/auth.module';
+import { BrandModule } from './brand/brand.module';
+import { ServiceConfig } from './config';
+import { LocationModule } from './location/location.module';
+import { PostModule } from './posts/post.module';
+import { ResidenceFeatureModule } from './residenceFeatures/residenceFeatures.module';
 import { ResidenceModule } from './residences/residences.module';
+import { ResidenceTypeModule } from './residenceType/residenceType.module';
 import { UnitModule } from './unit/unit.module';
+import { UploadModule } from './upload/upload.module';
+import { UserModule } from './users/user.module';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -32,6 +33,7 @@ import { UnitModule } from './unit/unit.module';
     UploadModule,
     ResidenceModule,
     UnitModule,
+    AuthModule,
   ],
   controllers: [],
   providers: [],

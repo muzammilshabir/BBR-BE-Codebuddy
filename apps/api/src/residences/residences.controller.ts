@@ -1,17 +1,23 @@
 import { Public } from '@bbr/api-core/modules/decorators';
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
-import { Body, Controller, Param, Post, Put, UsePipes } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, UsePipes } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ResidenceService } from './residences.service';
 import { CreateResidenceDto, createResidenceSchema } from './dto/create-residence.dto';
-import { UpdateResidenceDto, updateResidenceSchema } from './dto/update-residence.dto';
+import {
+  ResidenceStatusDto,
+  UpdateResidenceDto,
+  updateResidenceSchema,
+  updateResidenceStatusSchema,
+} from './dto/update-residence.dto';
 import { AddKeyFeaturesDto, addKeyFeaturesSchema } from './dto/residenceKeyFeatures.dto';
 import { AddVisualsDto, addVisualsSchema } from './dto/add-visuals.dto';
 import {
   UpdateNearbyAmenitiesDto,
   updateNearbyAmenitiesSchema,
 } from './dto/update-nearby-amenities.dto';
+import { GetResidenceByIdDto, getResidenceByIdSchema } from './dto/get-residence-by-id.dto';
 
 @ApiTags('Residence')
 @Controller('residence')
@@ -83,5 +89,32 @@ export class ResidenceController {
       { residence },
       'Residence nearby amenities updated successfully'
     );
+  }
+
+  @Get(':residenceId')
+  @ApiOperation({
+    summary: 'Get Residence by ID',
+  })
+  @UsePipes(new JoiValidationPipe(getResidenceByIdSchema, 'param'))
+  async getResidenceById(@Param() params: GetResidenceByIdDto) {
+    const residence = await this.residenceService.getResidenceById(params.residenceId);
+    return ResponseService.buildResponse({ residence }, 'Residence retrieved successfully');
+  }
+
+  @Put('/update-status/:residenceId')
+  @ApiOperation({
+    summary: 'Update Residence by ID',
+  })
+  @UsePipes(new JoiValidationPipe(getResidenceByIdSchema, 'param'))
+  @UsePipes(new JoiValidationPipe(updateResidenceStatusSchema, 'body'))
+  async updateResidenceStatus(
+    @Param() params: GetResidenceByIdDto,
+    @Body() body: ResidenceStatusDto
+  ) {
+    const residence = await this.residenceService.updateResidenceStatus(
+      params.residenceId,
+      body.status
+    );
+    return ResponseService.buildResponse({ residence }, 'Residence retrieved successfully');
   }
 }
