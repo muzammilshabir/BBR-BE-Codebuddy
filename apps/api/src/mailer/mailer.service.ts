@@ -1,6 +1,8 @@
 import { MailerService as NestMailerService } from '@nestjs-modules/mailer';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { OnEvent } from '@nestjs/event-emitter';
+import { SendEmailEvent } from './events/send-email.event';
 
 @Injectable()
 export class MailerService {
@@ -9,24 +11,24 @@ export class MailerService {
     private readonly configService: ConfigService
   ) {}
 
-  async sendVerificationEmail(verifyToken: string, email: string) {
-    const verificationLink = `${process.env.SERVICE_URL}/api/verify-email?token=${verifyToken}&email=${email}`;
-
+  @OnEvent(SendEmailEvent.event)
+  async consume(event: SendEmailEvent) {
     try {
+      const { subject, template, context, to } = event;
       await this.mailerService.sendMail({
         from: this.configService.get<string>('MAILER_FROM'),
-        to: email,
-        subject: 'Verify Your Email Address',
-        text: `Please click the following link to verify your email address: ${verificationLink}`,
-        html: `<p>Please click the following link to verify your email address:</p><p><a href="${verificationLink}">${verificationLink}</a></p>`,
+        to,
+        subject: subject,
+        context: { ...context, subject },
+        template: template,
       });
-      console.log('Verification email sent');
     } catch (error) {
-      console.error('Error sending verification email:', error);
-      throw new Error('Error sending verification email');
+      console.error('Error sending email:', error);
+      throw error;
     }
   }
 
+  // TODO: Remove when implementing Forgot Password flow
   async sendResetPasswordEmail(email: string, resetToken: string) {
     const resetLink = `${process.env.SERVICE_URL}/api/reset-password?token=${resetToken}&uid=${email}`;
 

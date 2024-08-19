@@ -1,8 +1,9 @@
 import { BbrConfigModule } from '@bbr/api-core/modules/config/configModule';
 import { BbrCoreModule } from '@bbr/api-core/modules/core.module';
-import { MailerCoreModule } from '@bbr/api-core/modules/mailer/mailer.module';
 import { TokenGenerationModule } from '@bbr/api-core/modules/token-generation/token.module';
 import { Module } from '@nestjs/common/decorators';
+import { EventEmitterModule } from '@nestjs/event-emitter';
+import { MailerCoreModule } from 'src/mailer/mailer.module';
 import { AmenitiesModule } from './amenities/amenities.module';
 import { AuthModule } from './auth/auth.module';
 import { BrandModule } from './brand/brand.module';
@@ -20,6 +21,7 @@ import { UserModule } from './users/user.module';
     BbrConfigModule.forRoot({
       useClass: ServiceConfig,
     }),
+    EventEmitterModule.forRoot(),
     BbrCoreModule,
     PostModule,
     UserModule,
