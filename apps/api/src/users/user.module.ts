@@ -1,9 +1,9 @@
-import { MailerCoreModule } from '@bbr/api-core/modules/mailer/mailer.module';
 import { TokenGenerationModule } from '@bbr/api-core/modules/token-generation/token.module';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
+import { MailerCoreModule } from 'src/mailer/mailer.module';
 import { ServiceConfig } from '../config';
 import { jwtConfig } from '../utils/jwt.config';
 import { User, UserSchema } from './schema/user.schema';
