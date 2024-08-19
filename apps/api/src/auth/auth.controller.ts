@@ -17,6 +17,7 @@ import { VerifyUserDto, verifyUserSchema } from './dto/verifyUser.dto';
 import { AtGuard } from './guards/at.guard';
 import { RtGuard } from './guards/rt.guard';
 import { JwtPayloadType } from './type/jwt-payload.type';
+import { Public } from './decorators/public.decorator';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -34,6 +35,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'Buyer Signup',
   })
+  @Public()
   @Post('/buyer/signup')
   @UsePipes(new JoiValidationPipe(buyerSignupSchema, 'body'))
   async signupBuyer(@Body() buyerSignupDto: BuyerSignupDto) {
@@ -44,6 +46,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'Verify Buyer',
   })
+  @Public()
   @Post('/buyer/verify')
   @UsePipes(new JoiValidationPipe(verifyUserSchema, 'body'))
   async verifyBuyer(@Body() verifyBuyerDto: VerifyUserDto) {

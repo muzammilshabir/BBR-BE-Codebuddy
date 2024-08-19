@@ -7,8 +7,6 @@ const omittedForBuyer = [
   'companyName',
   'corporateEmail',
   'receiveLuxuryInsights',
-  'notificationPreferences',
-  'preferences',
   'fullName',
 ];
 
