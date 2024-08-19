@@ -9,6 +9,7 @@ import { AmenitiesModule } from './amenities/amenities.module';
 import { AuthModule } from './auth/auth.module';
 import { BrandModule } from './brand/brand.module';
 import { ServiceConfig } from './config';
+import { LifeStyleModule } from './lifestyles/lifeStyle.module';
 import { LocationModule } from './location/location.module';
 import { PostModule } from './posts/post.module';
 import { ResidenceFeatureModule } from './residenceFeatures/residenceFeatures.module';
@@ -39,6 +40,7 @@ import { jwtConfig } from './utils/jwt.config';
     ResidenceModule,
     UnitModule,
     AuthModule,
+    LifeStyleModule,
   ],
   controllers: [],
   providers: [],
