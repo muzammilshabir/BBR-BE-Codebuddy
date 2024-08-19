@@ -37,7 +37,15 @@ export const contactInfoSchema = Joi.object({
 
 export const budgetSchema = Joi.object({
   min: Joi.number().required(),
-  max: Joi.number().required(),
+  max: Joi.number()
+    .required()
+    .when('min', {
+      is: Joi.exist(),
+      then: Joi.number().greater(Joi.ref('min')),
+    })
+    .messages({
+      'number.greater': 'budget "max" must be greater than "min"',
+    }),
 });
 
 export const preferencesSchema = Joi.object({
@@ -66,15 +74,8 @@ export const createUserSchema = Joi.object({
       'string.pattern.base':
         'password must be contain at least 1 uppercase letter, 1 lowercase letter, 1 digit and 1 special character',
     }),
-  isVerified: Joi.boolean().default(false),
   signupMethod: Joi.string().valid(...Object.values(SignupMethod)),
   role: Joi.string().valid(...Object.values(UserRole)),
-  verificationToken: Joi.string().allow(null),
-  oAuthId: Joi.string(),
-  emailVerificationToken: Joi.string(),
-  resetPasswordToken: Joi.string(),
-  emailVerified: Joi.boolean().default(false),
-  forgotPasswordToken: Joi.string(),
   fullName: Joi.string(),
   companyName: Joi.string(),
   corporateEmail: Joi.string().email(),

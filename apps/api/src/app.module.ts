@@ -1,12 +1,15 @@
 import { BbrConfigModule } from '@bbr/api-core/modules/config/configModule';
 import { BbrCoreModule } from '@bbr/api-core/modules/core.module';
-import { MailerCoreModule } from '@bbr/api-core/modules/mailer/mailer.module';
 import { TokenGenerationModule } from '@bbr/api-core/modules/token-generation/token.module';
 import { Module } from '@nestjs/common/decorators';
+import { EventEmitterModule } from '@nestjs/event-emitter';
+import { JwtModule } from '@nestjs/jwt';
+import { MailerCoreModule } from 'src/mailer/mailer.module';
 import { AmenitiesModule } from './amenities/amenities.module';
 import { AuthModule } from './auth/auth.module';
 import { BrandModule } from './brand/brand.module';
 import { ServiceConfig } from './config';
+import { LifeStyleModule } from './lifestyles/lifeStyle.module';
 import { LocationModule } from './location/location.module';
 import { PostModule } from './posts/post.module';
 import { ResidenceFeatureModule } from './residenceFeatures/residenceFeatures.module';
@@ -16,11 +19,14 @@ import { UnitModule } from './unit/unit.module';
 import { UploadModule } from './upload/upload.module';
 import { UserModule } from './users/user.module';
 import { ReviewModule } from './reviews/reviews.module';
+import { jwtConfig } from './utils/jwt.config';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
       useClass: ServiceConfig,
     }),
+    EventEmitterModule.forRoot(),
+    JwtModule.register(jwtConfig),
     BbrCoreModule,
     PostModule,
     UserModule,
@@ -36,6 +42,7 @@ import { ReviewModule } from './reviews/reviews.module';
     UnitModule,
     AuthModule,
     ReviewModule,
+    LifeStyleModule,
   ],
   controllers: [],
   providers: [],

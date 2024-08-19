@@ -40,6 +40,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
         model: 'Upload',
       },
       { path: 'createdById', model: 'User' },
+      { path: 'developerId', model: 'User' },
     ]);
 
     if (!residence) {

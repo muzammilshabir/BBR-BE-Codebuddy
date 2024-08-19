@@ -1,16 +1,7 @@
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
-import {
-  Body,
-  Controller,
-  Get,
-  Post,
-  Query,
-  UnauthorizedException,
-  UsePipes,
-} from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, UsePipes } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { LoginDto, loginSchema } from './dto/createLogin.dto';
 import { CreateUserDto, createUserSchema } from './dto/createUser.dto';
 import { ForgotPasswordDto, forgotPasswordSchema } from './dto/forgotPassword.dto';
 import { ResetPasswordDto, resetPasswordSchema } from './dto/resetPassword.dto'; // Add this import
@@ -28,24 +19,6 @@ export class UserController {
   async register(@Body() createUserDto: CreateUserDto) {
     const user = await this.userService.create(createUserDto);
     return ResponseService.buildResponse({ user }, 'User registered successfully');
-  }
-
-  @Post('login')
-  @ApiOperation({ summary: 'Login with email and password' })
-  @UsePipes(new JoiValidationPipe(loginSchema, 'body'))
-  async login(@Body() loginDto: LoginDto) {
-    const { email, password } = loginDto;
-
-    const user = await this.userService.validateUser(email, password);
-    if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
-    if (!user.isVerified) {
-      await this.userService.resendVerificationEmail(user);
-      return ResponseService.buildResponse(null, 'User not verified. Verification email resent.');
-    }
-    const token = await this.userService.generateJwtToken(user);
-    return ResponseService.buildResponse({ token }, 'Login successful');
   }
 
   @Post('forgot-password')
