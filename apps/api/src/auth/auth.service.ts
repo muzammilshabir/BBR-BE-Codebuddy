@@ -1,22 +1,33 @@
 import { MailerService } from '@bbr/api-core/modules/mailer/mailer.service';
+import { JwtResponseType, JwtTokenType } from '@bbr/api-core/modules/types/jwtToken.type';
 import { ForbiddenException, Injectable } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common/exceptions';
+import { JwtService } from '@nestjs/jwt';
+import * as argon from 'argon2';
+import { ExceptionCodes } from '../../../../packages/api-core/modules/types/exceptionCodes.type';
+import { ServiceConfig } from '../config';
 import { SignupMethod, UserRole } from '../users/enum/user.enum';
+import { User } from '../users/schema/user.schema';
 import { UserService } from '../users/user.service';
+import { LoginDto } from './dto/login.dto';
 import { ResendVerificationEmailDto } from './dto/resendVerificationEmail';
 import { BuyerSignupDto } from './dto/signup.dto';
 import { VerifyUserDto } from './dto/verifyUser.dto';
+import { JwtPayloadType } from './type/jwt-payload.type';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly userService: UserService,
-    private readonly mailerService: MailerService
+    private readonly mailerService: MailerService,
+    private readonly configService: ServiceConfig,
+    private readonly jwtService: JwtService
   ) {}
   async signupBuyer(buyerSignupDto: BuyerSignupDto) {
     const user = await this.userService.create({
       fullName: buyerSignupDto.fullName,
       email: buyerSignupDto.email,
-      password: buyerSignupDto.password,
+      password: await argon.hash(buyerSignupDto.password),
       agreeToTerms: true,
       signupMethod: SignupMethod.EMAIL,
       role: UserRole.BUYER,
@@ -37,7 +48,9 @@ export class AuthService {
       throw new ForbiddenException('Email or token is invalid');
     }
 
-    return await this.userService.verifyUserEmail(token, email, role);
+    await this.userService.verifyUserEmail(token, email, role);
+
+    return await this.generateJwtToken(user);
   }
 
   async resendVerificationEmail(resendVerificationEmailDo: ResendVerificationEmailDto) {
@@ -46,5 +59,59 @@ export class AuthService {
     if (user && !user.isVerified) {
       await this.userService.resendVerificationEmail(user);
     }
+  }
+
+  async loginWithEmailPassword(loginDto: LoginDto, role: UserRole) {
+    const user = await this.userService.findByEmailAndRole(loginDto.email, role);
+
+    if (!user) throw new NotFoundException('Invalid credentials');
+
+    if (!user.isVerified) {
+      await this.resendVerificationEmail({ email: user.email });
+      return {
+        errorCode: ExceptionCodes.UnverifiedUser,
+        message: 'Please verify your account first',
+      };
+    }
+
+    const isPasswordMatch = await argon.verify(user.password, loginDto.password);
+
+    if (!isPasswordMatch) throw new ForbiddenException('Invalid credentials');
+
+    return { tokens: await this.generateJwtToken(user) };
+  }
+
+  async refreshToken(userFromToken: JwtPayloadType) {
+    const user = await this.userService.findById(userFromToken.sub);
+
+    if (!user) throw new ForbiddenException('Invalid token');
+
+    return await this.generateJwtToken(user);
+  }
+
+  private async generateJwtToken(user: User): Promise<JwtResponseType> {
+    const payload = { email: user.email, sub: user.id, role: user.role };
+
+    const [at, rt] = await Promise.all([
+      this.jwtService.signAsync(
+        { ...payload, tokenType: JwtTokenType.ACCESS },
+        {
+          secret: this.configService.jwt.atSecret,
+          expiresIn: '1h',
+        }
+      ),
+      this.jwtService.signAsync(
+        { ...payload, tokenType: JwtTokenType.REFRESH },
+        {
+          secret: this.configService.jwt.rtSecret,
+          expiresIn: '7d',
+        }
+      ),
+    ]);
+
+    return {
+      accessToken: at,
+      refreshToken: rt,
+    };
   }
 }
