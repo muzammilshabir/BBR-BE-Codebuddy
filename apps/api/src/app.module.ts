@@ -18,6 +18,7 @@ import { ResidenceTypeModule } from './residenceType/residenceType.module';
 import { UnitModule } from './unit/unit.module';
 import { UploadModule } from './upload/upload.module';
 import { UserModule } from './users/user.module';
+import { ReviewModule } from './reviews/reviews.module';
 import { jwtConfig } from './utils/jwt.config';
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { jwtConfig } from './utils/jwt.config';
     ResidenceModule,
     UnitModule,
     AuthModule,
+    ReviewModule,
     LifeStyleModule,
   ],
   controllers: [],
