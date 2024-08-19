@@ -15,6 +15,7 @@ import { ResidenceTypeModule } from './residenceType/residenceType.module';
 import { UnitModule } from './unit/unit.module';
 import { UploadModule } from './upload/upload.module';
 import { UserModule } from './users/user.module';
+import { ReviewModule } from './reviews/reviews.module';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -34,6 +35,7 @@ import { UserModule } from './users/user.module';
     ResidenceModule,
     UnitModule,
     AuthModule,
+    ReviewModule,
   ],
   controllers: [],
   providers: [],
