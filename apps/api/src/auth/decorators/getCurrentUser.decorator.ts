@@ -1,4 +1,4 @@
-import { createParamDecorator, ExecutionContext } from '@nestjs/common';
+import { createParamDecorator, ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { JwtPayloadType } from '../type/jwt-payload.type';
 
 export const GetCurrentUser = createParamDecorator(
@@ -9,8 +9,7 @@ export const GetCurrentUser = createParamDecorator(
     const request = context.switchToHttp().getRequest();
 
     const user = request.user as JwtPayloadType;
-
-    if (!user) return null;
+    if (!user) throw new UnauthorizedException('Invalid token');
 
     if (!data) return user;
 

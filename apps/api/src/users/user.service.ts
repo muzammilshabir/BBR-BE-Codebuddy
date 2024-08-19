@@ -4,12 +4,15 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import * as bcrypt from 'bcryptjs';
 import { Model } from 'mongoose';
 import { MailerService } from 'src/mailer/mailer.service';
+import { ExceptionCodes } from '../../../../packages/api-core/modules/types/exceptionCodes.type';
 import { CreateUserDto } from './dto/createUser.dto';
+import { UpdateUserDto } from './dto/updateUser.dto';
 import { UserRole } from './enum/user.enum';
 import { User } from './schema/user.schema';
 
@@ -140,5 +143,31 @@ export class UserService {
     user.password = await bcrypt.hash(newPassword, 10);
     user.verificationToken = null;
     await user.save();
+  }
+
+  async update(
+    id: string,
+    updateUserDto: UpdateUserDto
+  ): Promise<User | { errorCode: ExceptionCodes; message: string }> {
+    const user = await this.userModel.findById(id).exec();
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (!user.isVerified) {
+      return {
+        errorCode: ExceptionCodes.UnverifiedUser,
+        message: 'Please verify your account first',
+      };
+    }
+
+    await this.userModel.findByIdAndUpdate(id, updateUserDto, { new: true }).exec();
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid token');
+    }
+
+    return user;
   }
 }

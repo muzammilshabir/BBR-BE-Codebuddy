@@ -1,7 +1,7 @@
 import { ClassProvider, DynamicModule, Global, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { BbrStatefulServiceConfig } from './bbrStateFullConfig';
 import { BbrConfig } from './bbrConfig';
+import { BbrStatefulServiceConfig } from './bbrStateFullConfig';
 
 @Global()
 @Module({})
