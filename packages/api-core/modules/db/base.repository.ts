@@ -3,14 +3,28 @@ import { Model, Document } from 'mongoose';
 export class BaseRepository<T extends Document> {
   constructor(private readonly model: Model<T>) {}
 
-  async findAll(filter: any, options: any): Promise<{ data: T[]; count: number }> {
-    const data = await this.model
+  async findAll(
+    filter: any,
+    options: any,
+    populateOptions?: any[]
+  ): Promise<{ data: T[]; count: number }> {
+    let query = this.model
       .find(filter)
       .skip(options.offset)
       .limit(options.limit)
       .sort(options.sort);
 
+    // If populate options are provided, apply them to the query
+    if (populateOptions && populateOptions.length) {
+      populateOptions.forEach((populate) => {
+        query = query.populate(populate);
+      });
+    }
+
+    // Execute the query and count the documents
+    const data = await query.exec();
     const count = await this.model.countDocuments(filter).exec();
+
     return { data, count };
   }
 

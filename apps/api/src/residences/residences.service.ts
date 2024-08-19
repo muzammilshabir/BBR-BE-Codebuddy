@@ -8,12 +8,18 @@ import { AddKeyFeaturesDto } from './dto/residenceKeyFeatures.dto';
 import { AddVisualsDto } from './dto/add-visuals.dto';
 import { Types } from 'mongoose';
 import { UpdateNearbyAmenitiesDto } from './dto/update-nearby-amenities.dto';
+import { ListResidenceDto } from './dto/list-residence.dto';
+import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
+import * as XLSX from 'xlsx';
+import { format } from '@fast-csv/format';
+import { Writable } from 'stream';
 
 @Injectable()
 export class ResidenceService {
   constructor(private readonly residenceRepository: ResidenceRepository) {}
 
   async create(createResidenceDto: CreateResidenceDto): Promise<Residence> {
+    const developerId = '66bb48041c4f07b8d37ba240'; // if user role is developer then we will take his id
     const transformedDto = {
       ...createResidenceDto,
       residenceTypeId: new Types.ObjectId(createResidenceDto.residenceTypeId),
@@ -21,6 +27,7 @@ export class ResidenceService {
       associatedBrandId: createResidenceDto.associatedBrandId
         ? new Types.ObjectId(createResidenceDto.associatedBrandId)
         : undefined,
+      developerId: new Types.ObjectId(developerId),
     };
     return await this.residenceRepository.create(transformedDto);
   }
@@ -123,5 +130,175 @@ export class ResidenceService {
       throw new NotFoundException(`Residence with ID ${residenceId}`);
     }
     return existingResidence;
+  }
+
+  async listResidences(listResidenceDto: ListResidenceDto) {
+    const filter: any = {};
+    if (listResidenceDto.status) {
+      filter.status = listResidenceDto.status;
+    }
+    if (listResidenceDto.locationId) {
+      filter.locationId = new Types.ObjectId(listResidenceDto.locationId);
+    }
+    if (listResidenceDto.developerId) {
+      filter.developerId = new Types.ObjectId(listResidenceDto.developerId);
+    }
+
+    const options = PaginationService.prepareOptions(listResidenceDto);
+
+    const { data, count } = await this.residenceRepository.findAll(filter, options, [
+      { path: 'residenceTypeId', select: 'type' },
+      { path: 'locationId', select: 'name type parentId' },
+      { path: 'associatedBrandId', select: 'name' },
+      {
+        path: 'visuals.mainGalleryPhotos',
+        select: 'originalFileKey fileKey url mimeType',
+        model: 'Upload',
+      },
+      {
+        path: 'visuals.secondGalleryPhotos',
+        select: 'originalFileKey fileKey url mimeType',
+        model: 'Upload',
+      },
+      {
+        path: 'visuals.videoTour',
+        select: 'originalFileKey fileKey url mimeType',
+        model: 'Upload',
+      },
+      { path: 'nearbyAmenities.amenitiesList', select: 'name', model: 'Amenity' },
+      { path: 'nearbyAmenities.highlightedAmenities.amenityId', select: 'name', model: 'Amenity' },
+      {
+        path: 'nearbyAmenities.highlightedAmenities.imageId',
+        select: 'originalFileKey fileKey url mimeType',
+        model: 'Upload',
+      },
+      { path: 'createdById', model: 'User' },
+      { path: 'developerId', model: 'User' },
+    ]);
+
+    const updatedData = data.map((residence) => {
+      const cleanResidence = residence.toObject();
+
+      return {
+        ...cleanResidence,
+        views: 0,
+        saves: 0,
+        inquiries: 0,
+      };
+    });
+    const transformedResidence = await this.transformResidences(updatedData);
+    if (listResidenceDto.isDownload) {
+      if (listResidenceDto.fileType === 'csv') {
+        return this.generateCsv(transformedResidence);
+      } else if (listResidenceDto.fileType === 'excel') {
+        return this.generateExcel(transformedResidence);
+      }
+    }
+    const { pagination } = PaginationService.paginate({ rows: data, count }, listResidenceDto);
+
+    return { pagination, residences: transformedResidence };
+  }
+
+  private transformResidences(residences: Residence[]): Residence[] {
+    return residences.map((residence) => {
+      const transformedResidence: any = { ...residence };
+
+      if (residence.residenceTypeId) {
+        transformedResidence.residenceType = residence.residenceTypeId;
+        delete transformedResidence.residenceTypeId;
+      }
+
+      if (residence.locationId) {
+        transformedResidence.location = residence.locationId;
+        delete transformedResidence.locationId;
+      }
+
+      if (residence.associatedBrandId) {
+        transformedResidence.associatedBrand = residence.associatedBrandId;
+        delete transformedResidence.associatedBrandId;
+      }
+
+      if (residence.createdById) {
+        transformedResidence.createdBy = residence.createdById;
+        delete transformedResidence.createdById;
+      }
+
+      if (residence.developerId) {
+        transformedResidence.developer = residence.developerId;
+        delete transformedResidence.developerId;
+      }
+
+      return transformedResidence;
+    });
+  }
+
+  private async generateCsv(residences: Residence[]): Promise<Buffer> {
+    const csvStream = format({ headers: true });
+    const bufferStream = new Writable();
+    const data: Buffer[] = [];
+
+    // Write chunks of data to a buffer array
+    bufferStream._write = (chunk, encoding, next) => {
+      data.push(chunk);
+      next();
+    };
+
+    csvStream.pipe(bufferStream);
+
+    // Writing each residence object to CSV
+    residences.forEach((residence: any) => {
+      const mainGalleryUrls = residence?.visuals?.mainGalleryPhotos
+        ? residence.visuals.mainGalleryPhotos.map((photo) => photo.url).join(', ')
+        : '';
+
+      csvStream.write({
+        'Residence Name': residence?.residenceType?.type || '',
+        'Main Gallery Photos': mainGalleryUrls,
+        'Submission Date': residence?.submissionDate || '',
+        'Views': residence?.views || 0,
+        'Saves': residence?.saves || 0,
+        'Inquiries': residence?.inquiries || 0,
+      });
+    });
+
+    csvStream.end();
+
+    // Await the CSV generation and return the file
+    const csvFile = await new Promise<Buffer>((resolve) => {
+      bufferStream.on('finish', () => {
+        resolve(Buffer.concat(data));
+      });
+    });
+
+    return csvFile;
+  }
+
+  private async generateExcel(residences: Residence[]): Promise<Buffer> {
+    const workbook = XLSX.utils.book_new();
+    const worksheetData = residences.map((residence: any) => {
+      const mainGalleryUrls = residence?.visuals?.mainGalleryPhotos
+        ? residence.visuals.mainGalleryPhotos.map((photo) => photo.url).join(', ')
+        : '';
+
+      return {
+        'Residence Name': residence?.residenceType?.type || '',
+        'Main Gallery Photos': mainGalleryUrls,
+        'Submission Date': residence?.submissionDate || '',
+        'Views': residence?.views || 0,
+        'Saves': residence?.saves || 0,
+        'Inquiries': residence?.inquiries || 0,
+      };
+    });
+
+    // Convert data to a worksheet
+    const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+
+    // Append the worksheet to the workbook
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Residences');
+
+    // Write the workbook to a buffer
+    const excelFileBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'buffer' });
+
+    return excelFileBuffer;
   }
 }

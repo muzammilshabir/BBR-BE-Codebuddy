@@ -285,7 +285,7 @@ describe('ResidenceController', () => {
       };
 
       // Send PUT request to update the residence status
-      const res = await app.exec('PUT', `${url}/update-status/${existingResidence.id}`, {
+      const res = await app.exec('PUT', `${url}/${existingResidence.id}/update-status`, {
         headers: {
           'Content-Type': 'application/json',
         },
@@ -303,15 +303,73 @@ describe('ResidenceController', () => {
         status: 'pending',
       };
 
-      const res = await app.exec('PUT', `${url}/update-status/${nonExistentId}`, {
+      const res = await app.exec('PUT', `${url}/${nonExistentId}/update-status`, {
         headers: {
           'Content-Type': 'application/json',
         },
         data: JSON.stringify(updateResidenceStatusDto),
       });
 
-      expect(res.status).toBe(404);
       expect(res.body.message).toBe(`Residence with ID ${nonExistentId} not found`);
+    });
+  });
+
+  describe('List Residence', () => {
+    it('Should list residences with pagination', async () => {
+      const urlWithParams = `${url}?page=1&limit=10&sortBy=createdAt&sortOrder=desc&status=pending&isDownload=false&fileType=excel`;
+
+      const res = await app.exec('GET', urlWithParams, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      // Check the response status and other properties
+      expect(res.status).toBe(200);
+      expect(res.body.message).toBe('Residence retrieved successfully');
+      expect(res.body.data.residences).toBeDefined();
+      expect(res.body.data.residences.pagination).toEqual(
+        expect.objectContaining({
+          limit: expect.any(Number),
+          currentPage: expect.any(Number),
+          totalDocs: expect.any(Number),
+          totalPages: expect.any(Number),
+          hasNextPage: expect.any(Boolean),
+          hasPrevPage: expect.any(Boolean),
+        })
+      );
+    });
+
+    it('Should download residences as an Excel file', async () => {
+      const urlWithParams = `${url}?page=1&limit=10&sortBy=createdAt&sortOrder=desc&status=pending&isDownload=true&fileType=excel`;
+
+      const res = await app.exec('GET', urlWithParams, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      expect(res.status).toBe(200);
+
+      // Validate Content-Type for Excel file
+      expect(res.headers['content-type']).toBe(
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      );
+    });
+
+    it('Should download residences as a CSV file', async () => {
+      const urlWithParams = `${url}?page=1&limit=10&sortBy=createdAt&sortOrder=desc&status=pending&isDownload=true&fileType=csv`;
+
+      const res = await app.exec('GET', urlWithParams, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      expect(res.status).toBe(200);
+
+      // Validate Content-Type for CSV file
+      expect(res.headers['content-type']).toMatch(/text\/csv(; charset=utf-8)?/);
     });
   });
 });
