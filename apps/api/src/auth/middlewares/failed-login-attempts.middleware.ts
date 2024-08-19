@@ -1,6 +1,5 @@
-import { CaptchaRedisPrefix } from '@bbr/api-core/modules/types/captcha.type';
-import { ExceptionCodes } from '@bbr/api-core/modules/types/exceptionCodes.type';
-import { Injectable, NestMiddleware, UnauthorizedException } from '@nestjs/common';
+import { CaptchaEnum } from '@bbr/api-core/modules/types/captcha.type';
+import { Injectable, NestMiddleware } from '@nestjs/common';
 import { NextFunction, Request, Response } from 'express';
 import { RedisService } from '../../redis/redis.service';
 
@@ -12,7 +11,7 @@ export class FailedLoginAttemptsMiddleware implements NestMiddleware {
     const clientIp = req.ip;
 
     let failedAttempts = await this.redisService.get({
-      prefix: CaptchaRedisPrefix.PREFIX,
+      prefix: CaptchaEnum.PREFIX,
       key: clientIp,
     });
 
@@ -21,10 +20,7 @@ export class FailedLoginAttemptsMiddleware implements NestMiddleware {
     }
 
     if (Number(failedAttempts) >= 5) {
-      throw new UnauthorizedException({
-        errorCode: ExceptionCodes.TooManyFailedLoginAttempts,
-        message: 'Too many failed login attempts',
-      });
+      req['recaptchaRequired'] = true;
     }
 
     next();

@@ -1,17 +1,17 @@
 import { Public } from '@bbr/api-core/modules/decorators';
-import { ResponseService } from '@bbr/api-core/modules/response/response.service';
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
+import { ResponseService } from '@bbr/api-core/modules/response/response.service';
 import { Body, Controller, Param, Post, Put, UsePipes } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { ResidenceService } from './residences.service';
-import { CreateResidenceDto, createResidenceSchema } from './dto/create-residence.dto';
-import { UpdateResidenceDto, updateResidenceSchema } from './dto/update-residence.dto';
-import { AddKeyFeaturesDto, addKeyFeaturesSchema } from './dto/residenceKeyFeatures.dto';
 import { AddVisualsDto, addVisualsSchema } from './dto/add-visuals.dto';
+import { CreateResidenceDto, createResidenceSchema } from './dto/create-residence.dto';
+import { AddKeyFeaturesDto, addKeyFeaturesSchema } from './dto/residenceKeyFeatures.dto';
 import {
   UpdateNearbyAmenitiesDto,
   updateNearbyAmenitiesSchema,
 } from './dto/update-nearby-amenities.dto';
+import { UpdateResidenceDto, updateResidenceSchema } from './dto/update-residence.dto';
+import { ResidenceService } from './residences.service';
 
 @ApiTags('Residence')
 @Controller('residence')

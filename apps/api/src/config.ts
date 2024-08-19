@@ -44,4 +44,8 @@ export class ServiceConfig extends BbrStatefulServiceConfig {
     password: this.get('APP_REDIS_PASSWORD'),
     defaultExpiry: this.getOrThrow<number>('APP_REDIS_DEFAULT_EXPIRY'),
   };
+
+  readonly captcha = {
+    secretKey: this.getOrThrow('CAPTCHA_SECRET'),
+  };
 }

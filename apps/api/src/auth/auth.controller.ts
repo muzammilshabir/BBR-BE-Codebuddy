@@ -2,6 +2,7 @@ import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
 import { Body, Controller, Get, Ip, Patch, Post, UseGuards, UsePipes } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { CaptchaGuard } from '../captcha/guards/captcha.guard';
 import { UserRole } from '../users/enum/user.enum';
 import { AuthService } from './auth.service';
 import { GetCurrentUser } from './decorators/getCurrentUser.decorator';
@@ -25,8 +26,12 @@ import { JwtPayloadType } from './type/jwt-payload.type';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @ApiOperation({
+    summary: 'Buyer Login',
+  })
   @Public()
   @Post('/buyer/login/email')
+  @UseGuards(CaptchaGuard)
   @UsePipes(new JoiValidationPipe(loginSchema, 'body'))
   async loginWithEmailPassword(@Body() loginDto: LoginDto, @Ip() ip: string) {
     const response = await this.authService.loginWithEmailPassword(loginDto, UserRole.BUYER, ip);

@@ -1,4 +1,4 @@
-import { CaptchaRedisPrefix } from '@bbr/api-core/modules/types/captcha.type';
+import { CaptchaEnum } from '@bbr/api-core/modules/types/captcha.type';
 import { ExceptionCodes } from '@bbr/api-core/modules/types/exceptionCodes.type';
 import { JwtResponseType, JwtTokenType } from '@bbr/api-core/modules/types/jwtToken.type';
 import { ForbiddenException, Injectable } from '@nestjs/common';
@@ -74,7 +74,7 @@ export class AuthService {
     const user = await this.userService.findByEmailAndRole(loginDto.email, role);
 
     let failedCount = await this.redisService.get({
-      prefix: CaptchaRedisPrefix.PREFIX,
+      prefix: CaptchaEnum.PREFIX,
       key: ip,
     });
 
@@ -84,7 +84,7 @@ export class AuthService {
 
     if (!user) {
       await this.redisService.set({
-        prefix: CaptchaRedisPrefix.PREFIX,
+        prefix: CaptchaEnum.PREFIX,
         key: ip,
         value: String(Number(failedCount) + 1),
       });
@@ -104,7 +104,7 @@ export class AuthService {
 
     if (!isPasswordMatch) {
       await this.redisService.set({
-        prefix: CaptchaRedisPrefix.PREFIX,
+        prefix: CaptchaEnum.PREFIX,
         key: ip,
         value: String(Number(failedCount) + 1),
       });
