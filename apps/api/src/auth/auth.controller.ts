@@ -137,8 +137,8 @@ export class AuthController {
   @Post('/seller/login/email')
   @Public()
   @UsePipes(new JoiValidationPipe(loginSchema, 'body'))
-  async sellerLoginWithEmailPassword(@Body() loginDto: LoginDto) {
-    const response = await this.authService.loginWithEmailPassword(loginDto, UserRole.SELLER);
+  async sellerLoginWithEmailPassword(@Body() loginDto: LoginDto, @Ip() ip: string) {
+    const response = await this.authService.loginWithEmailPassword(loginDto, UserRole.SELLER, ip);
     return ResponseService.buildResponse(response);
   }
 }

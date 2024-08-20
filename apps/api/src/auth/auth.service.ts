@@ -62,7 +62,7 @@ export class AuthService {
     if (role === UserRole.SELLER && user.acceptBBRCommitment !== true) {
       return {
         tokens: await this.generateJwtToken(user),
-        errorCode: ExceptionCodes.acceptBBRCommitment,
+        errorCode: ExceptionCodes.AcceptBBRCommitment,
         message: 'Please accept BBR commitment',
       };
     }
@@ -125,7 +125,7 @@ export class AuthService {
     if (role === UserRole.SELLER && user.acceptBBRCommitment !== true) {
       return {
         tokens: await this.generateJwtToken(user),
-        errorCode: ExceptionCodes.acceptBBRCommitment,
+        errorCode: ExceptionCodes.AcceptBBRCommitment,
         message: 'Please accept BBR commitment',
       };
     }
