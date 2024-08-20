@@ -1,4 +1,3 @@
-import { Public } from '@bbr/api-core/modules/decorators';
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
 import { Controller, Post, Body, Get, Param, UsePipes, Query, Put } from '@nestjs/common';
@@ -9,21 +8,54 @@ import { GetReviewByIdDto, getReviewByIdSchema } from './dto/get-review-by-id.dt
 import { ListReviewsDto, listReviewsSchema } from './dto/list-reviews.dto';
 import { GetReviewsByResidenceIdDto, getReviewsByResidenceIdSchema } from './dto/get-reviews-by-residence-id.dto';
 import { BulkActionReviewDto, bulkActionReviewSchema } from './dto/bulk-action-review.dto';
+import { GetCurrentUser } from 'src/auth/decorators/getCurrentUser.decorator';
+import { JwtPayloadType } from 'src/auth/type/jwt-payload.type';
+import { RequestReviewDto, requestReviewDtoSchema } from './dto/request-review.dto';
+import { RespondToReviewDto, respondToReviewDtoSchema } from './dto/respond-review';
 
 @ApiTags('Review')
 @Controller('review')
 export class ReviewController {
   constructor(private readonly reviewService: ReviewService) {}
 
+  @Post('/request-review')
+  @ApiOperation({
+    summary: 'Request Review from buyer',
+  })
+  @UsePipes(new JoiValidationPipe(requestReviewDtoSchema, 'body'))
+  async requestReview(
+    @GetCurrentUser() userFromToken: JwtPayloadType,
+    @Body() requestReviewDto: RequestReviewDto,
+    ) {
+    const result = await this.reviewService.requestReview(userFromToken, requestReviewDto);
+    return ResponseService.buildResponse({ result }, 'Review requested successfully');
+  }
+
   @Post()
   @ApiOperation({
     summary: 'Create Review for a residence',
   })
-  @Public()
   @UsePipes(new JoiValidationPipe(createReviewDtoSchema, 'body'))
-  async create(@Body() createReviewDto: CreateReviewDto) {
-    const review = await this.reviewService.create(createReviewDto);
+  async create(
+    @GetCurrentUser() userFromToken: JwtPayloadType,
+    @Body() createReviewDto: CreateReviewDto,
+    ) {
+    const review = await this.reviewService.create(userFromToken, createReviewDto);
     return ResponseService.buildResponse({ review }, 'Review created successfully');
+  }
+
+  @Post('/respond/:reviewId')
+  @ApiOperation({
+    summary: 'Respond to Review from a buyer',
+  })
+  @UsePipes(new JoiValidationPipe(getReviewByIdSchema, 'param'))
+  @UsePipes(new JoiValidationPipe(respondToReviewDtoSchema, 'body'))
+  async reviewResponse(
+    @Param() params: GetReviewByIdDto,
+    @Body() respondToReviewDto: RespondToReviewDto,
+    ) {
+    const review = await this.reviewService.respondToReview(params.reviewId, respondToReviewDto);
+    return ResponseService.buildResponse({ review }, 'Review response sent successfully');
   }
 
   @Get(':reviewId')

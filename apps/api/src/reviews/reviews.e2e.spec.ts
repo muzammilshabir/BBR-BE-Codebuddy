@@ -28,7 +28,7 @@ describe('ReviewModule', () => {
       const reviewImage = app.getReference(UploadFixture.UPLOAD_1);
       const createReviewDto = {
         rating: "4",
-        residenceId: residence.id,
+        residence: residence.id,
         review: {
           title: 'Awesome Experience',
           details: 'This is a very nice place and the seller was very nice.',
@@ -48,6 +48,16 @@ describe('ReviewModule', () => {
       });
       // Check response status and data
       expect(res.status).toBe(201);
+    });
+  });
+  describe('Request Review', () => {
+    it('Should request Review from buyer', async () => {
+      // User Fixture Required
+    });
+  });
+  describe('Respond to Review', () => {
+    it('Should respond to a Review from Buyer', async () => {
+      // User Fixture Required
     });
   });
 

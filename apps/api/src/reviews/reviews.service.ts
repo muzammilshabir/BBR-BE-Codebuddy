@@ -7,6 +7,15 @@ import { CreateReviewDto } from './dto/create-reviews.dto';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
 import { ListReviewsDto } from './dto/list-reviews.dto';
 import { BulkMark, DeletionStatus } from './enum/review-enum';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { SendEmailEvent } from 'src/mailer/events/send-email.event';
+import { ResidenceService } from 'src/residences/residences.service';
+import { UserService } from 'src/users/user.service';
+import { User } from 'src/users/schema/user.schema';
+import { JwtPayloadType } from 'src/auth/type/jwt-payload.type';
+import { RequestReviewDto } from './dto/request-review.dto';
+import { Residence } from 'src/residences/schema/residences.schema';
+import { RespondToReviewDto } from './dto/respond-review';
 
 @Injectable()
 export class ReviewService {
@@ -19,17 +28,81 @@ export class ReviewService {
     }).join('\n')
   }
 
-  constructor(private readonly reviewRepository: ReviewRepository) {}
+  private matchReviewWordsWithReview(reviewWords: string[], review: string): string[] {
+    const result = [];
+    for (const word of reviewWords) {
+      if(review.includes(word)) {
+        result.push(word);
+      }
+    }
+    return result;
+  }
 
-  async create(createReviewDto: CreateReviewDto): Promise<Review> {
+  constructor(
+    private readonly reviewRepository: ReviewRepository,
+    private readonly residenceService: ResidenceService,
+    private readonly userService: UserService,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
+
+  async create(userFromToken: JwtPayloadType, createReviewDto: CreateReviewDto): Promise<Review> {
     const transformedDto = {
       ...createReviewDto,
-      residenceId: new Types.ObjectId(createReviewDto.residenceId),
+      residence: new Types.ObjectId(createReviewDto.residenceId),
       photos: createReviewDto.photos.map(
         (photo) => new Types.ObjectId(photo)
       ),
+      createdBy: new Types.ObjectId(userFromToken.sub),
     };
-    return await this.reviewRepository.create(transformedDto);
+    const createdReview = await this.reviewRepository.create(transformedDto);
+
+    const residence = await this.residenceService.getResidenceById(createReviewDto.residenceId.toString());
+    const residenceSeller = residence.createdBy as User;
+    const matchedWords = this.matchReviewWordsWithReview(residenceSeller.reviewWordsForAlert, createdReview.review.details.concat(createdReview.review.title));
+    if(residenceSeller.reviewWordsForAlert.length > 0 && matchedWords.length > 0) {
+      await this.sendReviewWordsMatchEmail(residenceSeller.email, residenceSeller.fullName, residence.name, matchedWords.toString());
+    }
+    if(createReviewDto.rating < 4) {
+      await this.sendLowStarReviewEmail(residenceSeller.email, residenceSeller.fullName, residence.name, createReviewDto.rating.toString());
+    }
+    return createdReview;
+  }
+
+  async respondToReview(reviewId: string, respondToReviewDto: RespondToReviewDto): Promise<any> {
+    const review = await this.getReviewById(reviewId);
+    if (!review) {
+      throw new NotFoundException(`Review with ID ${reviewId}`);
+    }
+    const updatedValues: Partial<Review> = {
+      isResponded: true,
+      response: respondToReviewDto.response,
+    };
+    if(review.isResponded) {
+      updatedValues.isResponseEdited = true;
+    }
+    const updatedReview = await this.reviewRepository.update(reviewId, updatedValues);
+    await this.sendReviewResponseEmail(
+      review.createdBy.email,
+      review.createdBy.fullName,
+      review.residence.name,
+    );
+    return updatedReview;
+  }
+
+  async requestReview(userFromToken: JwtPayloadType, requestReviewDto: RequestReviewDto): Promise<any> {
+
+    const residence = await this.residenceService.getResidenceById(requestReviewDto.residenceId.toString()) as Residence;
+    const residenceBuyer = await this.userService.findById(requestReviewDto.buyerId.toString());
+    const residenceSeller = await this.userService.findById(userFromToken.sub);
+
+    await this.sendRequestReviewEmail(
+      residenceBuyer.email,
+      residenceBuyer.fullName,
+      residence.name,
+      residenceSeller.fullName,
+    );
+
+    return "Email sent to Buyer successfully.";
   }
 
   async getReviewById(reviewId: string): Promise<any> {
@@ -83,6 +156,53 @@ export class ReviewService {
     return { averageRating: totalRating/count, totalReviews: count };
   }
 
+  async processWeeklySummaries() {
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    const filter: any = {
+      isDeleted: DeletionStatus.ACTIVE,
+      created_on: {
+        $gte: oneWeekAgo, 
+        $lt: new Date()
+      }
+    };
+
+    const { data } = await this.reviewRepository.findAll(filter);
+
+    if (data.length < 1) {
+      return;
+    }
+    const summaries: {
+      totalRating: number,
+      count: number,
+    }[] = [];
+    for (const review of data) {
+      const key = review.residence.createdById.toString();
+      if(key in summaries) {
+        summaries[key].totalRating += review.rating;
+        summaries[key].count++;
+      } else {
+        summaries[key] = {
+          totalRating: review.rating,
+          count: 1,
+        };
+      }
+    }
+    for (const userId in summaries) {
+      if (Object.prototype.hasOwnProperty.call(summaries, userId)) {
+        const summary = summaries[userId];
+        const avgRatings = summary.totalRating/summary.count;
+        const user = await this.userService.findById(userId);
+        this.sendWeeklySummaryEmail(
+          user.email,
+          user.fullName,
+          summary.count.toString(),
+          avgRatings.toString(),
+        );
+      }
+    }
+  }
+
   async exportReviewsByResidenceId(residenceId: string) {
     const filter: any = {
       isDeleted: DeletionStatus.ACTIVE,
@@ -133,5 +253,109 @@ export class ReviewService {
       }, query); 
     }
     return { message: "Bulk Action Performed" };
+  }
+
+  private async sendLowStarReviewEmail(
+    email: string,
+    name: string,
+    residence: string,
+    star: string,
+  ) {
+    this.eventEmitter.emit(
+      SendEmailEvent.event,
+      new SendEmailEvent({
+        context: {
+          name,
+          residence,
+          star,
+        },
+        template: 'low-star-review',
+        subject: 'Low Rating Review Received',
+        toEmail: email,
+      })
+    );
+  }
+
+  private async sendWeeklySummaryEmail(
+    email: string,
+    name: string,
+    reviews: string,
+    rating: string,
+  ) {
+    const date = new Date;
+    this.eventEmitter.emit(
+      SendEmailEvent.event,
+      new SendEmailEvent({
+        context: {
+          name,
+          reviews,
+          rating,
+        },
+        template: 'review-weekly-summary',
+        subject: `Reviews Weekly Summary (${date.getDate()}-${date.getMonth()}-${date.getFullYear()})`,
+        toEmail: email,
+      })
+    );
+  }
+
+  private async sendReviewWordsMatchEmail(
+    email: string,
+    name: string,
+    residence: string,
+    words: string,
+  ) {
+    this.eventEmitter.emit(
+      SendEmailEvent.event,
+      new SendEmailEvent({
+        context: {
+          name,
+          residence,
+          words,
+        },
+        template: 'specific-words-review',
+        subject: 'Review Received with Matched Words',
+        toEmail: email,
+      })
+    );
+  }
+
+  private async sendReviewResponseEmail(
+    email: string,
+    name: string,
+    residence: string,
+  ) {
+    this.eventEmitter.emit(
+      SendEmailEvent.event,
+      new SendEmailEvent({
+        context: {
+          name,
+          residence,
+        },
+        template: 'review-response',
+        subject: 'Response on Review Received',
+        toEmail: email,
+      })
+    );
+  }
+
+  private async sendRequestReviewEmail(
+    email: string,
+    name: string,
+    residence: string,
+    seller: string,
+  ) {
+    this.eventEmitter.emit(
+      SendEmailEvent.event,
+      new SendEmailEvent({
+        context: {
+          name,
+          residence,
+          seller,
+        },
+        template: 'request-review',
+        subject: 'Review Requested',
+        toEmail: email,
+      })
+    );
   }
 }

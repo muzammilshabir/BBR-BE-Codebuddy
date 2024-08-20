@@ -74,6 +74,9 @@ export class User extends Document {
   @Prop({ required: false, type: Object })
   preferences: UserPreferences;
 
+  @Prop({ required: false, type: [String], default: [] })
+  reviewWordsForAlert: string[];
+
   @Prop({ required: false, type: Object })
   notificationPreferences: UserNotificationPreferences;
 }

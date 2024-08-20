@@ -12,7 +12,7 @@ export class ReviewRepository extends BaseRepository<Review> {
 
   async findById(reviewId: string): Promise<Review> {
     return this.reviewModel.findById(reviewId).populate([
-      { path: 'residenceId' },
+      { path: 'residence', model: 'Residence' },
       { path: 'photos', model: 'Upload' },
       { path: 'createdById', model: 'User' },
     ]);

@@ -19,7 +19,7 @@ export class ReviewSeeder extends AbstractSeeder {
       const reviews = [
         {
           rating: 2,
-          residenceId: new Types.ObjectId('60d5f485f7c6a4b2b8e8b68b'),
+          residence: new Types.ObjectId('60d5f485f7c6a4b2b8e8b68b'),
           review: {
             title:
               'Not nice',
@@ -35,13 +35,13 @@ export class ReviewSeeder extends AbstractSeeder {
           isFlagged: false,
           isRemovalRequested: false,
           isDeleted: false,
-          createdById: new Types.ObjectId('60d5f485f7c6a4b2b8e8b600'),
+          createdBy: new Types.ObjectId('60d5f485f7c6a4b2b8e8b600'),
           createdAt: new Date(),
           updatedAt: new Date(),
         },
         {
           rating: 3,
-          residenceId: new Types.ObjectId('60d5f485f7c6a4b2b8e8b67b'),
+          residence: new Types.ObjectId('60d5f485f7c6a4b2b8e8b67b'),
           review: {
             title:
               'Average',
@@ -57,13 +57,13 @@ export class ReviewSeeder extends AbstractSeeder {
           isFlagged: false,
           isRemovalRequested: false,
           isDeleted: false,
-          createdById: new Types.ObjectId('60d5f485f7c6a4b2b8e8b600'),
+          createdBy: new Types.ObjectId('60d5f485f7c6a4b2b8e8b600'),
           createdAt: new Date(),
           updatedAt: new Date(),
         },
         {
           rating: 5,
-          residenceId: new Types.ObjectId('60d5f485f7c6a4b2b8e8b68b'),
+          residence: new Types.ObjectId('60d5f485f7c6a4b2b8e8b68b'),
           review: {
             title:
               'Amazing Place',
@@ -79,7 +79,7 @@ export class ReviewSeeder extends AbstractSeeder {
           isFlagged: false,
           isRemovalRequested: false,
           isDeleted: false,
-          createdById: new Types.ObjectId('60d5f485f7c6a4b2b8e8b600'),
+          createdBy: new Types.ObjectId('60d5f485f7c6a4b2b8e8b600'),
           createdAt: new Date(),
           updatedAt: new Date(),
         },
