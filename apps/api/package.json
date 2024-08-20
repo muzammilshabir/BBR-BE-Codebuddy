@@ -27,7 +27,6 @@
     "@aws-sdk/client-s3": "^3.622.0",
     "@aws-sdk/lib-storage": "^3.622.0",
     "@bbr/api-core": "workspace:^",
-    "@google-cloud/recaptcha-enterprise": "^5.10.0",
     "@joi/date": "^2.1.1",
     "@nestjs-modules/mailer": "^2.0.2",
     "@nestjs/axios": "^3.0.3",
