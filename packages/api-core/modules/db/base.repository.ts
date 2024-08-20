@@ -3,14 +3,31 @@ import { Model, Document } from 'mongoose';
 export class BaseRepository<T extends Document> {
   constructor(private readonly model: Model<T>) {}
 
-  async findAll(filter: any, options: any): Promise<{ data: T[]; count: number }> {
-    const data = await this.model
-      .find(filter)
+  async findAll(
+    filter: any,
+    options?: any,
+    populateOptions?: any[]
+  ): Promise<{ data: T[]; count: number }> {
+    let query = this.model
+      .find(filter);
+    if(options) {
+      query
       .skip(options.offset)
       .limit(options.limit)
-      .sort(options.sort);
+      .sort(options.sort)
+    }
 
+    // If populate options are provided, apply them to the query
+    if (populateOptions && populateOptions.length) {
+      populateOptions.forEach((populate) => {
+        query = query.populate(populate);
+      });
+    }
+
+    // Execute the query and count the documents
+    const data = await query.exec();
     const count = await this.model.countDocuments(filter).exec();
+
     return { data, count };
   }
 
@@ -25,6 +42,10 @@ export class BaseRepository<T extends Document> {
 
   async update(id: string, updateDto: any): Promise<T> {
     return await this.model.findByIdAndUpdate(id, updateDto, { new: true });
+  }
+
+  async updateWithFilter(filter: any, updateDto: any): Promise<T> {
+    return await this.model.findOneAndUpdate(filter, updateDto, { new: true });
   }
 
   async delete(id: string): Promise<T> {

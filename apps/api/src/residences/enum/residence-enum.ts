@@ -5,3 +5,8 @@ export enum ResidenceStatus {
   SOLD = 'sold',
   REJECTED = 'rejected',
 }
+
+export enum FileType {
+  EXCEL = 'excel',
+  CSV = 'csv',
+}

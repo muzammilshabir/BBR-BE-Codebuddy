@@ -1,7 +1,7 @@
 import { Public } from '@bbr/api-core/modules/decorators';
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
-import { Body, Controller, Get, Param, Post, Put, UsePipes } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, Query, Res, UsePipes } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ResidenceService } from './residences.service';
 import { CreateResidenceDto, createResidenceSchema } from './dto/create-residence.dto';
@@ -18,6 +18,8 @@ import {
   updateNearbyAmenitiesSchema,
 } from './dto/update-nearby-amenities.dto';
 import { GetResidenceByIdDto, getResidenceByIdSchema } from './dto/get-residence-by-id.dto';
+import { ListResidenceDto, listResidenceSchema } from './dto/list-residence.dto';
+import { Response } from 'express';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/enum/user.enum';
 
@@ -101,19 +103,7 @@ export class ResidenceController {
     );
   }
 
-  @Get(':residenceId')
-  @ApiOperation({
-    summary: 'Get Residence by ID',
-  })
-  @ApiBearerAuth()
-  @Roles(UserRole.SELLER, UserRole.ADMIN)
-  @UsePipes(new JoiValidationPipe(getResidenceByIdSchema, 'param'))
-  async getResidenceById(@Param() params: GetResidenceByIdDto) {
-    const residence = await this.residenceService.getResidenceById(params.residenceId);
-    return ResponseService.buildResponse({ residence }, 'Residence retrieved successfully');
-  }
-
-  @Put('/update-status/:residenceId')
+  @Put('/:id/update-status')
   @ApiOperation({
     summary: 'Update Residence by ID',
   })
@@ -125,10 +115,44 @@ export class ResidenceController {
     @Param() params: GetResidenceByIdDto,
     @Body() body: ResidenceStatusDto
   ) {
-    const residence = await this.residenceService.updateResidenceStatus(
-      params.residenceId,
-      body.status
+    const residence = await this.residenceService.updateResidenceStatus(params.id, body.status);
+    return ResponseService.buildResponse({ residence }, 'Residence retrieved successfully');
+  }
+
+  @Get('/')
+  @ApiOperation({
+    summary: 'List Residence',
+  })
+  @UsePipes(new JoiValidationPipe(listResidenceSchema, 'query'))
+  async listResidences(@Query() query: ListResidenceDto, @Res() res: Response) {
+    const result = await this.residenceService.listResidences(query);
+
+    if (query.isDownload) {
+      if (query.fileType === 'csv') {
+        res.header('Content-Type', 'text/csv');
+        res.header('Content-Disposition', 'attachment; filename=residences.csv');
+        return res.send(result);
+      } else if (query.fileType === 'excel') {
+        res.header(
+          'Content-Type',
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        );
+        res.header('Content-Disposition', 'attachment; filename=residences.xlsx');
+        return res.send(result);
+      }
+    }
+    return res.json(
+      ResponseService.buildResponse({ residences: result }, 'Residence retrieved successfully')
     );
+  }
+
+  @Get(':id')
+  @ApiOperation({
+    summary: 'Get Residence by ID',
+  })
+  @UsePipes(new JoiValidationPipe(getResidenceByIdSchema, 'param'))
+  async getResidenceById(@Param() params: GetResidenceByIdDto) {
+    const residence = await this.residenceService.getResidenceById(params.id);
     return ResponseService.buildResponse({ residence }, 'Residence retrieved successfully');
   }
 }

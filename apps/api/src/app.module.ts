@@ -9,6 +9,7 @@ import { AmenitiesModule } from './amenities/amenities.module';
 import { AuthModule } from './auth/auth.module';
 import { BrandModule } from './brand/brand.module';
 import { ServiceConfig } from './config';
+import { LifeStyleModule } from './lifestyles/lifeStyle.module';
 import { LocationModule } from './location/location.module';
 import { PostModule } from './posts/post.module';
 import { ResidenceFeatureModule } from './residenceFeatures/residenceFeatures.module';
@@ -17,6 +18,7 @@ import { ResidenceTypeModule } from './residenceType/residenceType.module';
 import { UnitModule } from './unit/unit.module';
 import { UploadModule } from './upload/upload.module';
 import { UserModule } from './users/user.module';
+import { ReviewModule } from './reviews/reviews.module';
 import { jwtConfig } from './utils/jwt.config';
 import { APP_GUARD } from '@nestjs/core';
 import { AtGuard } from './auth/guards/at.guard';
@@ -41,6 +43,8 @@ import { AtGuard } from './auth/guards/at.guard';
     ResidenceModule,
     UnitModule,
     AuthModule,
+    ReviewModule,
+    LifeStyleModule,
   ],
   controllers: [],
   providers: [
