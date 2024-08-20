@@ -15,9 +15,10 @@ import { UserService } from '../users/user.service';
 import { LoginDto } from './dto/login.dto';
 import { ResendVerificationEmailDto } from './dto/resendVerificationEmail';
 import { BuyerSignupDto, SellerSignupDto } from './dto/signup.dto';
-import { UpdateBuyerProfileDto } from './dto/updateProfile';
+import { AcceptBBRCommitment, UpdateBuyerProfileDto } from './dto/updateProfile';
 import { VerifyUserDto } from './dto/verifyUser.dto';
 import { JwtPayloadType } from './type/jwt-payload.type';
+import { BadRequestException } from '@bbr/api-core/modules/exceptions';
 
 @Injectable()
 export class AuthService {
@@ -206,5 +207,12 @@ export class AuthService {
     this.sendVerificationEmail(user.email, user.verificationToken);
 
     return user;
+  }
+
+  async acceptBbrCommitment(user: JwtPayloadType, acceptBBRCommitment: AcceptBBRCommitment) {
+    const { commitement } = acceptBBRCommitment;
+    if (!commitement) throw new BadRequestException('Please accept Bbr commitment');
+
+    return await this.userService.acceptBbrCommitment(user.sub, commitement);
   }
 }

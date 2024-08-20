@@ -20,7 +20,12 @@ import {
   SellerSignupDto,
   sellerSignupSchema,
 } from './dto/signup.dto';
-import { UpdateBuyerProfileDto, updateBuyerProfileSchema } from './dto/updateProfile';
+import {
+  AcceptBBRCommitment,
+  acceptBBRCommitmentSchema,
+  UpdateBuyerProfileDto,
+  updateBuyerProfileSchema,
+} from './dto/updateProfile';
 import { VerifyUserDto, verifyUserSchema } from './dto/verifyUser.dto';
 import { AtGuard } from './guards/at.guard';
 import { RtGuard } from './guards/rt.guard';
@@ -140,5 +145,19 @@ export class AuthController {
   async sellerLoginWithEmailPassword(@Body() loginDto: LoginDto, @Ip() ip: string) {
     const response = await this.authService.loginWithEmailPassword(loginDto, UserRole.SELLER, ip);
     return ResponseService.buildResponse(response);
+  }
+
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Accept BBR Commitment',
+  })
+  @Patch('seller/accept-commitment')
+  @UsePipes(new JoiValidationPipe(acceptBBRCommitmentSchema, 'body'))
+  async acceptBbrCommitment(
+    @GetCurrentUser() userDetails: JwtPayloadType,
+    @Body() acceptBBRCommitment: AcceptBBRCommitment
+  ) {
+    const user = await this.authService.acceptBbrCommitment(userDetails, acceptBBRCommitment);
+    return ResponseService.buildResponse(user, 'BBR Commitment accepted successfully');
   }
 }
