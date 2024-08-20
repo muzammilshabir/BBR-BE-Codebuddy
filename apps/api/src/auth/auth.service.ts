@@ -112,6 +112,8 @@ export class AuthService {
       throw new ForbiddenException('Invalid credentials');
     }
 
+    await this.redisService.delete({ prefix: CaptchaEnum.PREFIX, key: ip });
+
     return { tokens: await this.generateJwtToken(user) };
   }
 

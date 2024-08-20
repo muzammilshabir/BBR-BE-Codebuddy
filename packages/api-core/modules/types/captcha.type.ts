@@ -3,6 +3,15 @@ export enum CaptchaEnum {
   HEADER = 'x-captcha-token',
 }
 
+// Google reCaptcha error codes
+type CaptchaErrorCodes =
+  | 'missing-input-secret'
+  | 'invalid-input-secret'
+  | 'missing-input-response'
+  | 'invalid-input-response'
+  | 'bad-request'
+  | 'timeout-or-duplicate';
+
 export interface CaptchaResponse {
   data: {
     success: true | false;
@@ -10,5 +19,6 @@ export interface CaptchaResponse {
     hostname: string;
     score: number;
     action: string;
+    'error-codes': CaptchaErrorCodes[];
   };
 }

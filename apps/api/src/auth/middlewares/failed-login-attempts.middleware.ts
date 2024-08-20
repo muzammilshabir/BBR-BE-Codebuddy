@@ -20,7 +20,8 @@ export class FailedLoginAttemptsMiddleware implements NestMiddleware {
     }
 
     if (Number(failedAttempts) >= 5) {
-      req['recaptchaRequired'] = true;
+      req['captchaRequired'] = true;
+      req['captchaReason'] = 'Too many failed login attempts';
     }
 
     next();

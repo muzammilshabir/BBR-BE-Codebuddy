@@ -1,7 +1,8 @@
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
+import { CaptchaEnum } from '@bbr/api-core/modules/types/captcha.type';
 import { Body, Controller, Get, Ip, Patch, Post, UseGuards, UsePipes } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CaptchaGuard } from '../captcha/guards/captcha.guard';
 import { UserRole } from '../users/enum/user.enum';
 import { AuthService } from './auth.service';
@@ -28,6 +29,11 @@ export class AuthController {
 
   @ApiOperation({
     summary: 'Buyer Login',
+  })
+  @ApiHeader({
+    name: CaptchaEnum.HEADER,
+    required: false,
+    description: 'Send captcha token with this header, when getting captcha error',
   })
   @Public()
   @Post('/buyer/login/email')
