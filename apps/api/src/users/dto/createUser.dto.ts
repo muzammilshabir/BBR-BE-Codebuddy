@@ -155,6 +155,9 @@ export class CreateUserDto {
   @ApiProperty({ description: 'User agreement to terms', example: true })
   agreeToTerms?: boolean;
 
+  @ApiProperty({ description: 'User has over 100 5-Star Reviews', example: false })
+  hundredFiveStarReviews?: boolean;
+
   @ApiProperty({ description: 'User preference to receive luxury insights', example: true })
   receiveLuxuryInsights?: boolean;
 

@@ -149,7 +149,7 @@ export class UserService {
 
   async update(
     id: string,
-    updateUserDto: UpdateUserDto
+    updateUserDto: Partial<UpdateUserDto>
   ): Promise<User | { errorCode: ExceptionCodes; message: string }> {
     const user = await this.userModel.findById(id).exec();
 

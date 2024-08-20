@@ -62,6 +62,9 @@ export class User extends Document {
   @Prop({ required: false })
   acceptBBRCommitment: boolean;
 
+  @Prop({ required: false, type: Boolean, default: false })
+  hundredFiveStarReviews: boolean;
+
   @Prop({ required: false, type: Object })
   companyInfo: UserCompanyInfo;
 

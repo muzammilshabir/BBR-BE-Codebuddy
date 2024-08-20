@@ -65,7 +65,36 @@ export class ReviewService {
     if(createReviewDto.rating < 4) {
       await this.sendLowStarReviewEmail(residenceSeller.email, residenceSeller.fullName, residence.name, createReviewDto.rating.toString());
     }
+
+    if(createReviewDto.rating == 5) {
+      await this.checkAndSetHundredFiveStarReviewsBadge(residenceSeller);
+    }
     return createdReview;
+  }
+
+  private async checkAndSetHundredFiveStarReviewsBadge(seller: User) {
+    const { count } = await this.reviewRepository.findAll([
+      { $match: { rating: 5 } },
+      {
+          $lookup:
+          {
+              from: "residences",
+              localField: "residenceId",
+              foreignField: "_id",
+              as: "residence"
+          }
+      },
+      { $match: { "residence.createdById": seller._id } },
+    ]);
+    if (count >= 100) {
+      this.userService.update(seller._id.toString(), {
+        hundredFiveStarReviews: true,
+      });
+      await this.sendHundredFiveStarReviewsBadgeEmail(
+        seller.email,
+        seller.fullName,
+      );
+    }
   }
 
   async respondToReview(reviewId: string, respondToReviewDto: RespondToReviewDto): Promise<any> {
@@ -333,6 +362,23 @@ export class ReviewService {
         },
         template: 'review-response',
         subject: 'Response on Review Received',
+        toEmail: email,
+      })
+    );
+  }
+
+  private async sendHundredFiveStarReviewsBadgeEmail(
+    email: string,
+    name: string,
+  ) {
+    this.eventEmitter.emit(
+      SendEmailEvent.event,
+      new SendEmailEvent({
+        context: {
+          name,
+        },
+        template: 'hundred-five-star-reviews',
+        subject: 'New Badge Unlocked',
         toEmail: email,
       })
     );
