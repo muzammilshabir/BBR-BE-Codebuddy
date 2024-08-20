@@ -1,10 +1,13 @@
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
-import { Body, Controller, Get, Patch, Post, UseGuards, UsePipes } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { CaptchaEnum } from '@bbr/api-core/modules/types/captcha.type';
+import { Body, Controller, Get, Ip, Patch, Post, UseGuards, UsePipes } from '@nestjs/common';
+import { ApiBearerAuth, ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { CaptchaGuard } from '../captcha/guards/captcha.guard';
 import { UserRole } from '../users/enum/user.enum';
 import { AuthService } from './auth.service';
 import { GetCurrentUser } from './decorators/getCurrentUser.decorator';
+import { Public } from './decorators/public.decorator';
 import { Refresh } from './decorators/refresh.decorator';
 import { LoginDto, loginSchema } from './dto/login.dto';
 import {
@@ -17,7 +20,6 @@ import { VerifyUserDto, verifyUserSchema } from './dto/verifyUser.dto';
 import { AtGuard } from './guards/at.guard';
 import { RtGuard } from './guards/rt.guard';
 import { JwtPayloadType } from './type/jwt-payload.type';
-import { Public } from './decorators/public.decorator';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -25,10 +27,20 @@ import { Public } from './decorators/public.decorator';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @ApiOperation({
+    summary: 'Buyer Login',
+  })
+  @ApiHeader({
+    name: CaptchaEnum.HEADER,
+    required: false,
+    description: 'Send captcha token with this header, when getting captcha error',
+  })
+  @Public()
   @Post('/buyer/login/email')
+  @UseGuards(CaptchaGuard)
   @UsePipes(new JoiValidationPipe(loginSchema, 'body'))
-  async loginWithEmailPassword(@Body() loginDto: LoginDto) {
-    const response = await this.authService.loginWithEmailPassword(loginDto, UserRole.BUYER);
+  async loginWithEmailPassword(@Body() loginDto: LoginDto, @Ip() ip: string) {
+    const response = await this.authService.loginWithEmailPassword(loginDto, UserRole.BUYER, ip);
     return ResponseService.buildResponse(response);
   }
 
@@ -72,6 +84,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'Resend Verification Email',
   })
+  @Public()
   @Post('/resend-verification-email')
   @UsePipes(new JoiValidationPipe(resendVerificationEmailSchema, 'body'))
   async resendVerificationEmail(@Body() resendVerificationEmailDo: ResendVerificationEmailDto) {

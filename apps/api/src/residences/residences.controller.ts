@@ -1,25 +1,25 @@
 import { Public } from '@bbr/api-core/modules/decorators';
-import { ResponseService } from '@bbr/api-core/modules/response/response.service';
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
+import { ResponseService } from '@bbr/api-core/modules/response/response.service';
 import { Body, Controller, Get, Param, Post, Put, Query, Res, UsePipes } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { ResidenceService } from './residences.service';
+import { Response } from 'express';
+import { AddVisualsDto, addVisualsSchema } from './dto/add-visuals.dto';
 import { CreateResidenceDto, createResidenceSchema } from './dto/create-residence.dto';
+import { GetResidenceByIdDto, getResidenceByIdSchema } from './dto/get-residence-by-id.dto';
+import { ListResidenceDto, listResidenceSchema } from './dto/list-residence.dto';
+import { AddKeyFeaturesDto, addKeyFeaturesSchema } from './dto/residenceKeyFeatures.dto';
+import {
+  UpdateNearbyAmenitiesDto,
+  updateNearbyAmenitiesSchema,
+} from './dto/update-nearby-amenities.dto';
 import {
   ResidenceStatusDto,
   UpdateResidenceDto,
   updateResidenceSchema,
   updateResidenceStatusSchema,
 } from './dto/update-residence.dto';
-import { AddKeyFeaturesDto, addKeyFeaturesSchema } from './dto/residenceKeyFeatures.dto';
-import { AddVisualsDto, addVisualsSchema } from './dto/add-visuals.dto';
-import {
-  UpdateNearbyAmenitiesDto,
-  updateNearbyAmenitiesSchema,
-} from './dto/update-nearby-amenities.dto';
-import { GetResidenceByIdDto, getResidenceByIdSchema } from './dto/get-residence-by-id.dto';
-import { ListResidenceDto, listResidenceSchema } from './dto/list-residence.dto';
-import { Response } from 'express';
+import { ResidenceService } from './residences.service';
 
 @ApiTags('Residence')
 @Controller('residence')

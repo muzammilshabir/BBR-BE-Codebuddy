@@ -1,15 +1,16 @@
-import { NestFactory, HttpAdapterHost } from '@nestjs/core';
+import { Logger as NestJsLogger } from '@nestjs/common';
+import { HttpAdapterHost, NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerCustomOptions, SwaggerModule } from '@nestjs/swagger';
+import { Logger } from 'nestjs-pino';
 import { BbrConfig } from './config/bbrConfig';
 import { GlobalExceptionsFilter } from './exceptions/global.exception';
-import { Logger } from 'nestjs-pino';
-import { Logger as NestJsLogger } from '@nestjs/common';
 
 export async function bootstrap(appModule: any) {
   BigInt.prototype['toJSON'] = function () {
     return Number(this.toString());
   };
   const app = await NestFactory.create(appModule);
+  app.enableCors();
 
   app.useLogger(app.get(Logger));
 

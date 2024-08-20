@@ -1,9 +1,9 @@
 import {
-  ExceptionFilter,
   ArgumentsHost,
+  Catch,
+  ExceptionFilter,
   HttpException,
   HttpStatus,
-  Catch,
   Logger,
 } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
@@ -20,8 +20,6 @@ export class GlobalExceptionsFilter implements ExceptionFilter {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse();
 
-    this.logger.error(`Exception thrown: ${exception.message}`, exception.stack);
-
     if (exception instanceof mongoose.Error.ValidationError) {
       this.logger.error('Validation Error', exception.message);
       return httpAdapter.reply(
@@ -34,15 +32,24 @@ export class GlobalExceptionsFilter implements ExceptionFilter {
       );
     }
 
-    const httpStatus = exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
+    let responseBody: Record<string, any>;
+    const exceptionResponse = exception.response;
 
-    const responseBody = {
-      statusCode: httpStatus,
-      message: exception instanceof HttpException ? exception.message : 'Internal Server Error',
-    };
+    if (exception instanceof HttpException) {
+      responseBody = {
+        ...exceptionResponse,
+        statusCode: exception.getStatus(),
+        message: exception.message,
+      };
+    } else {
+      responseBody = {
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        message: exception.message || 'Internal Server Error',
+      };
+    }
 
     this.logger.error(`Response Body: ${JSON.stringify(responseBody)}`);
-    
-    httpAdapter.reply(response, responseBody, httpStatus);
+
+    httpAdapter.reply(response, responseBody, responseBody.statusCode);
   }
 }
