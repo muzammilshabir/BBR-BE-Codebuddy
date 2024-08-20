@@ -14,7 +14,7 @@ import { User } from '../users/schema/user.schema';
 import { UserService } from '../users/user.service';
 import { LoginDto } from './dto/login.dto';
 import { ResendVerificationEmailDto } from './dto/resendVerificationEmail';
-import { BuyerSignupDto } from './dto/signup.dto';
+import { BuyerSignupDto, SellerSignupDto } from './dto/signup.dto';
 import { UpdateBuyerProfileDto } from './dto/updateProfile';
 import { VerifyUserDto } from './dto/verifyUser.dto';
 import { JwtPayloadType } from './type/jwt-payload.type';
@@ -58,6 +58,14 @@ export class AuthService {
     }
 
     await this.userService.verifyUserEmail(token, email, role);
+
+    if (role === UserRole.SELLER && user.acceptBBRCommitment !== true) {
+      return {
+        tokens: await this.generateJwtToken(user),
+        errorCode: ExceptionCodes.acceptBBRCommitment,
+        message: 'Please accept BBR commitment',
+      };
+    }
 
     return await this.generateJwtToken(user);
   }
@@ -113,6 +121,14 @@ export class AuthService {
     }
 
     await this.redisService.delete({ prefix: CaptchaEnum.PREFIX, key: ip });
+
+    if (role === UserRole.SELLER && user.acceptBBRCommitment !== true) {
+      return {
+        tokens: await this.generateJwtToken(user),
+        errorCode: ExceptionCodes.acceptBBRCommitment,
+        message: 'Please accept BBR commitment',
+      };
+    }
 
     return { tokens: await this.generateJwtToken(user) };
   }
@@ -172,5 +188,23 @@ export class AuthService {
     if (loggedInUser.role !== UserRole.BUYER) throw new UnauthorizedException('Invalid token');
 
     return await this.userService.update(loggedInUser.sub, updateBuyerDto);
+  }
+
+  async signupDeveloper(sellerSignupDto: SellerSignupDto) {
+    const user = await this.userService.create({
+      fullName: sellerSignupDto.fullName,
+      email: sellerSignupDto.corporateEmail,
+      corporateEmail: sellerSignupDto.corporateEmail,
+      password: await argon.hash(sellerSignupDto.password),
+      signupMethod: SignupMethod.EMAIL,
+      role: UserRole.SELLER,
+      agreeToTerms: true,
+      receiveLuxuryInsights: sellerSignupDto.receiveLuxuryInsights,
+      acceptBBRCommitment: false,
+    });
+
+    this.sendVerificationEmail(user.email, user.verificationToken);
+
+    return user;
   }
 }

@@ -14,7 +14,12 @@ import {
   ResendVerificationEmailDto,
   resendVerificationEmailSchema,
 } from './dto/resendVerificationEmail';
-import { BuyerSignupDto, buyerSignupSchema } from './dto/signup.dto';
+import {
+  BuyerSignupDto,
+  buyerSignupSchema,
+  SellerSignupDto,
+  sellerSignupSchema,
+} from './dto/signup.dto';
 import { UpdateBuyerProfileDto, updateBuyerProfileSchema } from './dto/updateProfile';
 import { VerifyUserDto, verifyUserSchema } from './dto/verifyUser.dto';
 import { AtGuard } from './guards/at.guard';
@@ -103,6 +108,37 @@ export class AuthController {
   async refresh(@GetCurrentUser() userFromToken: JwtPayloadType) {
     const tokens = await this.authService.refreshToken(userFromToken);
 
-    return ResponseService.buildResponse({ tokens });
+    return ResponseService.buildResponse(tokens);
+  }
+
+  @ApiOperation({
+    summary: 'Seller Signup',
+  })
+  @Public()
+  @Post('/seller/signup')
+  @UsePipes(new JoiValidationPipe(sellerSignupSchema, 'body'))
+  async signupSeller(@Body() sellerSignupDto: SellerSignupDto) {
+    const user = await this.authService.signupDeveloper(sellerSignupDto);
+    return ResponseService.buildResponse({ user }, 'Seller signed up successfully');
+  }
+
+  @ApiOperation({
+    summary: 'Verify Seller',
+  })
+  @Public()
+  @Post('/seller/verify')
+  @UsePipes(new JoiValidationPipe(verifyUserSchema, 'body'))
+  async verifySeller(@Body() verifySellerDto: VerifyUserDto) {
+    const tokens = await this.authService.verifyUser(verifySellerDto, UserRole.SELLER);
+
+    return ResponseService.buildResponse(tokens, 'Seller verified successfully');
+  }
+
+  @Post('/seller/login/email')
+  @Public()
+  @UsePipes(new JoiValidationPipe(loginSchema, 'body'))
+  async sellerLoginWithEmailPassword(@Body() loginDto: LoginDto) {
+    const response = await this.authService.loginWithEmailPassword(loginDto, UserRole.SELLER);
+    return ResponseService.buildResponse(response);
   }
 }

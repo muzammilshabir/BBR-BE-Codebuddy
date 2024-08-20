@@ -20,6 +20,8 @@ import { UploadModule } from './upload/upload.module';
 import { UserModule } from './users/user.module';
 import { ReviewModule } from './reviews/reviews.module';
 import { jwtConfig } from './utils/jwt.config';
+import { APP_GUARD } from '@nestjs/core';
+import { AtGuard } from './auth/guards/at.guard';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -45,6 +47,12 @@ import { jwtConfig } from './utils/jwt.config';
     LifeStyleModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [
+    ServiceConfig,
+    {
+      provide: APP_GUARD,
+      useClass: AtGuard,
+    },
+  ],
 })
 export class AppModule {}
