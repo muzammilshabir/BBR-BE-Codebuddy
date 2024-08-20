@@ -1,5 +1,6 @@
-import { OmitType } from '@nestjs/swagger';
+import { ApiProperty, OmitType } from '@nestjs/swagger';
 import { UpdateUserDto, updateUserSchema } from '../../users/dto/updateUser.dto';
+import * as Joi from 'joi';
 
 const omittedForBuyer = [
   'companyInfo',
@@ -15,3 +16,15 @@ export const updateBuyerProfileSchema = updateUserSchema.fork(omittedForBuyer, (
 );
 
 export class UpdateBuyerProfileDto extends OmitType(UpdateUserDto, omittedForBuyer as never[]) {}
+
+export class AcceptBBRCommitment {
+  @ApiProperty({
+    example: true,
+    required: true,
+  })
+  commitement: boolean;
+}
+
+export const acceptBBRCommitmentSchema = Joi.object({
+  commitement: Joi.boolean().required(),
+});

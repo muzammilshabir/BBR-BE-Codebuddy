@@ -15,13 +15,15 @@ import { CreateUserDto } from './dto/createUser.dto';
 import { UpdateUserDto } from './dto/updateUser.dto';
 import { UserRole } from './enum/user.enum';
 import { User } from './schema/user.schema';
+import { UserRepository } from './user.repository';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectModel(User.name) private readonly userModel: Model<User>,
     private readonly tokenService: TokenService,
-    private readonly mailerService: MailerService
+    private readonly mailerService: MailerService,
+    private readonly userRepository: UserRepository
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
@@ -168,6 +170,17 @@ export class UserService {
       throw new UnauthorizedException('Invalid token');
     }
 
+    return user;
+  }
+
+  async acceptBbrCommitment(
+    id: string,
+    commitement: boolean
+  ): Promise<User | { errorCode: ExceptionCodes; message: string }> {
+    const user = await this.userRepository.update(id, { acceptBBRCommitment: commitement });
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
     return user;
   }
 }
