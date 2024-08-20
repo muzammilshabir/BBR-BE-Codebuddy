@@ -28,3 +28,18 @@ export class AcceptBBRCommitment {
 export const acceptBBRCommitmentSchema = Joi.object({
   commitement: Joi.boolean().required(),
 });
+
+const omittedForSeller = [
+  'contactInfo',
+  'companyName',
+  'corporateEmail',
+  'preferences',
+  'receiveLuxuryInsights',
+  'fullName',
+];
+
+export class UpdateSellerProfileDto extends OmitType(UpdateUserDto, omittedForSeller as never[]) {}
+
+export const updateSellerProfileSchema = updateUserSchema.fork(omittedForSeller, (schema) =>
+  schema.forbidden()
+);

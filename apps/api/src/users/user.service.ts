@@ -16,6 +16,7 @@ import { UpdateUserDto } from './dto/updateUser.dto';
 import { UserRole } from './enum/user.enum';
 import { User } from './schema/user.schema';
 import { UserRepository } from './user.repository';
+import { UpdateSellerProfileDto } from '../auth/dto/updateProfile';
 
 @Injectable()
 export class UserService {
@@ -182,5 +183,30 @@ export class UserService {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
     return user;
+  }
+
+  async updateSeller(
+    id: string,
+    updateSellerProfileDto: UpdateSellerProfileDto
+  ): Promise<User | { errorCode: ExceptionCodes; message: string }> {
+    const user = await this.userModel.findById(id).exec();
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (!user.isVerified) {
+      return {
+        errorCode: ExceptionCodes.UnverifiedUser,
+        message: 'Please verify your account first',
+      };
+    }
+
+    const updatedUser = await this.userRepository.update(id, updateSellerProfileDto);
+    if (!updatedUser) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+
+    return updatedUser;
   }
 }
