@@ -8,7 +8,7 @@ export class UserNotVerifiedException extends HttpException {
         errorCode: ExceptionCodes.UnverifiedUser,
         message: message || 'Please verify your account first',
       },
-      HttpStatus.OK
+      HttpStatus.PRECONDITION_REQUIRED
     );
   }
 }

@@ -35,4 +35,17 @@ export class ServiceConfig extends BbrStatefulServiceConfig {
     bucket: this.getOrThrow('AWS_S3_BUCKET_NAME'),
     endpoint: this.getOrThrow('END_POINT'),
   };
+
+  readonly redis = {
+    user: this.getOrThrow('APP_REDIS_USER'),
+    host: this.getOrThrow('APP_REDIS_HOST'),
+    port: this.getOrThrow<number>('APP_REDIS_PORT'),
+    db: this.getOrThrow<number>('APP_REDIS_DB'),
+    password: this.get('APP_REDIS_PASSWORD'),
+    defaultExpiry: this.getOrThrow<number>('APP_REDIS_DEFAULT_EXPIRY'),
+  };
+
+  readonly captcha = {
+    secretKey: this.getOrThrow('CAPTCHA_SECRET'),
+  };
 }

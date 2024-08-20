@@ -1,5 +1,5 @@
-import { ConfigService } from '@nestjs/config';
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 /**
  * Abstract class that all configs should inherit from. Contains base utilities.
