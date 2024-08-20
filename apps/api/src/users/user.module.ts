@@ -9,6 +9,7 @@ import { jwtConfig } from '../utils/jwt.config';
 import { User, UserSchema } from './schema/user.schema';
 import { UserController } from './user.controller';
 import { UserService } from './user.service';
+import { UserRepository } from './user.repository';
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
@@ -18,7 +19,7 @@ import { UserService } from './user.service';
     MailerCoreModule,
   ],
   controllers: [UserController],
-  providers: [UserService, ServiceConfig],
+  providers: [UserService, ServiceConfig, UserRepository],
   exports: [UserService],
 })
 export class UserModule {}
