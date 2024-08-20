@@ -5,14 +5,17 @@ export class BaseRepository<T extends Document> {
 
   async findAll(
     filter: any,
-    options: any,
+    options?: any,
     populateOptions?: any[]
   ): Promise<{ data: T[]; count: number }> {
     let query = this.model
-      .find(filter)
+      .find(filter);
+    if(options) {
+      query
       .skip(options.offset)
       .limit(options.limit)
-      .sort(options.sort);
+      .sort(options.sort)
+    }
 
     // If populate options are provided, apply them to the query
     if (populateOptions && populateOptions.length) {
@@ -39,6 +42,10 @@ export class BaseRepository<T extends Document> {
 
   async update(id: string, updateDto: any): Promise<T> {
     return await this.model.findByIdAndUpdate(id, updateDto, { new: true });
+  }
+
+  async updateWithFilter(filter: any, updateDto: any): Promise<T> {
+    return await this.model.findOneAndUpdate(filter, updateDto, { new: true });
   }
 
   async delete(id: string): Promise<T> {
