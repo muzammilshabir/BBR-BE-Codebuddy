@@ -22,6 +22,7 @@ import { ReviewModule } from './reviews/reviews.module';
 import { jwtConfig } from './utils/jwt.config';
 import { APP_GUARD } from '@nestjs/core';
 import { AtGuard } from './auth/guards/at.guard';
+import { LeadModule } from './lead/lead.module';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -45,6 +46,7 @@ import { AtGuard } from './auth/guards/at.guard';
     AuthModule,
     ReviewModule,
     LifeStyleModule,
+    LeadModule,
   ],
   controllers: [],
   providers: [
