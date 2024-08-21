@@ -139,13 +139,6 @@ export class CreateUserDto {
   @ApiProperty({ description: 'Indicates if the email is verified', example: false })
   emailVerified?: boolean;
 
-  @ApiProperty({
-    description: 'Token for forgotten password',
-    example: 'forgot-password-token',
-    required: false,
-  })
-  forgotPasswordToken?: string;
-
   @ApiProperty({ description: 'Company name', example: 'Example Corp', required: false })
   companyName?: string;
 

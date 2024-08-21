@@ -11,6 +11,12 @@ import { Public } from './decorators/public.decorator';
 import { Refresh } from './decorators/refresh.decorator';
 import { LoginDto, loginSchema } from './dto/login.dto';
 import {
+  ForgotPasswordDto,
+  forgotPasswordSchema,
+  ResetPasswordDto,
+  resetPasswordSchema,
+} from './dto/passwordReset.dto';
+import {
   ResendVerificationEmailDto,
   resendVerificationEmailSchema,
 } from './dto/resendVerificationEmail';
@@ -141,6 +147,12 @@ export class AuthController {
 
   @Post('/seller/login/email')
   @Public()
+  @ApiHeader({
+    name: CaptchaEnum.HEADER,
+    required: false,
+    description: 'Send captcha token with this header, when getting captcha error',
+  })
+  @UseGuards(CaptchaGuard)
   @UsePipes(new JoiValidationPipe(loginSchema, 'body'))
   async sellerLoginWithEmailPassword(@Body() loginDto: LoginDto, @Ip() ip: string) {
     const response = await this.authService.loginWithEmailPassword(loginDto, UserRole.SELLER, ip);
@@ -159,5 +171,23 @@ export class AuthController {
   ) {
     const user = await this.authService.acceptBbrCommitment(userDetails, acceptBBRCommitment);
     return ResponseService.buildResponse(user, 'BBR Commitment accepted successfully');
+  }
+
+  @ApiOperation({ summary: 'Request a password reset link' })
+  @Public()
+  @Post('forgot-password')
+  @UsePipes(new JoiValidationPipe(forgotPasswordSchema, 'body'))
+  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
+    await this.authService.forgotPassword(forgotPasswordDto);
+    return ResponseService.buildResponse({}, 'Password reset link sent successfully');
+  }
+
+  @ApiOperation({ summary: 'Reset password using a token' })
+  @Public()
+  @Post('reset-password')
+  @UsePipes(new JoiValidationPipe(resetPasswordSchema, 'body'))
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    await this.authService.resetPassword(resetPasswordDto);
+    return ResponseService.buildResponse({}, 'Password has been reset successfully');
   }
 }
