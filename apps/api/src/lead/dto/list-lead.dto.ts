@@ -6,14 +6,6 @@ import { LeadSource, LeadStatus } from '../enum/lead-enum';
 
 export class ListLeadDto extends ListPropsDto {
   @ApiProperty({
-    description: 'Filter by residenceId',
-    example: '60b6c0f53b5a5c1f88d25a1b',
-    required: false,
-    type: String,
-  })
-  residenceId?: string;
-
-  @ApiProperty({
     example: LeadStatus.NEW,
     enum: LeadStatus,
     description: 'The status of the lead',
@@ -39,7 +31,6 @@ export class ListLeadDto extends ListPropsDto {
 }
 
 export const listListSchema = PaginationSchema.append({
-  residenceId: Joi.string().custom(joiObjectIdValidator('residenceId')).optional(),
   status: Joi.string()
     .valid(...Object.values(LeadStatus))
     .optional(),

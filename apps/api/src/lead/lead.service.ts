@@ -27,12 +27,30 @@ export class LeadService {
     return await this.leadRepository.create(transformedDto);
   }
 
-  async listLeads(listLeadDto: ListLeadDto) {
+  async listLeads(listLeadDto: ListLeadDto, sellerId: string) {
     const filter: any = {};
 
-    if (listLeadDto.residenceId) {
-      filter.residenceId = new Types.ObjectId(listLeadDto.residenceId);
+    // Get all residence IDs associated with the seller (developerId)
+    const sellerResidences = await this.residenceRepository.findAll({
+      developerId: new Types.ObjectId(sellerId),
+    });
+    const sellerResidenceIds = sellerResidences.data.map((residence) => residence._id);
+
+    if (sellerResidenceIds.length === 0) {
+      return {
+        pagination: {
+          limit: 10,
+          currentPage: 1,
+          totalDocs: 0,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPrevPage: false,
+        },
+        leads: [],
+      };
     }
+
+    filter.residenceId = { $in: sellerResidenceIds };
 
     if (listLeadDto.status) {
       filter.status = listLeadDto.status;
@@ -41,32 +59,30 @@ export class LeadService {
     if (listLeadDto.source) {
       filter.source = listLeadDto.source;
     }
-    // Handle the search functionality
-    if (listLeadDto.search) {
+
+    if (listLeadDto.search && listLeadDto.search.trim()) {
       const searchRegex = new RegExp(listLeadDto.search, 'i');
-
-      // Find matching residenceIds based on residence name search
-      const matchingResidences = await this.residenceRepository.findAll({
-        name: { $regex: searchRegex },
-      });
-
-      const matchingResidenceIds = matchingResidences.data.map((residence) => residence._id);
-
       const orConditions: any = [
         { name: { $regex: searchRegex } },
         { country: { $regex: searchRegex } },
       ];
 
+      // Find matching residences based on residence name search within seller's residences
+      const matchingResidences = await this.residenceRepository.findAll({
+        name: { $regex: searchRegex },
+        developerId: new Types.ObjectId(sellerId),
+      });
+
+      const matchingResidenceIds = matchingResidences.data.map((residence) => residence._id);
       if (matchingResidenceIds.length > 0) {
         orConditions.push({ residenceId: { $in: matchingResidenceIds } });
       }
 
       filter.$or = orConditions;
     }
+
     const options = PaginationService.prepareOptions(listLeadDto);
-
     const { data, count } = await this.leadRepository.findAll(filter, options);
-
     const { pagination } = PaginationService.paginate({ rows: data, count }, listLeadDto);
 
     return { pagination, leads: data };

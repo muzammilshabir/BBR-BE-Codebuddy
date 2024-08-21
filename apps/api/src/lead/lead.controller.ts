@@ -8,6 +8,8 @@ import { CreateLeadDto, createLeadSchema } from './dto/lead.dto';
 import { ListLeadDto, listListSchema } from './dto/list-lead.dto';
 import { UserRole } from '../users/enum/user.enum';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { JwtPayloadType } from '../auth/type/jwt-payload.type';
+import { GetCurrentUser } from '../auth/decorators/getCurrentUser.decorator';
 
 @ApiTags('Lead')
 @Controller('lead')
@@ -32,8 +34,8 @@ export class LeadController {
   @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
   @UsePipes(new JoiValidationPipe(listListSchema, 'query'))
-  async listLeads(@Query() query: ListLeadDto) {
-    const leads = await this.leadService.listLeads(query);
+  async listLeads(@Query() query: ListLeadDto, @GetCurrentUser() user: JwtPayloadType) {
+    const leads = await this.leadService.listLeads(query, user.sub);
     return ResponseService.buildResponse({ leads }, 'leads retrieved successfully');
   }
 }
