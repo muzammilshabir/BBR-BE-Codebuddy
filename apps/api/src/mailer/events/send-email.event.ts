@@ -4,9 +4,20 @@ export interface ISendEmailEvent {
   };
   subject: string;
   // These are the (.hbs) filenames in the templates folder
-  template: 'verify-user' | 'forgot-password' | 'reset-password';
+  template: Template;
   toEmail: string;
 }
+
+type Template = 
+'verify-user' |
+'forgot-password' |
+'reset-password' |
+'low-star-review' |
+'request-review' |
+'review-response' |
+'review-weekly-summary' |
+'specific-words-review' |
+'hundred-five-star-reviews';
 
 export class SendEmailEvent {
   static event = 'send-email';

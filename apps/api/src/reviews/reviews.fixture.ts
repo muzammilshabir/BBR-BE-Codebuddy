@@ -31,42 +31,42 @@ export class ReviewsFixture extends AbstractFixture {
   static REVIEW_2 = 'REVIEW_2';
   static REVIEW_3 = 'REVIEW_3';
   async load() {
-    const residenceId = this.getReference(ResidencesFixture.RESIDENCE1)._id;
+    const residence = this.getReference(ResidencesFixture.RESIDENCE1)._id;
     const reviewPhotoId = this.getReference(UploadFixture.UPLOAD_1)._id;
     // Create a new Review document
     const review1 = await this.reviewModel.create({
-      residenceId: residenceId,
+      residence: residence,
       rating: 5,
       review: {
         title: 'Beautiful Place',
         details: 'Awesome seller and the place has amazing view.',
       },
       photos: [reviewPhotoId],
-      createdById: '60d5f485f7c6a4b2b8e8b601',
+      createdBy: '60d5f485f7c6a4b2b8e8b601',
       createdAt: new Date(),
       updatedAt: new Date(),
     });
     const review2 = await this.reviewModel.create({
-      residenceId: residenceId,
+      residence: residence,
       rating: 2,
       review: {
         title: 'Not nice',
         details: 'the property is not in a good location.',
       },
       photos: [reviewPhotoId],
-      createdById: '60d5f485f7c6a4b2b8e8b601',
+      createdBy: '60d5f485f7c6a4b2b8e8b601',
       createdAt: new Date(),
       updatedAt: new Date(),
     });
     const review3 = await this.reviewModel.create({
-      residenceId: residenceId,
+      residence: residence,
       rating: 3,
       review: {
         title: 'Average',
         details: 'Good place but the view is lacking.',
       },
       photos: [reviewPhotoId],
-      createdById: '60d5f485f7c6a4b2b8e8b601',
+      createdBy: '60d5f485f7c6a4b2b8e8b601',
       createdAt: new Date(),
       updatedAt: new Date(),
     });
