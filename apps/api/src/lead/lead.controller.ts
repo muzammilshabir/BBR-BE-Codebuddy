@@ -32,7 +32,7 @@ export class LeadController {
     summary: 'List lead with optional residenceId filter',
   })
   @ApiBearerAuth()
-  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @Roles(UserRole.SELLER)
   @UsePipes(new JoiValidationPipe(listListSchema, 'query'))
   async listLeads(@Query() query: ListLeadDto, @GetCurrentUser() user: JwtPayloadType) {
     const leads = await this.leadService.listLeads(query, user.sub);
@@ -60,5 +60,16 @@ export class LeadController {
   async getLeadById(@Param('id') leadId: string) {
     const lead = await this.leadService.getLeadById(leadId);
     return ResponseService.buildResponse({ lead }, 'lead retrieved successfully');
+  }
+
+  @Get('/statistics/count')
+  @ApiOperation({
+    summary: 'Get total lead count and last 24-hour lead count',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
+  async getLeadCounts(@GetCurrentUser() user: JwtPayloadType) {
+    const leadCounts = await this.leadService.getLeadCounts(user.sub);
+    return ResponseService.buildResponse(leadCounts, 'Lead counts retrieved successfully');
   }
 }

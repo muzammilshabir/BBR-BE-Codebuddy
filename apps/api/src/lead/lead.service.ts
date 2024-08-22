@@ -7,6 +7,7 @@ import { ListLeadDto } from './dto/list-lead.dto';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
 import { ResidenceRepository } from '../residences/residences.repository';
 import { NotFoundException } from '@bbr/api-core/modules/exceptions';
+import * as moment from 'moment';
 
 @Injectable()
 export class LeadService {
@@ -99,5 +100,33 @@ export class LeadService {
 
   getLeadById(leadId: string): Promise<Lead> {
     return this.leadRepository.findById(leadId);
+  }
+
+  async getLeadCounts(sellerId: string) {
+    const filter: any = {};
+
+    // Get all residence IDs associated with the seller (developerId)
+    const sellerResidences = await this.residenceRepository.findAll({
+      developerId: new Types.ObjectId(sellerId),
+    });
+    const sellerResidenceIds = sellerResidences.data.map((residence) => residence._id);
+
+    if (sellerResidenceIds.length === 0) {
+      return { totalLeadCount: 0, last24HourLeadCount: 0 };
+    }
+
+    filter.residenceId = { $in: sellerResidenceIds };
+
+    // Total leads count
+    const totalLeadCount = await this.leadRepository.count(filter);
+
+    // Last 24 hours leads count
+    const last24Hours = moment().subtract(24, 'hours').toDate();
+    const last24HourLeadCount = await this.leadRepository.count({
+      ...filter,
+      createdAt: { $gte: last24Hours },
+    });
+
+    return { totalLeadCount, last24HourLeadCount };
   }
 }
