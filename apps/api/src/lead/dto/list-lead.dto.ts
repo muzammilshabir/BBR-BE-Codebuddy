@@ -50,7 +50,7 @@ export class UpdateLeadDto {
   status: LeadStatus;
 }
 
-export const updateListSchema = Joi.object({
+export const updateLeadSchema = Joi.object({
   status: Joi.string()
     .valid(...Object.values(LeadStatus))
     .required(),
