@@ -39,3 +39,19 @@ export const listListSchema = PaginationSchema.append({
     .optional(),
   search: Joi.string().optional(),
 });
+
+export class UpdateLeadDto {
+  @ApiProperty({
+    example: LeadStatus.NEW,
+    enum: LeadStatus,
+    description: 'The status of the lead',
+    required: true,
+  })
+  status: LeadStatus;
+}
+
+export const updateListSchema = Joi.object({
+  status: Joi.string()
+    .valid(...Object.values(LeadStatus))
+    .required(),
+});

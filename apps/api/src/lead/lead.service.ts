@@ -6,6 +6,7 @@ import { Types } from 'mongoose';
 import { ListLeadDto } from './dto/list-lead.dto';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
 import { ResidenceRepository } from '../residences/residences.repository';
+import { NotFoundException } from '@bbr/api-core/modules/exceptions';
 
 @Injectable()
 export class LeadService {
@@ -86,5 +87,17 @@ export class LeadService {
     const { pagination } = PaginationService.paginate({ rows: data, count }, listLeadDto);
 
     return { pagination, leads: data };
+  }
+
+  async updateLeadStatus(leadId: string, status: string): Promise<any> {
+    const existinLead = await this.leadRepository.update(leadId, { status });
+    if (!existinLead) {
+      throw new NotFoundException(`Lead with ID ${leadId}`);
+    }
+    return existinLead;
+  }
+
+  getLeadById(leadId: string): Promise<Lead> {
+    return this.leadRepository.findById(leadId);
   }
 }
