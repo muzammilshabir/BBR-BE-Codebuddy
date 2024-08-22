@@ -8,6 +8,7 @@ import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.s
 import { ResidenceRepository } from '../residences/residences.repository';
 import { NotFoundException } from '@bbr/api-core/modules/exceptions';
 import * as moment from 'moment';
+import { Interval } from './enum/lead-enum';
 
 @Injectable()
 export class LeadService {
@@ -128,5 +129,85 @@ export class LeadService {
     });
 
     return { totalLeadCount, last24HourLeadCount };
+  }
+
+  async getLeadConversionRate(interval: Interval) {
+    let startDate: Date;
+    let groupBy: any;
+
+    switch (interval) {
+      case Interval.WEEKLY:
+        startDate = moment().startOf('week').toDate();
+        groupBy = { $dayOfWeek: '$createdAt' }; // Group by day of the week
+        break;
+      case Interval.MONTHLY:
+        startDate = moment().startOf('month').toDate();
+        groupBy = { $week: '$createdAt' }; // Group by week of the month
+        break;
+      case Interval.YEARLY:
+        startDate = moment().startOf('year').toDate();
+        groupBy = { $month: '$createdAt' }; // Group by month of the year
+        break;
+      default:
+        throw new Error('Invalid interval');
+    }
+
+    let leadsCreated: any;
+    let leadsConverted: any;
+    if (interval === Interval.WEEKLY) {
+      leadsCreated = await this.leadRepository.weeklyCountLeadsCreated(startDate, groupBy);
+      leadsConverted = await this.leadRepository.weeklyCeadsConverted(startDate, interval, groupBy);
+    }
+    if (interval === Interval.MONTHLY) {
+      leadsCreated = await this.leadRepository.monthlyCountLeadsCreated(startDate, groupBy);
+      leadsConverted = await this.leadRepository.weeklyCeadsConverted(startDate, groupBy);
+    }
+    if (interval === Interval.YEARLY) {
+      leadsCreated = await this.leadRepository.yearlyCountLeadsCreated(startDate, groupBy);
+      leadsConverted = await this.leadRepository.yearlyCountLeadsConverted(startDate, groupBy);
+    }
+
+    const conversionRateData = this.calculateConversionRate(leadsCreated, leadsConverted, interval);
+
+    return conversionRateData;
+  }
+
+  calculateConversionRate(leadsCreated, leadsConverted, interval: Interval) {
+    const conversionRates = [];
+
+    // Create an object to map the lead counts by group
+    const createdMap = leadsCreated.reduce((acc, curr) => {
+      acc[curr._id] = curr.count;
+      return acc;
+    }, {});
+
+    const convertedMap = leadsConverted.reduce((acc, curr) => {
+      acc[curr._id] = curr.count;
+      return acc;
+    }, {});
+
+    // Generate conversion rate data based on the interval
+    const periods =
+      interval === Interval.YEARLY
+        ? [...Array(12).keys()].map((i) => moment().month(i).format('MMMM'))
+        : interval === Interval.MONTHLY
+          ? [...Array(4).keys()].map((i) => `Week ${i + 1}`)
+          : [...Array(7).keys()].map((i) => moment().day(i).format('dddd'));
+
+    periods.forEach((period, index) => {
+      const created = createdMap[index + 1] || 0; // Handle 1-based index
+      const converted = convertedMap[index + 1] || 0;
+
+      const conversionRate = created > 0 ? (converted / created) * 100 : 0;
+
+      conversionRates.push({
+        period,
+        created,
+        converted,
+        conversionRate: conversionRate.toFixed(2),
+      });
+    });
+
+    return conversionRates;
   }
 }

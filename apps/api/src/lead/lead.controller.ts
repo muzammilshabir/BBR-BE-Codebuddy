@@ -10,6 +10,7 @@ import { UserRole } from '../users/enum/user.enum';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtPayloadType } from '../auth/type/jwt-payload.type';
 import { GetCurrentUser } from '../auth/decorators/getCurrentUser.decorator';
+import { ListIntervalDto, listIntervalSchema } from './dto/lead-stat.dto';
 
 @ApiTags('Lead')
 @Controller('lead')
@@ -71,5 +72,22 @@ export class LeadController {
   async getLeadCounts(@GetCurrentUser() user: JwtPayloadType) {
     const leadCounts = await this.leadService.getLeadCounts(user.sub);
     return ResponseService.buildResponse(leadCounts, 'Lead counts retrieved successfully');
+  }
+
+  @Get('/statistics/conversion-rate')
+  @ApiOperation({
+    summary: 'Get lead conversion rate based on weekly, monthly, or yearly intervals',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
+  @UsePipes(new JoiValidationPipe(listIntervalSchema, 'param'))
+  async getLeadConversionRate(@Query() ListIntervalDto: ListIntervalDto) {
+    const conversionRateData = await this.leadService.getLeadConversionRate(
+      ListIntervalDto.interval
+    );
+    return ResponseService.buildResponse(
+      conversionRateData,
+      'Conversion rate retrieved successfully'
+    );
   }
 }
