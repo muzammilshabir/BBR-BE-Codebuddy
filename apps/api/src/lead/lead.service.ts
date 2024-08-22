@@ -133,39 +133,23 @@ export class LeadService {
 
   async getLeadConversionRate(interval: Interval) {
     let startDate: Date;
-    let groupBy: any;
 
     switch (interval) {
       case Interval.WEEKLY:
         startDate = moment().startOf('week').toDate();
-        groupBy = { $dayOfWeek: '$createdAt' }; // Group by day of the week
         break;
       case Interval.MONTHLY:
         startDate = moment().startOf('month').toDate();
-        groupBy = { $week: '$createdAt' }; // Group by week of the month
         break;
       case Interval.YEARLY:
         startDate = moment().startOf('year').toDate();
-        groupBy = { $month: '$createdAt' }; // Group by month of the year
         break;
       default:
         throw new Error('Invalid interval');
     }
 
-    let leadsCreated: any;
-    let leadsConverted: any;
-    if (interval === Interval.WEEKLY) {
-      leadsCreated = await this.leadRepository.weeklyCountLeadsCreated(startDate, groupBy);
-      leadsConverted = await this.leadRepository.weeklyCeadsConverted(startDate, interval, groupBy);
-    }
-    if (interval === Interval.MONTHLY) {
-      leadsCreated = await this.leadRepository.monthlyCountLeadsCreated(startDate, groupBy);
-      leadsConverted = await this.leadRepository.weeklyCeadsConverted(startDate, groupBy);
-    }
-    if (interval === Interval.YEARLY) {
-      leadsCreated = await this.leadRepository.yearlyCountLeadsCreated(startDate, groupBy);
-      leadsConverted = await this.leadRepository.yearlyCountLeadsConverted(startDate, groupBy);
-    }
+    const leadsCreated = await this.leadRepository.countLeadsCreated(startDate, interval);
+    const leadsConverted = await this.leadRepository.countleadsConverted(startDate, interval);
 
     const conversionRateData = this.calculateConversionRate(leadsCreated, leadsConverted, interval);
 
