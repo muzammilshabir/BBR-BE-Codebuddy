@@ -5,7 +5,7 @@ import { Body, Controller, Get, Param, Patch, Post, Query, UsePipes } from '@nes
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { LeadService } from './lead.service';
 import { CreateLeadDto, createLeadSchema } from './dto/lead.dto';
-import { ListLeadDto, listListSchema, UpdateLeadDto, updateListSchema } from './dto/list-lead.dto';
+import { ListLeadDto, listListSchema, UpdateLeadDto, updateLeadSchema } from './dto/list-lead.dto';
 import { UserRole } from '../users/enum/user.enum';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtPayloadType } from '../auth/type/jwt-payload.type';
@@ -45,7 +45,7 @@ export class LeadController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
-  @UsePipes(new JoiValidationPipe(updateListSchema, 'body'))
+  @UsePipes(new JoiValidationPipe(updateLeadSchema, 'body'))
   async updateLeadStatus(@Param('id') leadId: string, @Body() updateLeadDto: UpdateLeadDto) {
     const lead = await this.leadService.updateLeadStatus(leadId, updateLeadDto.status);
     return ResponseService.buildResponse({ lead }, 'leads updated successfully');
