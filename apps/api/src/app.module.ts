@@ -23,6 +23,7 @@ import { jwtConfig } from './utils/jwt.config';
 import { APP_GUARD } from '@nestjs/core';
 import { AtGuard } from './auth/guards/at.guard';
 import { LeadModule } from './lead/lead.module';
+import { AppController } from './app.controller';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -48,7 +49,7 @@ import { LeadModule } from './lead/lead.module';
     LifeStyleModule,
     LeadModule,
   ],
-  controllers: [],
+  controllers: [AppController],
   providers: [
     ServiceConfig,
     {
