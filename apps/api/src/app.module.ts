@@ -25,6 +25,7 @@ import { AtGuard } from './auth/guards/at.guard';
 import { LeadModule } from './lead/lead.module';
 import { BrandCategoryModule } from './brandCategory/brandCategory.module';
 import { CountryModule } from './country/country.module';
+import { CityModule } from './city/city.module';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -51,6 +52,7 @@ import { CountryModule } from './country/country.module';
     LeadModule,
     BrandCategoryModule,
     CountryModule,
+    CityModule,
   ],
   controllers: [],
   providers: [
