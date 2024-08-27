@@ -24,6 +24,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { AtGuard } from './auth/guards/at.guard';
 import { LeadModule } from './lead/lead.module';
 import { BrandCategoryModule } from './brandCategory/brandCategory.module';
+import { CountryModule } from './country/country.module';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -49,6 +50,7 @@ import { BrandCategoryModule } from './brandCategory/brandCategory.module';
     LifeStyleModule,
     LeadModule,
     BrandCategoryModule,
+    CountryModule,
   ],
   controllers: [],
   providers: [
