@@ -15,14 +15,14 @@ export class GeographicalAreasSeeder extends AbstractSeeder {
     try {
       // Define the geographical areas to be seeded
       const geographicalAreas = [
-        { name: 'Worldwide', type: 'Region', upload: [] },
-        { name: 'Asia', type: 'Continent', upload: [] },
-        { name: 'North America', type: 'Continent', upload: [] },
-        { name: 'Middle East', type: 'Region', upload: [] },
-        { name: 'Europe', type: 'Continent', upload: [] },
-        { name: 'Oceania', type: 'Continent', upload: [] },
-        { name: 'South America', type: 'Continent', upload: [] },
-        { name: 'Africa', type: 'Continent', upload: [] },
+        { name: 'Worldwide', type: 'Region', upload: [], isDeleted: false },
+        { name: 'Asia', type: 'Continent', upload: [], isDeleted: false },
+        { name: 'North America', type: 'Continent', upload: [], isDeleted: false },
+        { name: 'Middle East', type: 'Region', upload: [], isDeleted: false },
+        { name: 'Europe', type: 'Continent', upload: [], isDeleted: false },
+        { name: 'Oceania', type: 'Continent', upload: [], isDeleted: false },
+        { name: 'South America', type: 'Continent', upload: [], isDeleted: false },
+        { name: 'Africa', type: 'Continent', upload: [], isDeleted: false },
       ];
 
       for (const area of geographicalAreas) {
