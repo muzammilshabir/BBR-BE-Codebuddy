@@ -11,4 +11,4 @@ import { BrandCategoryFixture } from './brandCategory.fixture';
   exports: [BrandCategorySeeder, BrandCategoryFixture],
   controllers: [],
 })
-export class brandCategoryModule {}
+export class BrandCategoryModule {}
