@@ -8,6 +8,7 @@ import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.s
 import { ResidenceRepository } from '../residences/residences.repository';
 import { NotFoundException } from '@bbr/api-core/modules/exceptions';
 import * as moment from 'moment';
+import { Interval } from './enum/lead-enum';
 
 @Injectable()
 export class LeadService {
@@ -128,5 +129,69 @@ export class LeadService {
     });
 
     return { totalLeadCount, last24HourLeadCount };
+  }
+
+  async getLeadConversionRate(interval: Interval) {
+    let startDate: Date;
+
+    switch (interval) {
+      case Interval.WEEKLY:
+        startDate = moment().startOf('week').toDate();
+        break;
+      case Interval.MONTHLY:
+        startDate = moment().startOf('month').toDate();
+        break;
+      case Interval.YEARLY:
+        startDate = moment().startOf('year').toDate();
+        break;
+      default:
+        throw new Error('Invalid interval');
+    }
+
+    const leadsCreated = await this.leadRepository.countLeadsCreated(startDate, interval);
+    const leadsConverted = await this.leadRepository.countleadsConverted(startDate, interval);
+
+    const conversionRateData = this.calculateConversionRate(leadsCreated, leadsConverted, interval);
+
+    return conversionRateData;
+  }
+
+  calculateConversionRate(leadsCreated, leadsConverted, interval: Interval) {
+    const conversionRates = [];
+
+    // Create an object to map the lead counts by group
+    const createdMap = leadsCreated.reduce((acc, curr) => {
+      acc[curr._id] = curr.count;
+      return acc;
+    }, {});
+
+    const convertedMap = leadsConverted.reduce((acc, curr) => {
+      acc[curr._id] = curr.count;
+      return acc;
+    }, {});
+
+    // Generate conversion rate data based on the interval
+    const periods =
+      interval === Interval.YEARLY
+        ? [...Array(12).keys()].map((i) => moment().month(i).format('MMMM'))
+        : interval === Interval.MONTHLY
+          ? [...Array(4).keys()].map((i) => `Week ${i + 1}`)
+          : [...Array(7).keys()].map((i) => moment().day(i).format('dddd'));
+
+    periods.forEach((period, index) => {
+      const created = createdMap[index + 1] || 0; // Handle 1-based index
+      const converted = convertedMap[index + 1] || 0;
+
+      const conversionRate = created > 0 ? (converted / created) * 100 : 0;
+
+      conversionRates.push({
+        period,
+        created,
+        converted,
+        conversionRate: conversionRate.toFixed(2),
+      });
+    });
+
+    return conversionRates;
   }
 }
