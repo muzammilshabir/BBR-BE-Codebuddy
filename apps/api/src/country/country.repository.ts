@@ -12,4 +12,8 @@ export class CountryRepository extends BaseRepository<Country> {
   ) {
     super(countryModel);
   }
+
+  async find(value: any): Promise<any> {
+    return await this.countryModel.findOne(value);
+  }
 }
