@@ -25,6 +25,7 @@ import { AtGuard } from './auth/guards/at.guard';
 import { LeadModule } from './lead/lead.module';
 import { BrandCategoryModule } from './brandCategory/brandCategory.module';
 import { NewsroomModule } from './newsroom/newsroom.module';
+import { GeographicalAreasModule } from './geographicalAreas/geographicalAreas.module';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -51,6 +52,7 @@ import { NewsroomModule } from './newsroom/newsroom.module';
     LeadModule,
     BrandCategoryModule,
     NewsroomModule,
+    GeographicalAreasModule,
   ],
   controllers: [],
   providers: [
