@@ -13,6 +13,7 @@ import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.s
 import * as XLSX from 'xlsx';
 import { format } from '@fast-csv/format';
 import { Writable } from 'stream';
+import { ResidenceStatus } from './enum/residence-enum';
 
 @Injectable()
 export class ResidenceService {
@@ -124,9 +125,9 @@ export class ResidenceService {
     return residenceDetails;
   }
 
-  async approveResidence(residenceId: string, status: string, userId: string): Promise<Residence> {
+  async approveResidence(residenceId: string, userId: string): Promise<Residence> {
     const existingResidence = await this.residenceRepository.update(residenceId, {
-      status,
+      status: ResidenceStatus.ACTIVE,
       updatedById: userId,
     });
     if (!existingResidence) {

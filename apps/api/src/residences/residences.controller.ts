@@ -14,12 +14,7 @@ import {
   UpdateNearbyAmenitiesDto,
   updateNearbyAmenitiesSchema,
 } from './dto/update-nearby-amenities.dto';
-import {
-  ResidenceStatusDto,
-  UpdateResidenceDto,
-  updateResidenceSchema,
-  updateResidenceStatusSchema,
-} from './dto/update-residence.dto';
+import { UpdateResidenceDto, updateResidenceSchema } from './dto/update-residence.dto';
 import { ResidenceService } from './residences.service';
 import { GetCurrentUserId } from '../auth/decorators/getCurrentUserId.decorator';
 
@@ -110,13 +105,8 @@ export class ResidenceController {
   @ApiBearerAuth()
   @Roles(UserRole.ADMIN)
   @UsePipes(new JoiValidationPipe(getResidenceByIdSchema, 'param'))
-  @UsePipes(new JoiValidationPipe(updateResidenceStatusSchema, 'body'))
-  async approveResidence(
-    @GetCurrentUserId() userId: string,
-    @Param() params: GetResidenceByIdDto,
-    @Body() body: ResidenceStatusDto
-  ) {
-    const residence = await this.residenceService.approveResidence(params.id, body.status, userId);
+  async approveResidence(@GetCurrentUserId() userId: string, @Param() params: GetResidenceByIdDto) {
+    const residence = await this.residenceService.approveResidence(params.id, userId);
     return ResponseService.buildResponse({ residence }, 'Residence approved successfully');
   }
 
