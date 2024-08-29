@@ -25,7 +25,12 @@ import {
   UpdateNearbyAmenitiesDto,
   updateNearbyAmenitiesSchema,
 } from './dto/update-nearby-amenities.dto';
-import { UpdateResidenceDto, updateResidenceSchema } from './dto/update-residence.dto';
+import {
+  RejectResidenceDto,
+  rejectResidenceSchema,
+  UpdateResidenceDto,
+  updateResidenceSchema,
+} from './dto/update-residence.dto';
 import { ResidenceService } from './residences.service';
 import { GetCurrentUserId } from '../auth/decorators/getCurrentUserId.decorator';
 
@@ -156,5 +161,26 @@ export class ResidenceController {
   async getResidenceById(@Param() params: GetResidenceByIdDto) {
     const residence = await this.residenceService.getResidenceById(params.id);
     return ResponseService.buildResponse({ residence }, 'Residence retrieved successfully');
+  }
+
+  @Patch('/:id/reject-residence')
+  @ApiOperation({
+    summary: 'Reject Residence by ID',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(getResidenceByIdSchema, 'param'))
+  @UsePipes(new JoiValidationPipe(rejectResidenceSchema, 'body'))
+  async rejectResidence(
+    @GetCurrentUserId() userId: string,
+    @Param() params: GetResidenceByIdDto,
+    @Body() rejectResidenceDto: RejectResidenceDto
+  ) {
+    const residence = await this.residenceService.rejectResidence(
+      params.id,
+      userId,
+      rejectResidenceDto
+    );
+    return ResponseService.buildResponse({ residence }, 'Residence rejected successfully');
   }
 }

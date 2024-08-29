@@ -132,6 +132,12 @@ export class Residence extends Document {
   })
   status: string;
 
+  @Prop({
+    type: String,
+    example: 'Invalid Document',
+  })
+  rejectionReason: string;
+
   @Prop({ type: Types.ObjectId, ref: 'User' })
   createdById: Types.ObjectId;
 

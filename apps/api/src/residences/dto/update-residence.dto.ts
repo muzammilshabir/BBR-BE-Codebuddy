@@ -57,3 +57,16 @@ export const updateResidenceSchema = Joi.object({
     endRange: Joi.number().optional(),
   }).optional(),
 });
+
+export class RejectResidenceDto {
+  @ApiProperty({
+    description: 'The resone for the rejection',
+    example: 'Invalid documents',
+    required: true,
+  })
+  rejectionReason: string;
+}
+
+export const rejectResidenceSchema = Joi.object({
+  rejectionReason: Joi.string().required(),
+});
