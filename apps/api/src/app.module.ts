@@ -24,6 +24,8 @@ import { APP_GUARD } from '@nestjs/core';
 import { AtGuard } from './auth/guards/at.guard';
 import { LeadModule } from './lead/lead.module';
 import { NewsletterModule } from './newsletter/newsletter.module';
+import { BrandCategoryModule } from './brandCategory/brandCategory.module';
+import { GeographicalAreasModule } from './geographicalAreas/geographicalAreas.module';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -49,6 +51,8 @@ import { NewsletterModule } from './newsletter/newsletter.module';
     LifeStyleModule,
     LeadModule,
     NewsletterModule,
+    BrandCategoryModule,
+    GeographicalAreasModule,
   ],
   controllers: [],
   providers: [

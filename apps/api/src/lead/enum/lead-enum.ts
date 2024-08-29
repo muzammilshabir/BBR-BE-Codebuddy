@@ -13,3 +13,9 @@ export enum LeadStatus {
   WON = 'Won',
   LOST = 'Lost',
 }
+
+export enum Interval {
+  WEEKLY = 'weekly',
+  MONTHLY = 'monthly',
+  YEARLY = 'yearly',
+}
