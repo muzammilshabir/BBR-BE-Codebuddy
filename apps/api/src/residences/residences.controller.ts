@@ -1,6 +1,17 @@
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
-import { Body, Controller, Get, Param, Post, Put, Query, Res, UsePipes } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Put,
+  Query,
+  Res,
+  UsePipes,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -98,7 +109,7 @@ export class ResidenceController {
     );
   }
 
-  @Put('/:id/approve-residence')
+  @Patch('/:id/approve-residence')
   @ApiOperation({
     summary: 'Approve Residence by ID',
   })
