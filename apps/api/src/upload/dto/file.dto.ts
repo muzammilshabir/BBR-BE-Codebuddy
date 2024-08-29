@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import * as Joi from 'joi';
+import { MetadataType } from '../enum/metadataType-enum';
 export class FilesUploadDto {
   @ApiProperty({
     description: 'Maximum file size allowed is 512MB for each file.',
@@ -8,6 +9,24 @@ export class FilesUploadDto {
     required: true,
   })
   files: any[];
+
+  @ApiProperty({
+    description: 'Optional metadata for the file upload.',
+    type: 'object',
+    properties: {
+      referenceId: { type: 'string', format: 'uuid', example: '605c72ef7c39f43b30a9d5d9' },
+      referenceType: { type: 'string', enum: Object.values(MetadataType) },
+    },
+    required: false,
+    example: {
+      referenceId: '605c72ef7c39f43b30a9d5d9',
+      referenceType: MetadataType.RESIDENCE,
+    },
+  })
+  metadata?: {
+    referenceId?: string;
+    referenceType?: MetadataType;
+  };
 }
 
 export class FilesDownloadDto {

@@ -34,6 +34,7 @@ export class UploadService {
 
     return new Promise((resolve, reject) => {
       const s3Uploads = [];
+      let metadata: { referenceId?: Types.ObjectId; referenceType?: string } = {};
 
       function fileWriteStreamHandler(file: VolatileFile): Writable {
         const formidableFile = file as unknown as File;
@@ -56,6 +57,7 @@ export class UploadService {
             size: formidableFile.size,
             driver: 'S3',
             createdById: new Types.ObjectId('60d5f485f7c6a4b2b8e8b5f7'), // Assuming you have user authentication in place
+            metadata,
           };
           return fileDocument;
         });
@@ -71,11 +73,25 @@ export class UploadService {
       form.once('end', () => {
         this.logger.log('All files have been uploaded');
       });
-      form.parse(req, (error) => {
+
+      form.parse(req, (error, fields) => {
         if (error) {
           reject(error);
           return;
         }
+
+        // Extract and parse metadata from fields
+        if (fields.metadata && Array.isArray(fields.metadata)) {
+          try {
+            const parsedMetadata = JSON.parse(fields.metadata[0]);
+            metadata.referenceId = new Types.ObjectId(parsedMetadata.referenceId);
+            metadata.referenceType = parsedMetadata.referenceType;
+          } catch (parseError) {
+            this.logger.log('Error parsing metadata', parseError);
+            metadata = {}; // Default to empty metadata if parsing fails
+          }
+        }
+
         Promise.all(s3Uploads)
           .then(async (files) => {
             // Store all files in the database and wait for the operation to complete
