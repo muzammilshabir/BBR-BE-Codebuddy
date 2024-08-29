@@ -41,7 +41,7 @@ export class NewsroomController {
     summary: 'List Newsroom posts',
   })
   @UsePipes(new JoiValidationPipe(listNewsroomPostsSchema, 'query'))
-  async listReviews(@Query() query: ListNewsroomPostsDto) {
+  async listPosts(@Query() query: ListNewsroomPostsDto) {
     const posts = await this.newsroomService.listPosts(query);
     return ResponseService.buildResponse(posts);
   }

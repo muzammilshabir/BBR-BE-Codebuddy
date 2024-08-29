@@ -68,7 +68,18 @@ describe('NewsroomModule', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.data.pagination.totalDocs).toEqual(1);
-      expect(res.body.data.posts[0].review.title).toEqual('BBR Newsroom Post!');
+      expect(res.body.data.posts[0].newsroom.title).toEqual('BBR Newsroom Post!');
+    });
+  });
+
+  describe('Search Newsroom posts', () => {
+    it('Should find Reviews by search term and Residence Id', async () => {
+      const urlWithParams = `${url}?page=1&limit=10&sortBy=createdAt&sortOrder=desc&search=ipsum`;
+      const res = await app.exec('GET', urlWithParams, { headers: {} });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.pagination.totalDocs).toEqual(1);
+      expect(res.body.data.posts[0].newsroom.title).toEqual('BBR Newsroom Post!');
     });
   });
 
