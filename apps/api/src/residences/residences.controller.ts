@@ -21,6 +21,7 @@ import {
   updateResidenceStatusSchema,
 } from './dto/update-residence.dto';
 import { ResidenceService } from './residences.service';
+import { GetCurrentUserId } from '../auth/decorators/getCurrentUserId.decorator';
 
 @ApiTags('Residence')
 @Controller('residence')
@@ -102,20 +103,21 @@ export class ResidenceController {
     );
   }
 
-  @Put('/:id/update-status')
+  @Put('/:id/approve-residence')
   @ApiOperation({
-    summary: 'Update Residence by ID',
+    summary: 'Approve Residence by ID',
   })
   @ApiBearerAuth()
-  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @Roles(UserRole.ADMIN)
   @UsePipes(new JoiValidationPipe(getResidenceByIdSchema, 'param'))
   @UsePipes(new JoiValidationPipe(updateResidenceStatusSchema, 'body'))
-  async updateResidenceStatus(
+  async approveResidence(
+    @GetCurrentUserId() userId: string,
     @Param() params: GetResidenceByIdDto,
     @Body() body: ResidenceStatusDto
   ) {
-    const residence = await this.residenceService.updateResidenceStatus(params.id, body.status);
-    return ResponseService.buildResponse({ residence }, 'Residence retrieved successfully');
+    const residence = await this.residenceService.approveResidence(params.id, body.status, userId);
+    return ResponseService.buildResponse({ residence }, 'Residence approved successfully');
   }
 
   @Get('/')

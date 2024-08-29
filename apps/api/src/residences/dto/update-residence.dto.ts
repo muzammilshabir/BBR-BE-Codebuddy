@@ -61,7 +61,7 @@ export const updateResidenceSchema = Joi.object({
 
 export class ResidenceStatusDto {
   @ApiProperty({
-    example: ResidenceStatus.PENDING,
+    example: ResidenceStatus.ACTIVE,
     enum: ResidenceStatus,
     description: 'The status of the residence',
     required: true,
@@ -70,7 +70,5 @@ export class ResidenceStatusDto {
 }
 
 export const updateResidenceStatusSchema = Joi.object({
-  status: Joi.string()
-    .valid(...Object.values(ResidenceStatus))
-    .required(),
+  status: Joi.string().valid(ResidenceStatus.ACTIVE).required(),
 });
