@@ -9,4 +9,8 @@ export class UploadRepository extends BaseRepository<Upload> {
   constructor(@InjectModel(Upload.name) private readonly uploadModel: Model<Upload>) {
     super(uploadModel);
   }
+
+  async findAllByIds(ids: string[]): Promise<Upload[]> {
+    return this.uploadModel.find({ _id: { $in: ids } }).exec();
+  }
 }

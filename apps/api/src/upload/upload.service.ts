@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { UploadRepository } from './upload.repository';
-import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { DeleteObjectCommand, GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { ServiceConfig } from '../config';
 import VolatileFile from 'formidable/VolatileFile';
 import { PassThrough, Readable, Writable } from 'stream';
@@ -237,5 +237,33 @@ export class UploadService {
       throw new NotFoundException(`File with ID ${fileId} not found`);
     }
     return file;
+  }
+
+  async deleteFiles(uploadIds: string[]) {
+    const files = await this.uploadRepository.findAllByIds(uploadIds);
+
+    const deletePromises = files.map(async (file: any) => {
+      try {
+        // Delete the file from the S3 bucket
+        await this.s3Client.send(
+          new DeleteObjectCommand({
+            Bucket: this.config.s3.bucket,
+            Key: file.fileKey,
+          })
+        );
+
+        await this.uploadRepository.update(file._id, { isDeleted: true });
+
+        this.logger.log(`Successfully deleted file: ${file.fileKey}`);
+      } catch (error) {
+        this.logger.error(`Failed to delete file: ${file.fileKey}`, error);
+        throw new BadRequestException(`Failed to delete file with key ${file.fileKey}`);
+      }
+    });
+
+    // Wait for all deletions to complete
+    await Promise.all(deletePromises);
+
+    return { message: 'Files deleted successfully.' };
   }
 }

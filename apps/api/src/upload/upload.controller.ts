@@ -1,9 +1,9 @@
 import { Public } from '@bbr/api-core/modules/decorators';
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
-import { Controller, Post, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Post, Req } from '@nestjs/common';
 import { ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UploadService } from './upload.service';
-import { FilesUploadDto } from './dto/file.dto';
+import { DeleteFilesDto, FilesUploadDto } from './dto/file.dto';
 import { Request } from 'express';
 
 @ApiTags('Upload')
@@ -26,5 +26,12 @@ export class UploadController {
     } catch (error) {
       this.uploadService.mapError(error);
     }
+  }
+
+  @ApiOperation({ summary: 'Delete files from S3 and database' })
+  @Delete()
+  @Public()
+  async deleteFiles(@Body() deleteFilesDto: DeleteFilesDto) {
+    return await this.uploadService.deleteFiles(deleteFilesDto.uploadIds);
   }
 }
