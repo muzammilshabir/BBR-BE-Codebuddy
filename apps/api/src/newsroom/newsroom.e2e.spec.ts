@@ -61,5 +61,15 @@ describe('NewsroomModule', () => {
       expect(res.status).toBe(201);
     });
   });
+  describe('Get latest Posts from Newsroom', () => {
+    it('Should find Posts from Newsroom', async () => {
+      const urlWithParams = `${url}?page=1&limit=10&sortBy=createdAt&sortOrder=asc`;
+      const res = await app.exec('GET', urlWithParams, { headers: {} });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.pagination.totalDocs).toEqual(1);
+      expect(res.body.data.posts[0].review.title).toEqual('BBR Newsroom Post!');
+    });
+  });
 
 });
