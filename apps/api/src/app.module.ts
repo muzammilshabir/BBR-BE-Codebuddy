@@ -24,6 +24,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { AtGuard } from './auth/guards/at.guard';
 import { LeadModule } from './lead/lead.module';
 import { BrandCategoryModule } from './brandCategory/brandCategory.module';
+import { GeographicalAreasModule } from './geographicalAreas/geographicalAreas.module';
 import { CountryModule } from './country/country.module';
 import { CityModule } from './city/city.module';
 import { PropertyTypeModule } from './propertyType/propertyType.module';
@@ -52,6 +53,7 @@ import { PropertyTypeModule } from './propertyType/propertyType.module';
     LifeStyleModule,
     LeadModule,
     BrandCategoryModule,
+    GeographicalAreasModule,
     CountryModule,
     CityModule,
     PropertyTypeModule,
