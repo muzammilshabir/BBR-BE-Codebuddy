@@ -28,6 +28,7 @@ import { CountryModule } from './country/country.module';
 import { CityModule } from './city/city.module';
 import { PropertyTypeModule } from './propertyType/propertyType.module';
 import { RoomTypeModule } from './roomType/roomType.module';
+import { GeographicalAreasModule } from './geographicalAreas/geographicalAreas.module';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -53,6 +54,7 @@ import { RoomTypeModule } from './roomType/roomType.module';
     LifeStyleModule,
     LeadModule,
     BrandCategoryModule,
+    GeographicalAreasModule,
     CountryModule,
     CityModule,
     PropertyTypeModule,
