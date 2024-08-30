@@ -12,13 +12,16 @@ import {
   Query,
   UsePipes,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UnitService } from './unit.service';
-import { AddUnitDto, addUnitSchema, FileUploadDto, fileUploadSchema } from './dto/add-unit.dto';
+import { AddUnitDto, addUnitSchema, FileUploadDto } from './dto/add-unit.dto';
 import { AddUnitKeyFeaturesDto, addUnitKeyFeaturesSchema } from './dto/unit-key-features.dto';
 import { AddVisualsDto, addVisualsSchema } from './dto/add-visuals.dto';
 import { GetUnitByIdDto, getUnitByIdSchema } from './dto/get-unit-by-id.dto';
 import { ListUnitDto, listUnitSchema } from './dto/list-unit.dto';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UserRole } from '../users/enum/user.enum';
+import { GetCurrentUserId } from '../auth/decorators/getCurrentUserId.decorator';
 
 @ApiTags('Unit')
 @Controller('unit')
@@ -29,6 +32,8 @@ export class UnitController {
   @ApiOperation({
     summary: 'Add a Unit to a Residence',
   })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
   @UsePipes(new JoiValidationPipe(addUnitSchema, 'body'))
   async addUnit(@Param('residenceId') residenceId: string, @Body() addUnitDto: AddUnitDto) {
     const userId = '64b1b5f4e05c12a1f5d8e7c2'; // we will take this id from authentication
@@ -40,6 +45,8 @@ export class UnitController {
   @ApiOperation({
     summary: 'Add key features in Unit',
   })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
   @UsePipes(new JoiValidationPipe(addUnitKeyFeaturesSchema, 'body'))
   async addUnitKeyFeatures(
     @Param('unitId') unitId: string,
@@ -56,9 +63,15 @@ export class UnitController {
   @ApiOperation({
     summary: 'Update visuals of a Unit',
   })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
   @UsePipes(new JoiValidationPipe(addVisualsSchema, 'body'))
-  async addVisuals(@Param('unitId') unitId: string, @Body() addVisualsDto: AddVisualsDto) {
-    const updatedUnit = await this.unitService.addVisuals(addVisualsDto, unitId);
+  async addVisuals(
+    @Param('unitId') unitId: string,
+    @Body() addVisualsDto: AddVisualsDto,
+    @GetCurrentUserId() userId: string
+  ) {
+    const updatedUnit = await this.unitService.addVisuals(addVisualsDto, unitId, userId);
     return {
       message: 'Unit visuals updated successfully',
       data: updatedUnit,
@@ -69,6 +82,8 @@ export class UnitController {
   @ApiOperation({
     summary: 'List Units with optional residenceId filter',
   })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
   @UsePipes(new JoiValidationPipe(listUnitSchema, 'query'))
   async listUnits(@Query() query: ListUnitDto) {
     const units = await this.unitService.listUnits(query);
@@ -79,6 +94,8 @@ export class UnitController {
   @ApiOperation({
     summary: 'Get Unit by ID',
   })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
   @UsePipes(new JoiValidationPipe(getUnitByIdSchema, 'param'))
   async getUnitById(@Param() params: GetUnitByIdDto) {
     const unit = await this.unitService.getUnitById(params.unitId);
@@ -89,6 +106,8 @@ export class UnitController {
   @ApiOperation({
     summary: 'Delete Unit by ID',
   })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
   @UsePipes(new JoiValidationPipe(getUnitByIdSchema, 'param'))
   async deleteUnit(@Param() params: GetUnitByIdDto) {
     const unit = await this.unitService.deleteUnit(params.unitId);
@@ -97,10 +116,10 @@ export class UnitController {
 
   @Post(':residenceId/bulk-add/:fileId')
   @ApiOperation({ summary: 'Upload file for bulk add units' })
-  @UsePipes(new JoiValidationPipe(fileUploadSchema, 'param'))
-  async uploadUnitFile(@Param() params: FileUploadDto) {
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  async uploadUnitFile(@Param() params: FileUploadDto, @GetCurrentUserId() userId: string) {
     try {
-      const userId = '64b1b5f4e05c12a1f5d8e7c2'; // we will take this id from authentication
       const { residenceId, fileId } = params;
       const units = await this.unitService.processUploadedFile(residenceId, fileId, userId);
       return ResponseService.buildResponse({ units }, 'File uploaded and processed successfully');

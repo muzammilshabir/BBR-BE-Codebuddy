@@ -85,8 +85,12 @@ export class ResidenceController {
   @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
   @UsePipes(new JoiValidationPipe(addResidenceVisualsSchema, 'body'))
-  async addVisuals(@Param('id') id: string, @Body() addVisualsDto: AddResidenceVisualsDto) {
-    const residence = await this.residenceService.addVisuals(id, addVisualsDto);
+  async addVisuals(
+    @Param('id') id: string,
+    @Body() addVisualsDto: AddResidenceVisualsDto,
+    @GetCurrentUserId() userId: string
+  ) {
+    const residence = await this.residenceService.addVisuals(id, addVisualsDto, userId);
     return {
       message: 'Residence visuals updated successfully',
       residence,

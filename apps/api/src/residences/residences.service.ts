@@ -69,7 +69,11 @@ export class ResidenceService {
     return existingResidence;
   }
 
-  async addVisuals(id: string, addVisualsDto: AddResidenceVisualsDto): Promise<Residence> {
+  async addVisuals(
+    id: string,
+    addVisualsDto: AddResidenceVisualsDto,
+    userId: string
+  ): Promise<Residence> {
     const transformedDto = {
       ...addVisualsDto,
       mainPhotos: addVisualsDto.mainGalleryPhotos
@@ -82,6 +86,7 @@ export class ResidenceService {
         (photoId) => new Types.ObjectId(photoId)
       ),
       videoTour: addVisualsDto.videoTour ? new Types.ObjectId(addVisualsDto.videoTour) : undefined,
+      updatedById: new Types.ObjectId(userId),
     };
     const existingResidence = await this.residenceRepository.update(id, {
       visuals: transformedDto,

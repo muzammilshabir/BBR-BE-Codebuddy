@@ -38,7 +38,7 @@ export class AddResidenceVisualsDto {
 export const addResidenceVisualsSchema = Joi.object({
   mainPhotos: Joi.array()
     .items(Joi.string().custom(joiObjectIdValidator('mainGalleryPhotos')))
-    .required(),
+    .optional(),
   mainGalleryPhotos: Joi.array()
     .items(Joi.string().custom(joiObjectIdValidator('mainGalleryPhotos')))
     .required(),

@@ -46,8 +46,11 @@ export class UnitService {
     return updatedUnit;
   }
 
-  async addVisuals(addVisualsDto: AddVisualsDto, unitId: string): Promise<Unit> {
-    const updatedUnit = await this.unitRepository.update(unitId, { visuals: addVisualsDto });
+  async addVisuals(addVisualsDto: AddVisualsDto, unitId: string, userId: string): Promise<Unit> {
+    const updatedUnit = await this.unitRepository.update(unitId, {
+      visuals: addVisualsDto,
+      updatedById: userId,
+    });
     if (!updatedUnit) {
       throw new NotFoundException(`Unit with ID ${unitId} not found`);
     }
@@ -145,8 +148,6 @@ export class UnitService {
     await this.residenceService.getResidenceById(residenceId);
 
     for (const item of data) {
-      const data = item;
-      console.log('item :>> ', item);
       const addUnitDto: AddUnitDto = {
         unitName: item['Unit Name'],
         specs: {
@@ -192,6 +193,7 @@ export class UnitService {
       await this.addUnitKeyFeatures(addUnitKeyFeaturesDto, unitId);
 
       const addVisualsDto: AddVisualsDto = {
+        mainPhotos: [],
         mainGalleryPhotos: [],
         secondGalleryPhotos: [],
         videoTour: null,
@@ -213,6 +215,16 @@ export class UnitService {
         }
       }
 
+      if (item['Main Photos']) {
+        const mainPhotosUrls = item['Main Photos'].split(',');
+        for (const url of mainPhotosUrls) {
+          const fileMetadata: any = await this.uploadService.downloadFile(url, userId);
+          if (fileMetadata?._id) {
+            addVisualsDto.mainPhotos.push(fileMetadata._id);
+          }
+        }
+      }
+
       if (item['Video Tour']) {
         const fileMetadata: any = await this.uploadService.downloadFile(item['Video Tour'], userId);
         if (fileMetadata?._id) {
@@ -224,7 +236,7 @@ export class UnitService {
         addVisualsDto.videoTourLink = item['Video Tour Link'];
       }
 
-      const unit = await this.addVisuals(addVisualsDto, unitId);
+      const unit = await this.addVisuals(addVisualsDto, unitId, userId);
       addedUnits.push(unit);
     }
 
