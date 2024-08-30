@@ -19,15 +19,17 @@ export class ResidenceServiceSeeder extends AbstractSeeder {
         { type: 'Laundry' },
       ];
 
-      for (const service of residenceServiceTypes) {
-        await this.residenceServiceRepository.upsert(
+      const upsertPromises = residenceServiceTypes.map((service) =>
+        this.residenceServiceRepository.upsert(
           { type: service.type },
           {
             ...service,
             isDeleted: false,
           }
-        );
-      }
+        )
+      );
+
+      await Promise.all(upsertPromises);
     } catch (error) {
       this.logger.error('Error while seeding residence Service Types:', error);
     }
