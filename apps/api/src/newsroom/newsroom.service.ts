@@ -47,6 +47,13 @@ export class NewsroomService {
       isDeleted: DeletionStatus.ACTIVE,
     };
 
+    if(listNewsroomPostsDto.search) {
+      filter.$or = [
+        { "newsroom.title": { $regex: listNewsroomPostsDto.search, $options: 'i' } },
+        { "newsroom.contents": { $regex: listNewsroomPostsDto.search, $options: 'i' } },
+      ];
+    }
+
     const options = PaginationService.prepareOptions(listNewsroomPostsDto);
 
     const { data, count } = await this.newsroomRepository.findAll(filter, options);
