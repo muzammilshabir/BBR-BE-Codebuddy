@@ -29,7 +29,7 @@ import { CountryModule } from './country/country.module';
 import { CityModule } from './city/city.module';
 import { PropertyTypeModule } from './propertyType/propertyType.module';
 import { RoomTypeModule } from './roomType/roomType.module';
-import { GeographicalAreasModule } from './geographicalAreas/geographicalAreas.module';
+import { ResidenceServiceModule } from './residenceService/residenceService.module';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -56,6 +56,7 @@ import { GeographicalAreasModule } from './geographicalAreas/geographicalAreas.m
     LeadModule,
     BrandCategoryModule,
     GeographicalAreasModule,
+    ResidenceServiceModule,
     CountryModule,
     CityModule,
     PropertyTypeModule,
