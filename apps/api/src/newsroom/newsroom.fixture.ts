@@ -37,7 +37,7 @@ export class NewsroomFixture extends AbstractFixture {
         name: "Nick Jameson",
         photo: photo,
       },
-      title: "BBR providing open-source technology to promote fair housing in AI-powered real estate conversations",
+      title: "BBR Newsroom Post!",
       category: newsroomCategory1._id,
       featuredImage: featuredImg,
       contents: "Lorem ipsum dolor sit ...",

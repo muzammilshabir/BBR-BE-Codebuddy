@@ -1,11 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { NewsroomRepository } from './newsroom.repository';
 import { CreateNewsroomPostDto } from './dto/create-newsroom-post.dto';
+import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
 import { Newsroom } from './schema/newsroom.schema';
 import { Types } from 'mongoose';
 import { CreateNewsroomCategoryDto } from './dto/create-newsroom-category.dto';
 import { NewsroomCategory } from './schema/newsroom-category.schema';
 import { NewsroomCategoryRepository } from './newsroom-category.repository';
+import { ListNewsroomPostsDto } from './dto/list-posts.dto';
+import { DeletionStatus } from 'src/unit/enum/unit-enum';
 
 @Injectable()
 export class NewsroomService {
@@ -37,6 +40,20 @@ export class NewsroomService {
 
   async createCategory(createNewsroomCategoryDto: CreateNewsroomCategoryDto): Promise<NewsroomCategory> {    
     return this.newsroomCategoryRepository.create(createNewsroomCategoryDto);
+  }
+
+  async listPosts(listNewsroomPostsDto: ListNewsroomPostsDto) {
+    const filter: any = {
+      isDeleted: DeletionStatus.ACTIVE,
+    };
+
+    const options = PaginationService.prepareOptions(listNewsroomPostsDto);
+
+    const { data, count } = await this.newsroomRepository.findAll(filter, options);
+
+    const { pagination } = PaginationService.paginate({ rows: data, count }, listNewsroomPostsDto);
+
+    return { pagination, posts: data };
   }
 
 }
