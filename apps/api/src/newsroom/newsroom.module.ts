@@ -11,6 +11,7 @@ import { MailerCoreModule } from 'src/mailer/mailer.module';
 import { UserModule } from 'src/users/user.module';
 import { ResidenceModule } from 'src/residences/residences.module';
 import { NewsroomCategory, NewsroomCategorySchema } from './schema/newsroom-category.schema';
+import { NewsroomCategoryRepository } from './newsroom-category.repository';
 
 @Module({
   imports: [
@@ -21,7 +22,13 @@ import { NewsroomCategory, NewsroomCategorySchema } from './schema/newsroom-cate
     MongooseModule.forFeature([{ name: Newsroom.name, schema: NewsroomSchema }]),
     MongooseModule.forFeature([{ name: NewsroomCategory.name, schema: NewsroomCategorySchema }]),
   ],
-  providers: [NewsroomService, NewsroomRepository, NewsroomSeeder, NewsroomFixture],
+  providers: [
+    NewsroomService,
+    NewsroomRepository,
+    NewsroomCategoryRepository,
+    NewsroomSeeder,
+    NewsroomFixture,
+  ],
   exports: [NewsroomSeeder, NewsroomFixture],
   controllers: [NewsroomController],
 })

@@ -1,22 +1,10 @@
 import { AppModule } from '../app.module';
 import { TestSuite } from '@bbr/api-core/modules/testing/test.suite';
-import { UploadFixture } from '../upload/upload.fixture';
-import { ResidencesFixture } from '../residences/residences.fixture';
-import { ResidenceTypeFixture } from '../residenceType/residenceType.fixture';
-import { LocationFixture } from '../location/location.fixture';
-import { BrandFixture } from '../brand/brand.fixture';
-import { ResidenceFeatureFixture } from '../residenceFeatures/residenceFeature.fixture';
-import { AmenityFixture } from '../amenities/amenities.fixture';
+import { NewsletterFixture } from './newsletter.fixture';
 
 describe('NewsletterModule', () => {
   const app = new TestSuite(AppModule, [
-    ResidencesFixture,
-    ResidenceTypeFixture,
-    LocationFixture,
-    BrandFixture,
-    ResidenceFeatureFixture,
-    UploadFixture,
-    AmenityFixture,
+    NewsletterFixture,
   ]);
   const url = '/newsletter';
 
