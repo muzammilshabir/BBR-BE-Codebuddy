@@ -27,6 +27,7 @@ import { BrandCategoryModule } from './brandCategory/brandCategory.module';
 import { GeographicalAreasModule } from './geographicalAreas/geographicalAreas.module';
 import { CountryModule } from './country/country.module';
 import { CityModule } from './city/city.module';
+import { PropertyTypeModule } from './propertyType/propertyType.module';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -55,6 +56,7 @@ import { CityModule } from './city/city.module';
     GeographicalAreasModule,
     CountryModule,
     CityModule,
+    PropertyTypeModule,
   ],
   controllers: [],
   providers: [
