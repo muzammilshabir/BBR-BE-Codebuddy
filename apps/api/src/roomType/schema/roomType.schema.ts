@@ -2,9 +2,9 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 
 @Schema({ timestamps: true })
-export class ResidenceFeature extends Document {
+export class RoomType extends Document {
   @Prop({ required: true, unique: true })
-  name: string;
+  type: string;
 
   @Prop({
     type: [
@@ -34,4 +34,4 @@ export class ResidenceFeature extends Document {
   updatedAt: Date;
 }
 
-export const ResidenceFeatureSchema = SchemaFactory.createForClass(ResidenceFeature);
+export const RoomTypeSchema = SchemaFactory.createForClass(RoomType);

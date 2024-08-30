@@ -2,9 +2,12 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 
 @Schema({ timestamps: true })
-export class ResidenceFeature extends Document {
-  @Prop({ required: true, unique: true })
+export class Country extends Document {
+  @Prop({ required: true })
   name: string;
+
+  @Prop({ type: Types.ObjectId, ref: 'GeographicalAreas', required: false })
+  geographicalAreasId?: Types.ObjectId;
 
   @Prop({
     type: [
@@ -31,7 +34,8 @@ export class ResidenceFeature extends Document {
   isDeleted: boolean;
 
   createdAt: Date;
+
   updatedAt: Date;
 }
 
-export const ResidenceFeatureSchema = SchemaFactory.createForClass(ResidenceFeature);
+export const CountrySchema = SchemaFactory.createForClass(Country);
