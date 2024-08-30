@@ -23,7 +23,7 @@ export class NewsroomFixture extends AbstractFixture {
   static NewsroomCategory_1 = 'NEWSROOM_CATEGORY_1';
   async load() {
     // Create a new Newsroom Category document
-    const newsroomCategory1 = await this.newsroomModel.create({
+    const newsroomCategory1 = await this.newsroomCategoryModel.create({
       title: "Technology & Innovation",
       isDeleted: false,
       createdAt: new Date(),
