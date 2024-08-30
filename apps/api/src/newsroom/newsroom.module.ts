@@ -10,6 +10,7 @@ import { NewsroomFixture } from './newsroom.fixture';
 import { MailerCoreModule } from 'src/mailer/mailer.module';
 import { UserModule } from 'src/users/user.module';
 import { ResidenceModule } from 'src/residences/residences.module';
+import { NewsroomCategory, NewsroomCategorySchema } from './schema/newsroom-category.schema';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { ResidenceModule } from 'src/residences/residences.module';
     UserModule,
     ResidenceModule,
     MongooseModule.forFeature([{ name: Newsroom.name, schema: NewsroomSchema }]),
+    MongooseModule.forFeature([{ name: NewsroomCategory.name, schema: NewsroomCategorySchema }]),
   ],
   providers: [NewsroomService, NewsroomRepository, NewsroomSeeder, NewsroomFixture],
   exports: [NewsroomSeeder, NewsroomFixture],
