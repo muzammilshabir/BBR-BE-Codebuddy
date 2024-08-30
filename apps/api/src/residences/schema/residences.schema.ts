@@ -141,6 +141,9 @@ export class Residence extends Document {
   @Prop({ type: Date })
   createdAt: Date;
 
+  @Prop({ type: Types.ObjectId, ref: 'User' })
+  updatedById: Types.ObjectId;
+
   @Prop({ type: Date })
   updatedAt: Date;
 

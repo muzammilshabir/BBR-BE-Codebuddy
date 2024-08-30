@@ -13,6 +13,7 @@ import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.s
 import * as XLSX from 'xlsx';
 import { format } from '@fast-csv/format';
 import { Writable } from 'stream';
+import { ResidenceStatus } from './enum/residence-enum';
 
 @Injectable()
 export class ResidenceService {
@@ -124,8 +125,11 @@ export class ResidenceService {
     return residenceDetails;
   }
 
-  async updateResidenceStatus(residenceId: string, status: string): Promise<any> {
-    const existingResidence = await this.residenceRepository.update(residenceId, { status });
+  async approveResidence(residenceId: string, userId: string): Promise<Residence> {
+    const existingResidence = await this.residenceRepository.update(residenceId, {
+      status: ResidenceStatus.ACTIVE,
+      updatedById: userId,
+    });
     if (!existingResidence) {
       throw new NotFoundException(`Residence with ID ${residenceId}`);
     }

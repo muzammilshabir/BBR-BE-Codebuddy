@@ -1,6 +1,17 @@
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
-import { Body, Controller, Get, Param, Post, Put, Query, Res, UsePipes } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Put,
+  Query,
+  Res,
+  UsePipes,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -14,13 +25,9 @@ import {
   UpdateNearbyAmenitiesDto,
   updateNearbyAmenitiesSchema,
 } from './dto/update-nearby-amenities.dto';
-import {
-  ResidenceStatusDto,
-  UpdateResidenceDto,
-  updateResidenceSchema,
-  updateResidenceStatusSchema,
-} from './dto/update-residence.dto';
+import { UpdateResidenceDto, updateResidenceSchema } from './dto/update-residence.dto';
 import { ResidenceService } from './residences.service';
+import { GetCurrentUserId } from '../auth/decorators/getCurrentUserId.decorator';
 
 @ApiTags('Residence')
 @Controller('residence')
@@ -102,20 +109,16 @@ export class ResidenceController {
     );
   }
 
-  @Put('/:id/update-status')
+  @Patch('/:id/approve-residence')
   @ApiOperation({
-    summary: 'Update Residence by ID',
+    summary: 'Approve Residence by ID',
   })
   @ApiBearerAuth()
-  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @Roles(UserRole.ADMIN)
   @UsePipes(new JoiValidationPipe(getResidenceByIdSchema, 'param'))
-  @UsePipes(new JoiValidationPipe(updateResidenceStatusSchema, 'body'))
-  async updateResidenceStatus(
-    @Param() params: GetResidenceByIdDto,
-    @Body() body: ResidenceStatusDto
-  ) {
-    const residence = await this.residenceService.updateResidenceStatus(params.id, body.status);
-    return ResponseService.buildResponse({ residence }, 'Residence retrieved successfully');
+  async approveResidence(@GetCurrentUserId() userId: string, @Param() params: GetResidenceByIdDto) {
+    const residence = await this.residenceService.approveResidence(params.id, userId);
+    return ResponseService.buildResponse({ residence }, 'Residence approved successfully');
   }
 
   @Get('/')
