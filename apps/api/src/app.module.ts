@@ -23,6 +23,7 @@ import { jwtConfig } from './utils/jwt.config';
 import { APP_GUARD } from '@nestjs/core';
 import { AtGuard } from './auth/guards/at.guard';
 import { LeadModule } from './lead/lead.module';
+import { NewsletterModule } from './newsletter/newsletter.module';
 import { BrandCategoryModule } from './brandCategory/brandCategory.module';
 import { NewsroomModule } from './newsroom/newsroom.module';
 import { GeographicalAreasModule } from './geographicalAreas/geographicalAreas.module';
@@ -55,6 +56,7 @@ import { ResidenceServiceModule } from './residenceService/residenceService.modu
     ReviewModule,
     LifeStyleModule,
     LeadModule,
+    NewsletterModule,
     BrandCategoryModule,
     NewsroomModule,
     GeographicalAreasModule,
