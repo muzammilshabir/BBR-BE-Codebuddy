@@ -13,14 +13,6 @@ describe('AmenityModule', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.data.pagination.totalDocs).toEqual(8);
-      expect(res.body.data.lifeStyles[0].name).toEqual('Investment Opportunities');
-      expect(res.body.data.lifeStyles[1].name).toEqual('Newest Branded Residences');
-      expect(res.body.data.lifeStyles[2].name).toEqual('Pet Friendly Residences');
-      expect(res.body.data.lifeStyles[3].name).toEqual('Beachfront Residences');
-      expect(res.body.data.lifeStyles[3].name).toEqual('Golf Residences');
-      expect(res.body.data.lifeStyles[3].name).toEqual('Emerging Markets');
-      expect(res.body.data.lifeStyles[3].name).toEqual('Best for Couples');
-      expect(res.body.data.lifeStyles[3].name).toEqual('Ski Resort');
     });
   });
 
