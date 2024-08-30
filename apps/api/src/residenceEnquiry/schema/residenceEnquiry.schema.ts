@@ -12,6 +12,9 @@ export class ResidenceEnquiry extends Document {
   @Prop({ required: true })
   phoneNumber: string;
 
+  @Prop({ required: true })
+  countryCode: string;
+
   @Prop({ required: false, type: Types.ObjectId, ref: 'User' })
   userId?: Types.ObjectId;
 

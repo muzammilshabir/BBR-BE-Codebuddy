@@ -25,6 +25,13 @@ export class AddResidenceEnquiryDto {
   phoneNumber: string;
 
   @ApiProperty({
+    example: '+91',
+    description: 'country code',
+    required: true,
+  })
+  countryCode: string;
+
+  @ApiProperty({
     example: '64b1b5f4e05c12a1f5d8e7c2',
     description: 'ID of the user associated with the enquiry (if any)',
     required: false,
@@ -50,6 +57,7 @@ export const addResidenceEnquirySchema = Joi.object({
   name: Joi.string().required(),
   email: Joi.string().email().required(),
   phoneNumber: Joi.string().required(),
+  countryCode: Joi.string().required(),
   userId: Joi.string().custom(joiObjectIdValidator('userId')).optional(),
   residenceId: Joi.string().custom(joiObjectIdValidator('residenceId')).optional(),
   unitId: Joi.string().custom(joiObjectIdValidator('unitId')).optional(),
