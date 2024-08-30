@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ResidenceRepository } from './residences.repository';
 import { CreateResidenceDto } from './dto/create-residence.dto';
 import { Residence } from './schema/residences.schema';
-import { UpdateResidenceDto } from './dto/update-residence.dto';
+import { RejectResidenceDto, UpdateResidenceDto } from './dto/update-residence.dto';
 import { NotFoundException } from '@bbr/api-core/modules/exceptions';
 import { AddKeyFeaturesDto } from './dto/residenceKeyFeatures.dto';
 import { AddVisualsDto } from './dto/add-visuals.dto';
@@ -304,5 +304,21 @@ export class ResidenceService {
     const excelFileBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'buffer' });
 
     return excelFileBuffer;
+  }
+
+  async rejectResidence(
+    residenceId: string,
+    userId: string,
+    rejectResidenceDto: RejectResidenceDto
+  ): Promise<Residence> {
+    const existingResidence = await this.residenceRepository.update(residenceId, {
+      status: ResidenceStatus.REJECTED,
+      rejectionReason: rejectResidenceDto.rejectionReason,
+      updatedById: userId,
+    });
+    if (!existingResidence) {
+      throw new NotFoundException(`Residence with ID ${residenceId}`);
+    }
+    return existingResidence;
   }
 }
