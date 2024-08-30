@@ -73,13 +73,23 @@ describe('NewsroomModule', () => {
   });
 
   describe('Search Newsroom posts', () => {
-    it('Should find Reviews by search term and Residence Id', async () => {
+    it('Should find Newsroom posts by search keywords', async () => {
       const urlWithParams = `${url}?page=1&limit=10&sortBy=createdAt&sortOrder=desc&search=ipsum`;
       const res = await app.exec('GET', urlWithParams, { headers: {} });
 
       expect(res.status).toBe(200);
       expect(res.body.data.pagination.totalDocs).toEqual(1);
       expect(res.body.data.posts[0].newsroom.title).toEqual('BBR Newsroom Post!');
+    });
+  });
+
+  describe('Get Related Newsroom posts', () => {
+    it('Should find newsroom posts related to the provided id', async () => {
+      const newsroomPost = app.getReference(NewsroomFixture.Newsroom_1);
+      const urlWithParams = `${url}/related?postId=${newsroomPost.id}`;
+      const res = await app.exec('GET', urlWithParams, { headers: {} });
+
+      expect(res.status).toBe(404);
     });
   });
 

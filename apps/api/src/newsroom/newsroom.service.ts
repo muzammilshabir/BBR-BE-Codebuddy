@@ -9,6 +9,7 @@ import { NewsroomCategory } from './schema/newsroom-category.schema';
 import { NewsroomCategoryRepository } from './newsroom-category.repository';
 import { ListNewsroomPostsDto } from './dto/list-posts.dto';
 import { DeletionStatus } from 'src/unit/enum/unit-enum';
+import { GetRelatedNewsroomPostsDto } from './dto/get-related-newsroom-posts.dto';
 
 @Injectable()
 export class NewsroomService {
@@ -61,6 +62,20 @@ export class NewsroomService {
     const { pagination } = PaginationService.paginate({ rows: data, count }, listNewsroomPostsDto);
 
     return { pagination, posts: data };
+  }
+
+  async getRelatedPosts(getRelatedNewsroomPostsDto: GetRelatedNewsroomPostsDto) {
+    const filter: any = {
+      isDeleted: DeletionStatus.ACTIVE,
+    };
+
+    const post = await this.newsroomRepository.findById(getRelatedNewsroomPostsDto.postId.toString());
+
+    filter.category = post.category;
+    filter._id = { "$ne": post._id };
+
+    const { data } = await this.newsroomRepository.findAll(filter);
+    return { posts: data };
   }
 
 }
