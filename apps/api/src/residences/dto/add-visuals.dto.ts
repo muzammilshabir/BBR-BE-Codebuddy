@@ -3,7 +3,13 @@ import * as Joi from 'joi';
 import { Types } from 'mongoose';
 import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
 
-export class AddVisualsDto {
+export class AddResidenceVisualsDto {
+  @ApiProperty({
+    example: ['66ab4bd5161117eabe919e57', '66ab4bd5161117eabe919e61'],
+    required: false,
+  })
+  mainPhotos?: Types.ObjectId[];
+
   @ApiProperty({
     example: ['66ab4bd5161117eabe919e57', '66ab4bd5161117eabe919e61'],
     required: true,
@@ -29,7 +35,10 @@ export class AddVisualsDto {
   videoTourLink?: string;
 }
 
-export const addVisualsSchema = Joi.object({
+export const addResidenceVisualsSchema = Joi.object({
+  mainPhotos: Joi.array()
+    .items(Joi.string().custom(joiObjectIdValidator('mainGalleryPhotos')))
+    .required(),
   mainGalleryPhotos: Joi.array()
     .items(Joi.string().custom(joiObjectIdValidator('mainGalleryPhotos')))
     .required(),

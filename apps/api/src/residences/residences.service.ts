@@ -5,7 +5,7 @@ import { Residence } from './schema/residences.schema';
 import { RejectResidenceDto, UpdateResidenceDto } from './dto/update-residence.dto';
 import { NotFoundException } from '@bbr/api-core/modules/exceptions';
 import { AddKeyFeaturesDto } from './dto/residenceKeyFeatures.dto';
-import { AddVisualsDto } from './dto/add-visuals.dto';
+import { AddResidenceVisualsDto } from './dto/add-visuals.dto';
 import { Types } from 'mongoose';
 import { UpdateNearbyAmenitiesDto } from './dto/update-nearby-amenities.dto';
 import { ListResidenceDto } from './dto/list-residence.dto';
@@ -69,9 +69,12 @@ export class ResidenceService {
     return existingResidence;
   }
 
-  async addVisuals(id: string, addVisualsDto: AddVisualsDto): Promise<Residence> {
+  async addVisuals(id: string, addVisualsDto: AddResidenceVisualsDto): Promise<Residence> {
     const transformedDto = {
       ...addVisualsDto,
+      mainPhotos: addVisualsDto.mainGalleryPhotos
+        ? addVisualsDto.mainGalleryPhotos.map((photoId) => new Types.ObjectId(photoId))
+        : undefined,
       mainGalleryPhotos: addVisualsDto.mainGalleryPhotos.map(
         (photoId) => new Types.ObjectId(photoId)
       ),
