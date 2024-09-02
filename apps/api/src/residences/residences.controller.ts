@@ -19,7 +19,13 @@ import { UserRole } from '../users/enum/user.enum';
 import { AddVisualsDto, addVisualsSchema } from './dto/add-visuals.dto';
 import { CreateResidenceDto, createResidenceSchema } from './dto/create-residence.dto';
 import { GetResidenceByIdDto, getResidenceByIdSchema } from './dto/get-residence-by-id.dto';
-import { ListResidenceDto, listResidenceSchema } from './dto/list-residence.dto';
+import {
+  ListResidenceByFiltersDto,
+  ListResidenceByFiltersQueryPropsDto,
+  listResidenceByFiltersSchema,
+  ListResidenceDto,
+  listResidenceSchema,
+} from './dto/list-residence.dto';
 import { AddKeyFeaturesDto, addKeyFeaturesSchema } from './dto/residenceKeyFeatures.dto';
 import {
   UpdateNearbyAmenitiesDto,
@@ -182,5 +188,27 @@ export class ResidenceController {
       rejectResidenceDto
     );
     return ResponseService.buildResponse({ residence }, 'Residence rejected successfully');
+  }
+
+  @Post('/list-by-filters')
+  @ApiOperation({
+    summary: 'List Residence',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(listResidenceByFiltersSchema, 'body'))
+  async residencesListByFilters(
+    @Query() listPropsDto: ListResidenceByFiltersQueryPropsDto,
+    @Body() listResidenceByFiltersDto: ListResidenceByFiltersDto
+  ) {
+    const result = await this.residenceService.listResidencesByFilters(
+      listPropsDto,
+      listResidenceByFiltersDto
+    );
+
+    return ResponseService.buildResponse(
+      { residences: result },
+      'Residence retrieved successfully'
+    );
   }
 }

@@ -138,6 +138,12 @@ export class Residence extends Document {
   })
   rejectionReason: string;
 
+  @Prop({ type: Types.ObjectId, ref: 'City' })
+  cityId: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'LifeStyle' })
+  lifeStyleId: Types.ObjectId;
+
   @Prop({ type: Types.ObjectId, ref: 'User' })
   createdById: Types.ObjectId;
 

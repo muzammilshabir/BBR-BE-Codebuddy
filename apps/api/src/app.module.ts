@@ -33,6 +33,8 @@ import { PropertyTypeModule } from './propertyType/propertyType.module';
 import { RoomTypeModule } from './roomType/roomType.module';
 import { ResidenceServiceModule } from './residenceService/residenceService.module';
 import { BlogModule } from './blog/blog.module';
+import { ResidenceEnquiryModule } from './residenceEnquiry/residenceEnquiry.module';
+
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -67,6 +69,7 @@ import { BlogModule } from './blog/blog.module';
     PropertyTypeModule,
     RoomTypeModule,
     BlogModule,
+    ResidenceEnquiryModule,
   ],
   controllers: [],
   providers: [
