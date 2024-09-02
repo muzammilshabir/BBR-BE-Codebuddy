@@ -78,6 +78,14 @@ export class ListResidenceByFiltersDto {
   cities?: string[];
 
   @ApiProperty({
+    description: 'Filter by lifestyle IDs',
+    example: ['60b6c0f53b5a5c1f88d25a1b'],
+    required: false,
+    type: [String],
+  })
+  lifestyles?: string[];
+
+  @ApiProperty({
     description: 'Filter by Brand IDs',
     example: ['60b6c0f53b5a5c1f88d25a1b'],
     required: false,
@@ -113,6 +121,9 @@ export class ListResidenceByFiltersDto {
 export const listResidenceByFiltersSchema = Joi.object({
   cities: Joi.array()
     .items(Joi.string().custom(joiObjectIdValidator('cities')))
+    .optional(),
+  lifestyles: Joi.array()
+    .items(Joi.string().custom(joiObjectIdValidator('lifestyles')))
     .optional(),
   brands: Joi.array()
     .items(Joi.string().custom(joiObjectIdValidator('brands')))

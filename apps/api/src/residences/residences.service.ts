@@ -332,7 +332,18 @@ export class ResidenceService {
   ) {
     const filter: any = {};
 
-    // TODO: Add city and lifestyle filters once the schema is updated, and implement sorting by score.
+    // TODO: Implement sorting by score.
+
+    if (filtersDto.cities && filtersDto.cities.length > 0) {
+      filter.cityId = { $in: filtersDto.cities.map((city) => new Types.ObjectId(city)) };
+    }
+
+    if (filtersDto.lifestyles && filtersDto.lifestyles.length > 0) {
+      filter.lifeStyleId = {
+        $in: filtersDto.lifestyles.map((lifestyles) => new Types.ObjectId(lifestyles)),
+      };
+    }
+
     if (filtersDto.status) {
       filter.status = filtersDto.status;
     }
