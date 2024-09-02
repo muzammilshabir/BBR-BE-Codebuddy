@@ -9,6 +9,9 @@ import { BlogCategory } from './schema/blog-category.schema';
 import { BlogCategoryRepository } from './blog-category.repository';
 import { ListBlogPostsDto } from './dto/list-blog-posts.dto';
 import { DeletionStatus } from 'src/unit/enum/unit-enum';
+import { GetRelatedBlogPostsDto } from './dto/get-related-blog-posts.dto';
+import { GetPopularBlogPostsDto } from './dto/get-popular-blog-posts.dto';
+import { NotFoundException } from '@bbr/api-core/modules/exceptions';
 
 @Injectable()
 export class BlogService {
@@ -42,6 +45,18 @@ export class BlogService {
     return this.blogCategoryRepository.create(createBlogCategoryDto);
   }
 
+  async getPostByIdAndUpdateView(postId: string): Promise<BlogPost> {
+    const post = await this.blogRepository.findById(postId);
+    if (!post) {
+      throw new NotFoundException(`Post with ID ${postId}`);
+    }
+    
+    this.blogRepository.update(postId, { views: post.views+1 });
+
+    return post;
+  }
+
+
   async listPosts(listBlogPostsDto: ListBlogPostsDto) {
     const filter: any = {
       isDeleted: DeletionStatus.ACTIVE,
@@ -61,6 +76,36 @@ export class BlogService {
     const { pagination } = PaginationService.paginate({ rows: data, count }, listBlogPostsDto);
 
     return { pagination, posts: data };
+  }
+
+  async getRelatedPosts(getRelatedBlogPostsDto: GetRelatedBlogPostsDto) {
+    const filter: any = {
+      isDeleted: DeletionStatus.ACTIVE,
+    };
+
+    const post = await this.blogRepository.findById(getRelatedBlogPostsDto.postId.toString());
+
+    filter.category = post.category;
+    filter._id = { "$ne": post._id };
+
+    const { data } = await this.blogRepository.findAll(filter);
+    return { posts: data };
+  }
+
+  async getPopularPosts(getPopularBlogPostsDto: GetPopularBlogPostsDto) {
+    const filter: any = {
+      isDeleted: DeletionStatus.ACTIVE,
+      category: getPopularBlogPostsDto.categoryId,
+    };
+
+    const options = {
+      limit: 5,
+      offset: 0,
+      sort: [['views', -1]],
+    };
+
+    const { data } = await this.blogRepository.findAll(filter, options);
+    return { posts: data };
   }
 
 }
