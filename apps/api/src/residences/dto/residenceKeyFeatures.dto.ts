@@ -2,23 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import * as Joi from 'joi';
 import { Types } from 'mongoose';
 import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
-
-export enum RentalPotential {
-  High = 'High',
-  Medium = 'Medium',
-  Low = 'Low',
-}
-
-export enum DevelopmentStatus {
-  Completed = 'Completed',
-  UnderConstruction = 'Under Construction',
-  Planned = 'Planned',
-}
-
-export enum PetPolicy {
-  PetFriendly = 'petFriendly',
-  NoPetAllowed = 'No pet Allowed',
-}
+import { DevelopmentStatus, PetPolicy, RentalPotential } from '../enum/residence-enum';
 
 export class DevelopmentInfo {
   @ApiProperty({ example: 2020 })
