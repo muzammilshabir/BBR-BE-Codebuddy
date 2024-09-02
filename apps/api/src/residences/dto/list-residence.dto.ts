@@ -57,3 +57,82 @@ export const listResidenceSchema = PaginationSchema.append({
     .valid(...Object.values(FileType))
     .optional(),
 });
+
+export class ListResidenceByFiltersQueryPropsDto extends ListPropsDto {
+  @ApiProperty({
+    description: 'Search by residence name',
+    example: 'test',
+    required: false,
+    type: String,
+  })
+  search?: string;
+}
+
+export class ListResidenceByFiltersDto {
+  @ApiProperty({
+    description: 'Filter by City IDs',
+    example: ['60b6c0f53b5a5c1f88d25a1b'],
+    required: false,
+    type: [String],
+  })
+  cities?: string[];
+
+  @ApiProperty({
+    description: 'Filter by lifestyle IDs',
+    example: ['60b6c0f53b5a5c1f88d25a1b'],
+    required: false,
+    type: [String],
+  })
+  lifestyles?: string[];
+
+  @ApiProperty({
+    description: 'Filter by Brand IDs',
+    example: ['60b6c0f53b5a5c1f88d25a1b'],
+    required: false,
+    type: [String],
+  })
+  brands?: string[];
+
+  @ApiProperty({
+    description: 'Filter by Property Type IDs',
+    example: ['60b6c0f53b5a5c1f88d25a1b'],
+    required: false,
+    type: [String],
+  })
+  propertyTypes?: string[];
+
+  @ApiProperty({
+    example: ResidenceStatus.ACTIVE,
+    enum: ResidenceStatus,
+    description: 'The status of the residence',
+    required: true,
+  })
+  status?: ResidenceStatus;
+
+  @ApiProperty({
+    description: 'Filter by Developer ID',
+    example: '60b6c0f53b5a5c1f88d25a1b',
+    required: false,
+    type: String,
+  })
+  developerId?: string;
+}
+
+export const listResidenceByFiltersSchema = Joi.object({
+  cities: Joi.array()
+    .items(Joi.string().custom(joiObjectIdValidator('cities')))
+    .optional(),
+  lifestyles: Joi.array()
+    .items(Joi.string().custom(joiObjectIdValidator('lifestyles')))
+    .optional(),
+  brands: Joi.array()
+    .items(Joi.string().custom(joiObjectIdValidator('brands')))
+    .optional(),
+  propertyTypes: Joi.array()
+    .items(Joi.string().custom(joiObjectIdValidator('propertyTypes')))
+    .optional(),
+  developerId: Joi.string().custom(joiObjectIdValidator('developerId')).optional(),
+  status: Joi.string()
+    .valid(...Object.values(ResidenceStatus))
+    .optional(),
+});

@@ -8,7 +8,11 @@ import { AddKeyFeaturesDto } from './dto/residenceKeyFeatures.dto';
 import { AddVisualsDto } from './dto/add-visuals.dto';
 import { Types } from 'mongoose';
 import { UpdateNearbyAmenitiesDto } from './dto/update-nearby-amenities.dto';
-import { ListResidenceDto } from './dto/list-residence.dto';
+import {
+  ListResidenceByFiltersDto,
+  ListResidenceByFiltersQueryPropsDto,
+  ListResidenceDto,
+} from './dto/list-residence.dto';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
 import * as XLSX from 'xlsx';
 import { format } from '@fast-csv/format';
@@ -320,5 +324,56 @@ export class ResidenceService {
       throw new NotFoundException(`Residence with ID ${residenceId}`);
     }
     return existingResidence;
+  }
+
+  async listResidencesByFilters(
+    listPropsDto: ListResidenceByFiltersQueryPropsDto,
+    filtersDto: ListResidenceByFiltersDto
+  ) {
+    const filter: any = {};
+
+    // TODO: Implement sorting by score.
+
+    if (filtersDto.cities && filtersDto.cities.length > 0) {
+      filter.cityId = { $in: filtersDto.cities.map((city) => new Types.ObjectId(city)) };
+    }
+
+    if (filtersDto.lifestyles && filtersDto.lifestyles.length > 0) {
+      filter.lifeStyleId = {
+        $in: filtersDto.lifestyles.map((lifestyles) => new Types.ObjectId(lifestyles)),
+      };
+    }
+
+    if (filtersDto.status) {
+      filter.status = filtersDto.status;
+    }
+
+    if (filtersDto.brands && filtersDto.brands.length > 0) {
+      filter.associatedBrandId = {
+        $in: filtersDto.brands.map((brand) => new Types.ObjectId(brand)),
+      };
+    }
+
+    if (filtersDto.propertyTypes && filtersDto.propertyTypes.length > 0) {
+      filter.residenceTypeId = {
+        $in: filtersDto.propertyTypes.map((propertyType) => new Types.ObjectId(propertyType)),
+      };
+    }
+
+    if (filtersDto.developerId) {
+      filter.developerId = new Types.ObjectId(filtersDto.developerId);
+    }
+
+    if (listPropsDto.search) {
+      filter.$or = [{ name: { $regex: listPropsDto.search, $options: 'i' } }];
+    }
+
+    const options = PaginationService.prepareOptions(listPropsDto);
+
+    const { data, count } = await this.residenceRepository.findAll(filter, options);
+
+    const { pagination } = PaginationService.paginate({ rows: data, count }, listPropsDto);
+
+    return { pagination, residences: data };
   }
 }
