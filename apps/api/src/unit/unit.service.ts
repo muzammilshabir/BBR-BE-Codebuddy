@@ -172,7 +172,7 @@ export class UnitService {
         },
         rooms: item['Room Type']
           ? item['Room Type'].split(',').map((roomType, index) => ({
-              roomType: RoomType[this.normalizeString(roomType)], // replace with ID
+              roomType: RoomType[this.normalizeString(roomType)],
               unit: Number(item['Room Unit'].split(',')[index]),
             }))
           : undefined,
