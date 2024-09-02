@@ -5,7 +5,7 @@ import { Residence } from './schema/residences.schema';
 import { RejectResidenceDto, UpdateResidenceDto } from './dto/update-residence.dto';
 import { NotFoundException } from '@bbr/api-core/modules/exceptions';
 import { AddKeyFeaturesDto } from './dto/residenceKeyFeatures.dto';
-import { AddVisualsDto } from './dto/add-visuals.dto';
+import { AddResidenceVisualsDto } from './dto/add-visuals.dto';
 import { Types } from 'mongoose';
 import { UpdateNearbyAmenitiesDto } from './dto/update-nearby-amenities.dto';
 import {
@@ -73,9 +73,16 @@ export class ResidenceService {
     return existingResidence;
   }
 
-  async addVisuals(id: string, addVisualsDto: AddVisualsDto): Promise<Residence> {
+  async addVisuals(
+    id: string,
+    addVisualsDto: AddResidenceVisualsDto,
+    userId: string
+  ): Promise<Residence> {
     const transformedDto = {
       ...addVisualsDto,
+      mainPhotos: addVisualsDto.mainGalleryPhotos
+        ? addVisualsDto.mainGalleryPhotos.map((photoId) => new Types.ObjectId(photoId))
+        : undefined,
       mainGalleryPhotos: addVisualsDto.mainGalleryPhotos.map(
         (photoId) => new Types.ObjectId(photoId)
       ),
@@ -83,6 +90,7 @@ export class ResidenceService {
         (photoId) => new Types.ObjectId(photoId)
       ),
       videoTour: addVisualsDto.videoTour ? new Types.ObjectId(addVisualsDto.videoTour) : undefined,
+      updatedById: new Types.ObjectId(userId),
     };
     const existingResidence = await this.residenceRepository.update(id, {
       visuals: transformedDto,

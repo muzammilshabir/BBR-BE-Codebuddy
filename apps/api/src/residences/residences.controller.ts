@@ -16,7 +16,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/enum/user.enum';
-import { AddVisualsDto, addVisualsSchema } from './dto/add-visuals.dto';
+import { AddResidenceVisualsDto, addResidenceVisualsSchema } from './dto/add-visuals.dto';
 import { CreateResidenceDto, createResidenceSchema } from './dto/create-residence.dto';
 import { GetResidenceByIdDto, getResidenceByIdSchema } from './dto/get-residence-by-id.dto';
 import {
@@ -90,9 +90,13 @@ export class ResidenceController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
-  @UsePipes(new JoiValidationPipe(addVisualsSchema, 'body'))
-  async addVisuals(@Param('id') id: string, @Body() addVisualsDto: AddVisualsDto) {
-    const residence = await this.residenceService.addVisuals(id, addVisualsDto);
+  @UsePipes(new JoiValidationPipe(addResidenceVisualsSchema, 'body'))
+  async addVisuals(
+    @Param('id') id: string,
+    @Body() addVisualsDto: AddResidenceVisualsDto,
+    @GetCurrentUserId() userId: string
+  ) {
+    const residence = await this.residenceService.addVisuals(id, addVisualsDto, userId);
     return {
       message: 'Residence visuals updated successfully',
       residence,
