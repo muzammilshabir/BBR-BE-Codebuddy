@@ -35,6 +35,7 @@ import { ResidenceServiceModule } from './residenceService/residenceService.modu
 import { ResidenceEnquiryModule } from './residenceEnquiry/residenceEnquiry.module';
 import { CareerModule } from './careers/career.module';
 import { ResidenceDraftModule } from './residencesDraft/residencesDraft.module';
+import { BlogModule } from './blog/blog.module';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -71,6 +72,7 @@ import { ResidenceDraftModule } from './residencesDraft/residencesDraft.module';
     ResidenceEnquiryModule,
     CareerModule,
     ResidenceDraftModule,
+    BlogModule,
   ],
   controllers: [],
   providers: [
