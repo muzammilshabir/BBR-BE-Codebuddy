@@ -28,17 +28,19 @@ export class UnitService {
     const transformedDto = {
       ...addUnitDto,
       residenceId: new Types.ObjectId(residenceId),
-      userId: new Types.ObjectId(userId),
+      createdById: new Types.ObjectId(userId),
     };
     return await this.unitRepository.create(transformedDto);
   }
 
   async addUnitKeyFeatures(
     addUnitKeyFeaturesDto: AddUnitKeyFeaturesDto,
-    unitId: string
+    unitId: string,
+    userId?: string
   ): Promise<Unit> {
     const updatedUnit = await this.unitRepository.update(unitId, {
       unitKeyFeatures: addUnitKeyFeaturesDto,
+      updatedById: userId ? new Types.ObjectId(userId) : undefined,
     });
     if (!updatedUnit) {
       throw new NotFoundException(`Unit with ID ${unitId} not found`);
@@ -170,7 +172,7 @@ export class UnitService {
         },
         rooms: item['Room Type']
           ? item['Room Type'].split(',').map((roomType, index) => ({
-              roomType: RoomType[this.normalizeString(roomType)],
+              roomType: RoomType[this.normalizeString(roomType)], // replace with ID
               unit: Number(item['Room Unit'].split(',')[index]),
             }))
           : undefined,
