@@ -45,9 +45,6 @@ export class User extends Document {
   emailVerified: boolean;
 
   @Prop({ required: false })
-  forgotPasswordToken?: string;
-
-  @Prop({ required: false })
   companyName?: string;
 
   @Prop({ required: false })

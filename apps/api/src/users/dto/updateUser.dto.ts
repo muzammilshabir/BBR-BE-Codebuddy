@@ -16,7 +16,6 @@ export class UpdateUserDto extends OmitType(CreateUserDto, [
   'isVerified',
   'emailVerificationToken',
   'emailVerified',
-  'forgotPasswordToken',
   'oAuthId',
   'resetPasswordToken',
   'verificationToken',

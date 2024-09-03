@@ -1,6 +1,9 @@
+import { BadRequestException } from '@bbr/api-core/modules/exceptions';
+import { TokenService } from '@bbr/api-core/modules/token-generation/token.service';
 import { CaptchaEnum } from '@bbr/api-core/modules/types/captcha.type';
 import { ExceptionCodes } from '@bbr/api-core/modules/types/exceptionCodes.type';
 import { JwtResponseType, JwtTokenType } from '@bbr/api-core/modules/types/jwtToken.type';
+import { TokenEnum } from '@bbr/api-core/modules/types/verification-token.type';
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { NotFoundException, UnauthorizedException } from '@nestjs/common/exceptions';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -13,6 +16,7 @@ import { SignupMethod, UserRole } from '../users/enum/user.enum';
 import { User } from '../users/schema/user.schema';
 import { UserService } from '../users/user.service';
 import { LoginDto } from './dto/login.dto';
+import { ForgotPasswordDto, ResetPasswordDto } from './dto/passwordReset.dto';
 import { ResendVerificationEmailDto } from './dto/resendVerificationEmail';
 import { BuyerSignupDto, SellerSignupDto } from './dto/signup.dto';
 import {
@@ -22,7 +26,6 @@ import {
 } from './dto/updateProfile';
 import { VerifyUserDto } from './dto/verifyUser.dto';
 import { JwtPayloadType } from './type/jwt-payload.type';
-import { BadRequestException } from '@bbr/api-core/modules/exceptions';
 
 @Injectable()
 export class AuthService {
@@ -31,11 +34,16 @@ export class AuthService {
     private readonly configService: ServiceConfig,
     private readonly jwtService: JwtService,
     private readonly eventEmitter: EventEmitter2,
-    private readonly redisService: RedisService
+    private readonly redisService: RedisService,
+    private readonly tokenService: TokenService
   ) {}
 
   static generateVerificationLink(email: string, verifyToken: string) {
     return `${process.env.SERVICE_URL}/api/verify-email?token=${verifyToken}&email=${email}`;
+  }
+
+  static generateResetPasswordLink(email: string, verifyToken: string) {
+    return `${process.env.SERVICE_URL}/api/reset-password?token=${verifyToken}&email=${email}`;
   }
 
   async signupBuyer(buyerSignupDto: BuyerSignupDto) {
@@ -62,7 +70,7 @@ export class AuthService {
       throw new ForbiddenException('Email or token is invalid');
     }
 
-    await this.userService.verifyUserEmail(token, email, role);
+    await this.userService.verifyUserEmail(token, email);
 
     if (role === UserRole.SELLER && user.acceptBBRCommitment !== true) {
       return {
@@ -84,7 +92,7 @@ export class AuthService {
   }
 
   async loginWithEmailPassword(loginDto: LoginDto, role: UserRole, ip: string) {
-    const user = await this.userService.findByEmailAndRole(loginDto.email, role);
+    const user = await this.userService.findByEmail(loginDto.email);
 
     let failedCount = await this.redisService.get({
       prefix: CaptchaEnum.PREFIX,
@@ -218,6 +226,67 @@ export class AuthService {
     if (!commitement) throw new BadRequestException('Please accept Bbr commitment');
 
     return await this.userService.acceptBbrCommitment(user.sub, commitement);
+  }
+
+  async forgotPassword(forgetPasswordDto: ForgotPasswordDto): Promise<void> {
+    const user = await this.userService.findByEmail(forgetPasswordDto.email);
+
+    if (user) {
+      const resetToken = this.tokenService.generateVerificationToken();
+
+      await this.redisService.set({
+        prefix: TokenEnum.PREFIX,
+        key: resetToken,
+        value: forgetPasswordDto.email,
+        expiry: 900, // 15 minutes
+      });
+
+      await this.sendResetPasswordLink(forgetPasswordDto.email, resetToken);
+    }
+  }
+
+  async resetPassword(resetPasswordDto: ResetPasswordDto): Promise<void> {
+    const email = await this.redisService.get({
+      prefix: TokenEnum.PREFIX,
+      key: resetPasswordDto.token,
+    });
+
+    if (!email) {
+      throw new NotFoundException('Invalid credentials');
+    }
+
+    const user = await this.userService.findByEmail(email);
+
+    if (!user) {
+      throw new NotFoundException('Invalid credentials');
+    }
+
+    const isPasswordMatch = await argon.verify(user.password, resetPasswordDto.password);
+
+    if (isPasswordMatch) {
+      throw new BadRequestException(
+        'This password has been used before. Please use another password.'
+      );
+    }
+
+    await this.redisService.delete({ prefix: TokenEnum.PREFIX, key: resetPasswordDto.token });
+
+    await this.userService.updatePassword(user.id, await argon.hash(resetPasswordDto.password));
+  }
+
+  async sendResetPasswordLink(email: string, token: string): Promise<void> {
+    this.eventEmitter.emit(
+      SendEmailEvent.event,
+      new SendEmailEvent({
+        context: {
+          email,
+          deeplink: AuthService.generateResetPasswordLink(email, token),
+        },
+        template: 'forgot-password',
+        subject: 'Reset Your Password',
+        toEmail: email,
+      })
+    );
   }
 
   async updateSeller(loggedInUser: JwtPayloadType, updateSellerProfileDto: UpdateSellerProfileDto) {
