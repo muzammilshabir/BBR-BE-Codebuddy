@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { UnitRepository } from './unit.repository';
 import { AddUnitDto } from './dto/add-unit.dto';
 import { Unit } from './schema/unit.schema';
@@ -8,20 +8,25 @@ import { AddVisualsDto } from './dto/add-visuals.dto';
 import { BadRequestException, NotFoundException } from '@bbr/api-core/modules/exceptions';
 import { ListUnitDto } from './dto/list-unit.dto';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
-import { DeletionStatus, Recurrence, RoomType, ServiceType } from './enum/unit-enum';
+import { DeletionStatus, Recurrence } from './enum/unit-enum';
 import * as csv from 'csv-parser';
 import * as xlsx from 'xlsx';
 import { Readable } from 'stream';
 import { UploadService } from '../upload/upload.service';
 import * as fs from 'fs';
 import { ResidenceService } from '../residences/residences.service';
+import { RoomTypeRepository } from '../roomType/roomType.repository';
+import { ResidenceServiceRepository } from '../residenceService/residenceService.repository';
 
 @Injectable()
 export class UnitService {
+  private readonly logger = new Logger(UnitService.name);
   constructor(
     private readonly unitRepository: UnitRepository,
     private readonly uploadService: UploadService,
-    private readonly residenceService: ResidenceService
+    private readonly residenceService: ResidenceService,
+    private readonly roomTypeRepository: RoomTypeRepository,
+    private readonly residenceServiceRepository: ResidenceServiceRepository
   ) {}
 
   async addUnit(addUnitDto: AddUnitDto, residenceId: string, userId: string): Promise<Unit> {
@@ -132,13 +137,25 @@ export class UnitService {
   private normalizeString(str: string): string {
     return str.trim().toUpperCase().replace(/\s+/g, '_');
   }
-  private parseResidenceServices(item: any): ResidenceServiceDto[] {
+  private async parseResidenceServices(item: any): Promise<ResidenceServiceDto[]> {
     const serviceTypes = item['Residence Services Type']?.split(',') || [];
     const amounts = item['Residence Services Amount']?.split(',') || [];
     const recurrences = item['Residence Services Recurrence']?.split(',') || [];
 
-    return serviceTypes.map((serviceType: string, index: number) => ({
-      serviceType: ServiceType[this.normalizeString(serviceType)],
+    // Fetch serviceTypeIds asynchronously
+    const serviceTypeIds = await Promise.all(
+      serviceTypes.map(async (serviceType) => {
+        const service = await this.residenceServiceRepository.findByService(serviceType);
+        if (!service) {
+          this.logger.error(`Service Type ${serviceType} not found in database.`);
+        }
+
+        return service._id;
+      })
+    );
+
+    return serviceTypeIds.map((serviceTypeId, index) => ({
+      serviceTypeId,
       amount: amounts[index] ? Number(amounts[index]) : undefined,
       recurrence: recurrences[index]
         ? Recurrence[this.normalizeString(recurrences[index])]
@@ -150,6 +167,29 @@ export class UnitService {
     await this.residenceService.getResidenceById(residenceId);
 
     for (const item of data) {
+      let roomDetails: { roomTypeId: Types.ObjectId; unit: number }[] = [];
+
+      if (item['Room Type']) {
+        const roomTypes = item['Room Type'].split(',');
+        const roomUnits = item['Room Unit'] ? item['Room Unit'].split(',') : [];
+
+        // Fetch roomTypeIds asynchronously
+        roomDetails = await Promise.all(
+          roomTypes.map(async (roomType, index) => {
+            const roomTypeDoc = await this.roomTypeRepository.findByType(roomType);
+
+            if (!roomTypeDoc) {
+              this.logger.error(`Room Type ${roomType} not found in database.`);
+            }
+
+            return {
+              roomTypeId: roomTypeDoc._id as Types.ObjectId,
+              unit: roomUnits[index] ? Number(roomUnits[index]) : undefined,
+            };
+          })
+        );
+      }
+
       const addUnitDto: AddUnitDto = {
         unitName: item['Unit Name'],
         specs: {
@@ -171,27 +211,22 @@ export class UnitService {
             ? new Date(item['Exclusive Offer End Date'])
             : undefined,
         },
-        rooms: item['Room Type']
-          ? item['Room Type'].split(',').map((roomType, index) => ({
-              roomType: RoomType[this.normalizeString(roomType)],
-              unit: Number(item['Room Unit'].split(',')[index]),
-            }))
-          : undefined,
+        rooms: roomDetails.length ? roomDetails : undefined,
         briefOverview: {
           subTitle: item['Brief Overview SubTitle'],
           description: item['Brief Overview Description'],
         },
       };
-
       const unitDetails = await this.addUnit(addUnitDto, residenceId, userId);
       const unitId = unitDetails.id;
 
       const addUnitKeyFeaturesDto: AddUnitKeyFeaturesDto = {
         features: item['Unit Key Features'].split(',').map((feature: string) => feature.trim()),
         residenceServices: item['Residence Services Type']
-          ? this.parseResidenceServices(item)
+          ? await this.parseResidenceServices(item)
           : undefined,
       };
+
       await this.addUnitKeyFeatures(addUnitKeyFeaturesDto, unitId);
 
       const addVisualsDto: AddVisualsDto = {
