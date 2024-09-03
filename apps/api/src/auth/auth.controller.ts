@@ -25,6 +25,8 @@ import {
   acceptBBRCommitmentSchema,
   UpdateBuyerProfileDto,
   updateBuyerProfileSchema,
+  UpdateSellerProfileDto,
+  updateSellerProfileSchema,
 } from './dto/updateProfile';
 import { VerifyUserDto, verifyUserSchema } from './dto/verifyUser.dto';
 import { AtGuard } from './guards/at.guard';
@@ -159,5 +161,19 @@ export class AuthController {
   ) {
     const user = await this.authService.acceptBbrCommitment(userDetails, acceptBBRCommitment);
     return ResponseService.buildResponse(user, 'BBR Commitment accepted successfully');
+  }
+
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Update Seller Profile',
+  })
+  @Patch('seller/me')
+  @UsePipes(new JoiValidationPipe(updateSellerProfileSchema, 'body'))
+  async updateSeller(
+    @GetCurrentUser() userFromToken: JwtPayloadType,
+    @Body() updateSellerProfileDto: UpdateSellerProfileDto
+  ) {
+    const user = await this.authService.updateSeller(userFromToken, updateSellerProfileDto);
+    return ResponseService.buildResponse(user, 'Seller updated successfully');
   }
 }
