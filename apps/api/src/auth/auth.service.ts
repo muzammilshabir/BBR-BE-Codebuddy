@@ -19,7 +19,11 @@ import { LoginDto } from './dto/login.dto';
 import { ForgotPasswordDto, ResetPasswordDto } from './dto/passwordReset.dto';
 import { ResendVerificationEmailDto } from './dto/resendVerificationEmail';
 import { BuyerSignupDto, SellerSignupDto } from './dto/signup.dto';
-import { AcceptBBRCommitment, UpdateBuyerProfileDto } from './dto/updateProfile';
+import {
+  AcceptBBRCommitment,
+  UpdateBuyerProfileDto,
+  UpdateSellerProfileDto,
+} from './dto/updateProfile';
 import { VerifyUserDto } from './dto/verifyUser.dto';
 import { JwtPayloadType } from './type/jwt-payload.type';
 
@@ -283,5 +287,13 @@ export class AuthService {
         toEmail: email,
       })
     );
+  }
+
+  async updateSeller(loggedInUser: JwtPayloadType, updateSellerProfileDto: UpdateSellerProfileDto) {
+    if (!loggedInUser || !loggedInUser.sub) throw new UnauthorizedException('Invalid token');
+
+    if (loggedInUser.role !== UserRole.SELLER) throw new UnauthorizedException('Invalid token');
+
+    return await this.userService.updateSeller(loggedInUser.sub, updateSellerProfileDto);
   }
 }
