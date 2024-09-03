@@ -1,13 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Recurrence, ServiceType } from '../enum/unit-enum';
+import { Recurrence } from '../enum/unit-enum';
 import * as Joi from 'joi';
+import { joiObjectIdValidator } from '../../../../../packages/api-core/modules/custome-validations/custome-validations';
+import { Types } from 'mongoose';
 
 export class ResidenceServiceDto {
   @ApiProperty({
-    example: ServiceType.COOKING,
-    enum: ServiceType,
+    example: '66acda8b857c576159b74da4',
   })
-  serviceType: ServiceType;
+  serviceTypeId: Types.ObjectId;
 
   @ApiProperty({
     example: 100,
@@ -32,8 +33,8 @@ export class AddUnitKeyFeaturesDto {
   @ApiProperty({
     example: [
       {
-        serviceType: ServiceType.COOKING,
-        amount: 100,
+        serviceTypeId: '66acda8b857c576159b74da4',
+        amount: 3,
         recurrence: Recurrence.DAILY,
       },
     ],
@@ -47,9 +48,7 @@ export const addUnitKeyFeaturesSchema = Joi.object({
   residenceServices: Joi.array()
     .items(
       Joi.object({
-        serviceType: Joi.string()
-          .valid(...Object.values(ServiceType))
-          .required(),
+        serviceTypeId: Joi.string().custom(joiObjectIdValidator('serviceTypeId')).optional(),
         amount: Joi.number().required(),
         recurrence: Joi.string()
           .valid(...Object.values(Recurrence))

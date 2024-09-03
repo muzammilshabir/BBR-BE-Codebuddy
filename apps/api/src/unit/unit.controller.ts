@@ -35,8 +35,11 @@ export class UnitController {
   @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
   @UsePipes(new JoiValidationPipe(addUnitSchema, 'body'))
-  async addUnit(@Param('residenceId') residenceId: string, @Body() addUnitDto: AddUnitDto) {
-    const userId = '64b1b5f4e05c12a1f5d8e7c2'; // we will take this id from authentication
+  async addUnit(
+    @Param('residenceId') residenceId: string,
+    @Body() addUnitDto: AddUnitDto,
+    @GetCurrentUserId() userId: string
+  ) {
     const unit = await this.unitService.addUnit(addUnitDto, residenceId, userId);
     return ResponseService.buildResponse({ unit }, 'Unit added successfully');
   }
@@ -50,9 +53,14 @@ export class UnitController {
   @UsePipes(new JoiValidationPipe(addUnitKeyFeaturesSchema, 'body'))
   async addUnitKeyFeatures(
     @Param('unitId') unitId: string,
-    @Body() unitKeyFeaturesDto: AddUnitKeyFeaturesDto
+    @Body() unitKeyFeaturesDto: AddUnitKeyFeaturesDto,
+    @GetCurrentUserId() userId: string
   ) {
-    const unitKeyFeatures = await this.unitService.addUnitKeyFeatures(unitKeyFeaturesDto, unitId);
+    const unitKeyFeatures = await this.unitService.addUnitKeyFeatures(
+      unitKeyFeaturesDto,
+      unitId,
+      userId
+    );
     return {
       message: 'Unit key features added successfully',
       data: unitKeyFeatures,
