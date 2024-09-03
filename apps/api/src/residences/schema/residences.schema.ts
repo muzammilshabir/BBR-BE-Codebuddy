@@ -12,11 +12,11 @@ export class Residence extends Document {
   @Prop({ required: true, type: Types.ObjectId, ref: 'Location' })
   locationId: Types.ObjectId;
 
-  @Prop({ required: true })
-  websiteLink: string;
+  @Prop({ required: false })
+  websiteLink?: string;
 
-  @Prop({ required: true, type: Types.ObjectId, ref: 'Brand' })
-  associatedBrandId: Types.ObjectId;
+  @Prop({ required: false, type: Types.ObjectId, ref: 'Brand' })
+  associatedBrandId?: Types.ObjectId;
 
   @Prop({
     type: {

@@ -102,6 +102,6 @@ export const createResidenceSchema = Joi.object({
   }).optional(),
   budgetLimitationsRange: Joi.object({
     startRange: Joi.number().optional(),
-    endRange: Joi.number().optional(),
+    endRange: Joi.number().optional().greater(Joi.ref('startRange')),
   }).optional(),
 });

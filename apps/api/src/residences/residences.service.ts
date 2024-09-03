@@ -3,7 +3,7 @@ import { ResidenceRepository } from './residences.repository';
 import { CreateResidenceDto } from './dto/create-residence.dto';
 import { Residence } from './schema/residences.schema';
 import { RejectResidenceDto, UpdateResidenceDto } from './dto/update-residence.dto';
-import { NotFoundException } from '@bbr/api-core/modules/exceptions';
+import { BadRequestException, NotFoundException } from '@bbr/api-core/modules/exceptions';
 import { AddKeyFeaturesDto } from './dto/residenceKeyFeatures.dto';
 import { AddResidenceVisualsDto } from './dto/add-visuals.dto';
 import { Types } from 'mongoose';
@@ -18,27 +18,35 @@ import * as XLSX from 'xlsx';
 import { format } from '@fast-csv/format';
 import { Writable } from 'stream';
 import { ResidenceStatus } from './enum/residence-enum';
+import { JwtPayloadType } from '../auth/type/jwt-payload.type';
+import { UserRole } from '../users/enum/user.enum';
 
 @Injectable()
 export class ResidenceService {
   constructor(private readonly residenceRepository: ResidenceRepository) {}
 
-  async create(createResidenceDto: CreateResidenceDto): Promise<Residence> {
-    const developerId = '66bb48041c4f07b8d37ba240'; // if user role is developer then we will take his id
-    const transformedDto = {
+  async create(createResidenceDto: CreateResidenceDto, user: JwtPayloadType): Promise<Residence> {
+    const transformedDto: any = {
       ...createResidenceDto,
       residenceTypeId: new Types.ObjectId(createResidenceDto.residenceTypeId),
-      locationId: new Types.ObjectId(createResidenceDto.locationId),
+      locationId: new Types.ObjectId(createResidenceDto.locationId), // remove in future
       associatedBrandId: createResidenceDto.associatedBrandId
         ? new Types.ObjectId(createResidenceDto.associatedBrandId)
         : undefined,
-      developerId: new Types.ObjectId(developerId),
+      createdById: new Types.ObjectId(user.sub),
     };
+    if (user.role === UserRole.SELLER) {
+      transformedDto.developerId = new Types.ObjectId(user.sub);
+    }
     return await this.residenceRepository.create(transformedDto);
   }
 
-  async updateGeneralInfo(id: string, updateResidenceDto: UpdateResidenceDto): Promise<Residence> {
-    const transformedDto: Partial<UpdateResidenceDto> = {
+  async updateGeneralInfo(
+    id: string,
+    updateResidenceDto: UpdateResidenceDto,
+    user: JwtPayloadType
+  ): Promise<Residence> {
+    const transformedDto: any = {
       ...updateResidenceDto,
       residenceTypeId: updateResidenceDto.residenceTypeId
         ? new Types.ObjectId(updateResidenceDto.residenceTypeId)
@@ -49,6 +57,7 @@ export class ResidenceService {
       associatedBrandId: updateResidenceDto.associatedBrandId
         ? new Types.ObjectId(updateResidenceDto.associatedBrandId)
         : undefined,
+      updatedById: new Types.ObjectId(user.sub),
     };
 
     const existingResidence = await this.residenceRepository.update(id, transformedDto);
@@ -58,10 +67,15 @@ export class ResidenceService {
     return existingResidence;
   }
 
-  async addKeyFeatures(id: string, addKeyFeaturesDto: AddKeyFeaturesDto): Promise<Residence> {
+  async addKeyFeatures(
+    id: string,
+    addKeyFeaturesDto: AddKeyFeaturesDto,
+    userId: string
+  ): Promise<Residence> {
     const transformedDto = {
       ...addKeyFeaturesDto,
       featureIds: addKeyFeaturesDto.featureIds.map((featureId) => new Types.ObjectId(featureId)),
+      updatedById: new Types.ObjectId(userId),
     };
 
     const existingResidence = await this.residenceRepository.update(id, {
@@ -103,7 +117,8 @@ export class ResidenceService {
 
   async updateNearbyAmenities(
     id: string,
-    updateNearbyAmenitiesDto: UpdateNearbyAmenitiesDto
+    updateNearbyAmenitiesDto: UpdateNearbyAmenitiesDto,
+    userId: string
   ): Promise<Residence> {
     const transformedDto = {
       ...updateNearbyAmenitiesDto,
@@ -121,6 +136,7 @@ export class ResidenceService {
             : undefined,
         })
       ),
+      updatedById: new Types.ObjectId(userId),
     };
 
     const existingResidence = await this.residenceRepository.update(id, {
@@ -138,13 +154,22 @@ export class ResidenceService {
   }
 
   async approveResidence(residenceId: string, userId: string): Promise<Residence> {
+    const residence = await this.getResidenceById(residenceId);
+    if (!residence) {
+      throw new NotFoundException(`Residence with ID ${residenceId} not found`);
+    }
+
+    if (residence.status !== ResidenceStatus.PENDING) {
+      throw new BadRequestException(
+        `Cannot approve residence with status: ${residence.status}. Only pending residences can be approved.`
+      );
+    }
+
     const existingResidence = await this.residenceRepository.update(residenceId, {
       status: ResidenceStatus.ACTIVE,
       updatedById: userId,
     });
-    if (!existingResidence) {
-      throw new NotFoundException(`Residence with ID ${residenceId}`);
-    }
+
     return existingResidence;
   }
 
@@ -323,14 +348,22 @@ export class ResidenceService {
     userId: string,
     rejectResidenceDto: RejectResidenceDto
   ): Promise<Residence> {
+    const residence = await this.getResidenceById(residenceId);
+    if (!residence) {
+      throw new NotFoundException(`Residence with ID ${residenceId} not found`);
+    }
+
+    if (residence.status !== ResidenceStatus.PENDING) {
+      throw new BadRequestException(
+        `Cannot reject residence with status: ${residence.status}. Only pending residences can be rejected.`
+      );
+    }
+
     const existingResidence = await this.residenceRepository.update(residenceId, {
       status: ResidenceStatus.REJECTED,
       rejectionReason: rejectResidenceDto.rejectionReason,
       updatedById: userId,
     });
-    if (!existingResidence) {
-      throw new NotFoundException(`Residence with ID ${residenceId}`);
-    }
     return existingResidence;
   }
 
