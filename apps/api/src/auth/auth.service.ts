@@ -54,6 +54,7 @@ export class AuthService {
       agreeToTerms: true,
       signupMethod: SignupMethod.EMAIL,
       role: UserRole.BUYER,
+      receiveLuxuryInsights: buyerSignupDto.receiveLuxuryInsights,
     });
 
     this.sendVerificationEmail(user.email, user.verificationToken);
