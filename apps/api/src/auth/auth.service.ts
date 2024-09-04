@@ -16,7 +16,7 @@ import { SignupMethod, UserRole } from '../users/enum/user.enum';
 import { User } from '../users/schema/user.schema';
 import { UserService } from '../users/user.service';
 import { LoginDto } from './dto/login.dto';
-import { ForgotPasswordDto, ResetPasswordDto } from './dto/passwordReset.dto';
+import { ChangePasswordDto, ForgotPasswordDto, ResetPasswordDto } from './dto/passwordReset.dto';
 import { ResendVerificationEmailDto } from './dto/resendVerificationEmail';
 import { BuyerSignupDto, SellerSignupDto } from './dto/signup.dto';
 import {
@@ -295,5 +295,31 @@ export class AuthService {
     if (loggedInUser.role !== UserRole.SELLER) throw new UnauthorizedException('Invalid token');
 
     return await this.userService.updateSeller(loggedInUser.sub, updateSellerProfileDto);
+  }
+
+  async changePassword(
+    changePasswordDto: ChangePasswordDto,
+    userDetails: JwtPayloadType
+  ): Promise<void> {
+    const { currentPassword, newPassword, confirmPassword } = changePasswordDto;
+
+    if (newPassword !== confirmPassword) {
+      throw new BadRequestException('New password and confirm password do not match');
+    }
+
+    if (currentPassword === newPassword) {
+      throw new BadRequestException('Current password and new password cannot be the same');
+    }
+
+    const user = await this.userService.findByEmail(userDetails.email);
+    if (!user) {
+      throw new NotFoundException('Invalid credentials');
+    }
+
+    const isPasswordMatch = await argon.verify(user.password, currentPassword);
+    if (!isPasswordMatch) {
+      throw new BadRequestException('Current password is incorrect');
+    }
+    await this.userService.updatePassword(user.id, await argon.hash(newPassword));
   }
 }
