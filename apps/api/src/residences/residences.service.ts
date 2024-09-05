@@ -22,6 +22,7 @@ import { JwtPayloadType } from '../auth/type/jwt-payload.type';
 import { UserRole } from '../users/enum/user.enum';
 import { CityRepository } from '../city/city.repository';
 import { ResidenceDraftRepository } from '../residencesDraft/residencesDraft.repository';
+import { ResidenceDraft } from '../residencesDraft/schema/residencesDraft.schema';
 
 @Injectable()
 export class ResidenceService {
@@ -75,7 +76,12 @@ export class ResidenceService {
     id: string,
     updateResidenceDto: UpdateResidenceDto,
     user: JwtPayloadType
-  ): Promise<Residence> {
+  ): Promise<ResidenceDraft> {
+    const isRejected = await this.checkResidenceRejectedStatus(id);
+    if (isRejected) {
+      throw new BadRequestException(`Rejected Residence cannot be updated`);
+    }
+
     const transformedDto: any = {
       ...updateResidenceDto,
       residenceTypeId: updateResidenceDto.residenceTypeId
@@ -90,11 +96,42 @@ export class ResidenceService {
       updatedById: new Types.ObjectId(user.sub),
     };
 
-    const existingResidence = await this.residenceRepository.update(id, transformedDto);
-    if (!existingResidence) {
-      throw new NotFoundException(`Residence with ID ${id} not found`);
+    if (updateResidenceDto.address?.city) {
+      const cityName = updateResidenceDto.address.city.trim();
+      const cityDetails = await this.cityRepository.findByCityName(cityName);
+
+      if (!cityDetails) {
+        throw new NotFoundException(`Unsupported city ${cityName}`);
+      }
+
+      transformedDto.cityId = cityDetails.id;
+      transformedDto.countryId = cityDetails.countryId;
+      transformedDto.address = updateResidenceDto.address;
     }
-    return existingResidence;
+    const ResidenceDraft = await this.checkResidenceDraft(id);
+    if (ResidenceDraft) {
+      return await this.residenceDraftRepository.update(ResidenceDraft.id, transformedDto);
+    }
+
+    await this.residenceDraftRepository.create({
+      ...transformedDto,
+      residenceId: new Types.ObjectId(id),
+    });
+  }
+
+  async checkResidenceRejectedStatus(residenceId: string): Promise<boolean> {
+    const residence = await this.residenceRepository.findById(residenceId);
+    if (!residence) {
+      throw new NotFoundException(`Residence with ID ${residenceId} not found`);
+    }
+    return residence.status === ResidenceStatus.REJECTED;
+  }
+
+  async checkResidenceDraft(residenceId: string): Promise<ResidenceDraft | null> {
+    return await this.residenceDraftRepository.find({
+      residenceId: new Types.ObjectId(residenceId),
+      status: { $in: [ResidenceStatus.DRAFT, ResidenceStatus.PENDING] },
+    });
   }
 
   async addKeyFeatures(
@@ -179,7 +216,7 @@ export class ResidenceService {
   }
 
   async getResidenceById(residenceId: string): Promise<any> {
-    const residenceDetails = await this.residenceRepository.findById(residenceId);
+    const residenceDetails = await this.residenceRepository.findByIdInDetail(residenceId);
     return residenceDetails;
   }
 

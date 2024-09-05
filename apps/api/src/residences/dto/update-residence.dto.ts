@@ -3,6 +3,7 @@ import * as Joi from 'joi';
 import { Types } from 'mongoose';
 import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
 import {
+  Address,
   BriefOverview,
   BudgetLimitationsRange,
   ComprehensiveOverview,
@@ -32,6 +33,9 @@ export class UpdateResidenceDto {
 
   @ApiProperty({ required: false })
   budgetLimitationsRange?: BudgetLimitationsRange;
+
+  @ApiProperty({ required: false })
+  address: Address;
 }
 
 export const updateResidenceSchema = Joi.object({
@@ -55,6 +59,17 @@ export const updateResidenceSchema = Joi.object({
   budgetLimitationsRange: Joi.object({
     startRange: Joi.number().optional(),
     endRange: Joi.number().optional(),
+  }).optional(),
+  address: Joi.object({
+    country: Joi.string().optional(),
+    state: Joi.string().optional(),
+    city: Joi.string().required(),
+    userInput: Joi.string().required(),
+    location: Joi.object({
+      lat: Joi.number().optional(),
+      lng: Joi.number().optional(),
+    }).optional(),
+    placeId: Joi.string().optional(),
   }).optional(),
 });
 
