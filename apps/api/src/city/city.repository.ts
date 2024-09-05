@@ -12,4 +12,7 @@ export class CityRepository extends BaseRepository<City> {
   ) {
     super(cityModel);
   }
+  async findByCityName(name: string): Promise<City> {
+    return await this.cityModel.findOne({ name });
+  }
 }
