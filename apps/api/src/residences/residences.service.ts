@@ -20,16 +20,22 @@ import { Writable } from 'stream';
 import { ResidenceStatus } from './enum/residence-enum';
 import { JwtPayloadType } from '../auth/type/jwt-payload.type';
 import { UserRole } from '../users/enum/user.enum';
+import { CityRepository } from '../city/city.repository';
 
 @Injectable()
 export class ResidenceService {
-  constructor(private readonly residenceRepository: ResidenceRepository) {}
+  constructor(
+    private readonly residenceRepository: ResidenceRepository,
+    private readonly cityRepository: CityRepository
+  ) {}
 
   async create(createResidenceDto: CreateResidenceDto, user: JwtPayloadType): Promise<Residence> {
     const transformedDto: any = {
       ...createResidenceDto,
       residenceTypeId: new Types.ObjectId(createResidenceDto.residenceTypeId),
-      locationId: new Types.ObjectId(createResidenceDto.locationId), // remove in future
+      locationId: createResidenceDto.locationId
+        ? new Types.ObjectId(createResidenceDto.locationId)
+        : undefined,
       associatedBrandId: createResidenceDto.associatedBrandId
         ? new Types.ObjectId(createResidenceDto.associatedBrandId)
         : undefined,
@@ -38,6 +44,18 @@ export class ResidenceService {
     if (user.role === UserRole.SELLER) {
       transformedDto.developerId = new Types.ObjectId(user.sub);
     }
+    if (createResidenceDto.address?.city) {
+      const cityName = createResidenceDto.address.city.trim();
+      const cityDetails = await this.cityRepository.findByCityName(cityName);
+
+      if (!cityDetails) {
+        throw new NotFoundException(`Unsupported city ${cityName}`);
+      }
+      transformedDto.cityId = cityDetails.id;
+      transformedDto.countryId = cityDetails.countryId;
+      transformedDto.address = createResidenceDto.address;
+    }
+
     return await this.residenceRepository.create(transformedDto);
   }
 
