@@ -70,9 +70,9 @@ import { BlogModule } from './blog/blog.module';
     PropertyTypeModule,
     RoomTypeModule,
     ResidenceEnquiryModule,
-    CareerModule,
     ResidenceDraftModule,
     BlogModule,
+    CareerModule,
   ],
   controllers: [],
   providers: [
