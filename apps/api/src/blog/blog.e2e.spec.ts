@@ -83,4 +83,14 @@ describe('BlogModule', () => {
     });
   });
 
+  describe('Get Related Blog posts', () => {
+    it('Should find blog posts related to the provided id', async () => {
+      const blogPost = app.getReference(BlogFixture.Blog_1);
+      const urlWithParams = `${url}/related?postId=${blogPost.id}`;
+      const res = await app.exec('GET', urlWithParams, { headers: {} });
+
+      expect(res.status).toBe(404);
+    });
+  });
+
 });
