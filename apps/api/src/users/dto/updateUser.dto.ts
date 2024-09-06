@@ -20,3 +20,7 @@ export class UpdateUserDto extends OmitType(CreateUserDto, [
   'resetPasswordToken',
   'verificationToken',
 ]) {}
+
+export class UpdateBuyerDto extends OmitType(UpdateUserDto, ['hundredFiveStarReviews']) {}
+
+export class UpdateSellerDto extends OmitType(UpdateUserDto, ['hundredFiveStarReviews']) {}

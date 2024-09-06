@@ -8,6 +8,7 @@ import {
   UserPreferences,
 } from '../types/user.type';
 import { UserCompanyInfo } from './../types/user.type';
+import { Types } from 'mongoose';
 
 export const phoneSchema = Joi.object({
   countryCode: Joi.string().required(),
@@ -28,7 +29,7 @@ export const contactPersonInfoSchema = Joi.object({
 });
 
 export const contactInfoSchema = Joi.object({
-  locationId: Joi.string().required(),
+  countryId: Joi.string().required(),
   phone: phoneSchema.required(),
   preferredContactMethods: Joi.array()
     .items(Joi.string().valid(...Object.values(UserContactMethod)))
@@ -50,7 +51,8 @@ export const budgetSchema = Joi.object({
 
 export const preferencesSchema = Joi.object({
   residenceTypeIds: Joi.array().items(Joi.string()).required(),
-  locationIds: Joi.array().items(Joi.string()).required(),
+  cityIds: Joi.array().items(Joi.string()).optional(),
+  countryIds: Joi.array().items(Joi.string()).optional(),
   lifeStyleIds: Joi.array().items(Joi.string()).required(),
   budget: budgetSchema.required(),
 });
@@ -87,6 +89,7 @@ export const createUserSchema = Joi.object({
   contactInfo: contactInfoSchema.optional(),
   preferences: preferencesSchema.optional(),
   notificationPreferences: notificationPreferencesSchema.optional(),
+  avatarImage: Joi.string().optional(),
 });
 
 export class CreateUserDto {
@@ -179,4 +182,11 @@ export class CreateUserDto {
     required: false,
   })
   notificationPreferences?: UserNotificationPreferences;
+
+  @ApiProperty({
+    description: 'Profile Avatar',
+    example: '66acda8b857c576159b74da4',
+    required: false,
+  })
+  avatarImage?: Types.ObjectId;
 }
