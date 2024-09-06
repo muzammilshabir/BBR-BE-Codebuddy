@@ -11,6 +11,8 @@ import { Public } from './decorators/public.decorator';
 import { Refresh } from './decorators/refresh.decorator';
 import { LoginDto, loginSchema } from './dto/login.dto';
 import {
+  ChangePasswordDto,
+  changePasswordSchema,
   ForgotPasswordDto,
   forgotPasswordSchema,
   ResetPasswordDto,
@@ -205,5 +207,17 @@ export class AuthController {
   ) {
     const user = await this.authService.updateSeller(userFromToken, updateSellerProfileDto);
     return ResponseService.buildResponse(user, 'Seller updated successfully');
+  }
+
+  @ApiOperation({ summary: 'Change password ' })
+  @ApiBearerAuth()
+  @Patch('change-password')
+  @UsePipes(new JoiValidationPipe(changePasswordSchema, 'body'))
+  async changePassword(
+    @Body() changePasswordDto: ChangePasswordDto,
+    @GetCurrentUser() user: JwtPayloadType
+  ) {
+    await this.authService.changePassword(changePasswordDto, user);
+    return ResponseService.buildResponse({}, 'Password has been changed successfully');
   }
 }
