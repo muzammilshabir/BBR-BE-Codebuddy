@@ -138,10 +138,7 @@ export class ResidenceService {
     addKeyFeaturesDto: AddKeyFeaturesDto,
     userId: string
   ): Promise<ResidenceDraft> {
-    const isRejected = await this.checkResidenceRejectedStatus(residenceId);
-    if (isRejected) {
-      throw new BadRequestException(`Rejected Residence cannot be updated`);
-    }
+    await this.checkResidenceRejectedStatus(residenceId);
 
     const transformedDto = {
       ...addKeyFeaturesDto,
