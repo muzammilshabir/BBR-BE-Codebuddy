@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { UnitRepository } from './unit.repository';
 import { AddUnitDto } from './dto/add-unit.dto';
 import { Unit } from './schema/unit.schema';
@@ -8,20 +8,25 @@ import { AddVisualsDto } from './dto/add-visuals.dto';
 import { BadRequestException, NotFoundException } from '@bbr/api-core/modules/exceptions';
 import { ListUnitDto } from './dto/list-unit.dto';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
-import { DeletionStatus, Recurrence, RoomType, ServiceType } from './enum/unit-enum';
+import { DeletionStatus, Recurrence } from './enum/unit-enum';
 import * as csv from 'csv-parser';
 import * as xlsx from 'xlsx';
 import { Readable } from 'stream';
 import { UploadService } from '../upload/upload.service';
 import * as fs from 'fs';
 import { ResidenceService } from '../residences/residences.service';
+import { RoomTypeRepository } from '../roomType/roomType.repository';
+import { ResidenceServiceRepository } from '../residenceService/residenceService.repository';
 
 @Injectable()
 export class UnitService {
+  private readonly logger = new Logger(UnitService.name);
   constructor(
     private readonly unitRepository: UnitRepository,
     private readonly uploadService: UploadService,
-    private readonly residenceService: ResidenceService
+    private readonly residenceService: ResidenceService,
+    private readonly roomTypeRepository: RoomTypeRepository,
+    private readonly residenceServiceRepository: ResidenceServiceRepository
   ) {}
 
   async addUnit(addUnitDto: AddUnitDto, residenceId: string, userId: string): Promise<Unit> {
@@ -36,11 +41,11 @@ export class UnitService {
   async addUnitKeyFeatures(
     addUnitKeyFeaturesDto: AddUnitKeyFeaturesDto,
     unitId: string,
-    userId?: string
+    userId: string
   ): Promise<Unit> {
     const updatedUnit = await this.unitRepository.update(unitId, {
       unitKeyFeatures: addUnitKeyFeaturesDto,
-      updatedById: userId ? new Types.ObjectId(userId) : undefined,
+      updatedById: new Types.ObjectId(userId),
     });
     if (!updatedUnit) {
       throw new NotFoundException(`Unit with ID ${unitId} not found`);
@@ -132,24 +137,77 @@ export class UnitService {
   private normalizeString(str: string): string {
     return str.trim().toUpperCase().replace(/\s+/g, '_');
   }
-  private parseResidenceServices(item: any): ResidenceServiceDto[] {
+
+  private async parseResidenceServices(
+    item: any
+  ): Promise<{ data: ResidenceServiceDto[]; errors: string[] }> {
+    const errors: string[] = [];
     const serviceTypes = item['Residence Services Type']?.split(',') || [];
     const amounts = item['Residence Services Amount']?.split(',') || [];
     const recurrences = item['Residence Services Recurrence']?.split(',') || [];
 
-    return serviceTypes.map((serviceType: string, index: number) => ({
-      serviceType: ServiceType[this.normalizeString(serviceType)],
-      amount: amounts[index] ? Number(amounts[index]) : undefined,
-      recurrence: recurrences[index]
-        ? Recurrence[this.normalizeString(recurrences[index])]
-        : undefined,
-    }));
+    const serviceTypeIds = await Promise.all(
+      serviceTypes.map(async (serviceType) => {
+        try {
+          const service = await this.residenceServiceRepository.findByService(serviceType);
+          if (!service) {
+            throw new Error(`Service Type ${serviceType} not found in database.`);
+          }
+          return service._id;
+        } catch (error) {
+          errors.push(error.message);
+        }
+      })
+    );
+
+    return {
+      data: serviceTypeIds.map((serviceTypeId, index) => ({
+        serviceTypeId,
+        amount: amounts[index] ? Number(amounts[index]) : undefined,
+        recurrence: recurrences[index]
+          ? Recurrence[this.normalizeString(recurrences[index])]
+          : undefined,
+      })),
+      errors,
+    };
   }
-  private async saveFileData(data: any[], residenceId: string, userId: string): Promise<Unit[]> {
+
+  private async saveFileData(
+    data: any[],
+    residenceId: string,
+    userId: string
+  ): Promise<{ addedUnits: Unit[]; failedToAdd: { unitName: string; errors: string[] }[] }> {
     const addedUnits: Unit[] = [];
+    const failedToAdd: { unitName: string; errors: string[] }[] = [];
+
     await this.residenceService.getResidenceById(residenceId);
 
     for (const item of data) {
+      const errors: string[] = [];
+      let roomDetails: { roomTypeId: Types.ObjectId; unit: number }[] = [];
+
+      if (item['Room Type']) {
+        const roomTypes = item['Room Type'].split(',');
+        const roomUnits = item['Room Unit'] ? item['Room Unit'].split(',') : [];
+
+        // Fetch roomTypeIds asynchronously
+        roomDetails = await Promise.all(
+          roomTypes.map(async (roomType, index) => {
+            const roomTypeDoc = await this.roomTypeRepository.findByType(roomType);
+
+            if (!roomTypeDoc) {
+              errors.push(`Room Type ${roomType} not found in database.`);
+              this.logger.error(`Room Type ${roomType} not found in database.`);
+            }
+
+            return {
+              roomTypeId: roomTypeDoc ? (roomTypeDoc._id as Types.ObjectId) : undefined,
+              unit: roomUnits[index] ? Number(roomUnits[index]) : undefined,
+            };
+          })
+        );
+      }
+
       const addUnitDto: AddUnitDto = {
         unitName: item['Unit Name'],
         specs: {
@@ -171,28 +229,31 @@ export class UnitService {
             ? new Date(item['Exclusive Offer End Date'])
             : undefined,
         },
-        rooms: item['Room Type']
-          ? item['Room Type'].split(',').map((roomType, index) => ({
-              roomType: RoomType[this.normalizeString(roomType)],
-              unit: Number(item['Room Unit'].split(',')[index]),
-            }))
-          : undefined,
+        rooms: roomDetails.length ? roomDetails : undefined,
         briefOverview: {
           subTitle: item['Brief Overview SubTitle'],
           description: item['Brief Overview Description'],
         },
       };
-
       const unitDetails = await this.addUnit(addUnitDto, residenceId, userId);
       const unitId = unitDetails.id;
 
+      const residenceServicesResult = item['Residence Services Type']
+        ? await this.parseResidenceServices(item)
+        : { data: [], errors: [] };
+
       const addUnitKeyFeaturesDto: AddUnitKeyFeaturesDto = {
         features: item['Unit Key Features'].split(',').map((feature: string) => feature.trim()),
-        residenceServices: item['Residence Services Type']
-          ? this.parseResidenceServices(item)
-          : undefined,
+        residenceServices: residenceServicesResult.data,
       };
-      await this.addUnitKeyFeatures(addUnitKeyFeaturesDto, unitId);
+
+      if (residenceServicesResult.errors.length > 0) {
+        failedToAdd.push({
+          unitName: item['Unit Name'],
+          errors: residenceServicesResult.errors,
+        });
+      }
+      await this.addUnitKeyFeatures(addUnitKeyFeaturesDto, unitId, userId);
 
       const addVisualsDto: AddVisualsDto = {
         mainPhotos: [],
@@ -203,15 +264,27 @@ export class UnitService {
 
       const mainGalleryUrls = item['Main Gallery Photos'].split(',');
       for (const url of mainGalleryUrls) {
-        const fileMetadata: any = await this.uploadService.downloadFile(url, userId);
-        addVisualsDto.mainGalleryPhotos.push(fileMetadata?._id);
+        const { fileMetadata, error } = await this.uploadService.downloadFile(url, userId);
+        if (error) {
+          failedToAdd.push({
+            unitName: item['Unit Name'],
+            errors: [error],
+          });
+        } else if (fileMetadata) {
+          addVisualsDto.mainGalleryPhotos.push(fileMetadata?._id);
+        }
       }
 
       if (item['Second Gallery Photos']) {
         const secondGalleryUrls = item['Second Gallery Photos'].split(',');
         for (const url of secondGalleryUrls) {
-          const fileMetadata: any = await this.uploadService.downloadFile(url, userId);
-          if (fileMetadata?._id) {
+          const { fileMetadata, error } = await this.uploadService.downloadFile(url, userId);
+          if (error) {
+            failedToAdd.push({
+              unitName: item['Unit Name'],
+              errors: [error],
+            });
+          } else if (fileMetadata) {
             addVisualsDto.secondGalleryPhotos.push(fileMetadata._id);
           }
         }
@@ -220,16 +293,29 @@ export class UnitService {
       if (item['Main Photos']) {
         const mainPhotosUrls = item['Main Photos'].split(',');
         for (const url of mainPhotosUrls) {
-          const fileMetadata: any = await this.uploadService.downloadFile(url, userId);
-          if (fileMetadata?._id) {
+          const { fileMetadata, error } = await this.uploadService.downloadFile(url, userId);
+          if (error) {
+            failedToAdd.push({
+              unitName: item['Unit Name'],
+              errors: [error],
+            });
+          } else if (fileMetadata) {
             addVisualsDto.mainPhotos.push(fileMetadata._id);
           }
         }
       }
 
       if (item['Video Tour']) {
-        const fileMetadata: any = await this.uploadService.downloadFile(item['Video Tour'], userId);
-        if (fileMetadata?._id) {
+        const { fileMetadata, error } = await this.uploadService.downloadFile(
+          item['Video Tour'],
+          userId
+        );
+        if (error) {
+          failedToAdd.push({
+            unitName: item['Unit Name'],
+            errors: [error],
+          });
+        } else if (fileMetadata) {
           addVisualsDto.videoTour = fileMetadata._id;
         }
       }
@@ -240,8 +326,14 @@ export class UnitService {
 
       const unit = await this.addVisuals(addVisualsDto, unitId, userId);
       addedUnits.push(unit);
+      if (errors.length > 0) {
+        failedToAdd.push({
+          unitName: item['Unit Name'],
+          errors: errors,
+        });
+      }
     }
 
-    return addedUnits;
+    return { addedUnits, failedToAdd };
   }
 }

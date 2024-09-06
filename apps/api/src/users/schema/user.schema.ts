@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
 import { SignupMethod, UserRole } from '../enum/user.enum';
 import {
   UserCompanyInfo,
@@ -79,6 +79,9 @@ export class User extends Document {
 
   @Prop({ required: false, type: Object })
   notificationPreferences: UserNotificationPreferences;
+
+  @Prop({ required: false, type: Types.ObjectId, ref: 'Upload' })
+  avatarImage: Types.ObjectId;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
