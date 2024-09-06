@@ -77,10 +77,7 @@ export class ResidenceService {
     updateResidenceDto: UpdateResidenceDto,
     user: JwtPayloadType
   ): Promise<ResidenceDraft> {
-    const isRejected = await this.checkResidenceRejectedStatus(id);
-    if (isRejected) {
-      throw new BadRequestException(`Rejected Residence cannot be updated`);
-    }
+    await this.checkResidenceRejectedStatus(id);
 
     const transformedDto: any = {
       ...updateResidenceDto,
@@ -119,12 +116,14 @@ export class ResidenceService {
     });
   }
 
-  async checkResidenceRejectedStatus(residenceId: string): Promise<boolean> {
+  async checkResidenceRejectedStatus(residenceId: string) {
     const residence = await this.residenceRepository.findById(residenceId);
     if (!residence) {
       throw new NotFoundException(`Residence with ID ${residenceId} not found`);
     }
-    return residence.status === ResidenceStatus.REJECTED;
+    if (residence.status === ResidenceStatus.REJECTED) {
+      throw new BadRequestException(`Rejected Residence cannot be updated`);
+    }
   }
 
   async checkResidenceDraft(residenceId: string): Promise<ResidenceDraft | null> {
