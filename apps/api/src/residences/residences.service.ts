@@ -108,9 +108,9 @@ export class ResidenceService {
       transformedDto.countryId = cityDetails.countryId;
       transformedDto.address = updateResidenceDto.address;
     }
-    const ResidenceDraft = await this.checkResidenceDraft(id);
-    if (ResidenceDraft) {
-      return await this.residenceDraftRepository.update(ResidenceDraft.id, transformedDto);
+    const residenceDraft = await this.checkResidenceDraft(id);
+    if (residenceDraft) {
+      return await this.residenceDraftRepository.update(residenceDraft.id, transformedDto);
     }
 
     await this.residenceDraftRepository.create({
