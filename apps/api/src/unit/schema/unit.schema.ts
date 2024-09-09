@@ -1,6 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
-import { RoomType } from '../enum/unit-enum';
 
 @Schema({ timestamps: true })
 export class Unit extends Document {
@@ -44,7 +43,7 @@ export class Unit extends Document {
   @Prop([
     {
       type: {
-        roomType: { type: String, enum: Object.values(RoomType) },
+        roomTypeId: { required: false, type: Types.ObjectId, ref: 'RoomType' },
         unit: Number,
         _id: false,
       },
@@ -52,7 +51,7 @@ export class Unit extends Document {
     },
   ])
   rooms: {
-    roomType: RoomType;
+    roomTypeId: Types.ObjectId;
     unit: number;
   }[];
 
@@ -75,7 +74,7 @@ export class Unit extends Document {
       residenceServices: [
         {
           type: {
-            serviceType: String,
+            serviceTypeId: { required: false, type: Types.ObjectId, ref: 'ResidenceService' },
             amount: Number,
             recurrence: String,
             _id: false,
@@ -89,7 +88,7 @@ export class Unit extends Document {
   unitKeyFeatures: {
     features: string[];
     residenceServices: {
-      serviceType: string;
+      serviceTypeId: Types.ObjectId;
       amount: number;
       recurrence: string;
     }[];
@@ -116,6 +115,9 @@ export class Unit extends Document {
 
   @Prop({ type: Types.ObjectId, ref: 'User' })
   createdById: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'User' })
+  updatedById: Types.ObjectId;
 
   @Prop({ type: Date })
   createdAt: Date;

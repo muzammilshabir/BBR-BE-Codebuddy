@@ -11,6 +11,14 @@ import { Public } from './decorators/public.decorator';
 import { Refresh } from './decorators/refresh.decorator';
 import { LoginDto, loginSchema } from './dto/login.dto';
 import {
+  ChangePasswordDto,
+  changePasswordSchema,
+  ForgotPasswordDto,
+  forgotPasswordSchema,
+  ResetPasswordDto,
+  resetPasswordSchema,
+} from './dto/passwordReset.dto';
+import {
   ResendVerificationEmailDto,
   resendVerificationEmailSchema,
 } from './dto/resendVerificationEmail';
@@ -25,6 +33,8 @@ import {
   acceptBBRCommitmentSchema,
   UpdateBuyerProfileDto,
   updateBuyerProfileSchema,
+  UpdateSellerProfileDto,
+  updateSellerProfileSchema,
 } from './dto/updateProfile';
 import { VerifyUserDto, verifyUserSchema } from './dto/verifyUser.dto';
 import { AtGuard } from './guards/at.guard';
@@ -141,6 +151,12 @@ export class AuthController {
 
   @Post('/seller/login/email')
   @Public()
+  @ApiHeader({
+    name: CaptchaEnum.HEADER,
+    required: false,
+    description: 'Send captcha token with this header, when getting captcha error',
+  })
+  @UseGuards(CaptchaGuard)
   @UsePipes(new JoiValidationPipe(loginSchema, 'body'))
   async sellerLoginWithEmailPassword(@Body() loginDto: LoginDto, @Ip() ip: string) {
     const response = await this.authService.loginWithEmailPassword(loginDto, UserRole.SELLER, ip);
@@ -159,5 +175,49 @@ export class AuthController {
   ) {
     const user = await this.authService.acceptBbrCommitment(userDetails, acceptBBRCommitment);
     return ResponseService.buildResponse(user, 'BBR Commitment accepted successfully');
+  }
+
+  @ApiOperation({ summary: 'Request a password reset link' })
+  @Public()
+  @Post('forgot-password')
+  @UsePipes(new JoiValidationPipe(forgotPasswordSchema, 'body'))
+  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
+    await this.authService.forgotPassword(forgotPasswordDto);
+    return ResponseService.buildResponse({}, 'Password reset link sent successfully');
+  }
+
+  @ApiOperation({ summary: 'Reset password using a token' })
+  @Public()
+  @Post('reset-password')
+  @UsePipes(new JoiValidationPipe(resetPasswordSchema, 'body'))
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    await this.authService.resetPassword(resetPasswordDto);
+    return ResponseService.buildResponse({}, 'Password has been reset successfully');
+  }
+
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Update Seller Profile',
+  })
+  @Patch('seller/me')
+  @UsePipes(new JoiValidationPipe(updateSellerProfileSchema, 'body'))
+  async updateSeller(
+    @GetCurrentUser() userFromToken: JwtPayloadType,
+    @Body() updateSellerProfileDto: UpdateSellerProfileDto
+  ) {
+    const user = await this.authService.updateSeller(userFromToken, updateSellerProfileDto);
+    return ResponseService.buildResponse(user, 'Seller updated successfully');
+  }
+
+  @ApiOperation({ summary: 'Change password ' })
+  @ApiBearerAuth()
+  @Patch('change-password')
+  @UsePipes(new JoiValidationPipe(changePasswordSchema, 'body'))
+  async changePassword(
+    @Body() changePasswordDto: ChangePasswordDto,
+    @GetCurrentUser() user: JwtPayloadType
+  ) {
+    await this.authService.changePassword(changePasswordDto, user);
+    return ResponseService.buildResponse({}, 'Password has been changed successfully');
   }
 }

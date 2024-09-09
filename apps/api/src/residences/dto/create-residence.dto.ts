@@ -56,6 +56,33 @@ export class BudgetLimitationsRange {
   endRange?: number;
 }
 
+export class Address {
+  @ApiProperty({ example: 'USA', required: false })
+  country?: string;
+
+  @ApiProperty({ example: 'California', required: false })
+  state?: string;
+
+  @ApiProperty({ example: 'Miami', required: true })
+  city: string;
+
+  @ApiProperty({ example: 'User provided address details', required: true })
+  userInput: string;
+
+  @ApiProperty({
+    type: 'object',
+    example: { lat: 34.0522, lng: -118.2437 },
+    required: false,
+  })
+  location?: {
+    lat?: number;
+    lng?: number;
+  };
+
+  @ApiProperty({ example: 'ChIJN1t_tDeuEmsRUsoyG83frY4', required: false })
+  placeId?: string;
+}
+
 export class CreateResidenceDto {
   @ApiProperty({ example: 'Ritz Carlton Miami', required: true })
   name: string;
@@ -80,6 +107,9 @@ export class CreateResidenceDto {
 
   @ApiProperty({ required: false })
   budgetLimitationsRange?: BudgetLimitationsRange;
+
+  @ApiProperty({ required: true })
+  address: Address;
 }
 
 export const createResidenceSchema = Joi.object({
@@ -102,6 +132,17 @@ export const createResidenceSchema = Joi.object({
   }).optional(),
   budgetLimitationsRange: Joi.object({
     startRange: Joi.number().optional(),
-    endRange: Joi.number().optional(),
+    endRange: Joi.number().optional().greater(Joi.ref('startRange')),
+  }).optional(),
+  address: Joi.object({
+    country: Joi.string().optional(),
+    state: Joi.string().optional(),
+    city: Joi.string().required(),
+    userInput: Joi.string().required(),
+    location: Joi.object({
+      lat: Joi.number().optional(),
+      lng: Joi.number().optional(),
+    }).optional(),
+    placeId: Joi.string().optional(),
   }).optional(),
 });

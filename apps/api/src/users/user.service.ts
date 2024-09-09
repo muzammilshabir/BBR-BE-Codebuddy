@@ -9,28 +9,25 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import * as bcrypt from 'bcryptjs';
 import { Model } from 'mongoose';
-import { MailerService } from 'src/mailer/mailer.service';
 import { ExceptionCodes } from '../../../../packages/api-core/modules/types/exceptionCodes.type';
 import { CreateUserDto } from './dto/createUser.dto';
 import { UpdateUserDto } from './dto/updateUser.dto';
 import { UserRole } from './enum/user.enum';
 import { User } from './schema/user.schema';
 import { UserRepository } from './user.repository';
+import { UpdateSellerProfileDto } from '../auth/dto/updateProfile';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectModel(User.name) private readonly userModel: Model<User>,
     private readonly tokenService: TokenService,
-    private readonly mailerService: MailerService,
     private readonly userRepository: UserRepository
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
     // Check if user with the given email already exists
-    const existingUser = await this.userModel
-      .findOne({ email: createUserDto.email, role: createUserDto.role })
-      .exec();
+    const existingUser = await this.userModel.findOne({ email: createUserDto.email }).exec();
 
     if (existingUser) {
       throw new ConflictException('User already exists');
@@ -57,8 +54,8 @@ export class UserService {
     }
   }
 
-  async verifyUserEmail(token: string, email: string, role: UserRole): Promise<boolean> {
-    const user = await this.userModel.findOne({ email, verificationToken: token, role }).exec();
+  async verifyUserEmail(token: string, email: string): Promise<boolean> {
+    const user = await this.userModel.findOne({ email, verificationToken: token }).exec();
 
     if (!user) {
       throw new NotFoundException('Invalid email or verification token');
@@ -121,30 +118,8 @@ export class UserService {
     return user;
   }
 
-  async forgotPassword(email: string): Promise<void> {
-    const user = await this.userModel.findOne({ email }).exec();
-
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-
-    const resetToken = this.tokenService.generateVerificationToken();
-    user.verificationToken = resetToken;
-    await user.save();
-
-    await this.mailerService.sendResetPasswordEmail(user.email, resetToken);
-  }
-
-  async resetPassword(_id: string, token: string, newPassword: string): Promise<void> {
-    const user = await this.userModel.findOne({ verificationToken: token }).exec();
-
-    if (!user) {
-      throw new NotFoundException('Invalid or expired reset token');
-    }
-
-    user.password = await bcrypt.hash(newPassword, 10);
-    user.verificationToken = null;
-    await user.save();
+  async updatePassword(id: string, password: string) {
+    return await this.userRepository.update(id, { password });
   }
 
   async update(
@@ -164,23 +139,46 @@ export class UserService {
       };
     }
 
-    await this.userModel.findByIdAndUpdate(id, updateUserDto, { new: true }).exec();
-
     if (!user) {
       throw new UnauthorizedException('Invalid token');
     }
 
-    return user;
+    return await this.userRepository.update(id, updateUserDto);
   }
 
   async acceptBbrCommitment(
     id: string,
-    commitement: boolean
+    commitment: boolean
   ): Promise<User | { errorCode: ExceptionCodes; message: string }> {
-    const user = await this.userRepository.update(id, { acceptBBRCommitment: commitement });
+    const user = await this.userRepository.update(id, { acceptBBRCommitment: commitment });
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
     return user;
+  }
+
+  async updateSeller(
+    id: string,
+    updateSellerProfileDto: UpdateSellerProfileDto
+  ): Promise<User | { errorCode: ExceptionCodes; message: string }> {
+    const user = await this.userModel.findById(id).exec();
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (!user.isVerified) {
+      return {
+        errorCode: ExceptionCodes.UnverifiedUser,
+        message: 'Please verify your account first',
+      };
+    }
+
+    const updatedUser = await this.userRepository.update(id, updateSellerProfileDto);
+    if (!updatedUser) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+
+    return updatedUser;
   }
 }

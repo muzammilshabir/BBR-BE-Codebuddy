@@ -12,11 +12,11 @@ export class Residence extends Document {
   @Prop({ required: true, type: Types.ObjectId, ref: 'Location' })
   locationId: Types.ObjectId;
 
-  @Prop({ required: true })
-  websiteLink: string;
+  @Prop({ required: false })
+  websiteLink?: string;
 
-  @Prop({ required: true, type: Types.ObjectId, ref: 'Brand' })
-  associatedBrandId: Types.ObjectId;
+  @Prop({ required: false, type: Types.ObjectId, ref: 'Brand' })
+  associatedBrandId?: Types.ObjectId;
 
   @Prop({
     type: {
@@ -88,6 +88,7 @@ export class Residence extends Document {
 
   @Prop({
     type: {
+      mainPhotos: [{ required: false, type: Types.ObjectId, ref: 'Upload' }],
       mainGalleryPhotos: [{ type: Types.ObjectId, ref: 'Upload' }],
       secondGalleryPhotos: [{ type: Types.ObjectId, ref: 'Upload' }],
       videoTour: { type: Types.ObjectId, ref: 'Upload' },
@@ -96,6 +97,7 @@ export class Residence extends Document {
     _id: false,
   })
   visuals: {
+    mainPhotos?: Types.ObjectId[];
     mainGalleryPhotos: Types.ObjectId[];
     secondGalleryPhotos: Types.ObjectId[];
     videoTour: Types.ObjectId;
@@ -141,6 +143,9 @@ export class Residence extends Document {
   @Prop({ type: Types.ObjectId, ref: 'City' })
   cityId: Types.ObjectId;
 
+  @Prop({ type: Types.ObjectId, ref: 'Country' })
+  countryId: Types.ObjectId;
+
   @Prop({ type: Types.ObjectId, ref: 'LifeStyle' })
   lifeStyleId: Types.ObjectId;
 
@@ -161,6 +166,32 @@ export class Residence extends Document {
 
   @Prop({ type: Date })
   submissionDate: Date; // Date when seller submits the request and admin activates the residence
+
+  @Prop({
+    type: {
+      country: { type: String, required: false },
+      state: { type: String, required: false },
+      city: { type: String, required: true },
+      userInput: { type: String, required: true },
+      location: {
+        lat: { type: Number, required: false },
+        lng: { type: Number, required: false },
+      },
+      placeId: { type: String, required: false },
+    },
+    _id: false,
+  })
+  address: {
+    country?: string;
+    state?: string;
+    city: string;
+    userInput: string;
+    location?: {
+      lat?: number;
+      lng?: number;
+    };
+    placeId?: string;
+  };
 }
 
 export const ResidenceSchema = SchemaFactory.createForClass(Residence);

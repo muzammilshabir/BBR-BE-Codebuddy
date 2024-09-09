@@ -1,16 +1,10 @@
+import { passwordSchema } from '@bbr/api-core/modules/dto/common.dto';
 import { ApiProperty } from '@nestjs/swagger';
 import * as Joi from 'joi';
 
 export const loginSchema = Joi.object({
   email: Joi.string().email().required(),
-  password: Joi.string()
-    .trim()
-    .min(8)
-    .max(32)
-    .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?])/)
-    .messages({
-      'string.pattern.base': 'Invalid password',
-    }),
+  password: passwordSchema,
 });
 
 export class LoginDto {
