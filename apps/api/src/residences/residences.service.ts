@@ -110,7 +110,7 @@ export class ResidenceService {
       return await this.residenceDraftRepository.update(residenceDraft.id, transformedDto);
     }
 
-    await this.residenceDraftRepository.create({
+    return await this.residenceDraftRepository.create({
       ...transformedDto,
       residenceId: new Types.ObjectId(id),
     });
@@ -165,14 +165,16 @@ export class ResidenceService {
       residenceId: new Types.ObjectId(residenceId),
     };
 
-    await this.residenceDraftRepository.create(newResidenceDraft);
+    return await this.residenceDraftRepository.create(newResidenceDraft);
   }
 
   async addVisuals(
-    id: string,
+    residenceId: string,
     addVisualsDto: AddResidenceVisualsDto,
     userId: string
   ): Promise<Residence> {
+    await this.checkResidenceRejectedStatus(residenceId);
+
     const transformedDto = {
       ...addVisualsDto,
       mainPhotos: addVisualsDto.mainGalleryPhotos
@@ -187,20 +189,35 @@ export class ResidenceService {
       videoTour: addVisualsDto.videoTour ? new Types.ObjectId(addVisualsDto.videoTour) : undefined,
       updatedById: new Types.ObjectId(userId),
     };
-    const existingResidence = await this.residenceRepository.update(id, {
-      visuals: transformedDto,
-    });
-    if (!existingResidence) {
-      throw new NotFoundException(`Residence with ID ${id} not found`);
+
+    const residenceDraft = await this.checkResidenceDraft(residenceId);
+
+    if (residenceDraft) {
+      return await this.residenceDraftRepository.update(residenceDraft.id, {
+        visuals: transformedDto,
+      });
     }
-    return existingResidence;
+
+    const residence: Residence = await this.residenceRepository.findById(residenceId);
+
+    const plainResidence = residence.toJSON();
+    delete plainResidence._id;
+
+    const newResidenceDraft = {
+      ...plainResidence,
+      visuals: transformedDto,
+      residenceId: new Types.ObjectId(residenceId),
+    };
+
+    return await this.residenceDraftRepository.create(newResidenceDraft);
   }
 
   async updateNearbyAmenities(
-    id: string,
+    residenceId: string,
     updateNearbyAmenitiesDto: UpdateNearbyAmenitiesDto,
     userId: string
   ): Promise<Residence> {
+    await this.checkResidenceRejectedStatus(residenceId);
     const transformedDto = {
       ...updateNearbyAmenitiesDto,
       amenitiesList: updateNearbyAmenitiesDto.amenitiesList.map(
@@ -220,13 +237,25 @@ export class ResidenceService {
       updatedById: new Types.ObjectId(userId),
     };
 
-    const existingResidence = await this.residenceRepository.update(id, {
-      nearbyAmenities: transformedDto,
-    });
-    if (!existingResidence) {
-      throw new NotFoundException(`Residence with ID ${id} not found`);
+    const residenceDraft = await this.checkResidenceDraft(residenceId);
+
+    if (residenceDraft) {
+      return await this.residenceDraftRepository.update(residenceDraft.id, {
+        nearbyAmenities: transformedDto,
+      });
     }
-    return existingResidence;
+    const residence: Residence = await this.residenceRepository.findById(residenceId);
+
+    const plainResidence = residence.toJSON();
+    delete plainResidence._id;
+
+    const newResidenceDraft = {
+      ...plainResidence,
+      nearbyAmenities: transformedDto,
+      residenceId: new Types.ObjectId(residenceId),
+    };
+
+    return await this.residenceDraftRepository.create(newResidenceDraft);
   }
 
   async getResidenceById(residenceId: string): Promise<any> {
