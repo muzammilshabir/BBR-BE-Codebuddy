@@ -11,7 +11,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
     super(residenceModel);
   }
 
-  async findById(residenceId: string): Promise<any> {
+  async findByIdInDetail(residenceId: string): Promise<any> {
     let residence: any = await this.residenceModel.findById(residenceId).populate([
       { path: 'residenceTypeId', select: 'type' },
       { path: 'locationId', select: 'name type parentId' },
