@@ -134,23 +134,38 @@ export class ResidenceService {
   }
 
   async addKeyFeatures(
-    id: string,
+    residenceId: string,
     addKeyFeaturesDto: AddKeyFeaturesDto,
     userId: string
-  ): Promise<Residence> {
+  ): Promise<ResidenceDraft> {
+    await this.checkResidenceRejectedStatus(residenceId);
+
     const transformedDto = {
       ...addKeyFeaturesDto,
       featureIds: addKeyFeaturesDto.featureIds.map((featureId) => new Types.ObjectId(featureId)),
       updatedById: new Types.ObjectId(userId),
     };
 
-    const existingResidence = await this.residenceRepository.update(id, {
-      residenceKeyFeatures: transformedDto,
-    });
-    if (!existingResidence) {
-      throw new NotFoundException(`Residence with ID ${id} not found`);
+    const residenceDraft = await this.checkResidenceDraft(residenceId);
+
+    if (residenceDraft) {
+      const updatedData = await this.residenceDraftRepository.update(residenceDraft.id, {
+        residenceKeyFeatures: transformedDto,
+      });
+      return updatedData;
     }
-    return existingResidence;
+    const residence: Residence = await this.residenceRepository.findById(residenceId);
+
+    const plainResidence = residence.toJSON();
+    delete plainResidence._id;
+
+    const newResidenceDraft = {
+      ...plainResidence,
+      residenceKeyFeatures: transformedDto,
+      residenceId: new Types.ObjectId(residenceId),
+    };
+
+    await this.residenceDraftRepository.create(newResidenceDraft);
   }
 
   async addVisuals(
