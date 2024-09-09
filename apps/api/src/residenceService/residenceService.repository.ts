@@ -12,4 +12,7 @@ export class ResidenceServiceRepository extends BaseRepository<ResidenceService>
   ) {
     super(residenceServiceModel);
   }
+  async findByService(type: string): Promise<ResidenceService> {
+    return this.residenceServiceModel.findOne({ type });
+  }
 }

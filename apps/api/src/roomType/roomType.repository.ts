@@ -9,4 +9,7 @@ export class RoomTypeRepository extends BaseRepository<RoomType> {
   constructor(@InjectModel(RoomType.name) private readonly roomTypeModel: Model<RoomType>) {
     super(roomTypeModel);
   }
+  async findByType(type: string): Promise<RoomType> {
+    return this.roomTypeModel.findOne({ type });
+  }
 }

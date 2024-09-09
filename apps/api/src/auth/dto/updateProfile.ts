@@ -1,5 +1,5 @@
 import { ApiProperty, OmitType } from '@nestjs/swagger';
-import { UpdateUserDto, updateUserSchema } from '../../users/dto/updateUser.dto';
+import { UpdateBuyerDto, UpdateSellerDto, updateUserSchema } from '../../users/dto/updateUser.dto';
 import * as Joi from 'joi';
 
 const omittedForBuyer = [
@@ -15,7 +15,7 @@ export const updateBuyerProfileSchema = updateUserSchema.fork(omittedForBuyer, (
   schema.forbidden()
 );
 
-export class UpdateBuyerProfileDto extends OmitType(UpdateUserDto, omittedForBuyer as never[]) {}
+export class UpdateBuyerProfileDto extends OmitType(UpdateBuyerDto, omittedForBuyer as never[]) {}
 
 export class AcceptBBRCommitment {
   @ApiProperty({
@@ -38,7 +38,10 @@ const omittedForSeller = [
   'fullName',
 ];
 
-export class UpdateSellerProfileDto extends OmitType(UpdateUserDto, omittedForSeller as never[]) {}
+export class UpdateSellerProfileDto extends OmitType(
+  UpdateSellerDto,
+  omittedForSeller as never[]
+) {}
 
 export const updateSellerProfileSchema = updateUserSchema.fork(omittedForSeller, (schema) =>
   schema.forbidden()

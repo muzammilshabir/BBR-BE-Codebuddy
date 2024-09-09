@@ -123,13 +123,24 @@ export class UploadService {
     }
   }
 
-  async downloadFile(publicUrl: string, userId: string) {
+  async downloadFile(
+    publicUrl: string,
+    userId: string
+  ): Promise<{ fileMetadata?: any; error?: string }> {
     try {
       const { passThrough, filename, contentType, size } = await this.downloadImage(publicUrl);
-      return await this.uploadImageToS3(passThrough, filename, contentType, size, userId);
+
+      const fileMetadata = await this.uploadImageToS3(
+        passThrough,
+        filename,
+        contentType,
+        size,
+        userId
+      );
+      return { fileMetadata };
     } catch (error) {
       console.error(`Failed to download image from URL: ${publicUrl}`, error.message);
-      return null;
+      return { error: `Failed to download image from URL: ${publicUrl}. Error: ${error.message}` };
     }
   }
   async downloadImage(url: string): Promise<any> {

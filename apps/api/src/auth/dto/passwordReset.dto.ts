@@ -18,7 +18,6 @@ export const resetPasswordSchema = Joi.object({
   token: Joi.string().trim().required(),
   password: passwordSchema,
 });
-
 export class ResetPasswordDto {
   @ApiProperty({
     example: '',
@@ -36,3 +35,32 @@ export class ResetPasswordDto {
   })
   password: string;
 }
+
+export class ChangePasswordDto {
+  @ApiProperty({
+    example: 'Pass@123',
+    description: 'The current password of the user',
+  })
+  currentPassword: string;
+
+  @ApiProperty({
+    example: 'Pass@456',
+    description: 'The new password that the user wants to set',
+  })
+  newPassword: string;
+
+  @ApiProperty({
+    example: 'Pass@456',
+    description: 'Confirmation of the new password',
+  })
+  confirmPassword: string;
+}
+
+export const changePasswordSchema = Joi.object({
+  currentPassword: Joi.string().required(),
+  newPassword: Joi.string().required(),
+  confirmPassword: Joi.string().valid(Joi.ref('newPassword')).required().messages({
+    'any.only': 'New password and confirm password must match',
+    'string.empty': 'Confirm password is required',
+  }),
+});

@@ -20,32 +20,65 @@ import { Writable } from 'stream';
 import { ResidenceStatus } from './enum/residence-enum';
 import { JwtPayloadType } from '../auth/type/jwt-payload.type';
 import { UserRole } from '../users/enum/user.enum';
+import { CityRepository } from '../city/city.repository';
+import { ResidenceDraftRepository } from '../residencesDraft/residencesDraft.repository';
+import { ResidenceDraft } from '../residencesDraft/schema/residencesDraft.schema';
 
 @Injectable()
 export class ResidenceService {
-  constructor(private readonly residenceRepository: ResidenceRepository) {}
+  constructor(
+    private readonly residenceRepository: ResidenceRepository,
+    private readonly cityRepository: CityRepository,
+    private readonly residenceDraftRepository: ResidenceDraftRepository
+  ) {}
 
   async create(createResidenceDto: CreateResidenceDto, user: JwtPayloadType): Promise<Residence> {
     const transformedDto: any = {
       ...createResidenceDto,
       residenceTypeId: new Types.ObjectId(createResidenceDto.residenceTypeId),
-      locationId: new Types.ObjectId(createResidenceDto.locationId), // remove in future
+      locationId: createResidenceDto.locationId
+        ? new Types.ObjectId(createResidenceDto.locationId)
+        : undefined,
       associatedBrandId: createResidenceDto.associatedBrandId
         ? new Types.ObjectId(createResidenceDto.associatedBrandId)
         : undefined,
       createdById: new Types.ObjectId(user.sub),
     };
+
     if (user.role === UserRole.SELLER) {
       transformedDto.developerId = new Types.ObjectId(user.sub);
     }
-    return await this.residenceRepository.create(transformedDto);
+
+    if (createResidenceDto.address?.city) {
+      const cityName = createResidenceDto.address.city.trim();
+      const cityDetails = await this.cityRepository.findByCityName(cityName);
+
+      if (!cityDetails) {
+        throw new NotFoundException(`Unsupported city ${cityName}`);
+      }
+
+      transformedDto.cityId = cityDetails.id;
+      transformedDto.countryId = cityDetails.countryId;
+      transformedDto.address = createResidenceDto.address;
+    }
+
+    const residence = await this.residenceRepository.create(transformedDto);
+
+    await this.residenceDraftRepository.create({
+      ...transformedDto,
+      residenceId: new Types.ObjectId(residence.id),
+    });
+
+    return residence;
   }
 
   async updateGeneralInfo(
     id: string,
     updateResidenceDto: UpdateResidenceDto,
     user: JwtPayloadType
-  ): Promise<Residence> {
+  ): Promise<ResidenceDraft> {
+    await this.checkResidenceRejectedStatus(id);
+
     const transformedDto: any = {
       ...updateResidenceDto,
       residenceTypeId: updateResidenceDto.residenceTypeId
@@ -60,38 +93,88 @@ export class ResidenceService {
       updatedById: new Types.ObjectId(user.sub),
     };
 
-    const existingResidence = await this.residenceRepository.update(id, transformedDto);
-    if (!existingResidence) {
-      throw new NotFoundException(`Residence with ID ${id} not found`);
+    if (updateResidenceDto.address?.city) {
+      const cityName = updateResidenceDto.address.city.trim();
+      const cityDetails = await this.cityRepository.findByCityName(cityName);
+
+      if (!cityDetails) {
+        throw new NotFoundException(`Unsupported city ${cityName}`);
+      }
+
+      transformedDto.cityId = cityDetails.id;
+      transformedDto.countryId = cityDetails.countryId;
+      transformedDto.address = updateResidenceDto.address;
     }
-    return existingResidence;
+    const residenceDraft = await this.checkResidenceDraft(id);
+    if (residenceDraft) {
+      return await this.residenceDraftRepository.update(residenceDraft.id, transformedDto);
+    }
+
+    return await this.residenceDraftRepository.create({
+      ...transformedDto,
+      residenceId: new Types.ObjectId(id),
+    });
+  }
+
+  async checkResidenceRejectedStatus(residenceId: string) {
+    const residence = await this.residenceRepository.findById(residenceId);
+    if (!residence) {
+      throw new NotFoundException(`Residence with ID ${residenceId} not found`);
+    }
+    if (residence.status === ResidenceStatus.REJECTED) {
+      throw new BadRequestException(`Rejected Residence cannot be updated`);
+    }
+  }
+
+  async checkResidenceDraft(residenceId: string): Promise<ResidenceDraft | null> {
+    return await this.residenceDraftRepository.find({
+      residenceId: new Types.ObjectId(residenceId),
+      status: { $in: [ResidenceStatus.DRAFT, ResidenceStatus.PENDING] },
+    });
   }
 
   async addKeyFeatures(
-    id: string,
+    residenceId: string,
     addKeyFeaturesDto: AddKeyFeaturesDto,
     userId: string
-  ): Promise<Residence> {
+  ): Promise<ResidenceDraft> {
+    await this.checkResidenceRejectedStatus(residenceId);
+
     const transformedDto = {
       ...addKeyFeaturesDto,
       featureIds: addKeyFeaturesDto.featureIds.map((featureId) => new Types.ObjectId(featureId)),
       updatedById: new Types.ObjectId(userId),
     };
 
-    const existingResidence = await this.residenceRepository.update(id, {
-      residenceKeyFeatures: transformedDto,
-    });
-    if (!existingResidence) {
-      throw new NotFoundException(`Residence with ID ${id} not found`);
+    const residenceDraft = await this.checkResidenceDraft(residenceId);
+
+    if (residenceDraft) {
+      const updatedData = await this.residenceDraftRepository.update(residenceDraft.id, {
+        residenceKeyFeatures: transformedDto,
+      });
+      return updatedData;
     }
-    return existingResidence;
+    const residence: Residence = await this.residenceRepository.findById(residenceId);
+
+    const plainResidence = residence.toJSON();
+    delete plainResidence._id;
+
+    const newResidenceDraft = {
+      ...plainResidence,
+      residenceKeyFeatures: transformedDto,
+      residenceId: new Types.ObjectId(residenceId),
+    };
+
+    return await this.residenceDraftRepository.create(newResidenceDraft);
   }
 
   async addVisuals(
-    id: string,
+    residenceId: string,
     addVisualsDto: AddResidenceVisualsDto,
     userId: string
   ): Promise<Residence> {
+    await this.checkResidenceRejectedStatus(residenceId);
+
     const transformedDto = {
       ...addVisualsDto,
       mainPhotos: addVisualsDto.mainGalleryPhotos
@@ -106,20 +189,35 @@ export class ResidenceService {
       videoTour: addVisualsDto.videoTour ? new Types.ObjectId(addVisualsDto.videoTour) : undefined,
       updatedById: new Types.ObjectId(userId),
     };
-    const existingResidence = await this.residenceRepository.update(id, {
-      visuals: transformedDto,
-    });
-    if (!existingResidence) {
-      throw new NotFoundException(`Residence with ID ${id} not found`);
+
+    const residenceDraft = await this.checkResidenceDraft(residenceId);
+
+    if (residenceDraft) {
+      return await this.residenceDraftRepository.update(residenceDraft.id, {
+        visuals: transformedDto,
+      });
     }
-    return existingResidence;
+
+    const residence: Residence = await this.residenceRepository.findById(residenceId);
+
+    const plainResidence = residence.toJSON();
+    delete plainResidence._id;
+
+    const newResidenceDraft = {
+      ...plainResidence,
+      visuals: transformedDto,
+      residenceId: new Types.ObjectId(residenceId),
+    };
+
+    return await this.residenceDraftRepository.create(newResidenceDraft);
   }
 
   async updateNearbyAmenities(
-    id: string,
+    residenceId: string,
     updateNearbyAmenitiesDto: UpdateNearbyAmenitiesDto,
     userId: string
   ): Promise<Residence> {
+    await this.checkResidenceRejectedStatus(residenceId);
     const transformedDto = {
       ...updateNearbyAmenitiesDto,
       amenitiesList: updateNearbyAmenitiesDto.amenitiesList.map(
@@ -139,17 +237,29 @@ export class ResidenceService {
       updatedById: new Types.ObjectId(userId),
     };
 
-    const existingResidence = await this.residenceRepository.update(id, {
-      nearbyAmenities: transformedDto,
-    });
-    if (!existingResidence) {
-      throw new NotFoundException(`Residence with ID ${id} not found`);
+    const residenceDraft = await this.checkResidenceDraft(residenceId);
+
+    if (residenceDraft) {
+      return await this.residenceDraftRepository.update(residenceDraft.id, {
+        nearbyAmenities: transformedDto,
+      });
     }
-    return existingResidence;
+    const residence: Residence = await this.residenceRepository.findById(residenceId);
+
+    const plainResidence = residence.toJSON();
+    delete plainResidence._id;
+
+    const newResidenceDraft = {
+      ...plainResidence,
+      nearbyAmenities: transformedDto,
+      residenceId: new Types.ObjectId(residenceId),
+    };
+
+    return await this.residenceDraftRepository.create(newResidenceDraft);
   }
 
   async getResidenceById(residenceId: string): Promise<any> {
-    const residenceDetails = await this.residenceRepository.findById(residenceId);
+    const residenceDetails = await this.residenceRepository.findByIdInDetail(residenceId);
     return residenceDetails;
   }
 
