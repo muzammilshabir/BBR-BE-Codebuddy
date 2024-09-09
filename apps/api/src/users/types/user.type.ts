@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { UserContactMethod } from '../enum/user.enum';
+import { Types } from 'mongoose';
 
 export class UserPhone {
   @ApiProperty({ description: 'Country code of the phone number', example: '+1' })
@@ -35,8 +36,11 @@ export class UserContactPersonInfo {
 }
 
 export class UserContactInfo {
-  @ApiProperty({ description: 'Location ID associated with the contact', example: 'location123' })
-  locationId: string;
+  @ApiProperty({
+    description: 'Location ID associated with the contact',
+    example: '66acda8b857c576159b74da4',
+  })
+  countryId: string;
 
   @ApiProperty({ description: 'Phone information', type: UserPhone })
   phone: UserPhone;
@@ -59,21 +63,30 @@ export class UserPreferences {
     isArray: true,
     example: ['residence1', 'residence2'],
   })
-  residenceTypeIds: string[];
+  residenceTypeIds?: Types.ObjectId[];
 
   @ApiProperty({
-    description: 'IDs of preferred locations',
+    description: 'IDs of preferred cities',
     isArray: true,
-    example: ['location1', 'location2'],
+    example: ['66acda8b857c576159b74da4', '66acda8b857c576159b74da4'],
+    required: false,
   })
-  locationIds: string[];
+  cityIds?: Types.ObjectId[];
+
+  @ApiProperty({
+    description: 'IDs of preferred countries',
+    isArray: true,
+    example: ['66acda8b857c576159b74da4', '66acda8b857c576159b74da4'],
+    required: false,
+  })
+  countryIds?: Types.ObjectId[];
 
   @ApiProperty({
     description: 'IDs of preferred lifestyle options',
     isArray: true,
-    example: ['lifestyle1', 'lifestyle2'],
+    example: ['66acda8b857c576159b74da4', '66acda8b857c576159b74da4'],
   })
-  lifeStyleIds: string[];
+  lifeStyleIds?: Types.ObjectId[];
 
   @ApiProperty({ description: 'Budget preferences', type: UserBudget })
   budget: UserBudget;

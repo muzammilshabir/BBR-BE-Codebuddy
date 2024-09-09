@@ -49,7 +49,7 @@ export class ResidenceController {
 
   @Post()
   @ApiOperation({
-    summary: 'Create Residence with general info',
+    summary: 'Create Residence and Draft with general info',
   })
   @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
