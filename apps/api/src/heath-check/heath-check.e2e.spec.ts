@@ -1,8 +1,8 @@
 import { AppModule } from '../app.module';
-import { TestSuite } from '@bbr/api-core/modules/testing/test.suite';
+import { TestSuiteBBR } from '../testing/test.suite';
 
 describe('Heath Check', () => {
-  const app = new TestSuite(AppModule, [], []);
+  const app = new TestSuiteBBR(AppModule, [], []);
 
   it('should return OK', async () => {
     const res = await app.exec('GET', '/health-check', {});

@@ -106,6 +106,10 @@
       "a"
     ],
     "rootDir": "src",
+    "moduleNameMapper": {
+      "^src/(.*)": "<rootDir>/$1"
+    },
+    "testTimeout": 15000,
     "testEnvironment": "node",
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {

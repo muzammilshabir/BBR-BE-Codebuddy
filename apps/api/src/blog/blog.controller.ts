@@ -1,7 +1,7 @@
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
 import { Controller, Post, Body, UsePipes, Get, Query, Param } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { BlogService } from './blog.service';
 import { CreateBlogPostDto, createBlogPostDtoSchema } from './dto/create-blog-post.dto';
 import { CreateBlogCategoryDto, createBlogCategoryDtoSchema } from './dto/create-blog-category.dto';
@@ -9,6 +9,9 @@ import { ListBlogPostsDto, listBlogPostsSchema } from './dto/list-blog-posts.dto
 import { GetRelatedBlogPostsDto, getRelatedBlogPostsSchema } from './dto/get-related-blog-posts.dto';
 import { GetPopularBlogPostsDto, getPopularBlogPostsSchema } from './dto/get-popular-blog-posts.dto';
 import { GetBlogPostByIdDto, getBlogPostByIdSchema } from './dto/get-blog-post-by-id.dto';
+import { Public } from 'src/auth/decorators/public.decorator';
+import { UserRole } from 'src/users/enum/user.enum';
+import { Roles } from 'src/auth/decorators/roles.decorator';
 
 @ApiTags('Blog')
 @Controller('blog')
@@ -19,6 +22,8 @@ export class BlogController {
   @ApiOperation({
     summary: 'Create new Blog Post',
   })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
   @UsePipes(new JoiValidationPipe(createBlogPostDtoSchema, 'body'))
   async createPost(
     @Body() createBlogPostDto: CreateBlogPostDto,
@@ -31,6 +36,8 @@ export class BlogController {
   @ApiOperation({
     summary: 'Create new Blog Category',
   })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
   @UsePipes(new JoiValidationPipe(createBlogCategoryDtoSchema, 'body'))
   async createCategory(
     @Body() createBlogCategoryDto: CreateBlogCategoryDto,
@@ -43,19 +50,10 @@ export class BlogController {
   @ApiOperation({
     summary: 'List Blog posts',
   })
+  @Public()
   @UsePipes(new JoiValidationPipe(listBlogPostsSchema, 'query'))
   async listPosts(@Query() query: ListBlogPostsDto) {
     const posts = await this.blogService.listPosts(query);
-    return ResponseService.buildResponse(posts);
-  }
-
-  @Get('/:postId')
-  @ApiOperation({
-    summary: 'Get Blog post by Id',
-  })
-  @UsePipes(new JoiValidationPipe(getBlogPostByIdSchema, 'param'))
-  async getPostById(@Param() params: GetBlogPostByIdDto) {
-    const posts = await this.blogService.getPostByIdAndUpdateView(params.postId);
     return ResponseService.buildResponse(posts);
   }
 
@@ -63,6 +61,7 @@ export class BlogController {
   @ApiOperation({
     summary: 'Get Related Blog posts',
   })
+  @Public()
   @UsePipes(new JoiValidationPipe(getRelatedBlogPostsSchema, 'query'))
   async getRelatedPosts(@Query() query: GetRelatedBlogPostsDto) {
     const posts = await this.blogService.getRelatedPosts(query);
@@ -73,9 +72,22 @@ export class BlogController {
   @ApiOperation({
     summary: 'Get Popular Blog posts',
   })
+  @Public()
   @UsePipes(new JoiValidationPipe(getPopularBlogPostsSchema, 'query'))
   async getPopularPosts(@Query() query: GetPopularBlogPostsDto) {
     const posts = await this.blogService.getPopularPosts(query);
     return ResponseService.buildResponse(posts);
   }
+
+  @Get('/:postId')
+  @ApiOperation({
+    summary: 'Get Blog post by Id',
+  })
+  @Public()
+  @UsePipes(new JoiValidationPipe(getBlogPostByIdSchema, 'param'))
+  async getPostById(@Param() params: GetBlogPostByIdDto) {
+    const posts = await this.blogService.getPostByIdAndUpdateView(params.postId);
+    return ResponseService.buildResponse(posts);
+  }
+
 }

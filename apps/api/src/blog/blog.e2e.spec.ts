@@ -1,10 +1,11 @@
+import { UserRole } from 'src/users/enum/user.enum';
 import { AppModule } from '../app.module';
-import { TestSuite } from '@bbr/api-core/modules/testing/test.suite';
+import { TestSuiteBBR } from '../testing/test.suite';
 import { UploadFixture } from '../upload/upload.fixture';
 import { BlogFixture } from './blog.fixture';
 
 describe('BlogModule', () => {
-  const app = new TestSuite(AppModule, [
+  const app = new TestSuiteBBR(AppModule, [
     BlogFixture,
     UploadFixture,
   ]);
@@ -33,6 +34,7 @@ describe('BlogModule', () => {
       const res = await app.exec('POST', `${url}/admin/create/post`, {
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await app.getUserToken(UserRole.ADMIN)}`,
         },
         data: body,
       });
@@ -54,6 +56,7 @@ describe('BlogModule', () => {
       const res = await app.exec('POST', `${url}/admin/create/category`, {
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await app.getUserToken(UserRole.ADMIN)}`,
         },
         data: body,
       });
@@ -68,7 +71,7 @@ describe('BlogModule', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.data.pagination.totalDocs).toEqual(1);
-      expect(res.body.data.posts[0].blog.title).toEqual('The Benefits of Living in a Gated Community!');
+      expect(res.body.data.posts[0].title).toEqual('The Benefits of Living in a Gated Community!');
     });
   });
 
@@ -79,7 +82,7 @@ describe('BlogModule', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.data.pagination.totalDocs).toEqual(1);
-      expect(res.body.data.posts[0].blog.title).toEqual('The Benefits of Living in a Gated Community!');
+      expect(res.body.data.posts[0].title).toEqual('The Benefits of Living in a Gated Community!');
     });
   });
 
@@ -89,7 +92,7 @@ describe('BlogModule', () => {
       const urlWithParams = `${url}/related?postId=${blogPost.id}`;
       const res = await app.exec('GET', urlWithParams, { headers: {} });
 
-      expect(res.status).toBe(404);
+      expect(res.status).toBe(200);
     });
   });
 

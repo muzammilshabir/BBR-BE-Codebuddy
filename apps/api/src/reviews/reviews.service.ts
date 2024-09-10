@@ -57,10 +57,10 @@ export class ReviewService {
     const createdReview = await this.reviewRepository.create(transformedDto);
 
     const residence = await this.residenceService.getResidenceById(createReviewDto.residenceId.toString());
-    const residenceSeller = residence.createdBy as User;
-    const matchedWords = this.matchReviewWordsWithReview(residenceSeller.reviewWordsForAlert, createdReview.review.details.concat(createdReview.review.title));
-    if(residenceSeller.reviewWordsForAlert.length > 0 && matchedWords.length > 0) {
-      await this.sendReviewWordsMatchEmail(residenceSeller.email, residenceSeller.fullName, residence.name, matchedWords.toString());
+    const residenceSeller = await this.userService.findById(residence.createdById);
+    if(residenceSeller && residenceSeller.reviewWordsForAlert.length > 0) {
+      const matchedWords = this.matchReviewWordsWithReview(residenceSeller?.reviewWordsForAlert, createdReview.review.details.concat(createdReview.review.title));
+      if (matchedWords.length > 0) await this.sendReviewWordsMatchEmail(residenceSeller.email, residenceSeller.fullName, residence.name, matchedWords.toString());
     }
     if(createReviewDto.rating < 4) {
       await this.sendLowStarReviewEmail(residenceSeller.email, residenceSeller.fullName, residence.name, createReviewDto.rating.toString());
@@ -145,7 +145,7 @@ export class ReviewService {
   async listReviews(listReviewsDto: ListReviewsDto) {
     const filter: any = {
       isDeleted: DeletionStatus.ACTIVE,
-      residenceId: new Types.ObjectId(listReviewsDto.residenceId),
+      residence: new Types.ObjectId(listReviewsDto.residenceId),
     };
     if(listReviewsDto.isFlagged) {
       filter.isFlagged = true;
@@ -169,7 +169,7 @@ export class ReviewService {
   async getStatsByResidenceId(residenceId: string) {
     const filter: any = {
       isDeleted: DeletionStatus.ACTIVE,
-      residenceId: new Types.ObjectId(residenceId),
+      residence: new Types.ObjectId(residenceId),
     };
 
     const { data, count } = await this.reviewRepository.findAll(filter);
