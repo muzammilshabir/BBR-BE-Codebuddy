@@ -263,24 +263,31 @@ export class ResidenceService {
     return residenceDetails;
   }
 
-  async approveResidence(residenceId: string, userId: string): Promise<Residence> {
-    const residence = await this.getResidenceById(residenceId);
-    if (!residence) {
-      throw new NotFoundException(`Residence with ID ${residenceId} not found`);
-    }
+  async approveResidence(residenceId: string, userId: string): Promise<ResidenceDraft> {
+    await this.checkResidenceRejectedStatus(residenceId);
 
-    if (residence.status !== ResidenceStatus.PENDING) {
+    const residenceDraftRequest = await this.checkResidenceDraft(residenceId);
+    if (!residenceDraftRequest) {
       throw new BadRequestException(
-        `Cannot approve residence with status: ${residence.status}. Only pending residences can be approved.`
+        `Not found pending Residence Draft Request with residenceId ${residenceId}`
       );
     }
+    const draftRequestId = residenceDraftRequest.id.toString();
 
-    const existingResidence = await this.residenceRepository.update(residenceId, {
+    await this.residenceRepository.update(residenceId, {
       status: ResidenceStatus.ACTIVE,
-      updatedById: userId,
+      updatedById: new Types.ObjectId(userId),
     });
 
-    return existingResidence;
+    const updatedResidenceDraftRequest = await this.residenceDraftRepository.update(
+      draftRequestId,
+      {
+        status: ResidenceStatus.ACTIVE,
+        updatedById: new Types.ObjectId(userId),
+      }
+    );
+
+    return updatedResidenceDraftRequest;
   }
 
   async listResidences(listResidenceDto: ListResidenceDto) {
