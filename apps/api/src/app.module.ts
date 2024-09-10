@@ -32,6 +32,7 @@ import { CityModule } from './city/city.module';
 import { PropertyTypeModule } from './propertyType/propertyType.module';
 import { RoomTypeModule } from './roomType/roomType.module';
 import { ResidenceServiceModule } from './residenceService/residenceService.module';
+import { BlogModule } from './blog/blog.module';
 import { ResidenceEnquiryModule } from './residenceEnquiry/residenceEnquiry.module';
 import { CareerModule } from './careers/career.module';
 import { ResidenceDraftModule } from './residencesDraft/residencesDraft.module';
@@ -69,6 +70,7 @@ import { BlogModule } from './blog/blog.module';
     CityModule,
     PropertyTypeModule,
     RoomTypeModule,
+    BlogModule,
     ResidenceEnquiryModule,
     ResidenceDraftModule,
     BlogModule,
