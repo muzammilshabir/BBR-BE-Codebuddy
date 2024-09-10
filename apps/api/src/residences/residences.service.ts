@@ -350,7 +350,7 @@ export class ResidenceService {
     return { pagination, residences: transformedResidence };
   }
 
-  private transformResidences(residences: Residence[]): Residence[] {
+  transformResidences(residences: Residence[]): Residence[] {
     return residences.map((residence) => {
       const transformedResidence: any = { ...residence };
 
