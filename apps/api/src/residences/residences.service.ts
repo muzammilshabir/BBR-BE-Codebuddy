@@ -476,12 +476,6 @@ export class ResidenceService {
     }
     const draftRequestId = residenceDraftRequest.id.toString();
 
-    await this.residenceRepository.update(residenceId, {
-      status: ResidenceStatus.REJECTED,
-      rejectionReason: rejectResidenceDto.rejectionReason,
-      updatedById: new Types.ObjectId(userId),
-    });
-
     const updatedResidenceDraftRequest = await this.residenceDraftRepository.update(
       draftRequestId,
       {
@@ -490,6 +484,14 @@ export class ResidenceService {
         updatedById: new Types.ObjectId(userId),
       }
     );
+
+    // TODO: reject unit draft request
+
+    await this.residenceRepository.update(residenceId, {
+      status: ResidenceStatus.REJECTED,
+      rejectionReason: rejectResidenceDto.rejectionReason,
+      updatedById: new Types.ObjectId(userId),
+    });
 
     return updatedResidenceDraftRequest;
   }
