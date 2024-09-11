@@ -474,10 +474,9 @@ export class ResidenceService {
         `Not found pending Residence Draft Request with residenceId ${residenceId}`
       );
     }
-    const draftRequestId = residenceDraftRequest.id.toString();
 
     const updatedResidenceDraftRequest = await this.residenceDraftRepository.update(
-      draftRequestId,
+      residenceDraftRequest.id,
       {
         status: ResidenceStatus.REJECTED,
         rejectionReason: rejectResidenceDto.rejectionReason,
