@@ -274,11 +274,6 @@ export class ResidenceService {
     }
     const draftRequestId = residenceDraftRequest.id.toString();
 
-    await this.residenceRepository.update(residenceId, {
-      status: ResidenceStatus.ACTIVE,
-      updatedById: new Types.ObjectId(userId),
-    });
-
     const updatedResidenceDraftRequest = await this.residenceDraftRepository.update(
       draftRequestId,
       {
@@ -286,6 +281,12 @@ export class ResidenceService {
         updatedById: new Types.ObjectId(userId),
       }
     );
+    // TODO: approve draft unit request
+
+    await this.residenceRepository.update(residenceId, {
+      status: ResidenceStatus.ACTIVE,
+      updatedById: new Types.ObjectId(userId),
+    });
 
     return updatedResidenceDraftRequest;
   }
