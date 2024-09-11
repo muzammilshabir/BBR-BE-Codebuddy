@@ -57,8 +57,8 @@ export class ResidenceService {
         throw new NotFoundException(`Unsupported city ${cityName}`);
       }
 
-      transformedDto.cityId = cityDetails.id;
-      transformedDto.countryId = cityDetails.countryId;
+      transformedDto.cityId = new Types.ObjectId(cityDetails.id);
+      transformedDto.countryId = new Types.ObjectId(cityDetails.countryId);
       transformedDto.address = createResidenceDto.address;
     }
 
@@ -101,8 +101,8 @@ export class ResidenceService {
         throw new NotFoundException(`Unsupported city ${cityName}`);
       }
 
-      transformedDto.cityId = cityDetails.id;
-      transformedDto.countryId = cityDetails.countryId;
+      transformedDto.cityId = new Types.ObjectId(cityDetails.id);
+      transformedDto.countryId = new Types.ObjectId(cityDetails.countryId);
       transformedDto.address = updateResidenceDto.address;
     }
     const residenceDraft = await this.checkResidenceDraft(id);
