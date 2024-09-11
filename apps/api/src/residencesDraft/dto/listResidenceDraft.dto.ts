@@ -14,7 +14,7 @@ export class ListResidenceDraftDto extends ListPropsDto {
   search?: string;
 
   @ApiProperty({
-    description: 'Filter by ciyt ID',
+    description: 'Filter by city ID',
     example: '60b6c0f53b5a5c1f88d25a1b',
     required: false,
     type: String,
