@@ -168,6 +168,11 @@ export class UnitService {
     if (listUnitDto.residenceId) {
       filter.residenceId = new Types.ObjectId(listUnitDto.residenceId);
     }
+
+    if (listUnitDto.status) {
+      filter.status = listUnitDto.status;
+    }
+
     const options = PaginationService.prepareOptions(listUnitDto);
 
     const { data, count } = await this.unitRepository.findAll(filter, options);
