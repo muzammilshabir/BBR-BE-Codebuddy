@@ -17,7 +17,8 @@ type Template =
 'review-response' |
 'review-weekly-summary' |
 'specific-words-review' |
-'hundred-five-star-reviews';
+'hundred-five-star-reviews' |
+'job-application';
 
 export class SendEmailEvent {
   static event = 'send-email';
