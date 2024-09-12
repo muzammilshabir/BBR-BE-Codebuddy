@@ -73,4 +73,9 @@ export class ResidenceDraftService {
 
     return { pagination, residencesDraft: transformedResidence };
   }
+
+  async getResidenceDraftById(residenceDraftId: string): Promise<any> {
+    const residenceDetails = await this.residenceDraftRepository.findByIdInDetail(residenceDraftId);
+    return residenceDetails;
+  }
 }
