@@ -34,6 +34,7 @@ import { RoomTypeModule } from './roomType/roomType.module';
 import { ResidenceServiceModule } from './residenceService/residenceService.module';
 import { BlogModule } from './blog/blog.module';
 import { ResidenceEnquiryModule } from './residenceEnquiry/residenceEnquiry.module';
+import { CareerModule } from './careers/career.module';
 import { ResidenceDraftModule } from './residencesDraft/residencesDraft.module';
 @Module({
   imports: [
@@ -71,6 +72,8 @@ import { ResidenceDraftModule } from './residencesDraft/residencesDraft.module';
     BlogModule,
     ResidenceEnquiryModule,
     ResidenceDraftModule,
+    BlogModule,
+    CareerModule,
   ],
   controllers: [],
   providers: [
