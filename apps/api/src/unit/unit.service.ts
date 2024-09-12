@@ -81,41 +81,37 @@ export class UnitService {
     unitId: string,
     userId: string
   ): Promise<Unit> {
-    try {
-      const existingUnit = await this.unitRepository.findById(unitId);
-      if (!existingUnit) {
-        throw new NotFoundException(`Unit with ID ${unitId} not found`);
-      }
-      const residenceId = existingUnit.residenceId.toString();
+    const existingUnit = await this.unitRepository.findById(unitId);
+    if (!existingUnit) {
+      throw new NotFoundException(`Unit with ID ${unitId} not found`);
+    }
+    const residenceId = existingUnit.residenceId.toString();
 
-      await this.residenceService.checkResidenceRejectedStatus(residenceId);
+    await this.residenceService.checkResidenceRejectedStatus(residenceId);
 
-      const existingUnitDraft = await this.checkUnitDraft(unitId);
-      if (existingUnitDraft) {
-        return await this.unitDraftRepository.update(existingUnitDraft.id, {
-          unitKeyFeatures: addUnitKeyFeaturesDto,
-          updatedById: new Types.ObjectId(userId),
-          status: ResidenceStatus.DRAFT,
-        });
-      }
-
-      const plainUnit = existingUnit.toJSON();
-      delete plainUnit._id;
-
-      const unitDraft = await this.unitDraftRepository.create({
-        unitId,
+    const existingUnitDraft = await this.checkUnitDraft(unitId);
+    if (existingUnitDraft) {
+      return await this.unitDraftRepository.update(existingUnitDraft.id, {
         unitKeyFeatures: addUnitKeyFeaturesDto,
         updatedById: new Types.ObjectId(userId),
         status: ResidenceStatus.DRAFT,
-        ...plainUnit,
       });
-
-      await this.checkAndHandleResidenceDraft(residenceId);
-
-      return unitDraft;
-    } catch (error) {
-      console.log('error :>> ', error);
     }
+
+    const plainUnit = existingUnit.toJSON();
+    delete plainUnit._id;
+
+    const unitDraft = await this.unitDraftRepository.create({
+      unitId,
+      unitKeyFeatures: addUnitKeyFeaturesDto,
+      updatedById: new Types.ObjectId(userId),
+      status: ResidenceStatus.DRAFT,
+      ...plainUnit,
+    });
+
+    await this.checkAndHandleResidenceDraft(residenceId);
+
+    return unitDraft;
   }
 
   async addVisuals(addVisualsDto: AddVisualsDto, unitId: string, userId: string): Promise<Unit> {
