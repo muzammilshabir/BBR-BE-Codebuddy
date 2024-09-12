@@ -52,12 +52,12 @@ export class ReviewService {
       photos: createReviewDto.photos.map(
         (photo) => new Types.ObjectId(photo)
       ),
-      createdBy: new Types.ObjectId(userFromToken.sub),
+      createdById: new Types.ObjectId(userFromToken.sub),
     };
     const createdReview = await this.reviewRepository.create(transformedDto);
 
     const residence = await this.residenceService.getResidenceById(createReviewDto.residenceId.toString());
-    const residenceSeller = await this.userService.findById(residence.createdById);
+    const residenceSeller = await this.userService.findById(residence.createdByIdId);
     if(residenceSeller && residenceSeller.reviewWordsForAlert.length > 0) {
       const matchedWords = this.matchReviewWordsWithReview(residenceSeller?.reviewWordsForAlert, createdReview.review.details.concat(createdReview.review.title));
       if (matchedWords.length > 0) await this.sendReviewWordsMatchEmail(residenceSeller.email, residenceSeller.fullName, residence.name, matchedWords.toString());
@@ -84,7 +84,7 @@ export class ReviewService {
               as: "residence"
           }
       },
-      { $match: { "residence.createdById": seller._id } },
+      { $match: { "residence.createdByIdId": seller._id } },
     ]);
     if (count >= 100) {
       this.userService.update(seller._id.toString(), {
@@ -111,8 +111,8 @@ export class ReviewService {
     }
     const updatedReview = await this.reviewRepository.update(reviewId, updatedValues);
     await this.sendReviewResponseEmail(
-      review.createdBy.email,
-      review.createdBy.fullName,
+      review.createdById.email,
+      review.createdById.fullName,
       review.residence.name,
     );
     return updatedReview;

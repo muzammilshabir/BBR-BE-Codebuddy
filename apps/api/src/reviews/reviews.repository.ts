@@ -14,7 +14,7 @@ export class ReviewRepository extends BaseRepository<Review> {
     return this.reviewModel.findById(reviewId).populate([
       { path: 'residence', model: 'Residence' },
       { path: 'photos', model: 'Upload' },
-      { path: 'createdBy', model: 'User' },
+      { path: 'createdById', model: 'User' },
     ]);
   }
 }

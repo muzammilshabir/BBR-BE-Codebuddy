@@ -41,7 +41,7 @@ describe('CareerModule', () => {
   describe('Create Career Department', () => {
     it('Should create new Career Department', async () => {
       const createCareerCategoryDto = {
-        title: "Sales",
+        title: "Marketing",
       };
 
       // Convert the createCareerCategoryDto to a JSON string
