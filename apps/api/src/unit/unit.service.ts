@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { UnitRepository } from './unit.repository';
 import { AddUnitDto } from './dto/add-unit.dto';
 import { Unit } from './schema/unit.schema';
@@ -34,27 +34,31 @@ export class UnitService {
   ) {}
 
   async addUnit(addUnitDto: AddUnitDto, residenceId: string, userId: string): Promise<UnitDraft> {
-    // Check if the residence is rejected
-    await this.residenceService.checkResidenceRejectedStatus(residenceId);
+    try {
+      // Check if the residence is rejected
+      await this.residenceService.checkResidenceRejectedStatus(residenceId);
 
-    const transformedDto = {
-      ...addUnitDto,
-      residenceId: new Types.ObjectId(residenceId),
-      createdById: new Types.ObjectId(userId),
-      status: ResidenceStatus.DRAFT,
-    };
+      const transformedDto = {
+        ...addUnitDto,
+        residenceId: new Types.ObjectId(residenceId),
+        createdById: new Types.ObjectId(userId),
+        status: ResidenceStatus.DRAFT,
+      };
 
-    // Create unit and unit draft
-    const unit = await this.unitRepository.create(transformedDto);
-    const unitDraft = await this.unitDraftRepository.create({
-      unitId: unit._id,
-      ...transformedDto,
-    });
+      // Create unit and unit draft
+      const unit = await this.unitRepository.create(transformedDto);
+      const unitDraft = await this.unitDraftRepository.create({
+        unitId: unit._id,
+        ...transformedDto,
+      });
 
-    // Check and handle residence drafts
-    await this.checkAndHandleResidenceDraft(residenceId);
+      // Check and handle residence drafts
+      await this.checkAndHandleResidenceDraft(residenceId);
 
-    return unitDraft;
+      return unitDraft;
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to create unit draft', error);
+    }
   }
 
   async checkAndHandleResidenceDraft(residenceId: string): Promise<void> {
