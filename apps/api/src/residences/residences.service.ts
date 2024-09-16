@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ResidenceRepository } from './residences.repository';
 import { CreateResidenceDto } from './dto/create-residence.dto';
 import { Residence } from './schema/residences.schema';
@@ -552,5 +552,33 @@ export class ResidenceService {
     const { pagination } = PaginationService.paginate({ rows: data, count }, listPropsDto);
 
     return { pagination, residences: data };
+  }
+
+  async updateResidenceToDraft(residenceId: string, existingDraftResidenceId: string) {
+    await this.residenceDraftRepository.update(existingDraftResidenceId, {
+      status: ResidenceStatus.DRAFT,
+    });
+    await this.residenceRepository.update(residenceId, { status: ResidenceStatus.DRAFT });
+  }
+
+  async createDraftForResidence(residenceId: string) {
+    try {
+      const residence = await this.residenceRepository.findById(residenceId);
+      if (!residence) {
+        throw new NotFoundException(`Residence with ID ${residenceId} not found`);
+      }
+
+      const residenceDetails = residence.toObject();
+      residenceDetails.status = ResidenceStatus.DRAFT;
+
+      delete residenceDetails._id;
+
+      await this.residenceDraftRepository.create({
+        ...residenceDetails,
+        residenceId: new Types.ObjectId(residence.id),
+      });
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to create residence draft', error);
+    }
   }
 }

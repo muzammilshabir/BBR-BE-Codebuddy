@@ -41,7 +41,7 @@ export class UnitController {
     @GetCurrentUserId() userId: string
   ) {
     const unit = await this.unitService.addUnit(addUnitDto, residenceId, userId);
-    return ResponseService.buildResponse({ unit }, 'Unit added successfully');
+    return ResponseService.buildResponse({ unitDraft: unit }, 'Unit added successfully');
   }
 
   @Put(':unitId/key-features')

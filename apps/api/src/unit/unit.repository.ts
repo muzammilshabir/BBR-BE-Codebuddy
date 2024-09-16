@@ -10,7 +10,7 @@ export class UnitRepository extends BaseRepository<Unit> {
     super(unitModel);
   }
 
-  async findById(unitId: string): Promise<Unit> {
+  async findByIdInDetail(unitId: string): Promise<Unit> {
     return this.unitModel
       .findById(unitId)
       .populate([
