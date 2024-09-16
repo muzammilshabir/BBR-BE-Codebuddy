@@ -57,8 +57,8 @@ export class ResidenceService {
         throw new NotFoundException(`Unsupported city ${cityName}`);
       }
 
-      transformedDto.cityId = cityDetails.id;
-      transformedDto.countryId = cityDetails.countryId;
+      transformedDto.cityId = new Types.ObjectId(cityDetails.id);
+      transformedDto.countryId = new Types.ObjectId(cityDetails.countryId);
       transformedDto.address = createResidenceDto.address;
     }
 
@@ -101,8 +101,8 @@ export class ResidenceService {
         throw new NotFoundException(`Unsupported city ${cityName}`);
       }
 
-      transformedDto.cityId = cityDetails.id;
-      transformedDto.countryId = cityDetails.countryId;
+      transformedDto.cityId = new Types.ObjectId(cityDetails.id);
+      transformedDto.countryId = new Types.ObjectId(cityDetails.countryId);
       transformedDto.address = updateResidenceDto.address;
     }
     const residenceDraft = await this.checkResidenceDraft(id);
@@ -263,24 +263,32 @@ export class ResidenceService {
     return residenceDetails;
   }
 
-  async approveResidence(residenceId: string, userId: string): Promise<Residence> {
-    const residence = await this.getResidenceById(residenceId);
-    if (!residence) {
-      throw new NotFoundException(`Residence with ID ${residenceId} not found`);
-    }
+  async approveResidence(residenceId: string, userId: string): Promise<ResidenceDraft> {
+    await this.checkResidenceRejectedStatus(residenceId);
 
-    if (residence.status !== ResidenceStatus.PENDING) {
+    const residenceDraftRequest = await this.checkResidenceDraft(residenceId);
+    if (!residenceDraftRequest) {
       throw new BadRequestException(
-        `Cannot approve residence with status: ${residence.status}. Only pending residences can be approved.`
+        `Not found pending Residence Draft Request with residenceId ${residenceId}`
       );
     }
+    const draftRequestId = residenceDraftRequest.id.toString();
 
-    const existingResidence = await this.residenceRepository.update(residenceId, {
+    const updatedResidenceDraftRequest = await this.residenceDraftRepository.update(
+      draftRequestId,
+      {
+        status: ResidenceStatus.ACTIVE,
+        updatedById: new Types.ObjectId(userId),
+      }
+    );
+    // TODO: approve draft unit request
+
+    await this.residenceRepository.update(residenceId, {
       status: ResidenceStatus.ACTIVE,
-      updatedById: userId,
+      updatedById: new Types.ObjectId(userId),
     });
 
-    return existingResidence;
+    return updatedResidenceDraftRequest;
   }
 
   async listResidences(listResidenceDto: ListResidenceDto) {
@@ -350,7 +358,7 @@ export class ResidenceService {
     return { pagination, residences: transformedResidence };
   }
 
-  private transformResidences(residences: Residence[]): Residence[] {
+  transformResidences(residences: Residence[]): Residence[] {
     return residences.map((residence) => {
       const transformedResidence: any = { ...residence };
 
@@ -458,10 +466,9 @@ export class ResidenceService {
     userId: string,
     rejectResidenceDto: RejectResidenceDto
   ): Promise<Residence> {
+    await this.checkResidenceRejectedStatus(residenceId);
+
     const residence = await this.getResidenceById(residenceId);
-    if (!residence) {
-      throw new NotFoundException(`Residence with ID ${residenceId} not found`);
-    }
 
     if (residence.status !== ResidenceStatus.PENDING) {
       throw new BadRequestException(
@@ -469,12 +476,31 @@ export class ResidenceService {
       );
     }
 
-    const existingResidence = await this.residenceRepository.update(residenceId, {
+    const residenceDraftRequest = await this.checkResidenceDraft(residenceId);
+    if (!residenceDraftRequest) {
+      throw new BadRequestException(
+        `Not found pending Residence Draft Request with residenceId ${residenceId}`
+      );
+    }
+
+    const updatedResidenceDraftRequest = await this.residenceDraftRepository.update(
+      residenceDraftRequest.id,
+      {
+        status: ResidenceStatus.REJECTED,
+        rejectionReason: rejectResidenceDto.rejectionReason,
+        updatedById: new Types.ObjectId(userId),
+      }
+    );
+
+    // TODO: reject unit draft request
+
+    await this.residenceRepository.update(residenceId, {
       status: ResidenceStatus.REJECTED,
       rejectionReason: rejectResidenceDto.rejectionReason,
-      updatedById: userId,
+      updatedById: new Types.ObjectId(userId),
     });
-    return existingResidence;
+
+    return updatedResidenceDraftRequest;
   }
 
   async listResidencesByFilters(
