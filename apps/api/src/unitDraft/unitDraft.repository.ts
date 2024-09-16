@@ -1,18 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Unit } from './schema/unit.schema';
+import { UnitDraft } from './schema/unitDraft.schema';
 import { BaseRepository } from '@bbr/api-core/modules/db/base.repository';
 
 @Injectable()
-export class UnitRepository extends BaseRepository<Unit> {
-  constructor(@InjectModel(Unit.name) private readonly unitModel: Model<Unit>) {
-    super(unitModel);
+export class UnitDraftRepository extends BaseRepository<UnitDraft> {
+  constructor(@InjectModel(UnitDraft.name) private readonly unitDraftModel: Model<UnitDraft>) {
+    super(unitDraftModel);
   }
-
-  async findByIdInDetail(unitId: string): Promise<Unit> {
-    return this.unitModel.findById(unitId).populate([
-      { path: 'residenceId' },
+  async findByIdInDetail(unitId: string): Promise<UnitDraft> {
+    return this.unitDraftModel.findById(unitId).populate([
+      { path: 'unitId' },
       { path: 'visuals.mainGalleryPhotos', model: 'Upload' },
       { path: 'visuals.secondGalleryPhotos', model: 'Upload' },
       { path: 'visuals.videoTour', model: 'Upload' },

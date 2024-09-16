@@ -22,6 +22,7 @@ import { ListUnitDto, listUnitSchema } from './dto/list-unit.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/enum/user.enum';
 import { GetCurrentUserId } from '../auth/decorators/getCurrentUserId.decorator';
+import { UpdateUnitDto, updateUnitSchema } from './dto/update-unit.dto';
 
 @ApiTags('Unit')
 @Controller('unit')
@@ -41,7 +42,7 @@ export class UnitController {
     @GetCurrentUserId() userId: string
   ) {
     const unit = await this.unitService.addUnit(addUnitDto, residenceId, userId);
-    return ResponseService.buildResponse({ unit }, 'Unit added successfully');
+    return ResponseService.buildResponse({ unitDraft: unit }, 'Unit added successfully');
   }
 
   @Put(':unitId/key-features')
@@ -84,6 +85,22 @@ export class UnitController {
       message: 'Unit visuals updated successfully',
       data: updatedUnit,
     };
+  }
+
+  @Put(':unitId/update')
+  @ApiOperation({
+    summary: 'Update an existing Unit',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(updateUnitSchema, 'body'))
+  async updateUnit(
+    @Param('unitId') unitId: string,
+    @Body() updateUnitDto: UpdateUnitDto,
+    @GetCurrentUserId() userId: string
+  ) {
+    const updatedUnit = await this.unitService.updateUnit(unitId, updateUnitDto, userId);
+    return ResponseService.buildResponse({ unitDraft: updatedUnit }, 'Unit updated successfully');
   }
 
   @Get('/')

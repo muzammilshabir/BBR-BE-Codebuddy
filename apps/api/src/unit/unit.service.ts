@@ -17,6 +17,10 @@ import * as fs from 'fs';
 import { ResidenceService } from '../residences/residences.service';
 import { RoomTypeRepository } from '../roomType/roomType.repository';
 import { ResidenceServiceRepository } from '../residenceService/residenceService.repository';
+import { UnitDraftRepository } from '../unitDraft/unitDraft.repository';
+import { ResidenceStatus } from '../residences/enum/residence-enum';
+import { UnitDraft } from '../unitDraft/schema/unitDraft.schema';
+import { UpdateUnitDto } from './dto/update-unit.dto';
 
 @Injectable()
 export class UnitService {
@@ -26,50 +30,176 @@ export class UnitService {
     private readonly uploadService: UploadService,
     private readonly residenceService: ResidenceService,
     private readonly roomTypeRepository: RoomTypeRepository,
-    private readonly residenceServiceRepository: ResidenceServiceRepository
+    private readonly residenceServiceRepository: ResidenceServiceRepository,
+    private readonly unitDraftRepository: UnitDraftRepository
   ) {}
 
-  async addUnit(addUnitDto: AddUnitDto, residenceId: string, userId: string): Promise<Unit> {
+  async addUnit(addUnitDto: AddUnitDto, residenceId: string, userId: string): Promise<UnitDraft> {
+    // Check if the residence is rejected
+    await this.residenceService.checkResidenceRejectedStatus(residenceId);
+
     const transformedDto = {
       ...addUnitDto,
       residenceId: new Types.ObjectId(residenceId),
       createdById: new Types.ObjectId(userId),
+      status: ResidenceStatus.DRAFT,
     };
-    return await this.unitRepository.create(transformedDto);
+
+    // Create unit and unit draft
+    const unit = await this.unitRepository.create(transformedDto);
+    const unitDraft = await this.unitDraftRepository.create({
+      unitId: unit._id,
+      ...transformedDto,
+    });
+
+    // Check and handle residence drafts
+    await this.checkAndHandleResidenceDraft(residenceId);
+
+    return unitDraft;
+  }
+
+  async checkAndHandleResidenceDraft(residenceId: string): Promise<void> {
+    const existingDraftResidence = await this.residenceService.checkResidenceDraft(residenceId);
+
+    if (existingDraftResidence && existingDraftResidence.status === ResidenceStatus.PENDING) {
+      await this.residenceService.updateResidenceToDraft(residenceId, existingDraftResidence.id);
+    }
+
+    if (!existingDraftResidence) {
+      await this.residenceService.createDraftForResidence(residenceId);
+    }
+  }
+
+  async checkUnitDraft(unitId: string): Promise<UnitDraft | null> {
+    return await this.unitDraftRepository.find({
+      unitId: new Types.ObjectId(unitId),
+      status: { $in: [ResidenceStatus.DRAFT, ResidenceStatus.PENDING] },
+    });
   }
 
   async addUnitKeyFeatures(
     addUnitKeyFeaturesDto: AddUnitKeyFeaturesDto,
     unitId: string,
     userId: string
-  ): Promise<Unit> {
-    const updatedUnit = await this.unitRepository.update(unitId, {
+  ): Promise<UnitDraft> {
+    const existingUnit = await this.unitRepository.findById(unitId);
+    if (!existingUnit) {
+      throw new NotFoundException(`Unit with ID ${unitId} not found`);
+    }
+    const residenceId = existingUnit.residenceId.toString();
+
+    await this.residenceService.checkResidenceRejectedStatus(residenceId);
+
+    const existingUnitDraft = await this.checkUnitDraft(unitId);
+    if (existingUnitDraft) {
+      return await this.unitDraftRepository.update(existingUnitDraft.id, {
+        unitKeyFeatures: addUnitKeyFeaturesDto,
+        updatedById: new Types.ObjectId(userId),
+        status: ResidenceStatus.DRAFT,
+      });
+    }
+
+    const plainUnit = existingUnit.toJSON();
+    delete plainUnit._id;
+    delete plainUnit.status;
+
+    const unitDraft = await this.unitDraftRepository.create({
+      unitId: new Types.ObjectId(unitId),
       unitKeyFeatures: addUnitKeyFeaturesDto,
       updatedById: new Types.ObjectId(userId),
+      status: ResidenceStatus.DRAFT,
+      ...plainUnit,
     });
-    if (!updatedUnit) {
-      throw new NotFoundException(`Unit with ID ${unitId} not found`);
-    }
-    return updatedUnit;
+
+    await this.checkAndHandleResidenceDraft(residenceId);
+
+    return unitDraft;
   }
 
-  async addVisuals(addVisualsDto: AddVisualsDto, unitId: string, userId: string): Promise<Unit> {
-    const updatedUnit = await this.unitRepository.update(unitId, {
-      visuals: addVisualsDto,
-      updatedById: userId,
-    });
-    if (!updatedUnit) {
+  async addVisuals(
+    addVisualsDto: AddVisualsDto,
+    unitId: string,
+    userId: string
+  ): Promise<UnitDraft> {
+    const existingUnit = await this.unitRepository.findById(unitId);
+    if (!existingUnit) {
       throw new NotFoundException(`Unit with ID ${unitId} not found`);
     }
-    return updatedUnit;
+    const residenceId = existingUnit.residenceId.toString();
+
+    await this.residenceService.checkResidenceRejectedStatus(residenceId);
+
+    const existingUnitDraft = await this.checkUnitDraft(unitId);
+    if (existingUnitDraft) {
+      return await this.unitDraftRepository.update(existingUnitDraft.id, {
+        visuals: addVisualsDto,
+        updatedById: new Types.ObjectId(userId),
+        status: ResidenceStatus.DRAFT,
+      });
+    }
+
+    const plainUnit = existingUnit.toJSON();
+    delete plainUnit._id;
+    delete plainUnit.status;
+
+    const unitDraft = await this.unitDraftRepository.create({
+      unitId: new Types.ObjectId(unitId),
+      visuals: addVisualsDto,
+      updatedById: new Types.ObjectId(userId),
+      status: ResidenceStatus.DRAFT,
+      ...plainUnit,
+    });
+
+    await this.checkAndHandleResidenceDraft(residenceId);
+
+    return unitDraft;
   }
 
   async getUnitById(unitId: string): Promise<Unit> {
-    const unitDetails = await this.unitRepository.findById(unitId);
+    const unitDetails = await this.unitRepository.findByIdInDetail(unitId);
     if (!unitDetails) {
       throw new NotFoundException(`Unit with ID ${unitId}`);
     }
     return unitDetails;
+  }
+
+  async updateUnit(
+    unitId: string,
+    updateUnitDto: UpdateUnitDto,
+    userId: string
+  ): Promise<UnitDraft> {
+    const existingUnit = await this.unitRepository.findById(unitId);
+    if (!existingUnit) {
+      throw new NotFoundException(`Unit with ID ${unitId} not found`);
+    }
+
+    const residenceId = existingUnit.residenceId.toString();
+    await this.residenceService.checkResidenceRejectedStatus(residenceId);
+
+    const existingUnitDraft = await this.checkUnitDraft(unitId);
+    if (existingUnitDraft) {
+      return await this.unitDraftRepository.update(existingUnitDraft.id, {
+        ...updateUnitDto,
+        updatedById: new Types.ObjectId(userId),
+        status: ResidenceStatus.DRAFT,
+      });
+    }
+
+    const plainUnit = existingUnit.toJSON();
+    delete plainUnit._id;
+    delete plainUnit.status;
+
+    const unitDraft = await this.unitDraftRepository.create({
+      unitId: new Types.ObjectId(unitId),
+      updatedById: new Types.ObjectId(userId),
+      status: ResidenceStatus.DRAFT,
+      ...plainUnit,
+      ...updateUnitDto,
+    });
+
+    await this.checkAndHandleResidenceDraft(residenceId);
+
+    return unitDraft;
   }
 
   async listUnits(listUnitDto: ListUnitDto) {
@@ -78,6 +208,11 @@ export class UnitService {
     if (listUnitDto.residenceId) {
       filter.residenceId = new Types.ObjectId(listUnitDto.residenceId);
     }
+
+    if (listUnitDto.status) {
+      filter.status = listUnitDto.status;
+    }
+
     const options = PaginationService.prepareOptions(listUnitDto);
 
     const { data, count } = await this.unitRepository.findAll(filter, options);
