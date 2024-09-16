@@ -76,7 +76,10 @@ export class ResidenceController {
     @GetCurrentUser() user: JwtPayloadType
   ) {
     const residence = await this.residenceService.updateGeneralInfo(id, updateResidenceDto, user);
-    return ResponseService.buildResponse({ residence }, 'Residence updated successfully');
+    return ResponseService.buildResponse(
+      { residenceDraft: residence },
+      'Residence updated successfully'
+    );
   }
 
   @Put(':id/key-features')
@@ -93,7 +96,7 @@ export class ResidenceController {
   ) {
     const residence = await this.residenceService.addKeyFeatures(id, addKeyFeaturesDto, userId);
     return ResponseService.buildResponse(
-      { residence },
+      { residenceDraft: residence },
       'Residence key features added successfully'
     );
   }
@@ -111,10 +114,10 @@ export class ResidenceController {
     @GetCurrentUserId() userId: string
   ) {
     const residence = await this.residenceService.addVisuals(id, addVisualsDto, userId);
-    return {
-      message: 'Residence visuals updated successfully',
-      residence,
-    };
+    return ResponseService.buildResponse(
+      { residenceDraft: residence },
+      'Residence visuals updated successfully'
+    );
   }
 
   @Put(':id/nearby-amenities')
@@ -135,7 +138,7 @@ export class ResidenceController {
       userId
     );
     return ResponseService.buildResponse(
-      { residence },
+      { residenceDraft: residence },
       'Residence nearby amenities updated successfully'
     );
   }
@@ -149,7 +152,10 @@ export class ResidenceController {
   @UsePipes(new JoiValidationPipe(getResidenceByIdSchema, 'param'))
   async approveResidence(@GetCurrentUserId() userId: string, @Param() params: GetResidenceByIdDto) {
     const residence = await this.residenceService.approveResidence(params.id, userId);
-    return ResponseService.buildResponse({ residence }, 'Residence approved successfully');
+    return ResponseService.buildResponse(
+      { residenceDraft: residence },
+      'Residence approved successfully'
+    );
   }
 
   @Get('/')
