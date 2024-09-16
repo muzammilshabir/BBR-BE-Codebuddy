@@ -124,6 +124,13 @@ export class Unit extends Document {
 
   @Prop({ type: Date })
   updatedAt: Date;
+
+  @Prop({
+    type: String,
+    enum: ['active', 'pending', 'draft', 'sold', 'rejected'],
+    default: 'draft',
+  })
+  status: string;
 }
 
 export const UnitSchema = SchemaFactory.createForClass(Unit);

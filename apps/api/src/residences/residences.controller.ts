@@ -41,6 +41,7 @@ import { ResidenceService } from './residences.service';
 import { GetCurrentUserId } from '../auth/decorators/getCurrentUserId.decorator';
 import { GetCurrentUser } from '../auth/decorators/getCurrentUser.decorator';
 import { JwtPayloadType } from '../auth/type/jwt-payload.type';
+import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('Residence')
 @Controller('residence')
@@ -184,6 +185,7 @@ export class ResidenceController {
   @ApiOperation({
     summary: 'Get Residence by ID',
   })
+  @Public()
   @UsePipes(new JoiValidationPipe(getResidenceByIdSchema, 'param'))
   async getResidenceById(@Param() params: GetResidenceByIdDto) {
     const residence = await this.residenceService.getResidenceById(params.id);
