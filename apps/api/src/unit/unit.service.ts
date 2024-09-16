@@ -84,7 +84,7 @@ export class UnitService {
     addUnitKeyFeaturesDto: AddUnitKeyFeaturesDto,
     unitId: string,
     userId: string
-  ): Promise<Unit> {
+  ): Promise<UnitDraft> {
     const existingUnit = await this.unitRepository.findById(unitId);
     if (!existingUnit) {
       throw new NotFoundException(`Unit with ID ${unitId} not found`);
@@ -104,9 +104,10 @@ export class UnitService {
 
     const plainUnit = existingUnit.toJSON();
     delete plainUnit._id;
+    delete plainUnit.status;
 
     const unitDraft = await this.unitDraftRepository.create({
-      unitId,
+      unitId: new Types.ObjectId(unitId),
       unitKeyFeatures: addUnitKeyFeaturesDto,
       updatedById: new Types.ObjectId(userId),
       status: ResidenceStatus.DRAFT,
@@ -118,15 +119,43 @@ export class UnitService {
     return unitDraft;
   }
 
-  async addVisuals(addVisualsDto: AddVisualsDto, unitId: string, userId: string): Promise<Unit> {
-    const updatedUnit = await this.unitRepository.update(unitId, {
-      visuals: addVisualsDto,
-      updatedById: userId,
-    });
-    if (!updatedUnit) {
+  async addVisuals(
+    addVisualsDto: AddVisualsDto,
+    unitId: string,
+    userId: string
+  ): Promise<UnitDraft> {
+    const existingUnit = await this.unitRepository.findById(unitId);
+    if (!existingUnit) {
       throw new NotFoundException(`Unit with ID ${unitId} not found`);
     }
-    return updatedUnit;
+    const residenceId = existingUnit.residenceId.toString();
+
+    await this.residenceService.checkResidenceRejectedStatus(residenceId);
+
+    const existingUnitDraft = await this.checkUnitDraft(unitId);
+    if (existingUnitDraft) {
+      return await this.unitDraftRepository.update(existingUnitDraft.id, {
+        visuals: addVisualsDto,
+        updatedById: new Types.ObjectId(userId),
+        status: ResidenceStatus.DRAFT,
+      });
+    }
+
+    const plainUnit = existingUnit.toJSON();
+    delete plainUnit._id;
+    delete plainUnit.status;
+
+    const unitDraft = await this.unitDraftRepository.create({
+      unitId: new Types.ObjectId(unitId),
+      visuals: addVisualsDto,
+      updatedById: new Types.ObjectId(userId),
+      status: ResidenceStatus.DRAFT,
+      ...plainUnit,
+    });
+
+    await this.checkAndHandleResidenceDraft(residenceId);
+
+    return unitDraft;
   }
 
   async getUnitById(unitId: string): Promise<Unit> {
