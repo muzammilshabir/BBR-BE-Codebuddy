@@ -23,13 +23,17 @@ import { UserRole } from '../users/enum/user.enum';
 import { CityRepository } from '../city/city.repository';
 import { ResidenceDraftRepository } from '../residencesDraft/residencesDraft.repository';
 import { ResidenceDraft } from '../residencesDraft/schema/residencesDraft.schema';
+import { UnitDraftRepository } from '../unitDraft/unitDraft.repository';
+import { UnitRepository } from '../unit/unit.repository';
 
 @Injectable()
 export class ResidenceService {
   constructor(
     private readonly residenceRepository: ResidenceRepository,
     private readonly cityRepository: CityRepository,
-    private readonly residenceDraftRepository: ResidenceDraftRepository
+    private readonly residenceDraftRepository: ResidenceDraftRepository,
+    private readonly unitDraftRepository: UnitDraftRepository,
+    private readonly unitRepository: UnitRepository
   ) {}
 
   async create(createResidenceDto: CreateResidenceDto, user: JwtPayloadType): Promise<Residence> {
@@ -158,11 +162,13 @@ export class ResidenceService {
 
     const plainResidence = residence.toJSON();
     delete plainResidence._id;
+    delete plainResidence.status;
 
     const newResidenceDraft = {
       ...plainResidence,
       residenceKeyFeatures: transformedDto,
       residenceId: new Types.ObjectId(residenceId),
+      status: ResidenceStatus.DRAFT,
     };
 
     return await this.residenceDraftRepository.create(newResidenceDraft);
@@ -202,11 +208,13 @@ export class ResidenceService {
 
     const plainResidence = residence.toJSON();
     delete plainResidence._id;
+    delete plainResidence.status;
 
     const newResidenceDraft = {
       ...plainResidence,
       visuals: transformedDto,
       residenceId: new Types.ObjectId(residenceId),
+      status: ResidenceStatus.DRAFT,
     };
 
     return await this.residenceDraftRepository.create(newResidenceDraft);
@@ -248,11 +256,13 @@ export class ResidenceService {
 
     const plainResidence = residence.toJSON();
     delete plainResidence._id;
+    delete plainResidence.status;
 
     const newResidenceDraft = {
       ...plainResidence,
       nearbyAmenities: transformedDto,
       residenceId: new Types.ObjectId(residenceId),
+      status: ResidenceStatus.DRAFT,
     };
 
     return await this.residenceDraftRepository.create(newResidenceDraft);
@@ -264,31 +274,72 @@ export class ResidenceService {
   }
 
   async approveResidence(residenceId: string, userId: string): Promise<ResidenceDraft> {
-    await this.checkResidenceRejectedStatus(residenceId);
+    try {
+      await this.checkResidenceRejectedStatus(residenceId);
 
-    const residenceDraftRequest = await this.checkResidenceDraft(residenceId);
-    if (!residenceDraftRequest) {
-      throw new BadRequestException(
-        `Not found pending Residence Draft Request with residenceId ${residenceId}`
+      const residenceDraftRequest = await this.checkResidenceDraft(residenceId);
+      if (!residenceDraftRequest) {
+        throw new BadRequestException(
+          `Not found pending Residence Draft Request with residenceId ${residenceId}`
+        );
+      }
+      const draftRequestId = residenceDraftRequest.id.toString();
+
+      const updatedResidenceDraftRequest = await this.residenceDraftRepository.update(
+        draftRequestId,
+        {
+          status: ResidenceStatus.ACTIVE,
+          updatedById: new Types.ObjectId(userId),
+        }
+      );
+
+      const plainUpdatedDrafRequest = updatedResidenceDraftRequest.toJSON();
+      delete plainUpdatedDrafRequest.residenceId;
+      delete plainUpdatedDrafRequest._id;
+
+      await this.residenceRepository.update(residenceId, {
+        ...plainUpdatedDrafRequest,
+      });
+
+      const draftUnits = await this.unitRepository.findAll({
+        residenceId: new Types.ObjectId(residenceId),
+      });
+
+      if (draftUnits.count > 0) {
+        const unitUpdatePromises = draftUnits.data.map(async (unit) => {
+          const unitId = unit._id.toString();
+
+          // Check if there's a draft for this specific unit
+          const existingUnitDraft = await this.unitDraftRepository.find({
+            unitId: new Types.ObjectId(unitId),
+            status: { $in: [ResidenceStatus.DRAFT, ResidenceStatus.PENDING] },
+          });
+
+          if (existingUnitDraft) {
+            // Update the unit draft to ACTIVE status
+            const unitDraftRequest = await this.unitDraftRepository.update(existingUnitDraft.id, {
+              updatedById: new Types.ObjectId(userId),
+              status: ResidenceStatus.ACTIVE,
+            });
+
+            const plainUnit = unitDraftRequest.toJSON();
+            delete plainUnit.unitId;
+            delete plainUnit._id;
+
+            // Update the main unit with the approved draft data
+            await this.unitRepository.update(unitId, plainUnit);
+          }
+        });
+
+        await Promise.all(unitUpdatePromises);
+      }
+      return updatedResidenceDraftRequest;
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'An error occurred while approving the residence',
+        error
       );
     }
-    const draftRequestId = residenceDraftRequest.id.toString();
-
-    const updatedResidenceDraftRequest = await this.residenceDraftRepository.update(
-      draftRequestId,
-      {
-        status: ResidenceStatus.ACTIVE,
-        updatedById: new Types.ObjectId(userId),
-      }
-    );
-    // TODO: approve draft unit request
-
-    await this.residenceRepository.update(residenceId, {
-      status: ResidenceStatus.ACTIVE,
-      updatedById: new Types.ObjectId(userId),
-    });
-
-    return updatedResidenceDraftRequest;
   }
 
   async listResidences(listResidenceDto: ListResidenceDto) {
@@ -468,14 +519,6 @@ export class ResidenceService {
   ): Promise<Residence> {
     await this.checkResidenceRejectedStatus(residenceId);
 
-    const residence = await this.getResidenceById(residenceId);
-
-    if (residence.status !== ResidenceStatus.PENDING) {
-      throw new BadRequestException(
-        `Cannot reject residence with status: ${residence.status}. Only pending residences can be rejected.`
-      );
-    }
-
     const residenceDraftRequest = await this.checkResidenceDraft(residenceId);
     if (!residenceDraftRequest) {
       throw new BadRequestException(
@@ -492,13 +535,52 @@ export class ResidenceService {
       }
     );
 
-    // TODO: reject unit draft request
+    const residence = await this.getResidenceById(residenceId);
 
-    await this.residenceRepository.update(residenceId, {
-      status: ResidenceStatus.REJECTED,
-      rejectionReason: rejectResidenceDto.rejectionReason,
-      updatedById: new Types.ObjectId(userId),
+    if (
+      residence.status === ResidenceStatus.PENDING ||
+      residence.status === ResidenceStatus.DRAFT
+    ) {
+      await this.residenceRepository.update(residenceId, {
+        status: ResidenceStatus.REJECTED,
+        rejectionReason: rejectResidenceDto.rejectionReason,
+        updatedById: new Types.ObjectId(userId),
+      });
+    }
+
+    const draftUnits = await this.unitRepository.findAll({
+      residenceId: new Types.ObjectId(residenceId),
     });
+
+    if (draftUnits.count > 0) {
+      const unitUpdatePromises = draftUnits.data.map(async (unit) => {
+        const unitId = unit._id.toString();
+
+        // Check if there's a draft for this specific unit
+        const existingUnitDraft = await this.unitDraftRepository.find({
+          unitId: new Types.ObjectId(unitId),
+          status: ResidenceStatus.PENDING,
+        });
+
+        if (existingUnitDraft) {
+          // Update the unit draft to REJECTED status
+          await this.unitDraftRepository.update(existingUnitDraft.id, {
+            updatedById: new Types.ObjectId(userId),
+            status: ResidenceStatus.REJECTED,
+          });
+
+          // reject unit if it is in pending status
+          if (unit.status === ResidenceStatus.PENDING || unit.status === ResidenceStatus.DRAFT) {
+            await this.unitRepository.update(unitId, {
+              updatedById: new Types.ObjectId(userId),
+              status: ResidenceStatus.REJECTED,
+            });
+          }
+        }
+      });
+
+      await Promise.all(unitUpdatePromises);
+    }
 
     return updatedResidenceDraftRequest;
   }

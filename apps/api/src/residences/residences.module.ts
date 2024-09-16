@@ -13,12 +13,18 @@ import {
   ResidenceDraftSchema,
 } from '../residencesDraft/schema/residencesDraft.schema';
 import { ResidenceDraftRepository } from '../residencesDraft/residencesDraft.repository';
+import { UnitDraftRepository } from '../unitDraft/unitDraft.repository';
+import { UnitDraft, UnitDraftSchema } from '../unitDraft/schema/unitDraft.schema';
+import { Unit, UnitSchema } from '../unit/schema/unit.schema';
+import { UnitRepository } from '../unit/unit.repository';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: Residence.name, schema: ResidenceSchema }]),
     MongooseModule.forFeature([{ name: City.name, schema: CitySchema }]),
     MongooseModule.forFeature([{ name: ResidenceDraft.name, schema: ResidenceDraftSchema }]),
+    MongooseModule.forFeature([{ name: Unit.name, schema: UnitSchema }]),
+    MongooseModule.forFeature([{ name: UnitDraft.name, schema: UnitDraftSchema }]),
   ],
   providers: [
     ResidenceService,
@@ -27,6 +33,8 @@ import { ResidenceDraftRepository } from '../residencesDraft/residencesDraft.rep
     ResidencesFixture,
     CityRepository,
     ResidenceDraftRepository,
+    UnitRepository,
+    UnitDraftRepository,
   ],
   exports: [ResidenceSeeder, ResidencesFixture, ResidenceService],
   controllers: [ResidenceController],

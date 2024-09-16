@@ -9,7 +9,7 @@ export class Residence extends Document {
   @Prop({ required: true, type: Types.ObjectId, ref: 'ResidenceType' })
   residenceTypeId: Types.ObjectId;
 
-  @Prop({ required: true, type: Types.ObjectId, ref: 'Location' })
+  @Prop({ required: false, type: Types.ObjectId, ref: 'Location' })
   locationId: Types.ObjectId;
 
   @Prop({ required: false })

@@ -4,14 +4,14 @@ import { ListPropsDto, PaginationSchema } from '@bbr/api-core/modules/dto/listPr
 import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
 import { ResidenceStatus } from '../../residences/enum/residence-enum';
 
-export class ListUnitDto extends ListPropsDto {
+export class ListUnitDraftDto extends ListPropsDto {
   @ApiProperty({
-    description: 'Filter by residence ID',
+    description: 'Filter by unit ID',
     example: '60b6c0f53b5a5c1f88d25a1b',
     required: false,
     type: String,
   })
-  residenceId?: string;
+  unitId?: string;
 
   @ApiProperty({
     example: ResidenceStatus.ACTIVE,
@@ -22,8 +22,8 @@ export class ListUnitDto extends ListPropsDto {
   status?: ResidenceStatus;
 }
 
-export const listUnitSchema = PaginationSchema.append({
-  residenceId: Joi.string().custom(joiObjectIdValidator('residenceId')).optional(),
+export const listUnitDraftSchema = PaginationSchema.append({
+  unitId: Joi.string().custom(joiObjectIdValidator('unitId')).optional(),
   status: Joi.string()
     .valid(...Object.values(ResidenceStatus))
     .optional(),
