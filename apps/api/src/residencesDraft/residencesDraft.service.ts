@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ResidenceDraftRepository } from './residencesDraft.repository';
 import { ListResidenceDraftDto } from './dto/listResidenceDraft.dto';
 import { Types } from 'mongoose';
@@ -7,13 +7,17 @@ import { ResidenceService } from '../residences/residences.service';
 import { ResidenceStatus } from '../residences/enum/residence-enum';
 import { BadRequestException, NotFoundException } from '@bbr/api-core/modules/exceptions';
 import { ResidenceRepository } from '../residences/residences.repository';
+import { UnitRepository } from '../unit/unit.repository';
+import { UnitDraftRepository } from '../unitDraft/unitDraft.repository';
 
 @Injectable()
 export class ResidenceDraftService {
   constructor(
     private readonly residenceDraftRepository: ResidenceDraftRepository,
     private readonly residenceService: ResidenceService,
-    private readonly residenceRepository: ResidenceRepository
+    private readonly residenceRepository: ResidenceRepository,
+    private readonly unitRepository: UnitRepository,
+    private readonly unitDraftRepository: UnitDraftRepository
   ) {}
 
   async listResidencesDraft(listResidenceDraftDto: ListResidenceDraftDto) {
@@ -84,59 +88,80 @@ export class ResidenceDraftService {
   }
 
   async createApprovalRequest(residenceId: string, userId: string): Promise<any> {
-    const residence = await this.residenceRepository.findById(residenceId);
-    if (!residence) {
-      throw new NotFoundException(`Residence with ID ${residenceId} not found`);
-    }
-    if (residence.status === ResidenceStatus.REJECTED) {
-      throw new BadRequestException(`Rejected Residence cannot be updated`);
-    }
-
-    const residenceDraft = await this.residenceDraftRepository.find({
-      residenceId: new Types.ObjectId(residenceId),
-      status: ResidenceStatus.DRAFT,
-    });
-    if (!residenceDraft) {
-      throw new NotFoundException(
-        `Residence draft request with residenceId ${residenceId} and status ${ResidenceStatus.DRAFT}`
-      );
-    }
-
-    // When a residence is created for the first time, it will be marked as pending. An admin will then review and approve the residence.
-    if (residence.status === ResidenceStatus.DRAFT) {
-      return await this.handleFirstTimeApproval(residenceDraft, residenceId, userId);
-    }
-
-    if (residence.status === ResidenceStatus.ACTIVE) {
-      // Compare image fields between residence and residenceDraft
-      const isImagesChanged = this.compareImages(residence, residenceDraft);
-
-      // If images changed, mark draft as pending
-      if (isImagesChanged) {
-        const pendingResidenceDraft = await this.markAsPending(residenceDraft.id, userId);
-        return { residenceDraft: pendingResidenceDraft };
-      } else {
-        // No changes, update residence and mark draft as active
-        const activeResidenceDraft = await this.residenceDraftRepository.update(residenceDraft.id, {
-          status: ResidenceStatus.ACTIVE,
-          updatedById: new Types.ObjectId(userId),
-        });
-
-        const plainUpdatedDrafRequest = activeResidenceDraft.toJSON();
-        delete plainUpdatedDrafRequest.residenceId;
-        delete plainUpdatedDrafRequest._id;
-
-        await this.residenceRepository.update(residenceId, {
-          ...plainUpdatedDrafRequest,
-        });
-        return { residenceDraft: activeResidenceDraft };
+    try {
+      const residence = await this.residenceRepository.findById(residenceId);
+      if (!residence) {
+        throw new NotFoundException(`Residence with ID ${residenceId} not found`);
       }
+      if (residence.status === ResidenceStatus.REJECTED) {
+        throw new BadRequestException(`Rejected Residence cannot be updated`);
+      }
+
+      const residenceDraft = await this.residenceDraftRepository.find({
+        residenceId: new Types.ObjectId(residenceId),
+        status: ResidenceStatus.DRAFT,
+      });
+      if (!residenceDraft) {
+        throw new NotFoundException(
+          `Residence draft request with residenceId ${residenceId} and status ${ResidenceStatus.DRAFT}`
+        );
+      }
+
+      // When a residence is created for the first time, it will be marked as pending. An admin will then review and approve the residence.
+      if (residence.status === ResidenceStatus.DRAFT) {
+        return await this.handleFirstTimeApproval(residenceDraft, residenceId, userId);
+      }
+
+      if (residence.status === ResidenceStatus.ACTIVE) {
+        // Compare image fields between residence and residenceDraft
+        const isImagesChanged = this.compareImages(residence, residenceDraft);
+
+        // If images changed, mark draft as pending
+        if (isImagesChanged) {
+          const pendingResidenceDraft = await this.markAsPending(residenceDraft.id, userId);
+
+          await this.updateUnitAndDraftStatus(residenceId, userId, ResidenceStatus.PENDING);
+
+          return { residenceDraft: pendingResidenceDraft };
+        } else {
+          const isUnitImagesChanged = await this.areUnitImagesChanged(residenceId);
+          if (isUnitImagesChanged) {
+            const pendingResidenceDraft = await this.markAsPending(residenceDraft.id, userId);
+
+            await this.updateUnitAndDraftStatus(residenceId, userId, ResidenceStatus.PENDING);
+            return { residenceDraft: pendingResidenceDraft };
+          } else {
+            await this.updateUnitAndDraftStatus(residenceId, userId, ResidenceStatus.ACTIVE);
+
+            // No changes, update residence and mark draft as active
+            const activeResidenceDraft = await this.residenceDraftRepository.update(
+              residenceDraft.id,
+              {
+                status: ResidenceStatus.ACTIVE,
+                updatedById: new Types.ObjectId(userId),
+              }
+            );
+
+            const plainUpdatedDrafRequest = activeResidenceDraft.toJSON();
+            delete plainUpdatedDrafRequest.residenceId;
+            delete plainUpdatedDrafRequest._id;
+
+            await this.residenceRepository.update(residenceId, {
+              ...plainUpdatedDrafRequest,
+            });
+            return { residenceDraft: activeResidenceDraft };
+          }
+        }
+      }
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'An error occurred while creating approval request for the residence',
+        error
+      );
     }
   }
 
   private async handleFirstTimeApproval(residenceDraft: any, residenceId: string, userId: string) {
-    console.log(`First-time approval for residence ID ${residenceId}`);
-
     const pendingResidenceDraft = await this.markAsPending(residenceDraft.id, userId);
     await this.residenceRepository.update(residenceId, {
       status: ResidenceStatus.PENDING,
@@ -155,14 +180,17 @@ export class ResidenceDraftService {
 
   private compareImages(residence: any, residenceDraft: any): boolean {
     return (
-      !this.areArraysDifferent(residence.visuals?.mainPhotos, residenceDraft.visuals?.mainPhotos) ||
       !this.areArraysDifferent(
-        residence.visuals?.mainGalleryPhotos,
-        residenceDraft.visuals?.mainGalleryPhotos
+        residence.visuals?.mainPhotos ?? [],
+        residenceDraft.visuals?.mainPhotos ?? []
       ) ||
       !this.areArraysDifferent(
-        residence.visuals?.secondGalleryPhotos,
-        residenceDraft.visuals?.secondGalleryPhotos
+        residence.visuals?.mainGalleryPhotos ?? [],
+        residenceDraft.visuals?.mainGalleryPhotos ?? []
+      ) ||
+      !this.areArraysDifferent(
+        residence.visuals?.secondGalleryPhotos ?? [],
+        residenceDraft.visuals?.secondGalleryPhotos ?? []
       ) ||
       this.areSingleValuesDifferent(
         residence.visuals?.videoTour?.toString(),
@@ -203,5 +231,112 @@ export class ResidenceDraftService {
           draftAmenity.highlightedAmenities[i]?.imageId.toString()
       );
     });
+  }
+
+  private async updateUnitAndDraftStatus(
+    residenceId: string,
+    userId: string,
+    status: ResidenceStatus
+  ) {
+    const units = await this.unitRepository.findAll({
+      residenceId: new Types.ObjectId(residenceId),
+    });
+
+    if (units.count > 0) {
+      const unitUpdatePromises = units.data.map(async (unit) => {
+        const unitId = unit._id.toString();
+
+        // Check if there's a draft for this specific unit
+        const existingUnitDraft = await this.unitDraftRepository.find({
+          unitId: new Types.ObjectId(unitId),
+          status: { $in: [ResidenceStatus.DRAFT, ResidenceStatus.PENDING] },
+        });
+
+        if (existingUnitDraft) {
+          // Update the unit draft status
+          const unitDraftRequest = await this.unitDraftRepository.update(existingUnitDraft.id, {
+            updatedById: new Types.ObjectId(userId),
+            status,
+          });
+
+          const unitDraftData = unitDraftRequest.toJSON();
+          delete unitDraftData.unitId;
+          delete unitDraftData._id;
+
+          if (unit.status === ResidenceStatus.DRAFT) {
+            let unitUpdatePaylod: any = {
+              updatedById: new Types.ObjectId(userId),
+              status,
+            };
+
+            if (status === ResidenceStatus.ACTIVE) {
+              unitUpdatePaylod = { ...unitDraftData };
+            }
+
+            await this.unitRepository.update(unitId, unitUpdatePaylod);
+          }
+
+          if (unit.status === ResidenceStatus.ACTIVE && status === ResidenceStatus.ACTIVE) {
+            await this.unitRepository.update(unitId, unitDraftData);
+          }
+        }
+      });
+
+      await Promise.all(unitUpdatePromises);
+    }
+  }
+
+  private async areUnitImagesChanged(residenceId: string): Promise<boolean> {
+    const units = await this.unitRepository.findAll({
+      residenceId: new Types.ObjectId(residenceId),
+    });
+
+    if (units.count > 0) {
+      const unitUpdatePromises = units.data.map(async (unit) => {
+        const unitId = unit._id.toString();
+
+        const existingUnitDraft = await this.unitDraftRepository.find({
+          unitId: new Types.ObjectId(unitId),
+          status: { $in: [ResidenceStatus.DRAFT, ResidenceStatus.PENDING] },
+        });
+
+        if (existingUnitDraft) {
+          // Compare all image fields between the unit and unitDraft
+          const isImageChanged = this.compareUnitImages(unit, existingUnitDraft);
+
+          if (isImageChanged) {
+            return true;
+          }
+        }
+        return false;
+      });
+
+      const unitImageChanges = await Promise.all(unitUpdatePromises);
+
+      // If any unit has image changes, return true
+      if (unitImageChanges.some((change) => change)) {
+        return true;
+      }
+    }
+
+    // If no unit has image changes, return false
+    return false;
+  }
+
+  private compareUnitImages(unit: any, unitDraft: any): boolean {
+    return (
+      !this.areArraysDifferent(
+        unit.visuals?.mainGalleryPhotos ?? [],
+        unitDraft.visuals?.mainGalleryPhotos ?? []
+      ) ||
+      !this.areArraysDifferent(
+        unit.visuals?.secondGalleryPhotos ?? [],
+        unitDraft.visuals?.secondGalleryPhotos ?? []
+      ) ||
+      this.areSingleValuesDifferent(
+        unit.visuals?.videoTour?.toString(),
+        unitDraft.visuals?.videoTour?.toString()
+      )
+    );
   }
 }
