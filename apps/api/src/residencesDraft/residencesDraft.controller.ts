@@ -1,6 +1,6 @@
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ResidenceDraftService } from './residencesDraft.service';
-import { Controller, Get, Query, UsePipes, Param, Post } from '@nestjs/common';
+import { Controller, Get, Query, UsePipes, Param } from '@nestjs/common';
 import { UserRole } from '../users/enum/user.enum';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
@@ -11,7 +11,6 @@ import {
   GetResidenceDraftByIdDto,
   getResidenceDraftByIdSchema,
 } from './dto/getResidenceDraftById.dto';
-import { GetCurrentUserId } from '../auth/decorators/getCurrentUserId.decorator';
 
 @ApiTags('ResidenceDraft')
 @Controller('residence-draft')
@@ -43,20 +42,5 @@ export class ResidenceDraftController {
       { residencesDraft: result },
       'Residence retrieved successfully'
     );
-  }
-
-  @Post('/:id/approval-requests')
-  @ApiOperation({
-    summary: 'Submit a request for approval of a residence by residenceId',
-  })
-  @ApiBearerAuth()
-  @Roles(UserRole.SELLER)
-  @UsePipes(new JoiValidationPipe(getResidenceDraftByIdSchema, 'param'))
-  async createApprovalRequest(
-    @GetCurrentUserId() userId: string,
-    @Param() params: GetResidenceDraftByIdDto
-  ) {
-    const residence = await this.residenceDraftService.createApprovalRequest(params.id, userId);
-    return ResponseService.buildResponse({ residence }, 'Residence approved successfully');
   }
 }
