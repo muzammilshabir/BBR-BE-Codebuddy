@@ -56,6 +56,12 @@ export class ClaimRequest extends Document {
   @Prop({ type: [{ type: Types.ObjectId, ref: 'Upload' }], required: false })
   documents?: Types.ObjectId[];
 
+  @Prop({ required: false })
+  acceptBBRCommitment: boolean;
+
+  @Prop({ required: false })
+  receiveLuxuryInsights: boolean;
+
   @Prop({ type: Date, default: Date.now })
   createdAt: Date;
 
