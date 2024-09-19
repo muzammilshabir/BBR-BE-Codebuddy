@@ -70,6 +70,7 @@ export class Residence extends Document {
         rentalPotential: String,
         developmentStatus: String,
         floorAreaSqFt: Number,
+        staffToResidenceRatio: Number,
       },
       petPolicy: String, // Enum values: "petFriendly", "No pet Allowed"
     },
@@ -82,6 +83,7 @@ export class Residence extends Document {
       rentalPotential: string;
       developmentStatus: string;
       floorAreaSqFt: number;
+      staffToResidenceRatio: number;
     };
     petPolicy: string;
   };
