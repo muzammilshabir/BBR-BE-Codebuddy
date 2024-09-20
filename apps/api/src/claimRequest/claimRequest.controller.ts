@@ -15,7 +15,7 @@ export class ClaimRequestController {
 
   @Post()
   @ApiOperation({
-    summary: 'Claim a residence or unit',
+    summary: 'Claim a residence or unit by an existing developer',
   })
   @ApiBearerAuth()
   @Roles(UserRole.SELLER)
