@@ -28,6 +28,27 @@ export class ClaimRequestService {
       throw new NotFoundException(`Developer is not verified`);
     }
 
+    const residenceId = await this.getValidatedResidenceId(createClaimRequestDto);
+
+    // check any existimg claim request exist with developerId
+    await this.checkExistingClaimRequest(residenceId);
+
+    const transformedDto = {
+      ...createClaimRequestDto,
+      documents: createClaimRequestDto.documents
+        ? createClaimRequestDto.documents.map((documentId) => new Types.ObjectId(documentId))
+        : undefined,
+      unitId: createClaimRequestDto.unitId
+        ? new Types.ObjectId(createClaimRequestDto.unitId)
+        : undefined,
+      residenceId: new Types.ObjectId(residenceId),
+      developerId: new Types.ObjectId(userId),
+    };
+
+    return await this.claimRequestRepository.create(transformedDto);
+  }
+
+  private async getValidatedResidenceId(createClaimRequestDto: CreateClaimRequestDto) {
     let residenceId = createClaimRequestDto.residenceId;
 
     if (residenceId) {
@@ -37,7 +58,6 @@ export class ClaimRequestService {
       }
     }
 
-    // If unitId is provided, get the residenceId from the unit
     if (createClaimRequestDto.unitId) {
       const unit = await this.unitRepository.findById(createClaimRequestDto.unitId.toString());
       if (!unit) {
@@ -54,27 +74,17 @@ export class ClaimRequestService {
       );
     }
 
+    return residenceId;
+  }
+
+  private async checkExistingClaimRequest(residenceId: string | Types.ObjectId): Promise<void> {
     const existingClaimRequest = await this.claimRequestRepository.find({
       residenceId: new Types.ObjectId(residenceId),
       status: ClaimRequestStatus.Approved,
     });
 
-    // check any existimg claim request exist with developerId
     if (existingClaimRequest) {
       throw new NotFoundException(`Residence is already claimed by another developer`);
     }
-
-    const transformedDto = {
-      ...createClaimRequestDto,
-      documents: createClaimRequestDto.documents
-        ? createClaimRequestDto.documents.map((documentId) => new Types.ObjectId(documentId))
-        : undefined,
-      unitId: createClaimRequestDto.unitId
-        ? new Types.ObjectId(createClaimRequestDto.unitId)
-        : undefined,
-      residenceId: new Types.ObjectId(residenceId),
-    };
-
-    return await this.claimRequestRepository.create(transformedDto);
   }
 }
