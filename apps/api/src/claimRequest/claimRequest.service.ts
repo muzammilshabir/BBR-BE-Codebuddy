@@ -101,14 +101,13 @@ export class ClaimRequestService {
     }
 
     // Extract user email domain
-    const userEmailDomain = user.email.split('@')[1];
+    const userEmailDomain = this.extractDomain(user.email, 'email');
 
     const residenceId = await this.getValidatedResidenceId(createClaimRequestDto);
     const residence = await this.residenceRepository.findById(residenceId.toString());
 
     // Extract residence website domain
-    const residenceUrl = new URL(residence.websiteLink);
-    const residenceDomain = residenceUrl.hostname.replace(/^www\./, ''); // Remove 'www' if present
+    const residenceDomain = this.extractDomain(residence.websiteLink, 'url');
 
     if (userEmailDomain !== residenceDomain) {
       throw new BadRequestException('User email domain does not match residence website domain');
@@ -125,5 +124,15 @@ export class ClaimRequestService {
     };
 
     return await this.claimRequestRepository.create(transformedDto);
+  }
+
+  private extractDomain(input: string, type: 'url' | 'email'): string {
+    if (type === 'url') {
+      const urlObj = new URL(input);
+      return urlObj.hostname.replace(/^www\./, ''); // Remove 'www.' if present
+    } else if (type === 'email') {
+      return input.split('@')[1]; // Get domain from email
+    }
+    throw new Error('Invalid input type. Expected "url" or "email".');
   }
 }
