@@ -263,6 +263,12 @@ export class ResidenceService {
     return residenceDetails;
   }
 
+  async upgradeResidence(residenceId: string) {
+    const residence = await this.residenceRepository.findById(residenceId);
+    residence.premium = true;
+    await this.residenceRepository.update(residence.id, residence);
+  }
+
   async approveResidence(residenceId: string, userId: string): Promise<ResidenceDraft> {
     await this.checkResidenceRejectedStatus(residenceId);
 

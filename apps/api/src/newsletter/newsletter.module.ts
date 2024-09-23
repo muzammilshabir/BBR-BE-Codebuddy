@@ -10,6 +10,7 @@ import { NewsletterFixture } from './newsletter.fixture';
 import { MailerCoreModule } from 'src/mailer/mailer.module';
 import { UserModule } from 'src/users/user.module';
 import { ResidenceModule } from 'src/residences/residences.module';
+import { StripeModule } from 'src/stripe/stripe.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { ResidenceModule } from 'src/residences/residences.module';
     MailerCoreModule,
     UserModule,
     ResidenceModule,
+    StripeModule,
     MongooseModule.forFeature([{ name: Newsletter.name, schema: NewsletterSchema }]),
   ],
   providers: [NewsletterService, NewsletterRepository, NewsletterSeeder,NewsletterFixture],

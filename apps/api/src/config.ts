@@ -48,4 +48,13 @@ export class ServiceConfig extends BbrStatefulServiceConfig {
   readonly captcha = {
     secretKey: this.getOrThrow('CAPTCHA_SECRET'),
   };
+
+  readonly stripe = {
+    apiKey: this.getOrThrow('STRIPE_API_KEY'),
+    secretKey: this.getOrThrow('STRIPE_SECRET_KEY'),
+    successPage: this.getOrThrow('STRIPE_SUCCESS_PAGE'),
+    cancelPage: this.getOrThrow('STRIPE_CANCEL_PAGE'),
+    redirectPage: this.getOrThrow('STRIPE_REDIRECT_PAGE'),
+    webhookSecret: this.getOrThrow('STRIPE_WEBHOOK_SECRET'),
+  };
 }

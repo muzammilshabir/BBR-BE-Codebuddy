@@ -148,6 +148,9 @@ export class Residence extends Document {
 
   @Prop({ type: Types.ObjectId, ref: 'LifeStyle' })
   lifeStyleId: Types.ObjectId;
+  
+  @Prop({type: Boolean, default: false})
+  premium: boolean;
 
   @Prop({ type: Types.ObjectId, ref: 'User' })
   createdById: Types.ObjectId;
