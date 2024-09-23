@@ -22,11 +22,6 @@ export class ClaimRequestService {
     createClaimRequestDto: CreateClaimRequestDto,
     userId: string
   ): Promise<ClaimRequest> {
-    const user = await this.userRepository.findById(userId);
-    if (!user.isVerified) {
-      throw new NotFoundException(`Developer is not verified`);
-    }
-
     const residenceId = await this.getValidatedResidenceId(createClaimRequestDto);
 
     // check any existimg claim request exist with developerId
