@@ -11,6 +11,10 @@ import { ResidenceRepository } from '../residences/residences.repository';
 import { UnitRepository } from '../unit/unit.repository';
 import { Types } from 'mongoose';
 import { ClaimRequestStatus } from './enum/claimReques-enum';
+import { SignupMethod, UserRole } from '../users/enum/user.enum';
+import { TokenService } from '@bbr/api-core/modules/token-generation/token.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { SendEmailEvent } from '../mailer/events/send-email.event';
 
 @Injectable()
 export class ClaimRequestService {
@@ -18,7 +22,9 @@ export class ClaimRequestService {
     private readonly claimRequestRepository: ClaimRequestRepository,
     private readonly userRepository: UserRepository,
     private readonly residenceRepository: ResidenceRepository,
-    private readonly unitRepository: UnitRepository
+    private readonly unitRepository: UnitRepository,
+    private readonly tokenService: TokenService,
+    private readonly eventEmitter: EventEmitter2
   ) {}
 
   async createClaimResidence(
@@ -134,5 +140,80 @@ export class ClaimRequestService {
       return input.split('@')[1]; // Get domain from email
     }
     throw new Error('Invalid input type. Expected "url" or "email".');
+  }
+
+  async claimResidenceForGuestWithMatchingDomain(
+    createClaimRequestDto: CreateClaimResidenceForDeveloperWithMatchingDomainDto
+  ): Promise<any> {
+    const residenceId = await this.getValidatedResidenceId(createClaimRequestDto);
+    const residence = await this.residenceRepository.findById(residenceId.toString());
+    const residenceDomain = this.extractDomain(residence.websiteLink, 'url');
+
+    const userEmailDomain = this.extractDomain(createClaimRequestDto.email, 'email');
+
+    if (userEmailDomain !== residenceDomain) {
+      throw new BadRequestException('User email domain does not match residence website domain');
+    }
+
+    const user = await this.userRepository.find({ email: createClaimRequestDto.email });
+    if (user && user.isVerified === true) {
+      const transformedDto = {
+        ...createClaimRequestDto,
+        userName: user?.fullName,
+        unitId: createClaimRequestDto.unitId
+          ? new Types.ObjectId(createClaimRequestDto.unitId)
+          : undefined,
+        residenceId: new Types.ObjectId(residenceId),
+        developerId: new Types.ObjectId(user.id),
+        status: ClaimRequestStatus.Pending,
+      };
+
+      return await this.claimRequestRepository.create(transformedDto);
+    }
+
+    if (!user) {
+      const verificationToken = this.tokenService.generateVerificationToken();
+      const userDetails = {
+        corporateEmail: createClaimRequestDto.email,
+        email: createClaimRequestDto.email,
+        companyInfo: { corporatePhone: createClaimRequestDto.phoneNumber },
+        role: UserRole.SELLER,
+        signupMethod: SignupMethod.EMAIL,
+        isVerified: false,
+        verificationToken,
+      };
+      const user = await this.userRepository.create(userDetails);
+
+      const transformedDto = {
+        ...createClaimRequestDto,
+        unitId: createClaimRequestDto.unitId
+          ? new Types.ObjectId(createClaimRequestDto.unitId)
+          : undefined,
+        residenceId: new Types.ObjectId(residenceId),
+        status: ClaimRequestStatus.Pending,
+      };
+
+      this.sendVerificationEmail(user.email, user.verificationToken);
+      return await this.claimRequestRepository.create(transformedDto);
+    }
+  }
+
+  public async sendVerificationEmail(email: string, verifyToken: string) {
+    this.eventEmitter.emit(
+      SendEmailEvent.event,
+      new SendEmailEvent({
+        context: {
+          email,
+          deeplink: this.generateVerificationLink(email, verifyToken),
+        },
+        template: 'verify-user',
+        subject: 'Verify Your Email Address',
+        toEmail: email,
+      })
+    );
+  }
+
+  public generateVerificationLink(email: string, verifyToken: string) {
+    return `${process.env.SERVICE_URL}/api/verify-email?token=${verifyToken}&email=${email}`;
   }
 }

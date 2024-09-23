@@ -10,6 +10,7 @@ import { Residence, ResidenceSchema } from '../residences/schema/residences.sche
 import { ResidenceRepository } from '../residences/residences.repository';
 import { Unit, UnitSchema } from '../unit/schema/unit.schema';
 import { UnitRepository } from '../unit/unit.repository';
+import { TokenService } from '@bbr/api-core/modules/token-generation/token.service';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { UnitRepository } from '../unit/unit.repository';
     UserRepository,
     ResidenceRepository,
     UnitRepository,
+    TokenService,
   ],
   exports: [],
   controllers: [ClaimRequestController],

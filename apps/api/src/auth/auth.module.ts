@@ -18,6 +18,7 @@ import { RtStrategy } from './strategies/rt.strategy';
   imports: [UserModule, MailerCoreModule, JwtModule.register(jwtConfig), RedisModule, HttpModule],
   providers: [AuthService, AtStrategy, RtStrategy, ServiceConfig, CaptchaGuard, TokenService],
   controllers: [AuthController],
+  exports: [TokenService],
 })
 export class AuthModule {
   configure(consumer: MiddlewareConsumer) {
