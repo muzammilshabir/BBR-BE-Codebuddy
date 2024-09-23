@@ -14,7 +14,7 @@ import { ClaimRequestStatus } from './enum/claimReques-enum';
 import { SignupMethod, UserRole } from '../users/enum/user.enum';
 import { TokenService } from '@bbr/api-core/modules/token-generation/token.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { SendEmailEvent } from '../mailer/events/send-email.event';
+import { AuthService } from '../auth/auth.service';
 
 @Injectable()
 export class ClaimRequestService {
@@ -24,6 +24,7 @@ export class ClaimRequestService {
     private readonly residenceRepository: ResidenceRepository,
     private readonly unitRepository: UnitRepository,
     private readonly tokenService: TokenService,
+    private readonly authService: AuthService,
     private readonly eventEmitter: EventEmitter2
   ) {}
 
@@ -193,27 +194,9 @@ export class ClaimRequestService {
         status: ClaimRequestStatus.Pending,
       };
 
-      this.sendVerificationEmail(user.email, user.verificationToken);
+      this.authService.sendVerificationEmail(user.email, user.verificationToken);
+
       return await this.claimRequestRepository.create(transformedDto);
     }
-  }
-
-  public async sendVerificationEmail(email: string, verifyToken: string) {
-    this.eventEmitter.emit(
-      SendEmailEvent.event,
-      new SendEmailEvent({
-        context: {
-          email,
-          deeplink: this.generateVerificationLink(email, verifyToken),
-        },
-        template: 'verify-user',
-        subject: 'Verify Your Email Address',
-        toEmail: email,
-      })
-    );
-  }
-
-  public generateVerificationLink(email: string, verifyToken: string) {
-    return `${process.env.SERVICE_URL}/api/verify-email?token=${verifyToken}&email=${email}`;
   }
 }

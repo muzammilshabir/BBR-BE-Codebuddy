@@ -181,7 +181,7 @@ export class AuthService {
     };
   }
 
-  private async sendVerificationEmail(email: string, verifyToken: string) {
+  public async sendVerificationEmail(email: string, verifyToken: string) {
     this.eventEmitter.emit(
       SendEmailEvent.event,
       new SendEmailEvent({
