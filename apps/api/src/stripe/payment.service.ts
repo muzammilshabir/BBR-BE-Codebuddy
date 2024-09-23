@@ -122,4 +122,13 @@ export class PaymentService {
     return this.stripeService.getCustomerSubscriptions(customerId);
   }
 
+  async getUserInvoices(userId: string) {
+    const user = await this.userService.findById(userId);
+    const customerId = user.stripeCustomerId;
+    return this.stripeService.getCustomerInvoices(customerId);
+  }
+
+  async refundUserInvoice(invoiceId: string) {
+    return this.stripeService.refundInvoice(invoiceId);
+  }
 }

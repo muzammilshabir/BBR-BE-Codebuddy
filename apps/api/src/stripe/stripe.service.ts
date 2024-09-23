@@ -117,6 +117,21 @@ export class StripeService {
     return parsedItems;
   }
 
+  async getCustomerInvoices(customerId: string) {
+    const invoices = await this.stripe.invoices.list({
+      customer: customerId,
+    });
+
+    return invoices;
+  }
+
+  async refundInvoice(invoiceId: string) {
+    const invoice = await this.stripe.invoices.retrieve(invoiceId);
+    await this.stripe.refunds.create({
+      payment_intent: invoice.payment_intent.toString(),
+    });
+  }
+
   async getCustomerSubscriptions(customerId: string) {
     const subscriptions = await this.stripe.subscriptions.list({
       customer: customerId,
@@ -156,6 +171,7 @@ export class StripeService {
         items: await this.processListItems((payment.invoice as Stripe.Invoice).lines.data),
         payment_method: this.mapPaymentMethodToType((payment.payment_method as Stripe.PaymentMethod)),
         invoice: {
+          invoiceId: (payment.invoice as Stripe.Invoice).id,
           web: (payment.invoice as Stripe.Invoice).hosted_invoice_url,
           pdf: (payment.invoice as Stripe.Invoice).invoice_pdf,
         },

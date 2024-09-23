@@ -151,4 +151,30 @@ export class PaymentController {
     const subscriptions = await this.paymentService.getUserSubscriptions(userId);
     return ResponseService.buildResponse({ subscriptions }, 'Customers Subscriptions retrieved successfully');
   }
+
+  @Post('/admin/customer/invoices/:userId')
+  @ApiOperation({
+    summary: 'Get Customer Invoices',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  async getCustomerInvoices(
+    @Param('userId') userId: string,
+  ) {
+    const subscriptions = await this.paymentService.getUserInvoices(userId);
+    return ResponseService.buildResponse({ subscriptions }, 'Customers Invoices retrieved successfully');
+  }
+
+  @Post('/admin/refund/:invoiceId')
+  @ApiOperation({
+    summary: 'Refund/Cancel Customer Invoice',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  async refundCustomerInvoice(
+    @Param('invoiceId') invoiceId: string,
+  ) {
+    const subscriptions = await this.paymentService.refundUserInvoice(invoiceId);
+    return ResponseService.buildResponse({ subscriptions }, 'Invoice refunded successfully');
+  }
 }
