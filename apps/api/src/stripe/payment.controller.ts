@@ -123,7 +123,7 @@ export class PaymentController {
     @Param('userId') userId: string,
   ) {
     const paymentMethods = await this.paymentService.getUserPaymentMethods(userId);
-    return ResponseService.buildResponse({ paymentMethods }, 'Customers Payment Methods successfully');
+    return ResponseService.buildResponse({ paymentMethods }, 'Customer Payment Methods successfully');
   }
 
   @Post('/admin/customer/payments/:userId')
@@ -136,7 +136,7 @@ export class PaymentController {
     @Param('userId') userId: string,
   ) {
     const payments = await this.paymentService.getUserPayments(userId);
-    return ResponseService.buildResponse({ payments }, 'Customers Payments retrieved successfully');
+    return ResponseService.buildResponse({ payments }, 'Customer Payments retrieved successfully');
   }
 
   @Post('/admin/customer/subscriptions/:userId')
@@ -149,7 +149,7 @@ export class PaymentController {
     @Param('userId') userId: string,
   ) {
     const subscriptions = await this.paymentService.getUserSubscriptions(userId);
-    return ResponseService.buildResponse({ subscriptions }, 'Customers Subscriptions retrieved successfully');
+    return ResponseService.buildResponse({ subscriptions }, 'Customer Subscriptions retrieved successfully');
   }
 
   @Post('/admin/customer/invoices/:userId')
@@ -161,8 +161,8 @@ export class PaymentController {
   async getCustomerInvoices(
     @Param('userId') userId: string,
   ) {
-    const subscriptions = await this.paymentService.getUserInvoices(userId);
-    return ResponseService.buildResponse({ subscriptions }, 'Customers Invoices retrieved successfully');
+    const invoices = await this.paymentService.getUserInvoices(userId);
+    return ResponseService.buildResponse({ invoices }, 'Customer Invoices retrieved successfully');
   }
 
   @Post('/admin/refund/:invoiceId')
@@ -174,7 +174,7 @@ export class PaymentController {
   async refundCustomerInvoice(
     @Param('invoiceId') invoiceId: string,
   ) {
-    const subscriptions = await this.paymentService.refundUserInvoice(invoiceId);
-    return ResponseService.buildResponse({ subscriptions }, 'Invoice refunded successfully');
+    const refund = await this.paymentService.refundUserInvoice(invoiceId);
+    return ResponseService.buildResponse({ refund }, 'Invoice refunded successfully');
   }
 }

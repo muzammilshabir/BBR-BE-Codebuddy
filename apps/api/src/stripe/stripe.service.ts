@@ -127,9 +127,19 @@ export class StripeService {
 
   async refundInvoice(invoiceId: string) {
     const invoice = await this.stripe.invoices.retrieve(invoiceId);
-    await this.stripe.refunds.create({
+    const refund = await this.stripe.refunds.create({
       payment_intent: invoice.payment_intent.toString(),
+      reason: "requested_by_customer",
     });
+
+    return {
+      id: refund.id,
+      amount: refund.amount,
+      status: refund.status,
+      receipt_number: refund.receipt_number,
+      failure_reason: refund.failure_reason,
+      created: refund.created,
+    };
   }
 
   async getCustomerSubscriptions(customerId: string) {
