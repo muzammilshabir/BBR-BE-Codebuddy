@@ -13,9 +13,9 @@ import { GetCurrentUserId } from '../auth/decorators/getCurrentUserId.decorator'
 export class ClaimRequestController {
   constructor(private readonly claimRequestService: ClaimRequestService) {}
 
-  @Post()
+  @Post('developer/different-domain')
   @ApiOperation({
-    summary: 'Claim a residence or unit by an existing developer with diiferent domain',
+    summary: 'Claim a residence or unit by an existing developer with different domain',
   })
   @ApiBearerAuth()
   @Roles(UserRole.SELLER)
