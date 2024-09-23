@@ -1,9 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { ClaimRequestRepository } from './claimRequest.repository';
-import { CreateClaimRequestDto } from './dto/createClaimRequest.dto';
+import {
+  CreateClaimRequestDto,
+  CreateClaimResidenceForDeveloperWithMatchingDomainDto,
+} from './dto/createClaimRequest.dto';
 import { ClaimRequest } from './schema/claimRequest.schema';
 import { UserRepository } from '../users/user.repository';
-import { NotFoundException } from '../../../../packages/api-core/modules/exceptions';
+import { BadRequestException, NotFoundException } from '@bbr/api-core/modules/exceptions';
 import { ResidenceRepository } from '../residences/residences.repository';
 import { UnitRepository } from '../unit/unit.repository';
 import { Types } from 'mongoose';
@@ -42,7 +45,7 @@ export class ClaimRequestService {
     return await this.claimRequestRepository.create(transformedDto);
   }
 
-  private async getValidatedResidenceId(createClaimRequestDto: CreateClaimRequestDto) {
+  private async getValidatedResidenceId(createClaimRequestDto: any) {
     let residenceId = createClaimRequestDto.residenceId;
 
     if (residenceId) {
@@ -80,5 +83,47 @@ export class ClaimRequestService {
     if (existingClaimRequest) {
       throw new NotFoundException(`Residence is already claimed by another developer`);
     }
+  }
+
+  async claimResidenceForDeveloperWithMatchingDomain(
+    createClaimRequestDto: CreateClaimResidenceForDeveloperWithMatchingDomainDto,
+    userId: string
+  ): Promise<ClaimRequest> {
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+
+    if (user.email !== createClaimRequestDto.email) {
+      throw new BadRequestException(
+        `User email (${user.email}) does not match the claim email (${createClaimRequestDto.email})`
+      );
+    }
+
+    // Extract user email domain
+    const userEmailDomain = user.email.split('@')[1];
+
+    const residenceId = await this.getValidatedResidenceId(createClaimRequestDto);
+    const residence = await this.residenceRepository.findById(residenceId.toString());
+
+    // Extract residence website domain
+    const residenceUrl = new URL(residence.websiteLink);
+    const residenceDomain = residenceUrl.hostname.replace(/^www\./, ''); // Remove 'www' if present
+
+    if (userEmailDomain !== residenceDomain) {
+      throw new BadRequestException('User email domain does not match residence website domain');
+    }
+
+    const transformedDto = {
+      ...createClaimRequestDto,
+      unitId: createClaimRequestDto.unitId
+        ? new Types.ObjectId(createClaimRequestDto.unitId)
+        : undefined,
+      residenceId: new Types.ObjectId(residenceId),
+      developerId: new Types.ObjectId(userId),
+      status: ClaimRequestStatus.Approved,
+    };
+
+    return await this.claimRequestRepository.create(transformedDto);
   }
 }

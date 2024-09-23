@@ -5,7 +5,12 @@ import { UserRole } from '../users/enum/user.enum';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
-import { CreateClaimRequestDto, createClaimRequestSchema } from './dto/createClaimRequest.dto';
+import {
+  CreateClaimRequestDto,
+  createClaimRequestSchema,
+  CreateClaimResidenceForDeveloperWithMatchingDomainDto,
+  createClaimResidenceForDeveloperWithMatchingDomainDtoSchema,
+} from './dto/createClaimRequest.dto';
 import { GetCurrentUserId } from '../auth/decorators/getCurrentUserId.decorator';
 
 @ApiTags('ClaimRequest')
@@ -28,6 +33,27 @@ export class ClaimRequestController {
       createClaimRequestDto,
       userId
     );
+    return ResponseService.buildResponse({ claimRequest }, 'Claim request submitted successfully');
+  }
+
+  @Post('developer/same-domain')
+  @ApiOperation({
+    summary: 'Claim a residence or unit by an existing developer with same domain',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
+  @UsePipes(
+    new JoiValidationPipe(createClaimResidenceForDeveloperWithMatchingDomainDtoSchema, 'body')
+  )
+  async claimResidenceForDeveloperWithMatchingDomain(
+    @Body() createClaimRequestDto: CreateClaimResidenceForDeveloperWithMatchingDomainDto,
+    @GetCurrentUserId() userId: string
+  ) {
+    const claimRequest =
+      await this.claimRequestService.claimResidenceForDeveloperWithMatchingDomain(
+        createClaimRequestDto,
+        userId
+      );
     return ResponseService.buildResponse({ claimRequest }, 'Claim request submitted successfully');
   }
 }
