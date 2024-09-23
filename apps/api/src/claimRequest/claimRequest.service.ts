@@ -172,31 +172,29 @@ export class ClaimRequestService {
       return await this.claimRequestRepository.create(transformedDto);
     }
 
-    if (!user) {
-      const verificationToken = this.tokenService.generateVerificationToken();
-      const userDetails = {
-        corporateEmail: createClaimRequestDto.email,
-        email: createClaimRequestDto.email,
-        companyInfo: { corporatePhone: createClaimRequestDto.phoneNumber },
-        role: UserRole.SELLER,
-        signupMethod: SignupMethod.EMAIL,
-        isVerified: false,
-        verificationToken,
-      };
-      const user = await this.userRepository.create(userDetails);
+    const verificationToken = this.tokenService.generateVerificationToken();
+    const userDetails = {
+      corporateEmail: createClaimRequestDto.email,
+      email: createClaimRequestDto.email,
+      companyInfo: { corporatePhone: createClaimRequestDto.phoneNumber },
+      role: UserRole.SELLER,
+      signupMethod: SignupMethod.EMAIL,
+      isVerified: false,
+      verificationToken,
+    };
+    const newUser = await this.userRepository.create(userDetails);
 
-      const transformedDto = {
-        ...createClaimRequestDto,
-        unitId: createClaimRequestDto.unitId
-          ? new Types.ObjectId(createClaimRequestDto.unitId)
-          : undefined,
-        residenceId: new Types.ObjectId(residenceId),
-        status: ClaimRequestStatus.Pending,
-      };
+    const transformedDto = {
+      ...createClaimRequestDto,
+      unitId: createClaimRequestDto.unitId
+        ? new Types.ObjectId(createClaimRequestDto.unitId)
+        : undefined,
+      residenceId: new Types.ObjectId(residenceId),
+      status: ClaimRequestStatus.Pending,
+    };
 
-      this.authService.sendVerificationEmail(user.email, user.verificationToken);
+    this.authService.sendVerificationEmail(newUser.email, newUser.verificationToken);
 
-      return await this.claimRequestRepository.create(transformedDto);
-    }
+    return await this.claimRequestRepository.create(transformedDto);
   }
 }
