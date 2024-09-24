@@ -181,4 +181,15 @@ export class UserService {
 
     return updatedUser;
   }
+
+  async createDummyDeveloper(userDetails: any): Promise<User> {
+    try {
+      const verificationToken = this.tokenService.generateVerificationToken();
+      userDetails.verificationToken = verificationToken;
+      return await this.userRepository.create(userDetails);
+    } catch (error) {
+      console.error('Error creating user:', error);
+      throw error;
+    }
+  }
 }

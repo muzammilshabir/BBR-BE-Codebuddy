@@ -12,6 +12,7 @@ import {
   createClaimResidenceForDeveloperWithMatchingDomainDtoSchema,
 } from './dto/createClaimRequest.dto';
 import { GetCurrentUserId } from '../auth/decorators/getCurrentUserId.decorator';
+import { Public } from '@bbr/api-core/modules/decorators';
 
 @ApiTags('ClaimRequest')
 @Controller('claim-request')
@@ -53,6 +54,24 @@ export class ClaimRequestController {
       await this.claimRequestService.claimResidenceForDeveloperWithMatchingDomain(
         createClaimRequestDto,
         userId
+      );
+    return ResponseService.buildResponse({ claimRequest }, 'Claim request submitted successfully');
+  }
+
+  @Post('guest/same-domain')
+  @ApiOperation({
+    summary: 'Claim a residence or unit by guest user with same domain',
+  })
+  @Public()
+  @UsePipes(
+    new JoiValidationPipe(createClaimResidenceForDeveloperWithMatchingDomainDtoSchema, 'body')
+  )
+  async claimResidenceForGuestWithMatchingDomain(
+    @Body() createClaimRequestDto: CreateClaimResidenceForDeveloperWithMatchingDomainDto
+  ) {
+    const claimRequest =
+      await this.claimRequestService.claimResidenceForGuestWithMatchingDomain(
+        createClaimRequestDto
       );
     return ResponseService.buildResponse({ claimRequest }, 'Claim request submitted successfully');
   }

@@ -216,6 +216,8 @@ export class AuthService {
       receiveLuxuryInsights: sellerSignupDto.receiveLuxuryInsights,
       acceptBBRCommitment: false,
     });
+    console.log('user :>> ', user);
+    console.log('user.verificationToken :>> ', user.verificationToken);
 
     this.sendVerificationEmail(user.email, user.verificationToken);
 
@@ -322,5 +324,13 @@ export class AuthService {
       throw new BadRequestException('Current password is incorrect');
     }
     await this.userService.updatePassword(user.id, await argon.hash(newPassword));
+  }
+
+  async createDummyDeveloper(userDetails: any) {
+    const user = await this.userService.createDummyDeveloper(userDetails);
+
+    this.sendVerificationEmail(user.email, user.verificationToken);
+
+    return user;
   }
 }

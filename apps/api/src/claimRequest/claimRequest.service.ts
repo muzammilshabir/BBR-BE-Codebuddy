@@ -11,6 +11,8 @@ import { ResidenceRepository } from '../residences/residences.repository';
 import { UnitRepository } from '../unit/unit.repository';
 import { Types } from 'mongoose';
 import { ClaimRequestStatus } from './enum/claimReques-enum';
+import { SignupMethod, UserRole } from '../users/enum/user.enum';
+import { AuthService } from '../auth/auth.service';
 
 @Injectable()
 export class ClaimRequestService {
@@ -18,7 +20,8 @@ export class ClaimRequestService {
     private readonly claimRequestRepository: ClaimRequestRepository,
     private readonly userRepository: UserRepository,
     private readonly residenceRepository: ResidenceRepository,
-    private readonly unitRepository: UnitRepository
+    private readonly unitRepository: UnitRepository,
+    private readonly authService: AuthService
   ) {}
 
   async createClaimResidence(
@@ -104,6 +107,10 @@ export class ClaimRequestService {
     const userEmailDomain = this.extractDomain(user.email, 'email');
 
     const residenceId = await this.getValidatedResidenceId(createClaimRequestDto);
+
+    // check any existimg claim request exist with developerId
+    await this.checkExistingClaimRequest(residenceId);
+
     const residence = await this.residenceRepository.findById(residenceId.toString());
 
     // Extract residence website domain
@@ -134,5 +141,61 @@ export class ClaimRequestService {
       return input.split('@')[1]; // Get domain from email
     }
     throw new Error('Invalid input type. Expected "url" or "email".');
+  }
+
+  async claimResidenceForGuestWithMatchingDomain(
+    createClaimRequestDto: CreateClaimResidenceForDeveloperWithMatchingDomainDto
+  ): Promise<ClaimRequest> {
+    const residenceId = await this.getValidatedResidenceId(createClaimRequestDto);
+
+    // check any existimg claim request exist with developerId
+    await this.checkExistingClaimRequest(residenceId);
+
+    const residence = await this.residenceRepository.findById(residenceId.toString());
+    const residenceDomain = this.extractDomain(residence.websiteLink, 'url');
+
+    const userEmailDomain = this.extractDomain(createClaimRequestDto.email, 'email');
+
+    if (userEmailDomain !== residenceDomain) {
+      throw new BadRequestException('User email domain does not match residence website domain');
+    }
+
+    const user = await this.userRepository.find({ email: createClaimRequestDto.email });
+    if (user && user.isVerified === true) {
+      const transformedDto = {
+        ...createClaimRequestDto,
+        userName: user?.fullName,
+        unitId: createClaimRequestDto.unitId
+          ? new Types.ObjectId(createClaimRequestDto.unitId)
+          : undefined,
+        residenceId: new Types.ObjectId(residenceId),
+        developerId: new Types.ObjectId(user.id),
+        status: ClaimRequestStatus.Pending,
+      };
+
+      return await this.claimRequestRepository.create(transformedDto);
+    }
+
+    const userDetails = {
+      corporateEmail: createClaimRequestDto.email,
+      email: createClaimRequestDto.email,
+      companyInfo: { corporatePhone: createClaimRequestDto.phoneNumber },
+      role: UserRole.SELLER,
+      signupMethod: SignupMethod.EMAIL,
+      isVerified: false,
+    };
+
+    await this.authService.createDummyDeveloper(userDetails);
+
+    const transformedDto = {
+      ...createClaimRequestDto,
+      unitId: createClaimRequestDto.unitId
+        ? new Types.ObjectId(createClaimRequestDto.unitId)
+        : undefined,
+      residenceId: new Types.ObjectId(residenceId),
+      status: ClaimRequestStatus.Pending,
+    };
+
+    return await this.claimRequestRepository.create(transformedDto);
   }
 }

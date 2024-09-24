@@ -10,6 +10,13 @@ import { Residence, ResidenceSchema } from '../residences/schema/residences.sche
 import { ResidenceRepository } from '../residences/residences.repository';
 import { Unit, UnitSchema } from '../unit/schema/unit.schema';
 import { UnitRepository } from '../unit/unit.repository';
+import { TokenService } from '@bbr/api-core/modules/token-generation/token.service';
+import { AuthService } from '../auth/auth.service';
+import { UserService } from '../users/user.service';
+import { ServiceConfig } from '../config';
+import { JwtService } from '@nestjs/jwt';
+import { RedisService } from '../redis/redis.service';
+import { RedisModule } from '../redis/redis.module';
 
 @Module({
   imports: [
@@ -17,6 +24,7 @@ import { UnitRepository } from '../unit/unit.repository';
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
     MongooseModule.forFeature([{ name: Residence.name, schema: ResidenceSchema }]),
     MongooseModule.forFeature([{ name: Unit.name, schema: UnitSchema }]),
+    RedisModule,
   ],
   providers: [
     ClaimRequestService,
@@ -24,6 +32,12 @@ import { UnitRepository } from '../unit/unit.repository';
     UserRepository,
     ResidenceRepository,
     UnitRepository,
+    TokenService,
+    UserService,
+    ServiceConfig,
+    JwtService,
+    RedisService,
+    AuthService,
   ],
   exports: [],
   controllers: [ClaimRequestController],
