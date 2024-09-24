@@ -29,3 +29,6 @@ pnpm copy-env
 pnpm dev:redis
 pnpm dev
 ```
+
+## Version
+0.0.1
