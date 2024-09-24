@@ -1,9 +1,11 @@
 import { AppModule } from '../app.module';
 import { TestSuite } from '@bbr/api-core/modules/testing/test.suite';
 import { BrandFixture } from './brand.fixture';
+import { UploadFixture } from '../upload/upload.fixture';
+import { BrandCategoryFixture } from '../brandCategory/brandCategory.fixture';
 
 describe('BrandModule', () => {
-  const app = new TestSuite(AppModule, [BrandFixture]);
+  const app = new TestSuite(AppModule, [BrandFixture, UploadFixture, BrandCategoryFixture]);
   const url = '/brand';
 
   describe('Find all Brands', () => {
@@ -30,5 +32,4 @@ describe('BrandModule', () => {
       expect(res.body.data.brands[0].name).toEqual('Aston Martin');
     });
   });
-
 });

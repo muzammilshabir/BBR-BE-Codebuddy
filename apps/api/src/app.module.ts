@@ -23,6 +23,20 @@ import { jwtConfig } from './utils/jwt.config';
 import { APP_GUARD } from '@nestjs/core';
 import { AtGuard } from './auth/guards/at.guard';
 import { LeadModule } from './lead/lead.module';
+import { NewsletterModule } from './newsletter/newsletter.module';
+import { BrandCategoryModule } from './brandCategory/brandCategory.module';
+import { NewsroomModule } from './newsroom/newsroom.module';
+import { GeographicalAreasModule } from './geographicalAreas/geographicalAreas.module';
+import { CountryModule } from './country/country.module';
+import { CityModule } from './city/city.module';
+import { PropertyTypeModule } from './propertyType/propertyType.module';
+import { RoomTypeModule } from './roomType/roomType.module';
+import { ResidenceServiceModule } from './residenceService/residenceService.module';
+import { BlogModule } from './blog/blog.module';
+import { ResidenceEnquiryModule } from './residenceEnquiry/residenceEnquiry.module';
+import { CareerModule } from './careers/career.module';
+import { ResidenceDraftModule } from './residencesDraft/residencesDraft.module';
+import { UnitDraftModule } from './unitDraft/unitDraft.module';
 import { AppController } from './app.controller';
 @Module({
   imports: [
@@ -48,6 +62,21 @@ import { AppController } from './app.controller';
     ReviewModule,
     LifeStyleModule,
     LeadModule,
+    NewsletterModule,
+    BrandCategoryModule,
+    NewsroomModule,
+    GeographicalAreasModule,
+    ResidenceServiceModule,
+    CountryModule,
+    CityModule,
+    PropertyTypeModule,
+    RoomTypeModule,
+    BlogModule,
+    ResidenceEnquiryModule,
+    ResidenceDraftModule,
+    BlogModule,
+    CareerModule,
+    UnitDraftModule,
   ],
   controllers: [AppController],
   providers: [

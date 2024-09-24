@@ -57,4 +57,17 @@ export class BaseRepository<T extends Document> {
       })
       .exec();
   }
+
+  async count(filter: any): Promise<{ count: number }> {
+    const count = await this.model.countDocuments(filter).exec();
+    return { count };
+  }
+
+  async findById(id: string): Promise<T> {
+    return await this.model.findById(id);
+  }
+
+  async find(filter: any): Promise<T> {
+    return await this.model.findOne(filter);
+  }
 }

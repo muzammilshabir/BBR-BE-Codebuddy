@@ -5,6 +5,12 @@ import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/
 
 export class AddVisualsDto {
   @ApiProperty({
+    example: ['66ab4bd5161117eabe919e57', '66ab4bd5161117eabe919e61'],
+    required: false,
+  })
+  mainPhotos?: Types.ObjectId[];
+
+  @ApiProperty({
     example: ['64b1b5f4e05c12a1f5d8e7c2'],
     required: true,
     description: 'Array of ObjectIds for main gallery photos',
@@ -34,6 +40,9 @@ export class AddVisualsDto {
 }
 
 export const addVisualsSchema = Joi.object({
+  mainPhotos: Joi.array()
+    .items(Joi.string().custom(joiObjectIdValidator('mainGalleryPhotos')))
+    .optional(),
   mainGalleryPhotos: Joi.array()
     .items(Joi.string().custom(joiObjectIdValidator('mainGalleryPhotos')).required())
     .required()

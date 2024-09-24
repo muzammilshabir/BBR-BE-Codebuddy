@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { UploadRepository } from './upload.repository';
-import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { DeleteObjectCommand, GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { ServiceConfig } from '../config';
 import VolatileFile from 'formidable/VolatileFile';
 import { PassThrough, Readable, Writable } from 'stream';
@@ -34,6 +34,7 @@ export class UploadService {
 
     return new Promise((resolve, reject) => {
       const s3Uploads = [];
+      let metadata: { referenceId?: Types.ObjectId; referenceType?: string } = {};
 
       function fileWriteStreamHandler(file: VolatileFile): Writable {
         const formidableFile = file as unknown as File;
@@ -56,6 +57,7 @@ export class UploadService {
             size: formidableFile.size,
             driver: 'S3',
             createdById: new Types.ObjectId('60d5f485f7c6a4b2b8e8b5f7'), // Assuming you have user authentication in place
+            metadata,
           };
           return fileDocument;
         });
@@ -71,11 +73,25 @@ export class UploadService {
       form.once('end', () => {
         this.logger.log('All files have been uploaded');
       });
-      form.parse(req, (error) => {
+
+      form.parse(req, (error, fields) => {
         if (error) {
           reject(error);
           return;
         }
+
+        // Extract and parse metadata from fields
+        if (fields.metadata && Array.isArray(fields.metadata)) {
+          try {
+            const parsedMetadata = JSON.parse(fields.metadata[0]);
+            metadata.referenceId = new Types.ObjectId(parsedMetadata.referenceId);
+            metadata.referenceType = parsedMetadata.referenceType;
+          } catch (parseError) {
+            this.logger.log('Error parsing metadata', parseError);
+            metadata = {}; // Default to empty metadata if parsing fails
+          }
+        }
+
         Promise.all(s3Uploads)
           .then(async (files) => {
             // Store all files in the database and wait for the operation to complete
@@ -107,13 +123,24 @@ export class UploadService {
     }
   }
 
-  async downloadFile(publicUrl: string, userId: string) {
+  async downloadFile(
+    publicUrl: string,
+    userId: string
+  ): Promise<{ fileMetadata?: any; error?: string }> {
     try {
       const { passThrough, filename, contentType, size } = await this.downloadImage(publicUrl);
-      return await this.uploadImageToS3(passThrough, filename, contentType, size, userId);
+
+      const fileMetadata = await this.uploadImageToS3(
+        passThrough,
+        filename,
+        contentType,
+        size,
+        userId
+      );
+      return { fileMetadata };
     } catch (error) {
       console.error(`Failed to download image from URL: ${publicUrl}`, error.message);
-      return null;
+      return { error: `Failed to download image from URL: ${publicUrl}. Error: ${error.message}` };
     }
   }
   async downloadImage(url: string): Promise<any> {
@@ -221,5 +248,33 @@ export class UploadService {
       throw new NotFoundException(`File with ID ${fileId} not found`);
     }
     return file;
+  }
+
+  async deleteFiles(uploadIds: string[]) {
+    const files = await this.uploadRepository.findAllByIds(uploadIds);
+
+    const deletePromises = files.map(async (file: any) => {
+      try {
+        // Delete the file from the S3 bucket
+        await this.s3Client.send(
+          new DeleteObjectCommand({
+            Bucket: this.config.s3.bucket,
+            Key: file.fileKey,
+          })
+        );
+
+        await this.uploadRepository.update(file._id, { isDeleted: true });
+
+        this.logger.log(`Successfully deleted file: ${file.fileKey}`);
+      } catch (error) {
+        this.logger.error(`Failed to delete file: ${file.fileKey}`, error);
+        throw new BadRequestException(`Failed to delete file with key ${file.fileKey}`);
+      }
+    });
+
+    // Wait for all deletions to complete
+    await Promise.all(deletePromises);
+
+    return { message: 'Files deleted successfully.' };
   }
 }

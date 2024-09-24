@@ -11,10 +11,11 @@ export class ResidenceRepository extends BaseRepository<Residence> {
     super(residenceModel);
   }
 
-  async findById(residenceId: string): Promise<any> {
+  async findByIdInDetail(residenceId: string): Promise<any> {
     let residence: any = await this.residenceModel.findById(residenceId).populate([
       { path: 'residenceTypeId', select: 'type' },
-      { path: 'locationId', select: 'name type parentId' },
+      { path: 'cityId', select: 'name type countryId' },
+      { path: 'countryId', select: 'name type' },
       { path: 'associatedBrandId', select: 'name' },
       { path: 'residenceKeyFeatures.featureIds', select: 'name', model: 'ResidenceFeature' },
       {
@@ -39,8 +40,8 @@ export class ResidenceRepository extends BaseRepository<Residence> {
         select: 'originalFileKey fileKey url mimeType',
         model: 'Upload',
       },
-      { path: 'createdById', model: 'User' },
-      { path: 'developerId', model: 'User' },
+      { path: 'createdById', model: 'User', select: 'fullName email role' },
+      { path: 'developerId', model: 'User', select: 'fullName email role' },
     ]);
 
     if (!residence) {

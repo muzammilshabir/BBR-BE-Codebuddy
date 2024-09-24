@@ -1,26 +1,47 @@
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
-import { Body, Controller, Get, Param, Post, Put, Query, Res, UsePipes } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Put,
+  Query,
+  Res,
+  UsePipes,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/enum/user.enum';
-import { AddVisualsDto, addVisualsSchema } from './dto/add-visuals.dto';
+import { AddResidenceVisualsDto, addResidenceVisualsSchema } from './dto/add-visuals.dto';
 import { CreateResidenceDto, createResidenceSchema } from './dto/create-residence.dto';
 import { GetResidenceByIdDto, getResidenceByIdSchema } from './dto/get-residence-by-id.dto';
-import { ListResidenceDto, listResidenceSchema } from './dto/list-residence.dto';
+import {
+  ListResidenceByFiltersDto,
+  ListResidenceByFiltersQueryPropsDto,
+  listResidenceByFiltersSchema,
+  ListResidenceDto,
+  listResidenceSchema,
+} from './dto/list-residence.dto';
 import { AddKeyFeaturesDto, addKeyFeaturesSchema } from './dto/residenceKeyFeatures.dto';
 import {
   UpdateNearbyAmenitiesDto,
   updateNearbyAmenitiesSchema,
 } from './dto/update-nearby-amenities.dto';
 import {
-  ResidenceStatusDto,
+  RejectResidenceDto,
+  rejectResidenceSchema,
   UpdateResidenceDto,
   updateResidenceSchema,
-  updateResidenceStatusSchema,
 } from './dto/update-residence.dto';
 import { ResidenceService } from './residences.service';
+import { GetCurrentUserId } from '../auth/decorators/getCurrentUserId.decorator';
+import { GetCurrentUser } from '../auth/decorators/getCurrentUser.decorator';
+import { JwtPayloadType } from '../auth/type/jwt-payload.type';
+import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('Residence')
 @Controller('residence')
@@ -29,13 +50,16 @@ export class ResidenceController {
 
   @Post()
   @ApiOperation({
-    summary: 'Create Residence with general info',
+    summary: 'Create Residence and Draft with general info',
   })
   @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
   @UsePipes(new JoiValidationPipe(createResidenceSchema, 'body'))
-  async create(@Body() createResidenceDto: CreateResidenceDto) {
-    const residence = await this.residenceService.create(createResidenceDto);
+  async create(
+    @Body() createResidenceDto: CreateResidenceDto,
+    @GetCurrentUser() user: JwtPayloadType
+  ) {
+    const residence = await this.residenceService.create(createResidenceDto, user);
     return ResponseService.buildResponse({ residence }, 'Residence created successfully');
   }
 
@@ -46,9 +70,16 @@ export class ResidenceController {
   @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
   @UsePipes(new JoiValidationPipe(updateResidenceSchema, 'body'))
-  async update(@Param('id') id: string, @Body() updateResidenceDto: UpdateResidenceDto) {
-    const residence = await this.residenceService.updateGeneralInfo(id, updateResidenceDto);
-    return ResponseService.buildResponse({ residence }, 'Residence updated successfully');
+  async update(
+    @Param('id') id: string,
+    @Body() updateResidenceDto: UpdateResidenceDto,
+    @GetCurrentUser() user: JwtPayloadType
+  ) {
+    const residence = await this.residenceService.updateGeneralInfo(id, updateResidenceDto, user);
+    return ResponseService.buildResponse(
+      { residenceDraft: residence },
+      'Residence updated successfully'
+    );
   }
 
   @Put(':id/key-features')
@@ -58,10 +89,14 @@ export class ResidenceController {
   @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
   @UsePipes(new JoiValidationPipe(addKeyFeaturesSchema, 'body'))
-  async addKeyFeatures(@Param('id') id: string, @Body() addKeyFeaturesDto: AddKeyFeaturesDto) {
-    const residence = await this.residenceService.addKeyFeatures(id, addKeyFeaturesDto);
+  async addKeyFeatures(
+    @Param('id') id: string,
+    @Body() addKeyFeaturesDto: AddKeyFeaturesDto,
+    @GetCurrentUserId() userId: string
+  ) {
+    const residence = await this.residenceService.addKeyFeatures(id, addKeyFeaturesDto, userId);
     return ResponseService.buildResponse(
-      { residence },
+      { residenceDraft: residence },
       'Residence key features added successfully'
     );
   }
@@ -72,13 +107,17 @@ export class ResidenceController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
-  @UsePipes(new JoiValidationPipe(addVisualsSchema, 'body'))
-  async addVisuals(@Param('id') id: string, @Body() addVisualsDto: AddVisualsDto) {
-    const residence = await this.residenceService.addVisuals(id, addVisualsDto);
-    return {
-      message: 'Residence visuals updated successfully',
-      residence,
-    };
+  @UsePipes(new JoiValidationPipe(addResidenceVisualsSchema, 'body'))
+  async addVisuals(
+    @Param('id') id: string,
+    @Body() addVisualsDto: AddResidenceVisualsDto,
+    @GetCurrentUserId() userId: string
+  ) {
+    const residence = await this.residenceService.addVisuals(id, addVisualsDto, userId);
+    return ResponseService.buildResponse(
+      { residenceDraft: residence },
+      'Residence visuals updated successfully'
+    );
   }
 
   @Put(':id/nearby-amenities')
@@ -90,38 +129,41 @@ export class ResidenceController {
   @UsePipes(new JoiValidationPipe(updateNearbyAmenitiesSchema, 'body'))
   async updateNearbyAmenities(
     @Param('id') id: string,
-    @Body() updateNearbyAmenitiesDto: UpdateNearbyAmenitiesDto
+    @Body() updateNearbyAmenitiesDto: UpdateNearbyAmenitiesDto,
+    @GetCurrentUserId() userId: string
   ) {
     const residence = await this.residenceService.updateNearbyAmenities(
       id,
-      updateNearbyAmenitiesDto
+      updateNearbyAmenitiesDto,
+      userId
     );
     return ResponseService.buildResponse(
-      { residence },
+      { residenceDraft: residence },
       'Residence nearby amenities updated successfully'
     );
   }
 
-  @Put('/:id/update-status')
+  @Patch('/:id/approve-residence')
   @ApiOperation({
-    summary: 'Update Residence by ID',
+    summary: 'Approve Residence by ID',
   })
   @ApiBearerAuth()
-  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @Roles(UserRole.ADMIN)
   @UsePipes(new JoiValidationPipe(getResidenceByIdSchema, 'param'))
-  @UsePipes(new JoiValidationPipe(updateResidenceStatusSchema, 'body'))
-  async updateResidenceStatus(
-    @Param() params: GetResidenceByIdDto,
-    @Body() body: ResidenceStatusDto
-  ) {
-    const residence = await this.residenceService.updateResidenceStatus(params.id, body.status);
-    return ResponseService.buildResponse({ residence }, 'Residence retrieved successfully');
+  async approveResidence(@GetCurrentUserId() userId: string, @Param() params: GetResidenceByIdDto) {
+    const residence = await this.residenceService.approveResidence(params.id, userId);
+    return ResponseService.buildResponse(
+      { residenceDraft: residence },
+      'Residence approved successfully'
+    );
   }
 
   @Get('/')
   @ApiOperation({
     summary: 'List Residence',
   })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
   @UsePipes(new JoiValidationPipe(listResidenceSchema, 'query'))
   async listResidences(@Query() query: ListResidenceDto, @Res() res: Response) {
     const result = await this.residenceService.listResidences(query);
@@ -149,9 +191,53 @@ export class ResidenceController {
   @ApiOperation({
     summary: 'Get Residence by ID',
   })
+  @Public()
   @UsePipes(new JoiValidationPipe(getResidenceByIdSchema, 'param'))
   async getResidenceById(@Param() params: GetResidenceByIdDto) {
     const residence = await this.residenceService.getResidenceById(params.id);
     return ResponseService.buildResponse({ residence }, 'Residence retrieved successfully');
+  }
+
+  @Patch('/:id/reject-residence')
+  @ApiOperation({
+    summary: 'Reject Residence by ID',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(getResidenceByIdSchema, 'param'))
+  @UsePipes(new JoiValidationPipe(rejectResidenceSchema, 'body'))
+  async rejectResidence(
+    @GetCurrentUserId() userId: string,
+    @Param() params: GetResidenceByIdDto,
+    @Body() rejectResidenceDto: RejectResidenceDto
+  ) {
+    const residence = await this.residenceService.rejectResidence(
+      params.id,
+      userId,
+      rejectResidenceDto
+    );
+    return ResponseService.buildResponse({ residence }, 'Residence rejected successfully');
+  }
+
+  @Post('/list-by-filters')
+  @ApiOperation({
+    summary: 'List Residence',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(listResidenceByFiltersSchema, 'body'))
+  async residencesListByFilters(
+    @Query() listPropsDto: ListResidenceByFiltersQueryPropsDto,
+    @Body() listResidenceByFiltersDto: ListResidenceByFiltersDto
+  ) {
+    const result = await this.residenceService.listResidencesByFilters(
+      listPropsDto,
+      listResidenceByFiltersDto
+    );
+
+    return ResponseService.buildResponse(
+      { residences: result },
+      'Residence retrieved successfully'
+    );
   }
 }

@@ -1,0 +1,30 @@
+import { ApiProperty } from '@nestjs/swagger';
+import * as Joi from 'joi';
+import { ListPropsDto, PaginationSchema } from '@bbr/api-core/modules/dto/listProps.dto';
+import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
+import { ResidenceStatus } from '../../residences/enum/residence-enum';
+
+export class ListUnitDraftDto extends ListPropsDto {
+  @ApiProperty({
+    description: 'Filter by unit ID',
+    example: '60b6c0f53b5a5c1f88d25a1b',
+    required: false,
+    type: String,
+  })
+  unitId?: string;
+
+  @ApiProperty({
+    example: ResidenceStatus.ACTIVE,
+    enum: ResidenceStatus,
+    description: 'The status of the residence',
+    required: false,
+  })
+  status?: ResidenceStatus;
+}
+
+export const listUnitDraftSchema = PaginationSchema.append({
+  unitId: Joi.string().custom(joiObjectIdValidator('unitId')).optional(),
+  status: Joi.string()
+    .valid(...Object.values(ResidenceStatus))
+    .optional(),
+});

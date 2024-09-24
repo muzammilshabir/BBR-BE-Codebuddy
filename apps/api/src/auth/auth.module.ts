@@ -3,6 +3,7 @@ import { MiddlewareConsumer, Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { MailerCoreModule } from 'src/mailer/mailer.module';
 import { RedisModule } from 'src/redis/redis.module';
+import { TokenService } from '../../../../packages/api-core/modules/token-generation/token.service';
 import { CaptchaGuard } from '../captcha/guards/captcha.guard';
 import { ServiceConfig } from '../config';
 import { UserModule } from '../users/user.module';
@@ -15,7 +16,7 @@ import { RtStrategy } from './strategies/rt.strategy';
 
 @Module({
   imports: [UserModule, MailerCoreModule, JwtModule.register(jwtConfig), RedisModule, HttpModule],
-  providers: [AuthService, AtStrategy, RtStrategy, ServiceConfig, CaptchaGuard],
+  providers: [AuthService, AtStrategy, RtStrategy, ServiceConfig, CaptchaGuard, TokenService],
   controllers: [AuthController],
 })
 export class AuthModule {

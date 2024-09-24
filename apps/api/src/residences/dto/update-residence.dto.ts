@@ -3,11 +3,11 @@ import * as Joi from 'joi';
 import { Types } from 'mongoose';
 import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
 import {
+  Address,
   BriefOverview,
   BudgetLimitationsRange,
   ComprehensiveOverview,
 } from './create-residence.dto';
-import { ResidenceStatus } from '../enum/residence-enum';
 
 export class UpdateResidenceDto {
   @ApiProperty({ example: 'Ritz Carlton Miami', required: false })
@@ -33,6 +33,9 @@ export class UpdateResidenceDto {
 
   @ApiProperty({ required: false })
   budgetLimitationsRange?: BudgetLimitationsRange;
+
+  @ApiProperty({ required: false })
+  address: Address;
 }
 
 export const updateResidenceSchema = Joi.object({
@@ -57,20 +60,28 @@ export const updateResidenceSchema = Joi.object({
     startRange: Joi.number().optional(),
     endRange: Joi.number().optional(),
   }).optional(),
+  address: Joi.object({
+    country: Joi.string().optional(),
+    state: Joi.string().optional(),
+    city: Joi.string().required(),
+    userInput: Joi.string().required(),
+    location: Joi.object({
+      lat: Joi.number().optional(),
+      lng: Joi.number().optional(),
+    }).optional(),
+    placeId: Joi.string().optional(),
+  }).optional(),
 });
 
-export class ResidenceStatusDto {
+export class RejectResidenceDto {
   @ApiProperty({
-    example: ResidenceStatus.PENDING,
-    enum: ResidenceStatus,
-    description: 'The status of the residence',
+    description: 'The resone for the rejection',
+    example: 'Invalid documents',
     required: true,
   })
-  status: ResidenceStatus;
+  rejectionReason: string;
 }
 
-export const updateResidenceStatusSchema = Joi.object({
-  status: Joi.string()
-    .valid(...Object.values(ResidenceStatus))
-    .required(),
+export const rejectResidenceSchema = Joi.object({
+  rejectionReason: Joi.string().required(),
 });

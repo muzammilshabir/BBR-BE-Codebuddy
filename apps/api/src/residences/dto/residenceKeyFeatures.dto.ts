@@ -2,23 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import * as Joi from 'joi';
 import { Types } from 'mongoose';
 import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
-
-export enum RentalPotential {
-  High = 'High',
-  Medium = 'Medium',
-  Low = 'Low',
-}
-
-export enum DevelopmentStatus {
-  Completed = 'Completed',
-  UnderConstruction = 'Under Construction',
-  Planned = 'Planned',
-}
-
-export enum PetPolicy {
-  PetFriendly = 'petFriendly',
-  NoPetAllowed = 'No pet Allowed',
-}
+import { DevelopmentStatus, PetPolicy, RentalPotential } from '../enum/residence-enum';
 
 export class DevelopmentInfo {
   @ApiProperty({ example: 2020 })
@@ -32,6 +16,9 @@ export class DevelopmentInfo {
 
   @ApiProperty({ example: 1500 })
   floorAreaSqFt: number;
+
+  @ApiProperty({ example: 2 })
+  staffToResidenceRatio: number;
 }
 
 export class AddKeyFeaturesDto {
@@ -58,6 +45,7 @@ export const addKeyFeaturesSchema = Joi.object({
       .valid(...Object.values(DevelopmentStatus))
       .required(),
     floorAreaSqFt: Joi.number().required(),
+    staffToResidenceRatio: Joi.number().required(),
   }).required(),
   petPolicy: Joi.string()
     .valid(...Object.values(PetPolicy))

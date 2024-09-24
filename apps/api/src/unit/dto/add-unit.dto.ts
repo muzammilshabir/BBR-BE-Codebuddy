@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import * as Joi from 'joi';
-import { RoomType } from '../enum/unit-enum';
 import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
+import { Types } from 'mongoose';
 
 export class AddUnitDto {
   @ApiProperty({
@@ -47,18 +47,18 @@ export class AddUnitDto {
   @ApiProperty({
     example: [
       {
-        roomType: RoomType.BEDROOM,
+        roomTypeId: '66acda8b857c576159b74da4',
         unit: 1,
       },
       {
-        roomType: RoomType.BATHROOM,
+        roomTypeId: '66acda8b857c576159b74da4',
         unit: 2,
       },
     ],
     required: false,
   })
   rooms?: {
-    roomType: RoomType;
+    roomTypeId: Types.ObjectId;
     unit: number;
   }[];
 
@@ -91,9 +91,7 @@ export const addUnitSchema = Joi.object({
   rooms: Joi.array()
     .items(
       Joi.object({
-        roomType: Joi.string()
-          .valid(...Object.values(RoomType))
-          .optional(),
+        roomTypeId: Joi.string().custom(joiObjectIdValidator('roomTypeId')).optional(),
         unit: Joi.number().optional(),
       })
     )

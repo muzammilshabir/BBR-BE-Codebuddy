@@ -16,8 +16,11 @@ export class UpdateUserDto extends OmitType(CreateUserDto, [
   'isVerified',
   'emailVerificationToken',
   'emailVerified',
-  'forgotPasswordToken',
   'oAuthId',
   'resetPasswordToken',
   'verificationToken',
 ]) {}
+
+export class UpdateBuyerDto extends OmitType(UpdateUserDto, ['hundredFiveStarReviews']) {}
+
+export class UpdateSellerDto extends OmitType(UpdateUserDto, ['hundredFiveStarReviews']) {}
