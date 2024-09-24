@@ -12,8 +12,6 @@ import { UnitRepository } from '../unit/unit.repository';
 import { Types } from 'mongoose';
 import { ClaimRequestStatus } from './enum/claimReques-enum';
 import { SignupMethod, UserRole } from '../users/enum/user.enum';
-import { TokenService } from '@bbr/api-core/modules/token-generation/token.service';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AuthService } from '../auth/auth.service';
 
 @Injectable()
@@ -23,9 +21,7 @@ export class ClaimRequestService {
     private readonly userRepository: UserRepository,
     private readonly residenceRepository: ResidenceRepository,
     private readonly unitRepository: UnitRepository,
-    private readonly tokenService: TokenService,
-    private readonly authService: AuthService,
-    private readonly eventEmitter: EventEmitter2
+    private readonly authService: AuthService
   ) {}
 
   async createClaimResidence(
@@ -111,6 +107,10 @@ export class ClaimRequestService {
     const userEmailDomain = this.extractDomain(user.email, 'email');
 
     const residenceId = await this.getValidatedResidenceId(createClaimRequestDto);
+
+    // check any existimg claim request exist with developerId
+    await this.checkExistingClaimRequest(residenceId);
+
     const residence = await this.residenceRepository.findById(residenceId.toString());
 
     // Extract residence website domain
@@ -145,8 +145,12 @@ export class ClaimRequestService {
 
   async claimResidenceForGuestWithMatchingDomain(
     createClaimRequestDto: CreateClaimResidenceForDeveloperWithMatchingDomainDto
-  ): Promise<any> {
+  ): Promise<ClaimRequest> {
     const residenceId = await this.getValidatedResidenceId(createClaimRequestDto);
+
+    // check any existimg claim request exist with developerId
+    await this.checkExistingClaimRequest(residenceId);
+
     const residence = await this.residenceRepository.findById(residenceId.toString());
     const residenceDomain = this.extractDomain(residence.websiteLink, 'url');
 
@@ -172,7 +176,6 @@ export class ClaimRequestService {
       return await this.claimRequestRepository.create(transformedDto);
     }
 
-    const verificationToken = this.tokenService.generateVerificationToken();
     const userDetails = {
       corporateEmail: createClaimRequestDto.email,
       email: createClaimRequestDto.email,
@@ -180,9 +183,9 @@ export class ClaimRequestService {
       role: UserRole.SELLER,
       signupMethod: SignupMethod.EMAIL,
       isVerified: false,
-      verificationToken,
     };
-    const newUser = await this.userRepository.create(userDetails);
+
+    await this.authService.createDummyDeveloper(userDetails);
 
     const transformedDto = {
       ...createClaimRequestDto,
@@ -192,8 +195,6 @@ export class ClaimRequestService {
       residenceId: new Types.ObjectId(residenceId),
       status: ClaimRequestStatus.Pending,
     };
-
-    this.authService.sendVerificationEmail(newUser.email, newUser.verificationToken);
 
     return await this.claimRequestRepository.create(transformedDto);
   }
