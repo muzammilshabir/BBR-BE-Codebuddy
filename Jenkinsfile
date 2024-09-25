@@ -1,50 +1,51 @@
-def CHANGED_FILES='false'
+def CHANGED_FILES = 'false'
 pipeline {
     agent any
     options { disableConcurrentBuilds() }
     environment {
         random = sh(script: 'echo $(date +%s%N) | sha256sum | head -c 7', returnStdout: true).trim()
-        AWS_DEFAULT_REGION="ap-south-1"
-        ECR_REPO="dev-jeevbbr-api"
-        REGION="ap-south-1"
-        ACCOUNT_ID="481445224143"
-        DOCKERFILE_PATH="Dockerfile"
-        ECS_TASK_DEFINATION_NAME="dev-jeevbbr-api"
-        ECS_CONTAINER_NAME="dev-jeevbbr-api-container"
-        ECS_CONTAINER_PORT=5000
-        CPU=500
-        MEMORY=1000
-        HEALTH_CHECK_PATH_ECS="localhost:5000/health-check"
+        AWS_DEFAULT_REGION = 'ap-south-1'
+        ECR_REPO = 'dev-jeevbbr-api'
+        REGION = 'ap-south-1'
+        ACCOUNT_ID = '481445224143'
+        DOCKERFILE_PATH = 'Dockerfile'
+        ECS_TASK_DEFINATION_NAME = 'dev-jeevbbr-api'
+        ECS_CONTAINER_NAME = 'dev-jeevbbr-api-container'
+        ECS_CONTAINER_PORT = 5000
+        CPU = 500
+        MEMORY = 1000
+        HEALTH_CHECK_PATH_ECS = 'localhost:5000/health-check'
 
-        CLUSTER="dev-codebuddy-api-ecs"
-        TARGET_GROUP_NAME="dev-jeevbbr-api-tg"
-        HEALTH_CHECK_PATH_TG="/health-check"
-        VPC_ID="vpc-0eb2d1823f975675c"
-        SERVICE="dev-jeevbbr-api-service"
-        ALB_LISTENER_ARN="arn:aws:elasticloadbalancing:ap-south-1:481445224143:listener/app/codebuddy-alb/6dbd56b511acf09c/f1683397636119a2"
-        HOST="jeevbbrapi.dev.codebuddy.review"
+        CLUSTER = 'dev-codebuddy-api-ecs'
+        TARGET_GROUP_NAME = 'dev-jeevbbr-api-tg'
+        HEALTH_CHECK_PATH_TG = '/health-check'
+        VPC_ID = 'vpc-0eb2d1823f975675c'
+        SERVICE = 'dev-jeevbbr-api-service'
+        ALB_LISTENER_ARN = 'arn:aws:elasticloadbalancing:ap-south-1:481445224143:listener/app/codebuddy-alb/6dbd56b511acf09c/f1683397636119a2'
+        HOST = 'jeevbbrapi.dev.codebuddy.review'
 
-        INFISICAL_ENV=credentials('INFISICAL_JEEVBBR_API_ENV')
-        INFISICAL_API_URL=credentials('INFISICAL_JEEVBBR_API_URL')
-        INFISICAL_CLIENT_ID=credentials('INFISICAL_JEEVBBR_API_CLIENT_ID')
-        INFISICAL_CLIENT_SECRET=credentials('INFISICAL_JEEVBBR_API_CLIENT_SECRET')
-        INFISICAL_PROJECT_ID=credentials('INFISICAL_JEEVBBR_API_PROJECT_ID')
+        INFISICAL_ENV = credentials('INFISICAL_JEEVBBR_API_ENV')
+        INFISICAL_API_URL = credentials('INFISICAL_JEEVBBR_API_URL')
+        INFISICAL_CLIENT_ID = credentials('INFISICAL_JEEVBBR_API_CLIENT_ID')
+        INFISICAL_CLIENT_SECRET = credentials('INFISICAL_JEEVBBR_API_CLIENT_SECRET')
+        INFISICAL_PROJECT_ID = credentials('INFISICAL_JEEVBBR_API_PROJECT_ID')
     }
     stages {
-        stage ('start') {
-             when {
+        stage('start') {
+            when {
                 anyOf {
-                    changeset "**/apps/api/**"
-                    changeset "**/packages/prettier/**"
-                    changeset "**/packages/api-core/**"
-                    changeset "**/package.json"
-                    changeset "**/pnpm-lock.yaml"
-                    changeset "**/pnpm-workspace.yaml"
+                    changeset '**/apps/api/**'
+                    changeset '**/packages/prettier/**'
+                    changeset '**/packages/api-core/**'
+                    changeset '**/package.json'
+                    changeset '**/pnpm-lock.yaml'
+                    changeset '**/pnpm-workspace.yaml'
+                    changeset '**/Jenkinsfile'
                 }
                 beforeAgent true
             }
             steps {
-                 script {
+                script {
                     CHANGED_FILES = 'true'
                 }
                 slackSend channel: 'cbdb-devops', message: "Build started  - ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)"
@@ -53,12 +54,13 @@ pipeline {
         stage('creating docker image') {
             when {
                 anyOf {
-                    changeset "**/apps/api/**"
-                    changeset "**/packages/prettier/**"
-                    changeset "**/packages/api-core/**"
-                    changeset "**/package.json"
-                    changeset "**/pnpm-lock.yaml"
-                    changeset "**/pnpm-workspace.yaml"
+                    changeset '**/apps/api/**'
+                    changeset '**/packages/prettier/**'
+                    changeset '**/packages/api-core/**'
+                    changeset '**/package.json'
+                    changeset '**/pnpm-lock.yaml'
+                    changeset '**/pnpm-workspace.yaml'
+                    changeset '**/Jenkinsfile'
                 }
                 beforeAgent true
             }
@@ -94,18 +96,18 @@ pipeline {
                                 docker tag $ECR_REPO:$BUILD_NUMBER $ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$ECR_REPO:$BUILD_NUMBER
                                 docker images
                                 '''
-
             }
         }
         stage('Pushing Docker image to ECR') {
             when {
                 anyOf {
-                    changeset "**/apps/api/**"
-                    changeset "**/packages/prettier/**"
-                    changeset "**/packages/api-core/**"
-                    changeset "**/package.json"
-                    changeset "**/pnpm-lock.yaml"
-                    changeset "**/pnpm-workspace.yaml"
+                    changeset '**/apps/api/**'
+                    changeset '**/packages/prettier/**'
+                    changeset '**/packages/api-core/**'
+                    changeset '**/package.json'
+                    changeset '**/pnpm-lock.yaml'
+                    changeset '**/pnpm-workspace.yaml'
+                    changeset '**/Jenkinsfile'
                 }
                 beforeAgent true
             }
@@ -119,12 +121,13 @@ pipeline {
         stage('Deleting Docker images from Jenkins server') {
             when {
                 anyOf {
-                    changeset "**/apps/api/**"
-                    changeset "**/packages/prettier/**"
-                    changeset "**/packages/api-core/**"
-                    changeset "**/package.json"
-                    changeset "**/pnpm-lock.yaml"
-                    changeset "**/pnpm-workspace.yaml"
+                    changeset '**/apps/api/**'
+                    changeset '**/packages/prettier/**'
+                    changeset '**/packages/api-core/**'
+                    changeset '**/package.json'
+                    changeset '**/pnpm-lock.yaml'
+                    changeset '**/pnpm-workspace.yaml'
+                    changeset '**/Jenkinsfile'
                 }
                 beforeAgent true
             }
@@ -139,17 +142,18 @@ pipeline {
         stage('Creating task Defination') {
             when {
                 anyOf {
-                    changeset "**/apps/api/**"
-                    changeset "**/packages/prettier/**"
-                    changeset "**/packages/api-core/**"
-                    changeset "**/package.json"
-                    changeset "**/pnpm-lock.yaml"
-                    changeset "**/pnpm-workspace.yaml"
+                    changeset '**/apps/api/**'
+                    changeset '**/packages/prettier/**'
+                    changeset '**/packages/api-core/**'
+                    changeset '**/package.json'
+                    changeset '**/pnpm-lock.yaml'
+                    changeset '**/pnpm-workspace.yaml'
+                    changeset '**/Jenkinsfile'
                 }
                 beforeAgent true
             }
             steps {
-              sh '''
+                sh '''
                 echo '
                 {
                     "family": "'"${ECS_TASK_DEFINATION_NAME}"'",
@@ -160,7 +164,6 @@ pipeline {
                         {
                             "name": "'"${ECS_CONTAINER_NAME}"'",
                             "image": "'${ACCOUNT_ID}'.dkr.ecr.'${REGION}'.amazonaws.com/'${ECR_REPO}':tag",
-
 
                             "portMappings": [
                                 {
@@ -199,12 +202,13 @@ pipeline {
         stage('Deploying Docker image to ECS') {
             when {
                 anyOf {
-                    changeset "**/apps/api/**"
-                    changeset "**/packages/prettier/**"
-                    changeset "**/packages/api-core/**"
-                    changeset "**/package.json"
-                    changeset "**/pnpm-lock.yaml"
-                    changeset "**/pnpm-workspace.yaml"
+                    changeset '**/apps/api/**'
+                    changeset '**/packages/prettier/**'
+                    changeset '**/packages/api-core/**'
+                    changeset '**/package.json'
+                    changeset '**/pnpm-lock.yaml'
+                    changeset '**/pnpm-workspace.yaml'
+                    changeset '**/Jenkinsfile'
                 }
                 beforeAgent true
             }
@@ -227,7 +231,6 @@ pipeline {
                     else
                         echo "This service does not exist in this cluster, So creating from scratch"
 
-
                         echo "target group is creating"
 
                         TARGET_GROUP_ARN=$(aws elbv2 create-target-group \
@@ -240,8 +243,6 @@ pipeline {
                         --query 'TargetGroups[0].TargetGroupArn' \
                         --output text)
 
-
-
                         aws elbv2 describe-rules \
                         --listener-arn $ALB_LISTENER_ARN \
                         --query 'Rules[].Priority' \
@@ -249,14 +250,10 @@ pipeline {
 
                         cat priority.txt
 
-
                         highest_number=$(sort -n priority.txt | tail -n 1) && echo "The highest number is: $highest_number"
                         NEW_PRIORITY=$((highest_number + 1))
 
-
                     rm -rf priority.txt
-
-
 
                     echo "Creating ALB rule"
 
@@ -268,8 +265,6 @@ pipeline {
 
                     echo "Getting rule arn"
                     rule_arn=$(aws elbv2 describe-rules   --listener-arn $ALB_LISTENER_ARN | jq -r '.Rules[] | select(.Conditions[]?.Field == "host-header" and .Conditions[]?.Values[] == "'"$HOST"'") | .RuleArn')
-
-
 
                     echo "Creating ECS Service"
 
@@ -283,7 +278,6 @@ pipeline {
 
                     aws ecs wait services-stable --cluster $CLUSTER --region $REGION --services $SERVICE
 
-
                     fi
                 rm -rf services.txt
                 '''
@@ -292,19 +286,18 @@ pipeline {
     }
     post {
         failure {
-           script {
+            script {
                 if (CHANGED_FILES == 'true') {
                     slackSend channel: 'cbdb-devops', message: "Build failed  - ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)"
-               }
+                }
             }
         }
         success {
-             script {
+            script {
                 if (CHANGED_FILES == 'true') {
-                   slackSend channel: 'cbdb-devops', message: "Build succeeded  - ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)"
+                    slackSend channel: 'cbdb-devops', message: "Build succeeded  - ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)"
                 }
             }
-            
         }
     }
 }
