@@ -173,8 +173,8 @@ export class CareerService {
 
     if(listVacanciesDto.search) {
       filter.$or = [
-        { "career.title": { $regex: listVacanciesDto.search, $options: 'i' } },
-        { "career.contents": { $regex: listVacanciesDto.search, $options: 'i' } },
+        { title: { $regex: listVacanciesDto.search, $options: 'i' } },
+        { description: { $regex: listVacanciesDto.search, $options: 'i' } },
       ];
     }
 

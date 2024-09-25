@@ -1,9 +1,9 @@
 import { AppModule } from '../app.module';
-import { TestSuite } from '@bbr/api-core/modules/testing/test.suite';
+import { TestSuiteBBR } from '../testing/test.suite';
 import { LocationFixture } from './location.fixture';
 
 describe('LocationModule', () => {
-  const app = new TestSuite(AppModule, [LocationFixture]);
+  const app = new TestSuiteBBR(AppModule, [LocationFixture]);
   const url = '/location';
 
   describe('Find all Locations', () => {

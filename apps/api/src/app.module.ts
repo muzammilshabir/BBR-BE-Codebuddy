@@ -74,7 +74,6 @@ import { ClaimRequestModule } from './claimRequest/claimRequest.module';
     BlogModule,
     ResidenceEnquiryModule,
     ResidenceDraftModule,
-    BlogModule,
     CareerModule,
     UnitDraftModule,
     ClaimRequestModule,

@@ -1,7 +1,7 @@
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
 import { Controller, Post, Body, Get, Param, UsePipes, Query, Put } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ReviewService } from './reviews.service';
 import { CreateReviewDto, createReviewDtoSchema } from './dto/create-reviews.dto';
 import { GetReviewByIdDto, getReviewByIdSchema } from './dto/get-review-by-id.dto';
@@ -12,6 +12,8 @@ import { GetCurrentUser } from 'src/auth/decorators/getCurrentUser.decorator';
 import { JwtPayloadType } from 'src/auth/type/jwt-payload.type';
 import { RequestReviewDto, requestReviewDtoSchema } from './dto/request-review.dto';
 import { RespondToReviewDto, respondToReviewDtoSchema } from './dto/respond-review';
+import { UserRole } from 'src/users/enum/user.enum';
+import { Roles } from 'src/auth/decorators/roles.decorator';
 
 @ApiTags('Review')
 @Controller('review')
@@ -22,6 +24,8 @@ export class ReviewController {
   @ApiOperation({
     summary: 'Request Review from buyer',
   })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
   @UsePipes(new JoiValidationPipe(requestReviewDtoSchema, 'body'))
   async requestReview(
     @GetCurrentUser() userFromToken: JwtPayloadType,
@@ -35,6 +39,8 @@ export class ReviewController {
   @ApiOperation({
     summary: 'Create Review for a residence',
   })
+  @ApiBearerAuth()
+  @Roles(UserRole.BUYER)
   @UsePipes(new JoiValidationPipe(createReviewDtoSchema, 'body'))
   async create(
     @GetCurrentUser() userFromToken: JwtPayloadType,
@@ -48,6 +54,8 @@ export class ReviewController {
   @ApiOperation({
     summary: 'Respond to Review from a buyer',
   })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
   @UsePipes(new JoiValidationPipe(getReviewByIdSchema, 'param'))
   @UsePipes(new JoiValidationPipe(respondToReviewDtoSchema, 'body'))
   async reviewResponse(
@@ -62,6 +70,8 @@ export class ReviewController {
   @ApiOperation({
     summary: 'Get Review by ID',
   })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
   @UsePipes(new JoiValidationPipe(getReviewByIdSchema, 'param'))
   async getReviewById(@Param() params: GetReviewByIdDto) {
     const review = await this.reviewService.getReviewById(params.reviewId);
@@ -72,6 +82,8 @@ export class ReviewController {
   @ApiOperation({
     summary: 'List Reviews with residenceId filter',
   })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
   @UsePipes(new JoiValidationPipe(listReviewsSchema, 'query'))
   async listReviews(@Query() query: ListReviewsDto) {
     const reviews = await this.reviewService.listReviews(query);
@@ -82,6 +94,8 @@ export class ReviewController {
   @ApiOperation({
     summary: 'Get Average Rating and Total reviews for single Residence',
   })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
   @UsePipes(new JoiValidationPipe(getReviewsByResidenceIdSchema, 'param'))
   async getStatsByResidenceId(@Param() params: GetReviewsByResidenceIdDto) {
     const reviewStats = await this.reviewService.getStatsByResidenceId(params.residenceId);
@@ -92,6 +106,8 @@ export class ReviewController {
   @ApiOperation({
     summary: 'Get Max 3 Highlighted Review by Residence',
   })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
   @UsePipes(new JoiValidationPipe(getReviewsByResidenceIdSchema, 'param'))
   async getHighlightedReviewsByResidenceId(@Param() params: GetReviewsByResidenceIdDto) {
     const reviewStats = await this.reviewService.getHighlightedReviewsByResidenceId(params.residenceId);
@@ -102,6 +118,8 @@ export class ReviewController {
   @ApiOperation({
     summary: 'Export reviews as CSV by Residence',
   })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
   @UsePipes(new JoiValidationPipe(getReviewsByResidenceIdSchema, 'param'))
   async exportReviewsByResidenceId(@Param() params: GetReviewsByResidenceIdDto) {
     const reviewsCSV = await this.reviewService.exportReviewsByResidenceId(params.residenceId);
@@ -112,6 +130,8 @@ export class ReviewController {
   @ApiOperation({
     summary: 'Flag review',
   })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
   @UsePipes(new JoiValidationPipe(getReviewByIdSchema, 'param'))
   async flagReview(
     @Param() params: GetReviewByIdDto,
@@ -126,6 +146,8 @@ export class ReviewController {
   @ApiOperation({
     summary: 'Bulk review marking(Responded, Removal)',
   })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
   @UsePipes(new JoiValidationPipe(getReviewsByResidenceIdSchema, 'param'))
   @UsePipes(new JoiValidationPipe(bulkActionReviewSchema, 'body'))
   async bulkMarkReviews(

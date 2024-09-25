@@ -1,9 +1,9 @@
 import { AppModule } from '../app.module';
-import { TestSuite } from '@bbr/api-core/modules/testing/test.suite';
+import { TestSuiteBBR } from '../testing/test.suite';
 import { AmenityFixture } from './amenities.fixture';
 
 describe('AmenityModule', () => {
-  const app = new TestSuite(AppModule, [AmenityFixture]);
+  const app = new TestSuiteBBR(AppModule, [AmenityFixture]);
   const url = '/amenities';
 
   describe('Find all Amenities', () => {

@@ -1,9 +1,9 @@
 import { AppModule } from '../app.module';
-import { TestSuite } from '@bbr/api-core/modules/testing/test.suite';
+import { TestSuiteBBR } from '../testing/test.suite';
 import { NewsletterFixture } from './newsletter.fixture';
 
 describe('NewsletterModule', () => {
-  const app = new TestSuite(AppModule, [
+  const app = new TestSuiteBBR(AppModule, [
     NewsletterFixture,
   ]);
   const url = '/newsletter';
@@ -11,7 +11,7 @@ describe('NewsletterModule', () => {
   describe('Subscribe to Newsletter', () => {
     it('Should subscribe to BBR newsletter', async () => {
       const subscribeNewsletterDtop = {
-        email: "test@example.com",
+        email: "test2@example.com",
       };
 
       // Convert the subscribeNewsletterDtop to a JSON string

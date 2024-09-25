@@ -1,10 +1,10 @@
 import { AppModule } from '../app.module';
-import { TestSuite } from '@bbr/api-core/modules/testing/test.suite';
+import { TestSuiteBBR } from '../testing/test.suite';
 import { PostFixture } from './post.fixture';
 import { Post } from './post.schema';
 
 describe('PostModule', () => {
-  const app = new TestSuite(AppModule, [PostFixture]);
+  const app = new TestSuiteBBR(AppModule, [PostFixture]);
 
   describe('Create posts', () => {
     const url = '/post';
