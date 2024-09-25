@@ -27,10 +27,10 @@ export class Newsroom extends Document {
   @Prop({ type: { type: Types.ObjectId, ref: 'Upload' }})
   featuredImage: Upload;
 
-  @Prop({ required: true, unique: true  })
+  @Prop({ required: true })
   contents: string;
 
-  @Prop({ required: true, unique: true  })
+  @Prop({ required: true })
   readTime: string;
 
   @Prop({ type: Boolean, default: false })

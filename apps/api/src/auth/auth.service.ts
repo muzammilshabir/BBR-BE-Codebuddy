@@ -27,6 +27,7 @@ import {
 import { VerifyUserDto } from './dto/verifyUser.dto';
 import { JwtPayloadType } from './type/jwt-payload.type';
 import { StripeService } from 'src/stripe/stripe.service';
+import { CreateDummyUserDto } from '../users/dto/createUser.dto';
 
 @Injectable()
 export class AuthService {
@@ -334,5 +335,13 @@ export class AuthService {
       throw new BadRequestException('Current password is incorrect');
     }
     await this.userService.updatePassword(user.id, await argon.hash(newPassword));
+  }
+
+  async createDummyDeveloper(userDetails: CreateDummyUserDto) {
+    const user = await this.userService.createDummyDeveloper(userDetails);
+
+    this.sendVerificationEmail(user.email, user.verificationToken);
+
+    return user;
   }
 }

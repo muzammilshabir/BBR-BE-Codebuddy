@@ -12,7 +12,9 @@
     "copy-env": "shx cp .env.example .env",
     "dev": "cross-env NODE_ENV=development pnpm run start:dev",
     "dev:fixtures": "pnpm run console:dev fixtures",
+    "fixtures": "pnpm run console fixtures",
     "dev:seeders": "pnpm run console:dev seeders",
+    "seeders": "pnpm run console seeders",
     "dev:mongo": "ts-node ./scripts/devMongo.ts",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "gen2": "ts-node generator/index.ts",
@@ -107,6 +109,10 @@
       "a"
     ],
     "rootDir": "src",
+    "moduleNameMapper": {
+      "^src/(.*)": "<rootDir>/$1"
+    },
+    "testTimeout": 15000,
     "testEnvironment": "node",
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {

@@ -10,7 +10,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import * as bcrypt from 'bcryptjs';
 import { Model } from 'mongoose';
 import { ExceptionCodes } from '../../../../packages/api-core/modules/types/exceptionCodes.type';
-import { CreateUserDto } from './dto/createUser.dto';
+import { CreateDummyUserDto, CreateUserDto } from './dto/createUser.dto';
 import { UpdateUserDto } from './dto/updateUser.dto';
 import { UserRole } from './enum/user.enum';
 import { User } from './schema/user.schema';
@@ -180,5 +180,16 @@ export class UserService {
     }
 
     return updatedUser;
+  }
+
+  async createDummyDeveloper(userDetails: CreateDummyUserDto): Promise<User> {
+    try {
+      const verificationToken = this.tokenService.generateVerificationToken();
+      userDetails.verificationToken = verificationToken;
+      return await this.userRepository.create(userDetails);
+    } catch (error) {
+      console.error('Error creating user:', error);
+      throw error;
+    }
   }
 }

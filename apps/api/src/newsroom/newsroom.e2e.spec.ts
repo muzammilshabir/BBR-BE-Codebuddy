@@ -1,15 +1,15 @@
+import { TestSuiteBBR } from '../testing/test.suite';
 import { AppModule } from '../app.module';
-import { TestSuite } from '@bbr/api-core/modules/testing/test.suite';
 import { UploadFixture } from '../upload/upload.fixture';
 import { NewsroomFixture } from './newsroom.fixture';
+import { UserRole } from 'src/users/enum/user.enum';
 
 describe('NewsroomModule', () => {
-  const app = new TestSuite(AppModule, [
+  const app = new TestSuiteBBR(AppModule, [
     NewsroomFixture,
     UploadFixture,
   ]);
   const url = '/newsroom';
-
   describe('Create new Press Release!', () => {
     it('Should create new Newsroom Post!', async () => {
       const newsroomCategory = app.getReference(NewsroomFixture.NewsroomCategory_1);
@@ -33,6 +33,7 @@ describe('NewsroomModule', () => {
       const res = await app.exec('POST', `${url}/admin/create/post`, {
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await app.getUserToken(UserRole.ADMIN)}`,
         },
         data: body,
       });
@@ -54,6 +55,7 @@ describe('NewsroomModule', () => {
       const res = await app.exec('POST', `${url}/admin/create/category`, {
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await app.getUserToken(UserRole.ADMIN)}`,
         },
         data: body,
       });
@@ -68,7 +70,7 @@ describe('NewsroomModule', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.data.pagination.totalDocs).toEqual(1);
-      expect(res.body.data.posts[0].newsroom.title).toEqual('BBR Newsroom Post!');
+      expect(res.body.data.posts[0].title).toEqual('BBR Newsroom Post!');
     });
   });
 
@@ -76,10 +78,10 @@ describe('NewsroomModule', () => {
     it('Should find Newsroom posts by search keywords', async () => {
       const urlWithParams = `${url}?page=1&limit=10&sortBy=createdAt&sortOrder=desc&search=ipsum`;
       const res = await app.exec('GET', urlWithParams, { headers: {} });
-
+      
       expect(res.status).toBe(200);
       expect(res.body.data.pagination.totalDocs).toEqual(1);
-      expect(res.body.data.posts[0].newsroom.title).toEqual('BBR Newsroom Post!');
+      expect(res.body.data.posts[0].title).toEqual('BBR Newsroom Post!');
     });
   });
 
@@ -87,9 +89,14 @@ describe('NewsroomModule', () => {
     it('Should find newsroom posts related to the provided id', async () => {
       const newsroomPost = app.getReference(NewsroomFixture.Newsroom_1);
       const urlWithParams = `${url}/related?postId=${newsroomPost.id}`;
-      const res = await app.exec('GET', urlWithParams, { headers: {} });
+      const res = await app.exec('GET', urlWithParams, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
-      expect(res.status).toBe(404);
+      expect(JSON.stringify(res.body.data.posts)).toBe("[]");
+      expect(res.status).toBe(200);
     });
   });
 

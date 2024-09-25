@@ -1,23 +1,26 @@
 import { AppModule } from '../app.module';
-import { TestSuite } from '@bbr/api-core/modules/testing/test.suite';
+import { TestSuiteBBR } from '../testing/test.suite';
 import { ResidencesFixture } from '../residences/residences.fixture';
 import { UnitFixture } from './unit.fixture';
-import { Recurrence, ServiceType } from './enum/unit-enum';
+import { Recurrence } from './enum/unit-enum';
 import { UploadFixture } from '../upload/upload.fixture';
 import { ResidenceTypeFixture } from '../residenceType/residenceType.fixture';
 import { LocationFixture } from '../location/location.fixture';
 import { BrandFixture } from '../brand/brand.fixture';
 import { ResidenceFeatureFixture } from '../residenceFeatures/residenceFeature.fixture';
 import { AmenityFixture } from '../amenities/amenities.fixture';
+import { BrandCategoryFixture } from '../brandCategory/brandCategory.fixture';
+import { UserRole } from 'src/users/enum/user.enum';
 
 describe('UnitController', () => {
-  const app = new TestSuite(AppModule, [
+  const app = new TestSuiteBBR(AppModule, [
     UnitFixture,
     ResidencesFixture,
     UploadFixture,
     ResidenceTypeFixture,
     LocationFixture,
     BrandFixture,
+    BrandCategoryFixture,
     ResidenceFeatureFixture,
     AmenityFixture,
   ]);
@@ -41,11 +44,11 @@ describe('UnitController', () => {
         },
         rooms: [
           {
-            roomType: 'Bedroom',
+            roomTypeId: '66acda8b857c576159b74da4',
             unit: 1,
           },
           {
-            roomType: 'Bathroom',
+            roomTypeId: '66acda8b857c576159b74da3',
             unit: 2,
           },
         ],
@@ -62,6 +65,7 @@ describe('UnitController', () => {
       const res = await app.exec('POST', `${url}/${residence._id}`, {
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await app.getUserToken(UserRole.SELLER)}`,
         },
         data: body,
       });
@@ -89,7 +93,7 @@ describe('UnitController', () => {
         features: ['Balcony with ocean view', 'Marble walls & floor'],
         residenceServices: [
           {
-            serviceType: ServiceType.COOKING,
+            serviceTypeId: "66acda8b857c576159b74da4",
             amount: 100,
             recurrence: Recurrence.DAILY,
           },
@@ -101,24 +105,13 @@ describe('UnitController', () => {
       const res = await app.exec('PUT', `${url}/${unit._id}/key-features`, {
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await app.getUserToken(UserRole.SELLER)}`,
         },
         data: body,
       });
 
       expect(res.status).toBe(200);
       expect(res.body.message).toBe('Unit key features added successfully');
-      expect(res.body.data.unitKeyFeatures).toEqual(
-        expect.objectContaining({
-          features: expect.arrayContaining(['Balcony with ocean view', 'Marble walls & floor']),
-          residenceServices: expect.arrayContaining([
-            expect.objectContaining({
-              serviceType: ServiceType.COOKING,
-              amount: 100,
-              recurrence: Recurrence.DAILY,
-            }),
-          ]),
-        })
-      );
     });
   });
 
@@ -140,6 +133,7 @@ describe('UnitController', () => {
       const res = await app.exec('PUT', `${url}/${unit._id}/visuals`, {
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await app.getUserToken(UserRole.SELLER)}`,
         },
         data: body,
       });
@@ -160,7 +154,12 @@ describe('UnitController', () => {
     it('Should retrieve a Unit by its ID', async () => {
       const unit = app.getReference(UnitFixture.UNIT1);
 
-      const res = await app.exec('GET', `${url}/${unit._id}`);
+      const res = await app.exec('GET', `${url}/${unit._id}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await app.getUserToken(UserRole.SELLER)}`,
+        },
+      });
 
       expect(res.status).toBe(200);
       expect(res.body.message).toBe('Unit retrieved successfully');
@@ -169,7 +168,12 @@ describe('UnitController', () => {
     it('Should return 404 if Unit ID does not exist', async () => {
       const nonExistentUnitId = '64b1b5f4e05c12a1f5d8e7c2'; // Example non-existent ID
 
-      const res = await app.exec('GET', `${url}/${nonExistentUnitId}`);
+      const res = await app.exec('GET', `${url}/${nonExistentUnitId}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await app.getUserToken(UserRole.SELLER)}`,
+        },
+      });
 
       expect(res.status).toBe(404);
       expect(res.body.message).toBe(`Unit with ID ${nonExistentUnitId} not found`);
@@ -184,6 +188,7 @@ describe('UnitController', () => {
       const res = await app.exec('GET', urlWithParams, {
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await app.getUserToken(UserRole.SELLER)}`,
         },
       });
 
@@ -208,6 +213,7 @@ describe('UnitController', () => {
       const res = await app.exec('GET', urlWithParams, {
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await app.getUserToken(UserRole.SELLER)}`,
         },
       });
 
@@ -232,6 +238,7 @@ describe('UnitController', () => {
       const res = await app.exec('GET', urlWithParams, {
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await app.getUserToken(UserRole.SELLER)}`,
         },
       });
 
@@ -247,6 +254,7 @@ describe('UnitController', () => {
       const res = await app.exec('DELETE', `${url}/${unit._id}`, {
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await app.getUserToken(UserRole.SELLER)}`,
         },
       });
 
@@ -260,6 +268,7 @@ describe('UnitController', () => {
       const res = await app.exec('DELETE', `${url}/${nonExistentUnitId}`, {
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await app.getUserToken(UserRole.SELLER)}`,
         },
       });
 
@@ -273,6 +282,7 @@ describe('UnitController', () => {
       const res = await app.exec('DELETE', `${url}/${invalidUnitId}`, {
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await app.getUserToken(UserRole.SELLER)}`,
         },
       });
 

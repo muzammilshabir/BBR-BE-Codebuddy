@@ -18,7 +18,7 @@ export class BlogPost extends Document {
     photo: Upload;
   };
 
-  @Prop({ required: true, unique: true  })
+  @Prop({ required: true })
   title: string;
 
   @Prop({ type: { type: Types.ObjectId, ref: 'BlogCategory' }})
@@ -27,10 +27,10 @@ export class BlogPost extends Document {
   @Prop({ type: { type: Types.ObjectId, ref: 'Upload' }})
   featuredImage: Upload;
 
-  @Prop({ required: true, unique: true  })
+  @Prop({ required: true })
   contents: string;
 
-  @Prop({ required: true, unique: true  })
+  @Prop({ required: true })
   readTime: string;
 
   @Prop({ type: Number, default: 0 })

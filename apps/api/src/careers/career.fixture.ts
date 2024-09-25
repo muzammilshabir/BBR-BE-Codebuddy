@@ -30,6 +30,7 @@ export class CareerFixture extends AbstractFixture {
     const vacancyDepartment1 = await this.vacancyDepartmentModel.create({
       title: "Sales",
       isDeleted: false,
+      createdById: '60d5f485f7c6a4b2b8e8b601',
       createdAt: new Date(),
       updatedAt: new Date(),
     });

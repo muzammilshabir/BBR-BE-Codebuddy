@@ -375,7 +375,7 @@ export class UnitService {
         },
       };
       const unitDetails = await this.addUnit(addUnitDto, residenceId, userId);
-      const unitId = unitDetails.id;
+      const unitId = unitDetails.unitId.toString();
 
       const residenceServicesResult = item['Residence Services Type']
         ? await this.parseResidenceServices(item)

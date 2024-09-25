@@ -11,7 +11,7 @@ export class Author {
   name: string;
 
   @ApiProperty({
-    example: '66acda8b857c576159b74da2.',
+    example: '66acda8b857c576159b74da2',
     required: true,
   })
   photo: Types.ObjectId;

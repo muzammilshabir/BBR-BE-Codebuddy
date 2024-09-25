@@ -1,5 +1,5 @@
 import { AppModule } from '../app.module';
-import { TestSuite } from '@bbr/api-core/modules/testing/test.suite';
+import { TestSuiteBBR } from '../testing/test.suite';
 import { ReviewsFixture } from './reviews.fixture';
 import { UploadFixture } from '../upload/upload.fixture';
 import { ResidencesFixture } from '../residences/residences.fixture';
@@ -8,14 +8,17 @@ import { LocationFixture } from '../location/location.fixture';
 import { BrandFixture } from '../brand/brand.fixture';
 import { ResidenceFeatureFixture } from '../residenceFeatures/residenceFeature.fixture';
 import { AmenityFixture } from '../amenities/amenities.fixture';
+import { BrandCategoryFixture } from '../brandCategory/brandCategory.fixture';
+import { UserRole } from 'src/users/enum/user.enum';
 
 describe('ReviewModule', () => {
-  const app = new TestSuite(AppModule, [
+  const app = new TestSuiteBBR(AppModule, [
     ReviewsFixture,
     ResidencesFixture,
     ResidenceTypeFixture,
     LocationFixture,
     BrandFixture,
+    BrandCategoryFixture,
     ResidenceFeatureFixture,
     UploadFixture,
     AmenityFixture,
@@ -28,7 +31,7 @@ describe('ReviewModule', () => {
       const reviewImage = app.getReference(UploadFixture.UPLOAD_1);
       const createReviewDto = {
         rating: "4",
-        residence: residence.id,
+        residenceId: residence.id,
         review: {
           title: 'Awesome Experience',
           details: 'This is a very nice place and the seller was very nice.',
@@ -43,6 +46,7 @@ describe('ReviewModule', () => {
       const res = await app.exec('POST', url, {
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await app.getUserToken(UserRole.BUYER)}`,
         },
         data: body,
       });
@@ -65,7 +69,12 @@ describe('ReviewModule', () => {
     it('Should find all Reviews for a residence', async () => {
       const residence = app.getReference(ResidencesFixture.RESIDENCE1);
       const urlWithParams = `${url}?page=1&limit=10&sortBy=createdAt&sortOrder=asc&residenceId=${residence.id}`;
-      const res = await app.exec('GET', urlWithParams, { headers: {} });
+      const res = await app.exec('GET', urlWithParams, { 
+        headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${await app.getUserToken(UserRole.SELLER)}`,
+      },
+    });
 
       expect(res.status).toBe(200);
       expect(res.body.data.pagination.totalDocs).toEqual(3);
@@ -78,7 +87,12 @@ describe('ReviewModule', () => {
     it('Should find Reviews by search term and Residence Id', async () => {
       const residence = app.getReference(ResidencesFixture.RESIDENCE1);
       const urlWithParams = `${url}?page=1&limit=10&sortBy=createdAt&sortOrder=desc&residenceId=${residence.id}&search=Average`;
-      const res = await app.exec('GET', urlWithParams, { headers: {} });
+      const res = await app.exec('GET', urlWithParams, {
+        headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${await app.getUserToken(UserRole.SELLER)}`,
+      },
+    });
 
       expect(res.status).toBe(200);
       expect(res.body.data.pagination.totalDocs).toEqual(1);
@@ -92,7 +106,9 @@ describe('ReviewModule', () => {
       const res = await app.exec('GET', `${url}/${review.id}`, {
         headers: {
         'Content-Type': 'application/json',
-      } });
+        'Authorization': `Bearer ${await app.getUserToken(UserRole.SELLER)}`,
+      },
+     });
 
       expect(res.status).toBe(200);
       expect(res.body.message).toBe("Review retrieved successfully");
@@ -105,6 +121,7 @@ describe('ReviewModule', () => {
       const res = await app.exec('GET', `${url}/${nonExistentId}`, {
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await app.getUserToken(UserRole.SELLER)}`,
         },
       });
 
@@ -118,6 +135,7 @@ describe('ReviewModule', () => {
       const res = await app.exec('GET', `${url}/stats/${residence.id}`, {
         headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${await app.getUserToken(UserRole.SELLER)}`,
       } });
 
       expect(res.status).toBe(200);
@@ -127,6 +145,7 @@ describe('ReviewModule', () => {
       const res = await app.exec('GET', `${url}/stats/66c2bfdd855e053db5c49903`, {
         headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${await app.getUserToken(UserRole.SELLER)}`,
       } });
 
       expect(res.status).toBe(404);
@@ -142,6 +161,7 @@ describe('ReviewModule', () => {
       const res = await app.exec('PUT', `${url}/flag/${existingReview.id}`, {
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await app.getUserToken(UserRole.SELLER)}`,
         },
       });
 
@@ -149,12 +169,13 @@ describe('ReviewModule', () => {
       expect(res.body.message).toBe('Review flagged successfully');
     });
 
-    it('Should return 404 if the Residence ID does not exist', async () => {
+    it('Should return 404 if the Review ID does not exist', async () => {
       const nonExistentId = '60f9c1e07c8b4b001c5c9c99';
 
       const res = await app.exec('PUT', `${url}/flag/${nonExistentId}`, {
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await app.getUserToken(UserRole.SELLER)}`,
         },
       });
 

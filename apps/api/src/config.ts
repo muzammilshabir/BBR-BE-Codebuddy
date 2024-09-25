@@ -18,7 +18,7 @@ export class ServiceConfig extends BbrStatefulServiceConfig {
   };
   readonly jwt = {
     atSecret: this.getOrThrow('JWT_AT_SECRET'),
-    rtSecret: this.getOrThrow('JWT_AT_SECRET'),
+    rtSecret: this.getOrThrow('JWT_RT_SECRET'),
   };
 
   readonly nodemailer = {
@@ -47,6 +47,7 @@ export class ServiceConfig extends BbrStatefulServiceConfig {
 
   readonly captcha = {
     secretKey: this.getOrThrow('CAPTCHA_SECRET'),
+    isDisabled: this.getOrThrow('CAPTCHA_DISABLED') == 1,
   };
 
   readonly stripe = {

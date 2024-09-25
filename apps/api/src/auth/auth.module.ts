@@ -26,6 +26,7 @@ import { StripeModule } from 'src/stripe/stripe.module';
   ],
   providers: [AuthService, AtStrategy, RtStrategy, ServiceConfig, CaptchaGuard, TokenService],
   controllers: [AuthController],
+  exports: [TokenService, AuthService],
 })
 export class AuthModule {
   configure(consumer: MiddlewareConsumer) {

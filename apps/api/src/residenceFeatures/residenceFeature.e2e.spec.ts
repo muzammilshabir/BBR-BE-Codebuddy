@@ -1,9 +1,9 @@
 import { AppModule } from '../app.module';
-import { TestSuite } from '@bbr/api-core/modules/testing/test.suite';
+import { TestSuiteBBR } from '../testing/test.suite';
 import { ResidenceFeatureFixture } from './residenceFeature.fixture';
 
 describe('ResidenceFeatureModule', () => {
-  const app = new TestSuite(AppModule, [ResidenceFeatureFixture]);
+  const app = new TestSuiteBBR(AppModule, [ResidenceFeatureFixture]);
   const url = '/residence-feature';
 
   describe('Find all Residence Features', () => {
