@@ -260,4 +260,22 @@ export class ResidenceController {
       'Residence status updated successfully'
     );
   }
+
+  @Patch('/:id/unarchive')
+  @ApiOperation({
+    summary: 'Update Residence Status unarchive',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(getResidenceByIdSchema, 'param'))
+  async unarchiveResidence(
+    @GetCurrentUserId() userId: string,
+    @Param() params: GetResidenceByIdDto
+  ) {
+    const updatedResidence = await this.residenceService.unarchiveResidence(params.id, userId);
+    return ResponseService.buildResponse(
+      { updatedResidence },
+      'Residence status unarchived successfully'
+    );
+  }
 }

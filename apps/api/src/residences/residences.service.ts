@@ -28,13 +28,25 @@ import { CityRepository } from '../city/city.repository';
 import { ResidenceDraftRepository } from '../residencesDraft/residencesDraft.repository';
 import { ResidenceDraft } from '../residencesDraft/schema/residencesDraft.schema';
 import { DeletionStatus } from '../unit/enum/unit-enum';
+import { ResidenceTypeRepository } from '../residenceType/residenceType.repository';
+import { BrandRepository } from '../brand/brand.repository';
+import { UserRepository } from '../users/user.repository';
+import { ResidenceFeatureRepository } from '../residenceFeatures/residenceFeatures.repository';
+import { AmenityRepository } from '../amenities/amenities.repository';
+import { LifeStyleRepository } from '../lifestyles/lifeStyle.repository';
 
 @Injectable()
 export class ResidenceService {
   constructor(
     private readonly residenceRepository: ResidenceRepository,
     private readonly cityRepository: CityRepository,
-    private readonly residenceDraftRepository: ResidenceDraftRepository
+    private readonly residenceDraftRepository: ResidenceDraftRepository,
+    private readonly residenceTypeRepository: ResidenceTypeRepository,
+    private readonly brandRepository: BrandRepository,
+    private readonly userRepository: UserRepository,
+    private readonly residenceFeatureRepository: ResidenceFeatureRepository,
+    private readonly amenityRepository: AmenityRepository,
+    private readonly lifeStyleRepository: LifeStyleRepository
   ) {}
 
   async create(createResidenceDto: CreateResidenceDto, user: JwtPayloadType): Promise<Residence> {
@@ -613,10 +625,114 @@ export class ResidenceService {
     };
 
     if (updateResidenceStatusDto.status === ResidenceStatus.DELETED) {
-      updatePayload.isDeleted = DeletionStatus.ACTIVE;
+      updatePayload.isDeleted = DeletionStatus.DELETED;
     }
 
     const updatedResidence = await this.residenceRepository.update(residenceId, updatePayload);
+
+    return updatedResidence;
+  }
+
+  async unarchiveResidence(residenceId: string, userId: string): Promise<any> {
+    const residence: Residence = await this.residenceRepository.find({
+      _id: new Types.ObjectId(residenceId),
+      status: ResidenceStatus.ARCHIVED,
+    });
+
+    if (!residence) {
+      throw new NotFoundException(
+        `Residence with ID ${residenceId} with status: ${ResidenceStatus.ARCHIVED} not found`
+      );
+    }
+
+    if (residence?.developerId) {
+      const developer = await this.userRepository.find({
+        _id: residence.developerId,
+        isDeleted: { $ne: DeletionStatus.DELETED },
+      });
+      if (!developer) {
+        throw new BadRequestException(
+          `Developer with ID ${residence.developerId} does not exist or is deleted`
+        );
+      }
+    }
+
+    if (residence?.residenceTypeId) {
+      const residenceType = await this.residenceTypeRepository.find({
+        _id: residence.residenceTypeId,
+        isDeleted: { $ne: DeletionStatus.DELETED },
+      });
+      if (!residenceType) {
+        throw new BadRequestException(
+          `ResidenceType with ID ${residence.residenceTypeId} does not exist or is deleted`
+        );
+      }
+    }
+
+    if (residence?.associatedBrandId) {
+      const associatedBrand = await this.brandRepository.find({
+        _id: residence.associatedBrandId,
+        isDeleted: { $ne: DeletionStatus.DELETED },
+      });
+      if (!associatedBrand) {
+        throw new BadRequestException(
+          `AssociatedBrand with ID ${residence.associatedBrandId} does not exist or is deleted`
+        );
+      }
+    }
+
+    if (residence?.residenceKeyFeatures?.featureIds?.length) {
+      const invalidFeatures = await this.residenceFeatureRepository.count({
+        _id: { $in: residence.residenceKeyFeatures.featureIds },
+        isDeleted: { $ne: DeletionStatus.DELETED },
+      });
+
+      if (invalidFeatures.count !== residence.residenceKeyFeatures.featureIds.length) {
+        throw new BadRequestException(`One or more residence features are invalid or deleted`);
+      }
+    }
+
+    if (residence?.nearbyAmenities?.amenitiesList?.length) {
+      const invalidAmenities = await this.amenityRepository.count({
+        _id: { $in: residence?.nearbyAmenities?.amenitiesList },
+        isDeleted: { $ne: DeletionStatus.DELETED },
+      });
+
+      if (invalidAmenities.count !== residence?.nearbyAmenities?.amenitiesList.length) {
+        throw new BadRequestException(
+          `One or more residence naer by amenites are invalid or deleted`
+        );
+      }
+    }
+
+    if (residence?.cityId) {
+      const city = await this.cityRepository.find({
+        _id: residence.cityId,
+        isDeleted: { $ne: DeletionStatus.DELETED },
+      });
+      if (!city) {
+        throw new BadRequestException(
+          `City with ID ${residence.cityId} does not exist or is deleted`
+        );
+      }
+    }
+
+    if (residence?.lifeStyleId) {
+      const lifeStyle = await this.lifeStyleRepository.find({
+        _id: residence.lifeStyleId,
+        isDeleted: { $ne: DeletionStatus.DELETED },
+      });
+      if (!lifeStyle) {
+        throw new BadRequestException(
+          `lifeStyle with ID ${residence.lifeStyleId} does not exist or is deleted`
+        );
+      }
+    }
+
+    const updatedResidence = await this.residenceRepository.update(residenceId, {
+      status: ResidenceStatus.ACTIVE,
+      updatedById: new Types.ObjectId(userId),
+    });
 
     return updatedResidence;
   }

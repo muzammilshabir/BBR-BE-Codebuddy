@@ -13,12 +13,33 @@ import {
   ResidenceDraftSchema,
 } from '../residencesDraft/schema/residencesDraft.schema';
 import { ResidenceDraftRepository } from '../residencesDraft/residencesDraft.repository';
+import { ResidenceType, ResidenceTypeSchema } from '../residenceType/schema/residenceType.schema';
+import { ResidenceTypeRepository } from '../residenceType/residenceType.repository';
+import { Brand, BrandSchema } from '../brand/schema/brand.schema';
+import { BrandRepository } from '../brand/brand.repository';
+import { User, UserSchema } from '../users/schema/user.schema';
+import { UserRepository } from '../users/user.repository';
+import {
+  ResidenceFeature,
+  ResidenceFeatureSchema,
+} from '../residenceFeatures/schema/residenceFeatures.schema';
+import { ResidenceFeatureRepository } from '../residenceFeatures/residenceFeatures.repository';
+import { Amenity, AmenitySchema } from '../amenities/schema/amenities.schema';
+import { AmenityRepository } from '../amenities/amenities.repository';
+import { LifeStyle, LifeStyleSchema } from '../lifestyles/schema/lifeStyle.schema';
+import { LifeStyleRepository } from '../lifestyles/lifeStyle.repository';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: Residence.name, schema: ResidenceSchema }]),
     MongooseModule.forFeature([{ name: City.name, schema: CitySchema }]),
     MongooseModule.forFeature([{ name: ResidenceDraft.name, schema: ResidenceDraftSchema }]),
+    MongooseModule.forFeature([{ name: ResidenceType.name, schema: ResidenceTypeSchema }]),
+    MongooseModule.forFeature([{ name: Brand.name, schema: BrandSchema }]),
+    MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
+    MongooseModule.forFeature([{ name: ResidenceFeature.name, schema: ResidenceFeatureSchema }]),
+    MongooseModule.forFeature([{ name: Amenity.name, schema: AmenitySchema }]),
+    MongooseModule.forFeature([{ name: LifeStyle.name, schema: LifeStyleSchema }]),
   ],
   providers: [
     ResidenceService,
@@ -27,6 +48,12 @@ import { ResidenceDraftRepository } from '../residencesDraft/residencesDraft.rep
     ResidencesFixture,
     CityRepository,
     ResidenceDraftRepository,
+    ResidenceTypeRepository,
+    BrandRepository,
+    UserRepository,
+    ResidenceFeatureRepository,
+    AmenityRepository,
+    LifeStyleRepository,
   ],
   exports: [ResidenceSeeder, ResidencesFixture, ResidenceService],
   controllers: [ResidenceController],
