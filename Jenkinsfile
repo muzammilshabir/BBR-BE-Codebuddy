@@ -13,7 +13,7 @@ pipeline {
         ECS_CONTAINER_NAME="dev-jeevbbr-api-container"
         ECS_CONTAINER_PORT=5000
         CPU=500
-        MEMORY=500
+        MEMORY=1000
         HEALTH_CHECK_PATH_ECS="localhost:5000/health-check"
 
         CLUSTER="dev-codebuddy-api-ecs"
