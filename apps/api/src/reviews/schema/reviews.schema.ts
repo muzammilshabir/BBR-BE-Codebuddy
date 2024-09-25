@@ -59,7 +59,7 @@ export class Review extends Document {
   isDeleted: boolean;
 
   @Prop({ type: Types.ObjectId, ref: 'User' })
-  createdBy: User;
+  createdById: User;
 
   @Prop({ type: Date })
   createdAt: Date;

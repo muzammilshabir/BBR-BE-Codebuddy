@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
+import { User } from 'src/users/schema/user.schema';
 
 @Schema({ timestamps: true })
 export class VacancyDepartment extends Document {
@@ -9,6 +10,9 @@ export class VacancyDepartment extends Document {
 
   @Prop({ type: Boolean, default: false })
   isDeleted: boolean;
+
+  @Prop({ type: Types.ObjectId, ref: 'User', required: false, })
+  createdById: User;
 
   @Prop({ type: Date })
   createdAt: Date;

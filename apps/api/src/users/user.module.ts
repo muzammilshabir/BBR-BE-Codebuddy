@@ -10,6 +10,7 @@ import { User, UserSchema } from './schema/user.schema';
 import { UserController } from './user.controller';
 import { UserService } from './user.service';
 import { UserRepository } from './user.repository';
+import { UserFixture } from './user.fixture';
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
@@ -19,7 +20,12 @@ import { UserRepository } from './user.repository';
     MailerCoreModule,
   ],
   controllers: [UserController],
-  providers: [UserService, ServiceConfig, UserRepository],
-  exports: [UserService],
+  providers: [
+    UserService,
+    ServiceConfig,
+    UserRepository,
+    UserFixture,
+  ],
+  exports: [UserService, UserFixture],
 })
 export class UserModule {}

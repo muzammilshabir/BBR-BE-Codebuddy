@@ -17,6 +17,9 @@ export class CaptchaGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    if(this.configService.captcha.isDisabled) {
+      return true;
+    }
     const request = context.switchToHttp().getRequest();
     const captchaToken = this.getCaptchaToken(request);
 

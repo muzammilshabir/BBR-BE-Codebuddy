@@ -1,11 +1,11 @@
 import { AppModule } from '../app.module';
-import { TestSuite } from '@bbr/api-core/modules/testing/test.suite';
+import { TestSuiteBBR } from '../testing/test.suite';
 import { BrandFixture } from './brand.fixture';
 import { UploadFixture } from '../upload/upload.fixture';
 import { BrandCategoryFixture } from '../brandCategory/brandCategory.fixture';
 
 describe('BrandModule', () => {
-  const app = new TestSuite(AppModule, [BrandFixture, UploadFixture, BrandCategoryFixture]);
+  const app = new TestSuiteBBR(AppModule, [BrandFixture, UploadFixture, BrandCategoryFixture]);
   const url = '/brand';
 
   describe('Find all Brands', () => {

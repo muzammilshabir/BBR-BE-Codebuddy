@@ -73,7 +73,6 @@ import { UnitDraftModule } from './unitDraft/unitDraft.module';
     BlogModule,
     ResidenceEnquiryModule,
     ResidenceDraftModule,
-    BlogModule,
     CareerModule,
     UnitDraftModule,
   ],

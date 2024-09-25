@@ -81,9 +81,9 @@ export class LeadController {
   @ApiBearerAuth()
   @Roles(UserRole.SELLER)
   @UsePipes(new JoiValidationPipe(listIntervalSchema, 'param'))
-  async getLeadConversionRate(@Query() ListIntervalDto: ListIntervalDto) {
+  async getLeadConversionRate(@Query() listIntervalDto: ListIntervalDto) {
     const conversionRateData = await this.leadService.getLeadConversionRate(
-      ListIntervalDto.interval
+      listIntervalDto.interval
     );
     return ResponseService.buildResponse(
       conversionRateData,

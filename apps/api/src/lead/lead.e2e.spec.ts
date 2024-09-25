@@ -1,5 +1,5 @@
 import { AppModule } from '../app.module';
-import { TestSuite } from '@bbr/api-core/modules/testing/test.suite';
+import { TestSuiteBBR } from '../testing/test.suite';
 import { ResidencesFixture } from '../residences/residences.fixture';
 import { ResidenceTypeFixture } from '../residenceType/residenceType.fixture';
 import { LocationFixture } from '../location/location.fixture';
@@ -7,13 +7,16 @@ import { BrandFixture } from '../brand/brand.fixture';
 import { ResidenceFeatureFixture } from '../residenceFeatures/residenceFeature.fixture';
 import { UploadFixture } from '../upload/upload.fixture';
 import { AmenityFixture } from '../amenities/amenities.fixture';
+import { UserRole } from 'src/users/enum/user.enum';
+import { BrandCategoryFixture } from 'src/brandCategory/brandCategory.fixture';
 
 describe('ResidenceController', () => {
-  const app = new TestSuite(AppModule, [
+  const app = new TestSuiteBBR(AppModule, [
     ResidencesFixture,
     ResidenceTypeFixture,
     LocationFixture,
     BrandFixture,
+    BrandCategoryFixture,
     ResidenceFeatureFixture,
     UploadFixture,
     AmenityFixture,
@@ -21,7 +24,7 @@ describe('ResidenceController', () => {
   const url = '/lead';
 
   describe('Create Lead', () => {
-    it('Should create a new Residence', async () => {
+    it('Should create a new Lead', async () => {
       const residence = app.getReference(ResidencesFixture.RESIDENCE1);
 
       const createLeadDto = {
@@ -40,6 +43,7 @@ describe('ResidenceController', () => {
       const res = await app.exec('POST', url, {
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await app.getUserToken(UserRole.SELLER)}`,
         },
         data: body,
       });

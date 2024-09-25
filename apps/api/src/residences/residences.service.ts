@@ -119,7 +119,7 @@ export class ResidenceService {
   async checkResidenceRejectedStatus(residenceId: string) {
     const residence = await this.residenceRepository.findById(residenceId);
     if (!residence) {
-      throw new NotFoundException(`Residence with ID ${residenceId} not found`);
+      throw new NotFoundException(`Residence with ID ${residenceId}`);
     }
     if (residence.status === ResidenceStatus.REJECTED) {
       throw new BadRequestException(`Rejected Residence cannot be updated`);
