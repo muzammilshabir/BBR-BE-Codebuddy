@@ -190,3 +190,33 @@ export class CreateUserDto {
   })
   avatarImage?: Types.ObjectId;
 }
+
+export class CreateDummyUserDto {
+  @ApiProperty({ description: 'Full name of the user', example: 'John Doe' })
+  fullName?: string;
+
+  @ApiProperty({ description: 'Email of the user', example: 'johndoe@example.com' })
+  email?: string;
+
+  @ApiProperty({ description: 'Method used for signup', enum: SignupMethod })
+  signupMethod?: SignupMethod;
+
+  @ApiProperty({ description: 'Role of the user', enum: UserRole })
+  role?: UserRole;
+
+  @ApiProperty({ description: 'Company name', example: 'Example Corp', required: false })
+  companyName?: string;
+
+  @ApiProperty({ description: 'Corporate email of the user', example: 'corporate@example.com' })
+  corporateEmail?: string;
+
+  @ApiProperty({ description: 'Company information', required: false })
+  companyInfo?: object;
+
+  @ApiProperty({
+    description: 'Verification token for email verification',
+    example: 'abc123',
+    required: false,
+  })
+  verificationToken?: string;
+}
