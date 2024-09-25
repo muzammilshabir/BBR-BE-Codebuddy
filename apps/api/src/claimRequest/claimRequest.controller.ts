@@ -8,8 +8,8 @@ import { ResponseService } from '@bbr/api-core/modules/response/response.service
 import {
   CreateClaimRequestDto,
   createClaimRequestSchema,
-  CreateClaimResidenceForDeveloperWithMatchingDomainDto,
-  createClaimResidenceForDeveloperWithMatchingDomainDtoSchema,
+  CreateClaimResidenceWithMatchingDomainDto,
+  createClaimResidenceWithMatchingDomainSchema,
 } from './dto/createClaimRequest.dto';
 import { GetCurrentUserId } from '../auth/decorators/getCurrentUserId.decorator';
 import { Public } from '@bbr/api-core/modules/decorators';
@@ -43,11 +43,9 @@ export class ClaimRequestController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.SELLER)
-  @UsePipes(
-    new JoiValidationPipe(createClaimResidenceForDeveloperWithMatchingDomainDtoSchema, 'body')
-  )
+  @UsePipes(new JoiValidationPipe(createClaimResidenceWithMatchingDomainSchema, 'body'))
   async claimResidenceForDeveloperWithMatchingDomain(
-    @Body() createClaimRequestDto: CreateClaimResidenceForDeveloperWithMatchingDomainDto,
+    @Body() createClaimRequestDto: CreateClaimResidenceWithMatchingDomainDto,
     @GetCurrentUserId() userId: string
   ) {
     const claimRequest =
@@ -63,14 +61,28 @@ export class ClaimRequestController {
     summary: 'Claim a residence or unit by guest user with same domain',
   })
   @Public()
-  @UsePipes(
-    new JoiValidationPipe(createClaimResidenceForDeveloperWithMatchingDomainDtoSchema, 'body')
-  )
+  @UsePipes(new JoiValidationPipe(createClaimResidenceWithMatchingDomainSchema, 'body'))
   async claimResidenceForGuestWithMatchingDomain(
-    @Body() createClaimRequestDto: CreateClaimResidenceForDeveloperWithMatchingDomainDto
+    @Body() createClaimRequestDto: CreateClaimResidenceWithMatchingDomainDto
   ) {
     const claimRequest =
       await this.claimRequestService.claimResidenceForGuestWithMatchingDomain(
+        createClaimRequestDto
+      );
+    return ResponseService.buildResponse({ claimRequest }, 'Claim request submitted successfully');
+  }
+
+  @Post('guest/different-domain')
+  @ApiOperation({
+    summary: 'Claim a residence or unit by guest user with different domain',
+  })
+  @Public()
+  @UsePipes(new JoiValidationPipe(createClaimRequestSchema, 'body'))
+  async claimResidenceForGuestWithDifferentDomain(
+    @Body() createClaimRequestDto: CreateClaimRequestDto
+  ) {
+    const claimRequest =
+      await this.claimRequestService.claimResidenceForGuestWithDifferentDomain(
         createClaimRequestDto
       );
     return ResponseService.buildResponse({ claimRequest }, 'Claim request submitted successfully');

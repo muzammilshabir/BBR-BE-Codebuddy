@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ClaimRequestRepository } from './claimRequest.repository';
 import {
   CreateClaimRequestDto,
-  CreateClaimResidenceForDeveloperWithMatchingDomainDto,
+  CreateClaimResidenceWithMatchingDomainDto,
 } from './dto/createClaimRequest.dto';
 import { ClaimRequest } from './schema/claimRequest.schema';
 import { UserRepository } from '../users/user.repository';
@@ -89,7 +89,7 @@ export class ClaimRequestService {
   }
 
   async claimResidenceForDeveloperWithMatchingDomain(
-    createClaimRequestDto: CreateClaimResidenceForDeveloperWithMatchingDomainDto,
+    createClaimRequestDto: CreateClaimResidenceWithMatchingDomainDto,
     userId: string
   ): Promise<ClaimRequest> {
     const user = await this.userRepository.findById(userId);
@@ -144,7 +144,7 @@ export class ClaimRequestService {
   }
 
   async claimResidenceForGuestWithMatchingDomain(
-    createClaimRequestDto: CreateClaimResidenceForDeveloperWithMatchingDomainDto
+    createClaimRequestDto: CreateClaimResidenceWithMatchingDomainDto
   ): Promise<ClaimRequest> {
     const residenceId = await this.getValidatedResidenceId(createClaimRequestDto);
 
@@ -180,6 +180,60 @@ export class ClaimRequestService {
       corporateEmail: createClaimRequestDto.email,
       email: createClaimRequestDto.email,
       companyInfo: { corporatePhone: createClaimRequestDto.phoneNumber },
+      role: UserRole.SELLER,
+      signupMethod: SignupMethod.EMAIL,
+      isVerified: false,
+    };
+
+    await this.authService.createDummyDeveloper(userDetails);
+
+    const transformedDto = {
+      ...createClaimRequestDto,
+      unitId: createClaimRequestDto.unitId
+        ? new Types.ObjectId(createClaimRequestDto.unitId)
+        : undefined,
+      residenceId: new Types.ObjectId(residenceId),
+      status: ClaimRequestStatus.Pending,
+    };
+
+    return await this.claimRequestRepository.create(transformedDto);
+  }
+
+  async claimResidenceForGuestWithDifferentDomain(
+    createClaimRequestDto: CreateClaimRequestDto
+  ): Promise<any> {
+    const residenceId = await this.getValidatedResidenceId(createClaimRequestDto);
+
+    // check any existimg claim request exist with developerId
+    await this.checkExistingClaimRequest(residenceId);
+
+    const user = await this.userRepository.find({ email: createClaimRequestDto.email });
+
+    if (user && user.isVerified === true) {
+      const transformedDto = {
+        ...createClaimRequestDto,
+        documents: createClaimRequestDto.documents
+          ? createClaimRequestDto.documents.map((documentId) => new Types.ObjectId(documentId))
+          : undefined,
+        unitId: createClaimRequestDto.unitId
+          ? new Types.ObjectId(createClaimRequestDto.unitId)
+          : undefined,
+        residenceId: new Types.ObjectId(residenceId),
+        developerId: new Types.ObjectId(user.id),
+      };
+
+      return await this.claimRequestRepository.create(transformedDto);
+    }
+
+    const userDetails = {
+      fullName: createClaimRequestDto.fullName,
+      corporateEmail: createClaimRequestDto.email,
+      email: createClaimRequestDto.email,
+      companyName: createClaimRequestDto.companyName,
+      companyInfo: {
+        corporatePhone: createClaimRequestDto.phoneNumber,
+        website: createClaimRequestDto.companyWebsite,
+      },
       role: UserRole.SELLER,
       signupMethod: SignupMethod.EMAIL,
       isVerified: false,

@@ -216,8 +216,6 @@ export class AuthService {
       receiveLuxuryInsights: sellerSignupDto.receiveLuxuryInsights,
       acceptBBRCommitment: false,
     });
-    console.log('user :>> ', user);
-    console.log('user.verificationToken :>> ', user.verificationToken);
 
     this.sendVerificationEmail(user.email, user.verificationToken);
 

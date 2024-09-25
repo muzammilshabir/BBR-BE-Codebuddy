@@ -5,7 +5,7 @@ import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/
 
 export class CreateClaimRequestDto {
   @ApiProperty({ example: 'John Doe', required: true })
-  userName: string;
+  fullName: string;
 
   @ApiProperty({ example: 'johndoe@example.com', required: true })
   email: string;
@@ -45,7 +45,7 @@ export class CreateClaimRequestDto {
   receiveLuxuryInsights: boolean;
 }
 
-export class CreateClaimResidenceForDeveloperWithMatchingDomainDto {
+export class CreateClaimResidenceWithMatchingDomainDto {
   @ApiProperty({ example: 'johndoe@example.com', required: true })
   email: string;
 
@@ -68,7 +68,7 @@ export class CreateClaimResidenceForDeveloperWithMatchingDomainDto {
 
 // Joi validation schema
 export const createClaimRequestSchema = Joi.object({
-  userName: Joi.string().required(),
+  fullName: Joi.string().required(),
   email: Joi.string().email().required(),
   phoneNumber: Joi.object({
     countryCode: Joi.string().required(),
@@ -90,7 +90,7 @@ export const createClaimRequestSchema = Joi.object({
     'object.xor': 'Only one of residenceId or unitId can be provided at a time.',
   });
 
-export const createClaimResidenceForDeveloperWithMatchingDomainDtoSchema = Joi.object({
+export const createClaimResidenceWithMatchingDomainSchema = Joi.object({
   email: Joi.string().email().required(),
   phoneNumber: Joi.object({
     countryCode: Joi.string().required(),
