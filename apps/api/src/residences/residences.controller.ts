@@ -36,6 +36,8 @@ import {
   rejectResidenceSchema,
   UpdateResidenceDto,
   updateResidenceSchema,
+  UpdateResidenceStatusDto,
+  updateResidenceStatusSchema,
 } from './dto/update-residence.dto';
 import { ResidenceService } from './residences.service';
 import { GetCurrentUserId } from '../auth/decorators/getCurrentUserId.decorator';
@@ -232,6 +234,30 @@ export class ResidenceController {
     return ResponseService.buildResponse(
       { residences: result },
       'Residence retrieved successfully'
+    );
+  }
+
+  @Patch('/:id/update-status')
+  @ApiOperation({
+    summary: 'Update Residence Status',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(getResidenceByIdSchema, 'param'))
+  @UsePipes(new JoiValidationPipe(updateResidenceStatusSchema, 'body'))
+  async updateResidenceStatus(
+    @GetCurrentUserId() userId: string,
+    @Param() params: GetResidenceByIdDto,
+    @Body() updateResidenceStatusDto: UpdateResidenceStatusDto
+  ) {
+    const updatedResidence = await this.residenceService.updateResidenceStatus(
+      params.id,
+      userId,
+      updateResidenceStatusDto
+    );
+    return ResponseService.buildResponse(
+      { updatedResidence },
+      'Residence status updated successfully'
     );
   }
 }

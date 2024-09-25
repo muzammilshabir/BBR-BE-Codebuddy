@@ -2,7 +2,11 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ResidenceRepository } from './residences.repository';
 import { CreateResidenceDto } from './dto/create-residence.dto';
 import { Residence } from './schema/residences.schema';
-import { RejectResidenceDto, UpdateResidenceDto } from './dto/update-residence.dto';
+import {
+  RejectResidenceDto,
+  UpdateResidenceDto,
+  UpdateResidenceStatusDto,
+} from './dto/update-residence.dto';
 import { BadRequestException, NotFoundException } from '@bbr/api-core/modules/exceptions';
 import { AddKeyFeaturesDto } from './dto/residenceKeyFeatures.dto';
 import { AddResidenceVisualsDto } from './dto/add-visuals.dto';
@@ -23,6 +27,7 @@ import { UserRole } from '../users/enum/user.enum';
 import { CityRepository } from '../city/city.repository';
 import { ResidenceDraftRepository } from '../residencesDraft/residencesDraft.repository';
 import { ResidenceDraft } from '../residencesDraft/schema/residencesDraft.schema';
+import { DeletionStatus } from '../unit/enum/unit-enum';
 
 @Injectable()
 export class ResidenceService {
@@ -580,5 +585,39 @@ export class ResidenceService {
     } catch (error) {
       throw new InternalServerErrorException('Failed to create residence draft', error);
     }
+  }
+
+  async updateResidenceStatus(
+    residenceId: string,
+    userId: string,
+    updateResidenceStatusDto: UpdateResidenceStatusDto
+  ): Promise<Residence> {
+    const residence = await this.getResidenceById(residenceId);
+
+    if (!residence) {
+      throw new NotFoundException(`Residence with ID ${residenceId} not found`);
+    }
+
+    if (
+      [ResidenceStatus.DRAFT, ResidenceStatus.REJECTED, ResidenceStatus.ACTIVE].includes(
+        updateResidenceStatusDto.status
+      )
+    ) {
+      throw new BadRequestException(
+        `Cannot update residence with status: ${updateResidenceStatusDto.status}`
+      );
+    }
+    const updatePayload: any = {
+      status: updateResidenceStatusDto.status,
+      updatedById: new Types.ObjectId(userId),
+    };
+
+    if (updateResidenceStatusDto.status === ResidenceStatus.DELETED) {
+      updatePayload.isDeleted = DeletionStatus.ACTIVE;
+    }
+
+    const updatedResidence = await this.residenceRepository.update(residenceId, updatePayload);
+
+    return updatedResidence;
   }
 }
