@@ -26,7 +26,9 @@ To start the application,run the following command:
 ```sh
 cd apps/api
 pnpm copy-env
+cd packages/api-core
 pnpm dev:redis
+pnpm dev:mongo
 pnpm dev
 ```
 
