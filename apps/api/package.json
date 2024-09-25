@@ -7,7 +7,7 @@
   "author": "",
   "scripts": {
     "build": "nest build",
-    "console": "node dist/src/console.js",
+    "console": "node dist/apps/api/src/console.js",
     "console:dev": "ts-node -r tsconfig-paths/register src/console.ts",
     "copy-env": "shx cp .env.example .env",
     "dev": "cross-env NODE_ENV=development pnpm run start:dev",
