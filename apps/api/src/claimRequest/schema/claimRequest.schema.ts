@@ -5,7 +5,7 @@ import { ClaimRequestStatus } from '../enum/claimReques-enum';
 @Schema({ timestamps: true })
 export class ClaimRequest extends Document {
   @Prop({ required: false })
-  userName?: string;
+  fullName?: string;
 
   @Prop({ required: false })
   email?: string;
