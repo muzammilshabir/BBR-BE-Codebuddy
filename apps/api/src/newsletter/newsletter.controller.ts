@@ -1,6 +1,6 @@
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
-import { Controller, Post, Body, UsePipes, Get } from '@nestjs/common';
+import { Controller, Post, Body, UsePipes } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { SubscribeNewsletterDto, subscribeNewsletterDtoSchema } from './dto/subscribe-newsletter.dto';
 import { Public } from '@bbr/api-core/modules/decorators';
@@ -35,16 +35,5 @@ export class NewsletterController {
     ) {
     const result = await this.newsletterService.unsubscribe(unsubscribeNewsletterDto);
     return ResponseService.buildResponse({ result }, 'Successfully unsubscribed from BBR newsletter');
-  }
-
-  @Get('/test')
-  @ApiOperation({
-    summary: 'Unsubscribe from BBR newsletter',
-  })
-  @Public()
-  async test(
-    ) {
-    const a = await this.newsletterService.test();
-    return ResponseService.buildResponse({ a }, 'Successfully unsubscribed from BBR newsletter');
   }
 }
