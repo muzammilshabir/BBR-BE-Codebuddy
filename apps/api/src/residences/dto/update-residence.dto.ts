@@ -8,6 +8,7 @@ import {
   BudgetLimitationsRange,
   ComprehensiveOverview,
 } from './create-residence.dto';
+import { ResidenceStatus } from '../enum/residence-enum';
 
 export class UpdateResidenceDto {
   @ApiProperty({ example: 'Ritz Carlton Miami', required: false })
@@ -84,4 +85,29 @@ export class RejectResidenceDto {
 
 export const rejectResidenceSchema = Joi.object({
   rejectionReason: Joi.string().required(),
+});
+
+export class UpdateResidenceStatusDto {
+  @ApiProperty({
+    description: 'New status of the residence',
+    enum: ResidenceStatus,
+    example: ResidenceStatus.ARCHIVED,
+  })
+  status: ResidenceStatus;
+}
+
+// Joi validation schema excluding the unwanted statuses
+export const updateResidenceStatusSchema = Joi.object({
+  status: Joi.string()
+    .valid(
+      ResidenceStatus.PENDING,
+      ResidenceStatus.SOLD,
+      ResidenceStatus.PENDINGIMAGEAPPROVAL,
+      ResidenceStatus.INACTIVE,
+      ResidenceStatus.BILLINGISSUE,
+      ResidenceStatus.SUSPENDED,
+      ResidenceStatus.ARCHIVED,
+      ResidenceStatus.DELETED
+    )
+    .required(),
 });

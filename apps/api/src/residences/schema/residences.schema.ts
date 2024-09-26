@@ -194,6 +194,9 @@ export class Residence extends Document {
     };
     placeId?: string;
   };
+
+  @Prop({ type: Boolean, default: false })
+  isDeleted: boolean;
 }
 
 export const ResidenceSchema = SchemaFactory.createForClass(Residence);
