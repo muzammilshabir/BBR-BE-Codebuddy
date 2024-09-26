@@ -7,7 +7,7 @@ export abstract class BbrConfig extends BaseConfig {
 
   services = {
     user: {
-      port: 4001,
+      port: process.env.APP_PORT ? Number(process.env.APP_PORT) : 4001,
       name: 'API Service',
     },
   };
