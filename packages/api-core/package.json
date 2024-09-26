@@ -4,7 +4,8 @@
     "description": "Core API Library",
     "scripts": {
         "build": "tsc",
-        "dev:redis": "ts-node ./modules/scripts/devRedis.ts"
+        "dev:redis": "ts-node ./modules/scripts/devRedis.ts",
+        "dev:mongo": "ts-node ./modules/scripts/devMongo.ts"
     },
     "keywords": [],
     "author": "",

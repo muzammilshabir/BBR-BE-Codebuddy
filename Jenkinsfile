@@ -1,0 +1,303 @@
+def CHANGED_FILES = 'false'
+pipeline {
+    agent any
+    options { disableConcurrentBuilds() }
+    environment {
+        random = sh(script: 'echo $(date +%s%N) | sha256sum | head -c 7', returnStdout: true).trim()
+        AWS_DEFAULT_REGION = 'ap-south-1'
+        ECR_REPO = 'dev-jeevbbr-api'
+        REGION = 'ap-south-1'
+        ACCOUNT_ID = '481445224143'
+        DOCKERFILE_PATH = 'Dockerfile'
+        ECS_TASK_DEFINATION_NAME = 'dev-jeevbbr-api'
+        ECS_CONTAINER_NAME = 'dev-jeevbbr-api-container'
+        ECS_CONTAINER_PORT = 5000
+        CPU = 500
+        MEMORY = 1000
+        HEALTH_CHECK_PATH_ECS = 'localhost:5000/health-check'
+
+        CLUSTER = 'dev-codebuddy-api-ecs'
+        TARGET_GROUP_NAME = 'dev-jeevbbr-api-tg'
+        HEALTH_CHECK_PATH_TG = '/health-check'
+        VPC_ID = 'vpc-0eb2d1823f975675c'
+        SERVICE = 'dev-jeevbbr-api-service'
+        ALB_LISTENER_ARN = 'arn:aws:elasticloadbalancing:ap-south-1:481445224143:listener/app/codebuddy-alb/6dbd56b511acf09c/f1683397636119a2'
+        HOST = 'jeevbbrapi.dev.codebuddy.review'
+
+        INFISICAL_ENV = credentials('INFISICAL_JEEVBBR_API_ENV')
+        INFISICAL_API_URL = credentials('INFISICAL_JEEVBBR_API_URL')
+        INFISICAL_CLIENT_ID = credentials('INFISICAL_JEEVBBR_API_CLIENT_ID')
+        INFISICAL_CLIENT_SECRET = credentials('INFISICAL_JEEVBBR_API_CLIENT_SECRET')
+        INFISICAL_PROJECT_ID = credentials('INFISICAL_JEEVBBR_API_PROJECT_ID')
+    }
+    stages {
+        stage('start') {
+            when {
+                anyOf {
+                    changeset '**/apps/api/**'
+                    changeset '**/packages/prettier/**'
+                    changeset '**/packages/api-core/**'
+                    changeset '**/package.json'
+                    changeset '**/pnpm-lock.yaml'
+                    changeset '**/pnpm-workspace.yaml'
+                    changeset '**/Jenkinsfile'
+                }
+                beforeAgent true
+            }
+            steps {
+                script {
+                    CHANGED_FILES = 'true'
+                }
+                slackSend channel: 'cbdb-devops', message: "Build started  - ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)"
+            }
+        }
+        stage('creating docker image') {
+            when {
+                anyOf {
+                    changeset '**/apps/api/**'
+                    changeset '**/packages/prettier/**'
+                    changeset '**/packages/api-core/**'
+                    changeset '**/package.json'
+                    changeset '**/pnpm-lock.yaml'
+                    changeset '**/pnpm-workspace.yaml'
+                    changeset '**/Jenkinsfile'
+                }
+                beforeAgent true
+            }
+            steps {
+                sh '''
+                export AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION
+                echo "ECR Repo is creating if it does not exist"
+                aws ecr describe-repositories --repository-names ${ECR_REPO} || aws ecr create-repository --repository-name ${ECR_REPO} && echo '
+                {
+                "rules": [
+                    {
+                        "rulePriority": 1,
+                        "description": "Keeping latest 5 images",
+                        "selection": {
+                            "tagStatus": "any",
+                            "countType": "imageCountMoreThan",
+                            "countNumber": 5
+                        },
+                        "action": {
+                            "type": "expire"
+                        }
+                    }
+                ]
+                }
+                ' > ecr_policy.json && aws ecr put-lifecycle-policy \
+                    --repository-name ${ECR_REPO} \
+                    --lifecycle-policy-text "file://ecr_policy.json"
+                                cp $DOCKERFILE_PATH . || echo "pass"
+                                INFISICAL_TOKEN=$(infisical login --method=universal-auth --client-id=$INFISICAL_CLIENT_ID --client-secret=$INFISICAL_CLIENT_SECRET --domain=$INFISICAL_API_URL --silent --plain)
+
+                                docker build --build-arg INFISICAL_ENV=$INFISICAL_ENV --build-arg INFISICAL_API_URL=$INFISICAL_API_URL --build-arg INFISICAL_PROJECT_ID=$INFISICAL_PROJECT_ID --build-arg INFISICAL_TOKEN=$INFISICAL_TOKEN -t $ECR_REPO:$BUILD_NUMBER .
+
+                                docker tag $ECR_REPO:$BUILD_NUMBER $ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$ECR_REPO:$BUILD_NUMBER
+                                docker images
+                                '''
+            }
+        }
+        stage('Pushing Docker image to ECR') {
+            when {
+                anyOf {
+                    changeset '**/apps/api/**'
+                    changeset '**/packages/prettier/**'
+                    changeset '**/packages/api-core/**'
+                    changeset '**/package.json'
+                    changeset '**/pnpm-lock.yaml'
+                    changeset '**/pnpm-workspace.yaml'
+                    changeset '**/Jenkinsfile'
+                }
+                beforeAgent true
+            }
+            steps {
+                sh '''
+                aws ecr get-login-password --region $REGION | docker login --username AWS --password-stdin $ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com
+                docker push $ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$ECR_REPO:$BUILD_NUMBER
+                '''
+            }
+        }
+        stage('Deleting Docker images from Jenkins server') {
+            when {
+                anyOf {
+                    changeset '**/apps/api/**'
+                    changeset '**/packages/prettier/**'
+                    changeset '**/packages/api-core/**'
+                    changeset '**/package.json'
+                    changeset '**/pnpm-lock.yaml'
+                    changeset '**/pnpm-workspace.yaml'
+                    changeset '**/Jenkinsfile'
+                }
+                beforeAgent true
+            }
+            steps {
+                sh '''
+                Previous_buildnumber=$((BUILD_NUMBER-1))
+                docker rmi $ECR_REPO:$BUILD_NUMBER
+                docker rmi $ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/$ECR_REPO:$Previous_buildnumber || echo "no image found"
+                '''
+            }
+        }
+        stage('Creating task Defination') {
+            when {
+                anyOf {
+                    changeset '**/apps/api/**'
+                    changeset '**/packages/prettier/**'
+                    changeset '**/packages/api-core/**'
+                    changeset '**/package.json'
+                    changeset '**/pnpm-lock.yaml'
+                    changeset '**/pnpm-workspace.yaml'
+                    changeset '**/Jenkinsfile'
+                }
+                beforeAgent true
+            }
+            steps {
+                sh '''
+                echo '
+                {
+                    "family": "'"${ECS_TASK_DEFINATION_NAME}"'",
+                    "taskRoleArn": "",
+                    "executionRoleArn": "arn:aws:iam::'${ACCOUNT_ID}':role/ecsTaskExecutionRole",
+
+                    "containerDefinitions": [
+                        {
+                            "name": "'"${ECS_CONTAINER_NAME}"'",
+                            "image": "'${ACCOUNT_ID}'.dkr.ecr.'${REGION}'.amazonaws.com/'${ECR_REPO}':tag",
+
+                            "portMappings": [
+                                {
+                                    "hostPort": 0,
+                                    "protocol": "tcp",
+                                    "containerPort": '${ECS_CONTAINER_PORT}'
+                                }
+                            ],
+                            "healthCheck": {
+                                "command": [
+                                    "CMD-SHELL",
+                                    "curl -f http://'${HEALTH_CHECK_PATH_ECS}' || exit 1"
+                                ],
+                                "interval": 30,
+                                "timeout": 5,
+                                "retries": 3,
+                                "startPeriod": 40
+                            }
+
+                        }
+                    ],
+
+                    "requiresCompatibilities": [
+                        "EC2"
+                    ],
+                    "cpu": "'${CPU}'",
+                    "memory": "'${MEMORY}'",
+                    "pidMode": "task",
+                    "ipcMode": "task"
+                }' > task_defination.json
+                sed -i "s/$ECR_REPO:tag/$ECR_REPO:$BUILD_NUMBER/" task_defination.json
+                aws ecs register-task-definition --cli-input-json file://task_defination.json --region $REGION
+              '''
+            }
+        }
+        stage('Deploying Docker image to ECS') {
+            when {
+                anyOf {
+                    changeset '**/apps/api/**'
+                    changeset '**/packages/prettier/**'
+                    changeset '**/packages/api-core/**'
+                    changeset '**/package.json'
+                    changeset '**/pnpm-lock.yaml'
+                    changeset '**/pnpm-workspace.yaml'
+                    changeset '**/Jenkinsfile'
+                }
+                beforeAgent true
+            }
+            steps {
+                sh '''
+                latest_version=$(aws ecs describe-task-definition --task-definition $ECS_TASK_DEFINATION_NAME --region $REGION | jq .taskDefinition.revision)
+                echo "Latest version is $latest_version"
+                                ECS_SERVICES=$(aws ecs list-services --cluster $CLUSTER --output json --query "serviceArns" | jq -r '.[]' | awk -F'/' '{print $NF}')
+                if [ -z "$ECS_SERVICES" ]; then
+                    ECS_SERVICES=$(echo "cghchgvbhhj")
+                fi
+
+                echo $ECS_SERVICES > services.txt
+
+                    if grep -F "$SERVICE" services.txt
+                    then
+                        echo "This service already exist,So updating this"
+                        aws ecs update-service --cluster $CLUSTER --region $REGION --service $SERVICE --task-definition $ECS_TASK_DEFINATION_NAME:${latest_version}
+                        aws ecs wait services-stable --cluster $CLUSTER --region $REGION --services $SERVICE
+                    else
+                        echo "This service does not exist in this cluster, So creating from scratch"
+
+                        echo "target group is creating"
+
+                        TARGET_GROUP_ARN=$(aws elbv2 create-target-group \
+                        --name $TARGET_GROUP_NAME \
+                        --protocol HTTP \
+                        --port 80 \
+                        --target-type instance \
+                        --vpc-id $VPC_ID \
+                        --health-check-path $HEALTH_CHECK_PATH_TG \
+                        --query 'TargetGroups[0].TargetGroupArn' \
+                        --output text)
+
+                        aws elbv2 describe-rules \
+                        --listener-arn $ALB_LISTENER_ARN \
+                        --query 'Rules[].Priority' \
+                        --output text | tr '\t' '\n' > priority.txt
+
+                        cat priority.txt
+
+                        highest_number=$(sort -n priority.txt | tail -n 1) && echo "The highest number is: $highest_number"
+                        NEW_PRIORITY=$((highest_number + 1))
+
+                    rm -rf priority.txt
+
+                    echo "Creating ALB rule"
+
+                    aws elbv2 create-rule \
+                    --listener-arn $ALB_LISTENER_ARN \
+                    --priority $NEW_PRIORITY \
+                    --conditions Field=host-header,Values=["$HOST"] \
+                    --actions Type=forward,TargetGroupArn=$TARGET_GROUP_ARN || { aws elbv2 delete-target-group --target-group-arn $TARGET_GROUP_ARN && exit 1; }
+
+                    echo "Getting rule arn"
+                    rule_arn=$(aws elbv2 describe-rules   --listener-arn $ALB_LISTENER_ARN | jq -r '.Rules[] | select(.Conditions[]?.Field == "host-header" and .Conditions[]?.Values[] == "'"$HOST"'") | .RuleArn')
+
+                    echo "Creating ECS Service"
+
+                    aws ecs create-service \
+                    --cluster $CLUSTER \
+                    --service-name $SERVICE \
+                    --task-definition $ECS_TASK_DEFINATION_NAME:$latest_version \
+                    --desired-count 1 \
+                    --placement-strategy type="binpack",field="memory" \
+                    --load-balancers targetGroupArn=$TARGET_GROUP_ARN,containerName=$ECS_CONTAINER_NAME,containerPort=$ECS_CONTAINER_PORT || {  aws elbv2 delete-rule --rule-arn $rule_arn && aws elbv2 delete-target-group --target-group-arn $TARGET_GROUP_ARN && exit 1; }
+
+                    aws ecs wait services-stable --cluster $CLUSTER --region $REGION --services $SERVICE
+
+                    fi
+                rm -rf services.txt
+                '''
+            }
+        }
+    }
+    post {
+        failure {
+            script {
+                if (CHANGED_FILES == 'true') {
+                    slackSend channel: 'cbdb-devops', message: "Build failed  - ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)"
+                }
+            }
+        }
+        success {
+            script {
+                if (CHANGED_FILES == 'true') {
+                    slackSend channel: 'cbdb-devops', message: "Build succeeded  - ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)"
+                }
+            }
+        }
+    }
+}

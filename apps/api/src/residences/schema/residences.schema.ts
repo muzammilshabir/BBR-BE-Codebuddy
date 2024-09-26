@@ -9,7 +9,7 @@ export class Residence extends Document {
   @Prop({ required: true, type: Types.ObjectId, ref: 'ResidenceType' })
   residenceTypeId: Types.ObjectId;
 
-  @Prop({ required: true, type: Types.ObjectId, ref: 'Location' })
+  @Prop({ required: false, type: Types.ObjectId, ref: 'Location' })
   locationId: Types.ObjectId;
 
   @Prop({ required: false })
@@ -70,6 +70,7 @@ export class Residence extends Document {
         rentalPotential: String,
         developmentStatus: String,
         floorAreaSqFt: Number,
+        staffToResidenceRatio: Number,
       },
       petPolicy: String, // Enum values: "petFriendly", "No pet Allowed"
     },
@@ -82,6 +83,7 @@ export class Residence extends Document {
       rentalPotential: string;
       developmentStatus: string;
       floorAreaSqFt: number;
+      staffToResidenceRatio: number;
     };
     petPolicy: string;
   };

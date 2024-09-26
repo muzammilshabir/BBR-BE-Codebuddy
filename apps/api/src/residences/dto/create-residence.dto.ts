@@ -90,8 +90,8 @@ export class CreateResidenceDto {
   @ApiProperty({ example: '60d9c6a0a11c3c6c6a9a1a2a', required: true, type: String })
   residenceTypeId: Types.ObjectId;
 
-  @ApiProperty({ example: '60d9c6a0a11c3c6c6a9a1a1a', required: true, type: String })
-  locationId: Types.ObjectId;
+  @ApiProperty({ example: '60d9c6a0a11c3c6c6a9a1a1a', required: false, type: String })
+  locationId?: Types.ObjectId;
 
   @ApiProperty({ example: 'https://dummywebsite.com', required: false })
   websiteLink?: string;
@@ -115,7 +115,7 @@ export class CreateResidenceDto {
 export const createResidenceSchema = Joi.object({
   name: Joi.string().required(),
   residenceTypeId: Joi.string().custom(joiObjectIdValidator('residenceTypeId')).required(),
-  locationId: Joi.string().custom(joiObjectIdValidator('locationId')).required(),
+  locationId: Joi.string().custom(joiObjectIdValidator('locationId')).optional(),
   websiteLink: Joi.string().optional(),
   associatedBrandId: Joi.string().optional().custom(joiObjectIdValidator('associatedBrandId')),
   briefOverview: Joi.object({

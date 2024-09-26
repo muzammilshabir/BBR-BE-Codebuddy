@@ -16,6 +16,9 @@ export class DevelopmentInfo {
 
   @ApiProperty({ example: 1500 })
   floorAreaSqFt: number;
+
+  @ApiProperty({ example: 2 })
+  staffToResidenceRatio: number;
 }
 
 export class AddKeyFeaturesDto {
@@ -42,6 +45,7 @@ export const addKeyFeaturesSchema = Joi.object({
       .valid(...Object.values(DevelopmentStatus))
       .required(),
     floorAreaSqFt: Joi.number().required(),
+    staffToResidenceRatio: Joi.number().required(),
   }).required(),
   petPolicy: Joi.string()
     .valid(...Object.values(PetPolicy))
