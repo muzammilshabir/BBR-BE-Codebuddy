@@ -1,9 +1,9 @@
 import { AppModule } from '../app.module';
-import { TestSuite } from '@bbr/api-core/modules/testing/test.suite';
+import { TestSuiteBBR } from '../testing/test.suite';
 import { LifeStyleFixture } from './lifeStyle.fixture';
 
 describe('AmenityModule', () => {
-  const app = new TestSuite(AppModule, [LifeStyleFixture]);
+  const app = new TestSuiteBBR(AppModule, [LifeStyleFixture]);
   const url = '/lifestyles';
 
   describe('Find all lifeStyles', () => {

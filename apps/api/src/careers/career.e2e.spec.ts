@@ -1,10 +1,11 @@
 import { AppModule } from '../app.module';
-import { TestSuite } from '@bbr/api-core/modules/testing/test.suite';
 import { UploadFixture } from '../upload/upload.fixture';
 import { CareerFixture } from './career.fixture';
+import { UserRole } from 'src/users/enum/user.enum';
+import { TestSuiteBBR } from 'src/testing/test.suite';
 
 describe('CareerModule', () => {
-  const app = new TestSuite(AppModule, [
+  const app = new TestSuiteBBR(AppModule, [
     CareerFixture,
     UploadFixture,
   ]);
@@ -28,6 +29,7 @@ describe('CareerModule', () => {
       const res = await app.exec('POST', `${url}/admin/create/vacancy`, {
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await app.getUserToken(UserRole.ADMIN)}`,
         },
         data: body,
       });
@@ -39,7 +41,7 @@ describe('CareerModule', () => {
   describe('Create Career Department', () => {
     it('Should create new Career Department', async () => {
       const createCareerCategoryDto = {
-        title: "Sales",
+        title: "Marketing",
       };
 
       // Convert the createCareerCategoryDto to a JSON string
@@ -49,6 +51,7 @@ describe('CareerModule', () => {
       const res = await app.exec('POST', `${url}/admin/create/department`, {
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await app.getUserToken(UserRole.ADMIN)}`,
         },
         data: body,
       });
@@ -63,7 +66,7 @@ describe('CareerModule', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.data.pagination.totalDocs).toEqual(1);
-      expect(res.body.data.posts[0].career.title).toEqual('BBR Career Post!');
+      expect(res.body.data.jobs[0].title).toEqual('Sales Executive');
     });
   });
 
@@ -74,7 +77,7 @@ describe('CareerModule', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.data.pagination.totalDocs).toEqual(1);
-      expect(res.body.data.posts[0].career.title).toEqual('Sales Executive');
+      expect(res.body.data.jobs[0].title).toEqual('Sales Executive');
     });
   });
 

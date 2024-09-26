@@ -42,7 +42,7 @@ export class ReviewsFixture extends AbstractFixture {
         details: 'Awesome seller and the place has amazing view.',
       },
       photos: [reviewPhotoId],
-      createdBy: '60d5f485f7c6a4b2b8e8b601',
+      createdById: '60d5f485f7c6a4b2b8e8b601',
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -54,7 +54,7 @@ export class ReviewsFixture extends AbstractFixture {
         details: 'the property is not in a good location.',
       },
       photos: [reviewPhotoId],
-      createdBy: '60d5f485f7c6a4b2b8e8b601',
+      createdById: '60d5f485f7c6a4b2b8e8b601',
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -66,7 +66,7 @@ export class ReviewsFixture extends AbstractFixture {
         details: 'Good place but the view is lacking.',
       },
       photos: [reviewPhotoId],
-      createdBy: '60d5f485f7c6a4b2b8e8b601',
+      createdById: '60d5f485f7c6a4b2b8e8b601',
       createdAt: new Date(),
       updatedAt: new Date(),
     });

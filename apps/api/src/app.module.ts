@@ -37,6 +37,7 @@ import { ResidenceEnquiryModule } from './residenceEnquiry/residenceEnquiry.modu
 import { CareerModule } from './careers/career.module';
 import { ResidenceDraftModule } from './residencesDraft/residencesDraft.module';
 import { UnitDraftModule } from './unitDraft/unitDraft.module';
+import { ClaimRequestModule } from './claimRequest/claimRequest.module';
 import { AppController } from './app.controller';
 @Module({
   imports: [
@@ -74,9 +75,9 @@ import { AppController } from './app.controller';
     BlogModule,
     ResidenceEnquiryModule,
     ResidenceDraftModule,
-    BlogModule,
     CareerModule,
     UnitDraftModule,
+    ClaimRequestModule,
   ],
   controllers: [AppController],
   providers: [

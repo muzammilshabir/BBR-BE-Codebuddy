@@ -50,8 +50,8 @@ export class NewsroomService {
 
     if(listNewsroomPostsDto.search) {
       filter.$or = [
-        { "newsroom.title": { $regex: listNewsroomPostsDto.search, $options: 'i' } },
-        { "newsroom.contents": { $regex: listNewsroomPostsDto.search, $options: 'i' } },
+        { title: { $regex: listNewsroomPostsDto.search, $options: 'i' } },
+        { contents: { $regex: listNewsroomPostsDto.search, $options: 'i' } },
       ];
     }
 

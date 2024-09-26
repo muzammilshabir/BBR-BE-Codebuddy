@@ -64,8 +64,8 @@ export class BlogService {
 
     if(listBlogPostsDto.search) {
       filter.$or = [
-        { "blog.title": { $regex: listBlogPostsDto.search, $options: 'i' } },
-        { "blog.contents": { $regex: listBlogPostsDto.search, $options: 'i' } },
+        { title: { $regex: listBlogPostsDto.search, $options: 'i' } },
+        { contents: { $regex: listBlogPostsDto.search, $options: 'i' } },
       ];
     }
 
