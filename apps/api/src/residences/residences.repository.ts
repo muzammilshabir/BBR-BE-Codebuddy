@@ -92,9 +92,37 @@ export class ResidenceRepository extends BaseRepository<Residence> {
       {
         $match: {
           ...(developerId ? { developerId: new Types.ObjectId(developerId) } : {}),
-          ...(search ? { name: { $regex: search, $options: 'i' } } : {}), // case-insensitive search by name
         },
       },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'developerId',
+          foreignField: '_id',
+          as: 'developerData',
+        },
+      },
+      {
+        $unwind: {
+          path: '$developerData',
+          preserveNullAndEmptyArrays: true, // To keep residences without a developer
+        },
+      },
+      {
+        $match: {
+          ...(search
+            ? {
+                $or: [
+                  { name: { $regex: search, $options: 'i' } },
+                  { 'address.city': { $regex: search, $options: 'i' } },
+                  { 'address.country': { $regex: search, $options: 'i' } },
+                  { 'developerData.fullName': { $regex: search, $options: 'i' } },
+                ],
+              }
+            : {}),
+        },
+      },
+
       {
         $lookup: {
           from: 'residencedrafts',
