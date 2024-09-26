@@ -4,6 +4,12 @@ export enum ResidenceStatus {
   DRAFT = 'draft',
   SOLD = 'sold',
   REJECTED = 'rejected',
+  PENDINGIMAGEAPPROVAL = 'Pending Image Approval', //TODO: apply camel case
+  INACTIVE = 'inactive',
+  BILLINGISSUE = 'Billing Issue',
+  SUSPENDED = 'suspended',
+  ARCHIVED = 'archived',
+  DELETED = 'deleted',
 }
 
 export enum FileType {
