@@ -5,6 +5,8 @@ import { Residence } from './schema/residences.schema';
 import { BaseRepository } from '@bbr/api-core/modules/db/base.repository';
 import { NotFoundException } from '@bbr/api-core/modules/exceptions';
 import { PipelineStage } from 'mongoose';
+import { ListResidenceWithDraftDto } from './dto/list-residence.dto';
+import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
 
 @Injectable()
 export class ResidenceRepository extends BaseRepository<Residence> {
@@ -73,8 +75,26 @@ export class ResidenceRepository extends BaseRepository<Residence> {
     return residence;
   }
 
-  async listResidencesWithDraft(): Promise<any[]> {
+  async listResidencesWithDraft(
+    listResidenceWithDraftDto: ListResidenceWithDraftDto
+  ): Promise<any[]> {
+    const { status, developerId, search } = listResidenceWithDraftDto;
+
+    const paginationOptions = PaginationService.prepareOptions(listResidenceWithDraftDto);
+
+    // Manually convert sort from array to object format
+    const sortObject = paginationOptions.sort.reduce((acc, [field, order]) => {
+      acc[field] = order;
+      return acc;
+    }, {});
+
     const pipeline: PipelineStage[] = [
+      {
+        $match: {
+          ...(developerId ? { developerId: new Types.ObjectId(developerId) } : {}),
+          ...(search ? { name: { $regex: search, $options: 'i' } } : {}), // case-insensitive search by name
+        },
+      },
       {
         $lookup: {
           from: 'residencedrafts',
@@ -90,9 +110,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
         },
       },
       {
-        $sort: {
-          'drafts.createdAt': -1,
-        },
+        $sort: sortObject,
       },
       {
         $group: {
@@ -108,7 +126,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
           residenceKeyFeatures: { $first: '$residenceKeyFeatures' },
           visuals: { $first: '$visuals' },
           nearbyAmenities: { $first: '$nearbyAmenities' },
-          status: { $first: '$status' },
+          status: { $first: '$status' }, // original status
           rejectionReason: { $first: '$rejectionReason' },
           cityId: { $first: '$cityId' },
           countryId: { $first: '$countryId' },
@@ -121,6 +139,15 @@ export class ResidenceRepository extends BaseRepository<Residence> {
           submissionDate: { $first: '$submissionDate' },
           address: { $first: '$address' },
           latestDraft: { $first: '$drafts' },
+          finalStatus: {
+            $first: {
+              $cond: {
+                if: { $eq: ['$latestDraft.status', 'active'] },
+                then: '$latestDraft.status', // draft status if active
+                else: '$status', // original status otherwise
+              },
+            },
+          },
         },
       },
       {
@@ -148,6 +175,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
           updatedAt: 1,
           submissionDate: 1,
           address: 1,
+          finalStatus: 1, // the final status to be used after draft check
           details: {
             $cond: {
               if: { $eq: ['$latestDraft.status', 'active'] },
@@ -168,8 +196,31 @@ export class ResidenceRepository extends BaseRepository<Residence> {
           },
         },
       },
+      // Apply status filter after finalStatus has been evaluated
+      {
+        $match: {
+          ...(status ? { finalStatus: status } : {}), // filter based on finalStatus
+        },
+      },
+      {
+        $facet: {
+          data: [
+            { $skip: paginationOptions.offset }, // Apply pagination skip
+            { $limit: Number(paginationOptions.limit) }, // Apply pagination limit
+          ],
+          totalCount: [
+            { $count: 'count' }, // Get total count of matching documents
+          ],
+        },
+      },
+      {
+        $project: {
+          data: 1,
+          totalCount: { $arrayElemAt: ['$totalCount.count', 0] },
+        },
+      },
     ];
 
-    return this.residenceModel.aggregate(pipeline).exec();
+    return await this.residenceModel.aggregate(pipeline).exec();
   }
 }

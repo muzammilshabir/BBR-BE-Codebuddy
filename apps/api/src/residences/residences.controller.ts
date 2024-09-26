@@ -25,6 +25,7 @@ import {
   listResidenceByFiltersSchema,
   ListResidenceDto,
   listResidenceSchema,
+  ListResidenceWithDraftDto,
 } from './dto/list-residence.dto';
 import { AddKeyFeaturesDto, addKeyFeaturesSchema } from './dto/residenceKeyFeatures.dto';
 import {
@@ -195,9 +196,7 @@ export class ResidenceController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
-  // @UsePipes(new JoiValidationPipe(listResidenceSchema, 'query'))
-  async listResidencesWithDraft(@Query() query: any) {
-    // async listResidencesWithDraft(@Query() query: ListResidenceDto) {
+  async listResidencesWithDraft(@Query() query: ListResidenceWithDraftDto) {
     const result = await this.residenceService.listResidencesWithDraft(query);
 
     return ResponseService.buildResponse(

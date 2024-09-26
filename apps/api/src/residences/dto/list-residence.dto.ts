@@ -136,3 +136,29 @@ export const listResidenceByFiltersSchema = Joi.object({
     .valid(...Object.values(ResidenceStatus))
     .optional(),
 });
+
+export class ListResidenceWithDraftDto extends ListPropsDto {
+  @ApiProperty({
+    description: 'Search by residence name',
+    example: 'test',
+    required: false,
+    type: String,
+  })
+  search?: string;
+
+  @ApiProperty({
+    example: ResidenceStatus.ACTIVE,
+    enum: ResidenceStatus,
+    description: 'The status of the residence',
+    required: false,
+  })
+  status?: ResidenceStatus;
+
+  @ApiProperty({
+    description: 'Filter by Developer ID',
+    example: '60b6c0f53b5a5c1f88d25a1b',
+    required: false,
+    type: String,
+  })
+  developerId?: string;
+}
