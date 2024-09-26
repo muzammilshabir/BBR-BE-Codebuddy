@@ -78,6 +78,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
   async listResidencesWithDraft(
     listResidenceWithDraftDto: ListResidenceWithDraftDto
   ): Promise<any[]> {
+    //TODO: Add search by property name
     const { status, developerId, search } = listResidenceWithDraftDto;
 
     const paginationOptions = PaginationService.prepareOptions(listResidenceWithDraftDto);
@@ -137,6 +138,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
           preserveNullAndEmptyArrays: true,
         },
       },
+
       {
         $sort: sortObject,
       },
@@ -178,6 +180,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
           },
         },
       },
+
       {
         $project: {
           _id: 1,
@@ -230,6 +233,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
           ...(status ? { finalStatus: status } : {}), // filter based on finalStatus
         },
       },
+
       {
         $facet: {
           data: [
