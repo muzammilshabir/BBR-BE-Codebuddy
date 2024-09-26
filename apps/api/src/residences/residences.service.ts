@@ -818,4 +818,8 @@ export class ResidenceService {
 
     return updatedResidence;
   }
+
+  async listResidencesWithDraft(listResidenceDto: ListResidenceDto) {
+    return await this.residenceRepository.listResidencesWithDraft();
+  }
 }

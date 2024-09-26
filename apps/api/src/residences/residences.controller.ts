@@ -189,6 +189,23 @@ export class ResidenceController {
     );
   }
 
+  @Get('/with-draft')
+  @ApiOperation({
+    summary: 'List Residence',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  // @UsePipes(new JoiValidationPipe(listResidenceSchema, 'query'))
+  async listResidencesWithDraft(@Query() query: any) {
+    // async listResidencesWithDraft(@Query() query: ListResidenceDto) {
+    const result = await this.residenceService.listResidencesWithDraft(query);
+
+    return ResponseService.buildResponse(
+      { residences: result },
+      'Residence retrieved successfully'
+    );
+  }
+
   @Get(':id')
   @ApiOperation({
     summary: 'Get Residence by ID',
