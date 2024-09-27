@@ -25,6 +25,7 @@ import {
   listResidenceByFiltersSchema,
   ListResidenceDto,
   listResidenceSchema,
+  ListResidenceWithDraftDto,
 } from './dto/list-residence.dto';
 import { AddKeyFeaturesDto, addKeyFeaturesSchema } from './dto/residenceKeyFeatures.dto';
 import {
@@ -186,6 +187,21 @@ export class ResidenceController {
     }
     return res.json(
       ResponseService.buildResponse({ residences: result }, 'Residence retrieved successfully')
+    );
+  }
+
+  @Get('/with-draft')
+  @ApiOperation({
+    summary: 'List Residence',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  async listResidencesWithDraft(@Query() query: ListResidenceWithDraftDto) {
+    const result = await this.residenceService.listResidencesWithDraft(query);
+
+    return ResponseService.buildResponse(
+      { residences: result },
+      'Residence retrieved successfully'
     );
   }
 

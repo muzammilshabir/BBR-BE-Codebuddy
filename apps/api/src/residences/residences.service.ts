@@ -16,6 +16,7 @@ import {
   ListResidenceByFiltersDto,
   ListResidenceByFiltersQueryPropsDto,
   ListResidenceDto,
+  ListResidenceWithDraftDto,
 } from './dto/list-residence.dto';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
 import * as XLSX from 'xlsx';
@@ -817,5 +818,19 @@ export class ResidenceService {
     });
 
     return updatedResidence;
+  }
+
+  async listResidencesWithDraft(listResidenceWithDraftDto: ListResidenceWithDraftDto) {
+    const result =
+      await this.residenceRepository.listResidencesWithDraft(listResidenceWithDraftDto);
+    const count = result[0]?.totalCount || 0;
+    const data = result[0]?.data || [];
+
+    const { pagination } = PaginationService.paginate(
+      { rows: data, count },
+      listResidenceWithDraftDto
+    );
+
+    return { pagination, residences: data };
   }
 }
