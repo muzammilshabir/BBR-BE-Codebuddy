@@ -475,4 +475,14 @@ export class UnitService {
 
     return { addedUnits, failedToAdd };
   }
+
+  async listUnitsWithDraft(listUnitDto: ListUnitDto) {
+    const result = await this.unitRepository.listUnitsWithDraft(listUnitDto);
+    const count = result[0]?.totalCount || 0;
+    const data = result[0]?.data || [];
+
+    const { pagination } = PaginationService.paginate({ rows: data, count }, listUnitDto);
+
+    return { pagination, unit: data };
+  }
 }
