@@ -141,6 +141,6 @@ export class ClaimRequestController {
   @UsePipes(new JoiValidationPipe(getClaimRequestIdSchema, 'param'))
   async getClaimRequestById(@Param() getClaimRequestByIdDto: GetClaimRequestByIdDto) {
     const claimRequest = await this.claimRequestService.getClaimRequestById(getClaimRequestByIdDto);
-    return ResponseService.buildResponse({ claimRequest }, 'Claim request rejected successfully');
+    return ResponseService.buildResponse({ claimRequest }, 'Claim request fetched successfully');
   }
 }
