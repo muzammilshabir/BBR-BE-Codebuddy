@@ -90,6 +90,17 @@ export class ClaimRequestController {
     return ResponseService.buildResponse({ claimRequest }, 'Claim request submitted successfully');
   }
 
+  @Post('guest/associate-claims')
+  @ApiOperation({
+    summary: 'Associate claims by guest with developer account',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
+  async associateClaims(@GetCurrentUserId() userId: string) {
+    const claimRequest = await this.claimRequestService.associateClaims(userId);
+    return ResponseService.buildResponse({ claimRequest }, 'Claim request Associated successfully');
+  }
+
   @Patch('approve-request/:id')
   @ApiOperation({
     summary: 'Approve claim request created by Developer',
