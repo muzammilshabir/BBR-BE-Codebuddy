@@ -13,6 +13,7 @@ import { Types } from 'mongoose';
 import { ClaimRequestStatus } from './enum/claimReques-enum';
 import { SignupMethod, UserRole } from '../users/enum/user.enum';
 import { AuthService } from '../auth/auth.service';
+import { GetClaimRequestByIdDto } from './dto/getClaimRequest.dto';
 
 @Injectable()
 export class ClaimRequestService {
@@ -251,5 +252,38 @@ export class ClaimRequestService {
     };
 
     return await this.claimRequestRepository.create(transformedDto);
+  }
+
+  async approveClaimRequest(getClaimRequestByIdDto: GetClaimRequestByIdDto): Promise<ClaimRequest> {
+    const claimRequest = await this.claimRequestRepository.findById(getClaimRequestByIdDto.id);
+    if (!claimRequest) {
+      throw new NotFoundException(`claimRequest with ID ${getClaimRequestByIdDto.id} not found`);
+    }
+
+    if (!claimRequest.developerId) {
+      throw new BadRequestException('Developer is not associate with claim request');
+    }
+
+    if (claimRequest.status === ClaimRequestStatus.Rejected) {
+      throw new BadRequestException('Rejected claim request can not be approved');
+    }
+
+    const residence = await this.residenceRepository.findById(claimRequest.residenceId.toString());
+    if (!residence) {
+      throw new NotFoundException(
+        `residence with ID ${claimRequest.residenceId.toString()} not found`
+      );
+    }
+
+    const approvedClaimRequest = await this.claimRequestRepository.update(
+      getClaimRequestByIdDto.id,
+      { status: ClaimRequestStatus.Approved }
+    );
+
+    await this.residenceRepository.update(claimRequest.residenceId.toString(), {
+      developerId: new Types.ObjectId(claimRequest.developerId),
+    });
+
+    return approvedClaimRequest;
   }
 }

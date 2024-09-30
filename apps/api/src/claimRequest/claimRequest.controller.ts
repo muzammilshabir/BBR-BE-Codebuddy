@@ -1,4 +1,4 @@
-import { Body, Controller, Post, UsePipes } from '@nestjs/common';
+import { Body, Controller, Param, Patch, Post, UsePipes } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ClaimRequestService } from './claimRequest.service';
 import { UserRole } from '../users/enum/user.enum';
@@ -13,6 +13,7 @@ import {
 } from './dto/createClaimRequest.dto';
 import { GetCurrentUserId } from '../auth/decorators/getCurrentUserId.decorator';
 import { Public } from '@bbr/api-core/modules/decorators';
+import { GetClaimRequestByIdDto, getClaimRequestIdSchema } from './dto/getClaimRequest.dto';
 
 @ApiTags('ClaimRequest')
 @Controller('claim-request')
@@ -86,5 +87,17 @@ export class ClaimRequestController {
         createClaimRequestDto
       );
     return ResponseService.buildResponse({ claimRequest }, 'Claim request submitted successfully');
+  }
+
+  @Patch('approve-request/:id')
+  @ApiOperation({
+    summary: 'Approve claim request created by Developer',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(getClaimRequestIdSchema, 'param'))
+  async approveClaimRequest(@Param() getClaimRequestByIdDto: GetClaimRequestByIdDto) {
+    const claimRequest = await this.claimRequestService.approveClaimRequest(getClaimRequestByIdDto);
+    return ResponseService.buildResponse({ claimRequest }, 'Claim request approved successfully');
   }
 }
