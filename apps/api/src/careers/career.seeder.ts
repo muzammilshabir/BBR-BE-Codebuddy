@@ -4,7 +4,7 @@ import { Types } from 'mongoose';
 import { VacancyRepository } from './vacancy.repository';
 import { VacancyDepartmentRepository } from './vacancy-department.repository';
 import { VacancyApplicationRepository } from './vacancy-application.repository';
-import { ApplicationStatus } from './enum/application-status.enum';
+import { ApplicationStatus, JobStatus, JobType } from './enum/career.enum';
 
 @Injectable()
 export class CareerSeeder extends AbstractSeeder {
@@ -33,13 +33,25 @@ export class CareerSeeder extends AbstractSeeder {
       for (const department of careersDepartments) {
         categories.push(await this.vacancyDepartmentRepository.upsert({ title: department.title }, department));
       }
+      const today = new Date();
+      const postedOn1 = (new Date).setDate(today.getDate() + 10);
+      const postedOn2 = (new Date).setDate(today.getDate() + 2);
       const vacancies = [
         {
           title: "Sales Executive",
           tagLine: "Digital Marketing Campaign Executive",
+          location: "Remote",
+          isRemote: true,
+          type: JobType.CONTRACT,
+          status: JobStatus.ACTIVE,
+          jobPicture: new Types.ObjectId('60d5f485f7c6a4b2b8e8b5fd'),
           description: "Lorem ipsum dolor sit ...",
+          responsibilities: "Lorem ipsum dolor sit ...",
+          qualifications: "Lorem ipsum dolor sit ...",
+          linkedin: 'https://linkedin.com/in/test2',
           skills: ['CRM', 'MS Office'],
           department: categories[0]._id,
+          postedOn: postedOn1,
           isDeleted: false,
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -47,10 +59,19 @@ export class CareerSeeder extends AbstractSeeder {
         {
           title: "PPC Expert",
           tagLine: "Customer Service Role",
+          location: "Paris, France",
+          isRemote: false,
+          type: JobType.PART_TIME,
+          status: JobStatus.DRAFT,
+          jobPicture: new Types.ObjectId('60d5f485f7c6a4b2b8e8b5fd'),
           description: "Lorem ipsum dolor sit ...",
+          responsibilities: "Lorem ipsum dolor sit ...",
+          qualifications: "Lorem ipsum dolor sit ...",
           skills: ['ads', 'cpr', 'cpa'],
+          linkedin: 'https://linkedin.com/in/test',
           department: categories[0]._id,
           isDeleted: false,
+          postedOn: postedOn2,
           createdAt: new Date(),
           updatedAt: new Date(),
         },
