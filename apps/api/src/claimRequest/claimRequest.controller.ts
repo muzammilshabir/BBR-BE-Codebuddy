@@ -1,4 +1,4 @@
-import { Body, Controller, Param, Patch, Post, UsePipes } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, UsePipes } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ClaimRequestService } from './claimRequest.service';
 import { UserRole } from '../users/enum/user.enum';
@@ -129,6 +129,18 @@ export class ClaimRequestController {
       getClaimRequestByIdDto,
       rejectClaimRequestDto
     );
+    return ResponseService.buildResponse({ claimRequest }, 'Claim request rejected successfully');
+  }
+
+  @Get(':id')
+  @ApiOperation({
+    summary: 'Get claim request by id',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN, UserRole.SELLER)
+  @UsePipes(new JoiValidationPipe(getClaimRequestIdSchema, 'param'))
+  async getClaimRequestById(@Param() getClaimRequestByIdDto: GetClaimRequestByIdDto) {
+    const claimRequest = await this.claimRequestService.getClaimRequestById(getClaimRequestByIdDto);
     return ResponseService.buildResponse({ claimRequest }, 'Claim request rejected successfully');
   }
 }

@@ -355,4 +355,8 @@ export class ClaimRequestService {
       rejectionReason: rejectClaimRequestDto.rejectionReason,
     });
   }
+
+  async getClaimRequestById(getClaimRequestByIdDto: GetClaimRequestByIdDto): Promise<ClaimRequest> {
+    return await this.claimRequestRepository.findByIdInDetail(getClaimRequestByIdDto.id);
+  }
 }
