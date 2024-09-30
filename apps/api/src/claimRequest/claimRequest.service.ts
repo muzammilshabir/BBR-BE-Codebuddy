@@ -14,6 +14,7 @@ import { ClaimRequestStatus } from './enum/claimReques-enum';
 import { SignupMethod, UserRole } from '../users/enum/user.enum';
 import { AuthService } from '../auth/auth.service';
 import { GetClaimRequestByIdDto } from './dto/getClaimRequest.dto';
+import { RejectClaimRequestDto } from './dto/rejectClaimRequest.dto';
 
 @Injectable()
 export class ClaimRequestService {
@@ -285,5 +286,31 @@ export class ClaimRequestService {
     });
 
     return approvedClaimRequest;
+  }
+
+  async rejectClaimRequest(
+    getClaimRequestByIdDto: GetClaimRequestByIdDto,
+    rejectClaimRequestDto: RejectClaimRequestDto
+  ): Promise<ClaimRequest> {
+    const claimRequest = await this.claimRequestRepository.findById(getClaimRequestByIdDto.id);
+    if (!claimRequest) {
+      throw new NotFoundException(`claimRequest with ID ${getClaimRequestByIdDto.id} not found`);
+    }
+
+    if (!claimRequest.developerId) {
+      throw new BadRequestException('Developer is not associate with claim request');
+    }
+
+    const residence = await this.residenceRepository.findById(claimRequest.residenceId.toString());
+    if (!residence) {
+      throw new NotFoundException(
+        `residence with ID ${claimRequest.residenceId.toString()} not found`
+      );
+    }
+
+    return await this.claimRequestRepository.update(getClaimRequestByIdDto.id, {
+      status: ClaimRequestStatus.Rejected,
+      rejectionReason: rejectClaimRequestDto.rejectionReason,
+    });
   }
 }

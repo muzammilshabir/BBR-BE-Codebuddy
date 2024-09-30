@@ -14,6 +14,7 @@ import {
 import { GetCurrentUserId } from '../auth/decorators/getCurrentUserId.decorator';
 import { Public } from '@bbr/api-core/modules/decorators';
 import { GetClaimRequestByIdDto, getClaimRequestIdSchema } from './dto/getClaimRequest.dto';
+import { RejectClaimRequestDto, rejectClaimRequestSchema } from './dto/rejectClaimRequest.dto';
 
 @ApiTags('ClaimRequest')
 @Controller('claim-request')
@@ -99,5 +100,24 @@ export class ClaimRequestController {
   async approveClaimRequest(@Param() getClaimRequestByIdDto: GetClaimRequestByIdDto) {
     const claimRequest = await this.claimRequestService.approveClaimRequest(getClaimRequestByIdDto);
     return ResponseService.buildResponse({ claimRequest }, 'Claim request approved successfully');
+  }
+
+  @Patch('reject-request/:id')
+  @ApiOperation({
+    summary: 'Reject claim request created by Developer',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(getClaimRequestIdSchema, 'param'))
+  @UsePipes(new JoiValidationPipe(rejectClaimRequestSchema, 'body'))
+  async rejectClaimRequest(
+    @Param() getClaimRequestByIdDto: GetClaimRequestByIdDto,
+    @Body() rejectClaimRequestDto: RejectClaimRequestDto
+  ) {
+    const claimRequest = await this.claimRequestService.rejectClaimRequest(
+      getClaimRequestByIdDto,
+      rejectClaimRequestDto
+    );
+    return ResponseService.buildResponse({ claimRequest }, 'Claim request rejected successfully');
   }
 }
