@@ -13,8 +13,9 @@ import { Types } from 'mongoose';
 import { ClaimRequestStatus } from './enum/claimReques-enum';
 import { SignupMethod, UserRole } from '../users/enum/user.enum';
 import { AuthService } from '../auth/auth.service';
-import { GetClaimRequestByIdDto } from './dto/getClaimRequest.dto';
+import { GetClaimRequestByIdDto, ListClaimRequestDto } from './dto/getClaimRequest.dto';
 import { RejectClaimRequestDto } from './dto/rejectClaimRequest.dto';
+import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
 
 @Injectable()
 export class ClaimRequestService {
@@ -358,5 +359,41 @@ export class ClaimRequestService {
 
   async getClaimRequestById(getClaimRequestByIdDto: GetClaimRequestByIdDto): Promise<ClaimRequest> {
     return await this.claimRequestRepository.findByIdInDetail(getClaimRequestByIdDto.id);
+  }
+
+  async getClaimRequests(listClaimRequestDto: ListClaimRequestDto) {
+    const { search, status, developerId, residenceId } = listClaimRequestDto;
+
+    const query: any = {};
+
+    if (search) {
+      query.$or = [
+        { fullName: { $regex: search, $options: 'i' } },
+        { companyName: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    if (status) {
+      query.status = status;
+    }
+
+    if (developerId) {
+      query.developerId = new Types.ObjectId(developerId);
+    }
+
+    if (residenceId) {
+      query.residenceId = new Types.ObjectId(residenceId);
+    }
+
+    const options = PaginationService.prepareOptions(listClaimRequestDto);
+
+    const { data, count } = await this.claimRequestRepository.findAll(query, options, [
+      { path: 'residenceId' },
+      { path: 'developerId', select: 'fullName email role' },
+    ]);
+
+    const { pagination } = PaginationService.paginate({ rows: data, count }, listClaimRequestDto);
+
+    return { pagination, claimRequests: data };
   }
 }

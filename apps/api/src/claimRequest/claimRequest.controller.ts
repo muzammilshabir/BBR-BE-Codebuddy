@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, UsePipes } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, UsePipes } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ClaimRequestService } from './claimRequest.service';
 import { UserRole } from '../users/enum/user.enum';
@@ -13,7 +13,12 @@ import {
 } from './dto/createClaimRequest.dto';
 import { GetCurrentUserId } from '../auth/decorators/getCurrentUserId.decorator';
 import { Public } from '@bbr/api-core/modules/decorators';
-import { GetClaimRequestByIdDto, getClaimRequestIdSchema } from './dto/getClaimRequest.dto';
+import {
+  GetClaimRequestByIdDto,
+  getClaimRequestIdSchema,
+  ListClaimRequestDto,
+  listClaimRequestSchema,
+} from './dto/getClaimRequest.dto';
 import { RejectClaimRequestDto, rejectClaimRequestSchema } from './dto/rejectClaimRequest.dto';
 
 @ApiTags('ClaimRequest')
@@ -141,6 +146,18 @@ export class ClaimRequestController {
   @UsePipes(new JoiValidationPipe(getClaimRequestIdSchema, 'param'))
   async getClaimRequestById(@Param() getClaimRequestByIdDto: GetClaimRequestByIdDto) {
     const claimRequest = await this.claimRequestService.getClaimRequestById(getClaimRequestByIdDto);
+    return ResponseService.buildResponse({ claimRequest }, 'Claim request fetched successfully');
+  }
+
+  @Get('')
+  @ApiOperation({
+    summary: 'Get all claim request',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(listClaimRequestSchema, 'query'))
+  async getClaimRequests(@Query() listClaimRequestDto: ListClaimRequestDto) {
+    const claimRequest = await this.claimRequestService.getClaimRequests(listClaimRequestDto);
     return ResponseService.buildResponse({ claimRequest }, 'Claim request fetched successfully');
   }
 }
