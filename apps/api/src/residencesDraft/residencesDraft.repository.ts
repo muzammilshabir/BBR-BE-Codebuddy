@@ -20,6 +20,11 @@ export class ResidenceDraftRepository extends BaseRepository<ResidenceDraft> {
       { path: 'associatedBrandId', select: 'name' },
       { path: 'residenceKeyFeatures.featureIds', select: 'name', model: 'ResidenceFeature' },
       {
+        path: 'visuals.mainPhotos',
+        select: 'originalFileKey fileKey url mimeType',
+        model: 'Upload',
+      },
+      {
         path: 'visuals.mainGalleryPhotos',
         select: 'originalFileKey fileKey url mimeType',
         model: 'Upload',

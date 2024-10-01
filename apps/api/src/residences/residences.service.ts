@@ -400,8 +400,8 @@ export class ResidenceService {
         select: 'originalFileKey fileKey url mimeType',
         model: 'Upload',
       },
-      { path: 'createdById', model: 'User' },
-      { path: 'developerId', model: 'User' },
+      { path: 'createdById', select: 'fullName email role', model: 'User' },
+      { path: 'developerId', select: 'fullName email role', model: 'User' },
     ]);
 
     const updatedData = data.map((residence) => {
