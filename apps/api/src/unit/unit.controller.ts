@@ -115,6 +115,18 @@ export class UnitController {
     return ResponseService.buildResponse({ units }, 'Units retrieved successfully');
   }
 
+  @Get('/with-draft')
+  @ApiOperation({
+    summary: 'List Units with draft optional residenceId filter',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(listUnitSchema, 'query'))
+  async listUnitsWithDraft(@Query() query: ListUnitDto) {
+    const units = await this.unitService.listUnitsWithDraft(query);
+    return ResponseService.buildResponse({ units }, 'Units retrieved successfully');
+  }
+
   @Get(':unitId')
   @ApiOperation({
     summary: 'Get Unit by ID',
