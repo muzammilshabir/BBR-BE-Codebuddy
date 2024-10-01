@@ -1,4 +1,4 @@
-import { Body, Controller, Post, UsePipes } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, UsePipes } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ClaimRequestService } from './claimRequest.service';
 import { UserRole } from '../users/enum/user.enum';
@@ -13,6 +13,13 @@ import {
 } from './dto/createClaimRequest.dto';
 import { GetCurrentUserId } from '../auth/decorators/getCurrentUserId.decorator';
 import { Public } from '@bbr/api-core/modules/decorators';
+import {
+  GetClaimRequestByIdDto,
+  getClaimRequestIdSchema,
+  ListClaimRequestDto,
+  listClaimRequestSchema,
+} from './dto/getClaimRequest.dto';
+import { RejectClaimRequestDto, rejectClaimRequestSchema } from './dto/rejectClaimRequest.dto';
 
 @ApiTags('ClaimRequest')
 @Controller('claim-request')
@@ -97,5 +104,60 @@ export class ClaimRequestController {
   async associateClaims(@GetCurrentUserId() userId: string) {
     const claimRequest = await this.claimRequestService.associateClaims(userId);
     return ResponseService.buildResponse({ claimRequest }, 'Claim request Associated successfully');
+  }
+
+  @Patch('approve-request/:id')
+  @ApiOperation({
+    summary: 'Approve claim request created by Developer',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(getClaimRequestIdSchema, 'param'))
+  async approveClaimRequest(@Param() getClaimRequestByIdDto: GetClaimRequestByIdDto) {
+    const claimRequest = await this.claimRequestService.approveClaimRequest(getClaimRequestByIdDto);
+    return ResponseService.buildResponse({ claimRequest }, 'Claim request approved successfully');
+  }
+
+  @Patch('reject-request/:id')
+  @ApiOperation({
+    summary: 'Reject claim request created by Developer',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(getClaimRequestIdSchema, 'param'))
+  @UsePipes(new JoiValidationPipe(rejectClaimRequestSchema, 'body'))
+  async rejectClaimRequest(
+    @Param() getClaimRequestByIdDto: GetClaimRequestByIdDto,
+    @Body() rejectClaimRequestDto: RejectClaimRequestDto
+  ) {
+    const claimRequest = await this.claimRequestService.rejectClaimRequest(
+      getClaimRequestByIdDto,
+      rejectClaimRequestDto
+    );
+    return ResponseService.buildResponse({ claimRequest }, 'Claim request rejected successfully');
+  }
+
+  @Get(':id')
+  @ApiOperation({
+    summary: 'Get claim request by id',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN, UserRole.SELLER)
+  @UsePipes(new JoiValidationPipe(getClaimRequestIdSchema, 'param'))
+  async getClaimRequestById(@Param() getClaimRequestByIdDto: GetClaimRequestByIdDto) {
+    const claimRequest = await this.claimRequestService.getClaimRequestById(getClaimRequestByIdDto);
+    return ResponseService.buildResponse({ claimRequest }, 'Claim request fetched successfully');
+  }
+
+  @Get('')
+  @ApiOperation({
+    summary: 'Get all claim request',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(listClaimRequestSchema, 'query'))
+  async getClaimRequests(@Query() listClaimRequestDto: ListClaimRequestDto) {
+    const claimRequest = await this.claimRequestService.getClaimRequests(listClaimRequestDto);
+    return ResponseService.buildResponse({ claimRequest }, 'Claim request fetched successfully');
   }
 }
