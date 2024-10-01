@@ -10,6 +10,9 @@ export class Lead extends Document {
   @Prop({ required: true })
   phoneNumber: string;
 
+  @Prop({ required: false })
+  email: string;
+
   @Prop({ type: Types.ObjectId, ref: 'Residence', required: false })
   residenceId?: Types.ObjectId;
 
