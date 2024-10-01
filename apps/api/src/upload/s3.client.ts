@@ -13,7 +13,9 @@ export class S3ClientFactory {
   createClient() {
     return new S3({
       region: this.config.s3.region,
-      endpoint: `https://${this.config.s3.endpoint}`,
+      ...(this.config.s3.endpoint && {
+        endpoint: `https://${this.config.s3.endpoint}`,
+      }),
       credentials: {
         accessKeyId: this.config.s3.accessKeyId,
         secretAccessKey: this.config.s3.secretAccessKey,
