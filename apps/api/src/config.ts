@@ -34,6 +34,7 @@ export class ServiceConfig extends BbrStatefulServiceConfig {
     secretAccessKey: this.getOrThrow('AWS_S3_USER_SECRET'),
     bucket: this.getOrThrow('AWS_S3_BUCKET_NAME'),
     endpoint: this.get('END_POINT'),
+    cdnUrl: this.getOrThrow('CDN_URL'),
   };
 
   readonly redis = {
