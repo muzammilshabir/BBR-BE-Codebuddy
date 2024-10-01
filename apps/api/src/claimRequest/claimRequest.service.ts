@@ -252,4 +252,46 @@ export class ClaimRequestService {
 
     return await this.claimRequestRepository.create(transformedDto);
   }
+
+  async associateClaims(userId: string): Promise<any> {
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+    const existingClaimRequest = await this.claimRequestRepository.findAll({
+      email: user.email,
+      status: ClaimRequestStatus.Pending,
+      developerId: { $exists: false },
+    });
+
+    if (!existingClaimRequest || existingClaimRequest.data.length === 0) {
+      throw new BadRequestException('No pending claim requests found for this email.');
+    }
+
+    const updatedClaims = await Promise.all(
+      existingClaimRequest.data.map(async (claimRequest) => {
+        const residence = await this.residenceRepository.findById(
+          claimRequest.residenceId.toString()
+        );
+
+        if (residence) {
+          const residenceDomain = this.extractDomain(residence.websiteLink, 'url');
+          const userEmailDomain = this.extractDomain(user.email, 'email');
+
+          const updateData: any = { developerId: user._id };
+          if (residenceDomain === userEmailDomain) {
+            updateData.status = ClaimRequestStatus.Approved;
+          }
+
+          return this.claimRequestRepository.update(claimRequest.id, updateData);
+        }
+
+        return this.claimRequestRepository.update(claimRequest.id, {
+          developerId: user._id,
+        });
+      })
+    );
+
+    return updatedClaims;
+  }
 }
