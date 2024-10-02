@@ -59,6 +59,9 @@ export class User extends Document {
   @Prop({ required: false })
   acceptBBRCommitment: boolean;
 
+  @Prop({ required: false })
+  fcm_token: string;
+
   @Prop({ required: false, type: Boolean, default: false })
   hundredFiveStarReviews: boolean;
 
