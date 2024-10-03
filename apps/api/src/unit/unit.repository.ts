@@ -177,7 +177,7 @@ export class UnitRepository extends BaseRepository<Unit> {
             status: {
               $cond: {
                 if: { $eq: ['$latestDraft.status', 'active'] },
-                then: '$residence.status',
+                then: '$unit.status',
                 else: '$latestDraft.status',
               },
             },
