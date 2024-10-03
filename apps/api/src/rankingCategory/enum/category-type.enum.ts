@@ -1,10 +1,8 @@
-
 export enum CategoryType {
-  WORLDWIDE = 'Worldwide',
-  GEOGRAPHY='Geography',
-  COUNTRY = 'Country',
-  CITY = 'City',
-  LIFESTYLE = 'Lifestyle',
-  PROPERTY_TYPE = 'Property_type',
-
+  WORLDWIDE = 'worldwide',
+  GEOGRAPHY = 'geography',
+  COUNTRY = 'country',
+  CITY = 'city',
+  LIFESTYLE = 'lifestyle',
+  PROPERTY_TYPE = 'property_type',
 }
