@@ -14,6 +14,9 @@ export class RankingCategory extends Document {
   @Prop({ required: true, enum: CategoryType })
   categoryType: CategoryType;
 
+  @Prop({ required: false })
+  subCategory: string;
+
   @Prop({ type: [RankingCriteria], required: true })
   criteria: RankingCriteria[];
 
@@ -31,6 +34,21 @@ export class RankingCategory extends Document {
 
   @Prop({ required: true, enum: PaymentStatus, default: PaymentStatus.UNPAID })
   paymentStatus: PaymentStatus;
+
+  @Prop({
+    type: [
+      {
+        ImageId: { type: Types.ObjectId, ref: 'Upload' },
+        type: { type: String, required: false },
+      },
+    ],
+    _id: false,
+    default: [],
+  })
+  upload?: {
+    ImageId: Types.ObjectId;
+    type?: string;
+  }[];
 
   @Prop({ type: Number, default: 0 })
   totalRequests: number;
