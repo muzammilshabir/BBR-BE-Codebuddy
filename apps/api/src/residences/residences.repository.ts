@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Residence } from './schema/residences.schema';
@@ -101,7 +101,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
           },
         },
 
-        //  Lookup for the latest draft from residencedrafts collection
+        // Lookup for all drafts from residencedrafts collection
         {
           $lookup: {
             from: 'residencedrafts',
@@ -117,11 +117,28 @@ export class ResidenceRepository extends BaseRepository<Residence> {
           },
         },
 
+        // Sort drafts by createdAt in descending order (latest draft first)
+        {
+          $sort: {
+            'drafts.createdAt': -1, // Descending order
+          },
+        },
+
+        // Group by residenceId and keep only the latest draft
+        {
+          $group: {
+            _id: '$_id', // Group by residenceId (current residence)
+            latestDraft: { $first: '$drafts' }, // Keep only the first (latest) draft
+            developerData: { $first: '$developerData' }, // Retain developer data
+            residenceData: { $first: '$$ROOT' }, // Store residence data
+          },
+        },
+
         //  Lookup for the developer data from users collection
         {
           $lookup: {
             from: 'users',
-            localField: 'drafts.developerId',
+            localField: 'latestDraft.developerId',
             foreignField: '_id',
             as: 'developerData',
           },
@@ -155,9 +172,9 @@ export class ResidenceRepository extends BaseRepository<Residence> {
             ...(search
               ? {
                   $or: [
-                    { 'drafts.name': { $regex: search, $options: 'i' } },
-                    { 'drafts.address.city': { $regex: search, $options: 'i' } },
-                    { 'drafts.address.country': { $regex: search, $options: 'i' } },
+                    { 'latestDraft.name': { $regex: search, $options: 'i' } },
+                    { 'latestDraft.address.city': { $regex: search, $options: 'i' } },
+                    { 'latestDraft.address.country': { $regex: search, $options: 'i' } },
                     { 'developerData.fullName': { $regex: search, $options: 'i' } }, // Search in developerData
                   ],
                 }
@@ -171,7 +188,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
         {
           $lookup: {
             from: 'residencetypes',
-            localField: 'drafts.residenceTypeId',
+            localField: 'latestDraft.residenceTypeId',
             foreignField: '_id',
             as: 'residenceType',
           },
@@ -185,7 +202,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
         {
           $lookup: {
             from: 'cities',
-            localField: 'drafts.cityId',
+            localField: 'latestDraft.cityId',
             foreignField: '_id',
             as: 'city',
           },
@@ -199,7 +216,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
         {
           $lookup: {
             from: 'countries',
-            localField: 'drafts.countryId',
+            localField: 'latestDraft.countryId',
             foreignField: '_id',
             as: 'country',
           },
@@ -213,7 +230,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
         {
           $lookup: {
             from: 'associatedbrands',
-            localField: 'drafts.associatedBrandId',
+            localField: 'latestDraft.associatedBrandId',
             foreignField: '_id',
             as: 'associatedBrand',
           },
@@ -227,7 +244,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
         {
           $lookup: {
             from: 'residencefeatures',
-            localField: 'drafts.residenceKeyFeatures.featureIds',
+            localField: 'latestDraft.residenceKeyFeatures.featureIds',
             foreignField: '_id',
             as: 'residenceFeatures',
           },
@@ -235,7 +252,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
         {
           $lookup: {
             from: 'uploads',
-            localField: 'drafts.visuals.mainPhotos',
+            localField: 'latestDraft.visuals.mainPhotos',
             foreignField: '_id',
             as: 'mainPhotos',
           },
@@ -243,7 +260,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
         {
           $lookup: {
             from: 'uploads',
-            localField: 'drafts.visuals.mainGalleryPhotos',
+            localField: 'latestDraft.visuals.mainGalleryPhotos',
             foreignField: '_id',
             as: 'mainGalleryPhotos',
           },
@@ -251,7 +268,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
         {
           $lookup: {
             from: 'uploads',
-            localField: 'drafts.visuals.secondGalleryPhotos',
+            localField: 'latestDraft.visuals.secondGalleryPhotos',
             foreignField: '_id',
             as: 'secondGalleryPhotos',
           },
@@ -259,7 +276,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
         {
           $lookup: {
             from: 'uploads',
-            localField: 'drafts.visuals.videoTour',
+            localField: 'latestDraft.visuals.videoTour',
             foreignField: '_id',
             as: 'videoTour',
           },
@@ -267,7 +284,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
         {
           $lookup: {
             from: 'amenities',
-            localField: 'drafts.nearbyAmenities.amenitiesList',
+            localField: 'latestDraft.nearbyAmenities.amenitiesList',
             foreignField: '_id',
             as: 'amenitiesList',
           },
@@ -275,7 +292,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
         {
           $lookup: {
             from: 'amenities',
-            localField: 'drafts.nearbyAmenities.highlightedAmenities.amenityId',
+            localField: 'latestDraft.nearbyAmenities.highlightedAmenities.amenityId',
             foreignField: '_id',
             as: 'highlightedAmenities',
           },
@@ -283,7 +300,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
         {
           $lookup: {
             from: 'uploads',
-            localField: 'drafts.nearbyAmenities.highlightedAmenities.imageId',
+            localField: 'latestDraft.nearbyAmenities.highlightedAmenities.imageId',
             foreignField: '_id',
             as: 'highlightedAmenitiesImage',
           },
@@ -291,7 +308,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
         {
           $lookup: {
             from: 'users',
-            localField: 'drafts.createdById',
+            localField: 'latestDraft.createdById',
             foreignField: '_id',
             as: 'createdBy',
           },
@@ -301,19 +318,22 @@ export class ResidenceRepository extends BaseRepository<Residence> {
         {
           $project: {
             _id: 1,
-            name: '$drafts.name',
+            residenceDraftId: '$latestDraft._id',
+            name: '$latestDraft.name',
             residenceTypeId: '$residenceType',
-            websiteLink: '$drafts.websiteLink',
+            websiteLink: '$latestDraft.websiteLink',
             associatedBrand: '$associatedBrand.name',
-            briefOverview: '$drafts.briefOverview',
-            comprehensiveOverview: '$drafts.comprehensiveOverview',
-            budgetLimitationsRange: '$drafts.budgetLimitationsRange',
+            briefOverview: '$latestDraft.briefOverview',
+            comprehensiveOverview: '$latestDraft.comprehensiveOverview',
+            budgetLimitationsRange: '$latestDraft.budgetLimitationsRange',
             residenceKeyFeatures: '$residenceFeatures',
             visuals: {
-              mainPhotos: { $arrayElemAt: ['$mainPhotos', 0] },
-              mainGalleryPhotos: { $arrayElemAt: ['$mainGalleryPhotos', 0] },
-              secondGalleryPhotos: { $arrayElemAt: ['$secondGalleryPhotos', 0] },
-              videoTour: { $arrayElemAt: ['$videoTour', 0] },
+              mainPhotos: { $ifNull: [{ $arrayElemAt: ['$mainPhotos', 0] }, null] },
+              mainGalleryPhotos: { $ifNull: [{ $arrayElemAt: ['$mainGalleryPhotos', 0] }, null] },
+              secondGalleryPhotos: {
+                $ifNull: [{ $arrayElemAt: ['$secondGalleryPhotos', 0] }, null],
+              },
+              videoTour: { $ifNull: [{ $arrayElemAt: ['$videoTour', 0] }, null] },
             },
             nearbyAmenities: {
               amenitiesList: '$amenitiesList',
@@ -322,30 +342,30 @@ export class ResidenceRepository extends BaseRepository<Residence> {
                 imageId: '$highlightedAmenitiesImage',
               },
             },
-            rejectionReason: '$drafts.rejectionReason',
+            rejectionReason: '$latestDraft.rejectionReason',
             city: { name: '$city.name', type: '$city.type', countryId: '$city.countryId' },
             country: { name: '$country.name', type: '$country.type' },
-            lifeStyleId: '$drafts.lifeStyleId',
-            createdBy: {
+            lifeStyleId: '$latestDraft.lifeStyleId',
+            createdById: {
               fullName: { $arrayElemAt: ['$createdBy.fullName', 0] },
               email: { $arrayElemAt: ['$createdBy.email', 0] },
               role: { $arrayElemAt: ['$createdBy.role', 0] },
             },
-            developer: {
-              fullName: { $arrayElemAt: ['$developerData.fullName', 0] },
-              email: { $arrayElemAt: ['$developerData.email', 0] },
-              role: { $arrayElemAt: ['$developerData.role', 0] },
+            developerId: {
+              fullName: '$developerData.fullName',
+              email: '$developerData.email',
+              role: '$developerData.role',
             },
-            createdAt: '$drafts.createdAt',
-            updatedById: '$drafts.updatedById',
-            updatedAt: '$drafts.updatedAt',
-            submissionDate: '$drafts.submissionDate',
-            address: '$drafts.address',
+            createdAt: '$latestDraft.createdAt',
+            updatedById: '$latestDraft.updatedById',
+            updatedAt: '$latestDraft.updatedAt',
+            submissionDate: '$latestDraft.submissionDate',
+            address: '$latestDraft.address',
             status: {
               $cond: {
-                if: { $eq: ['$drafts.status', 'active'] },
+                if: { $eq: ['$latestDraft.status', 'active'] },
                 then: '$residence.status',
-                else: '$drafts.status',
+                else: '$latestDraft.status',
               },
             },
           },

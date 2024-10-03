@@ -15,6 +15,7 @@ export class UnitRepository extends BaseRepository<Unit> {
   async findByIdInDetail(unitId: string): Promise<Unit> {
     return this.unitModel.findById(unitId).populate([
       { path: 'residenceId' },
+      { path: 'visuals.mainPhotos', model: 'Upload' },
       { path: 'visuals.mainGalleryPhotos', model: 'Upload' },
       { path: 'visuals.secondGalleryPhotos', model: 'Upload' },
       { path: 'visuals.videoTour', model: 'Upload' },
@@ -30,125 +31,197 @@ export class UnitRepository extends BaseRepository<Unit> {
   }
 
   async listUnitsWithDraft(listUnitDto: ListUnitDto): Promise<any[]> {
-    const { residenceId, search, status } = listUnitDto;
+    try {
+      const { status, residenceId, search } = listUnitDto;
 
-    const paginationOptions = PaginationService.prepareOptions(listUnitDto);
-    const sortObject = paginationOptions.sort.reduce((acc, [field, order]) => {
-      acc[field] = order;
-      return acc;
-    }, {});
+      const paginationOptions = PaginationService.prepareOptions(listUnitDto);
+      const sortObject = paginationOptions.sort.reduce((acc, [field, order]) => {
+        acc[field] = order;
+        return acc;
+      }, {});
 
-    const pipeline: PipelineStage[] = [
-      {
-        $match: {
-          ...(residenceId ? { residenceId: new Types.ObjectId(residenceId) } : {}),
-          isDeleted: false,
-        },
-      },
-      {
-        $lookup: {
-          from: 'unitdrafts',
-          localField: '_id',
-          foreignField: 'unitId',
-          as: 'drafts',
-        },
-      },
-      {
-        $unwind: {
-          path: '$drafts',
-          preserveNullAndEmptyArrays: true, // Keep units without drafts
-        },
-      },
-      {
-        $sort: sortObject,
-      },
-      {
-        $group: {
-          _id: '$_id',
-          residenceId: { $first: '$residenceId' },
-          unitName: { $first: '$unitName' },
-          specs: { $first: '$specs' },
-          unitPrice: { $first: '$unitPrice' },
-          exclusiveOffer: { $first: '$exclusiveOffer' },
-          rooms: { $first: '$rooms' },
-          briefOverview: { $first: '$briefOverview' },
-          unitKeyFeatures: { $first: '$unitKeyFeatures' },
-          visuals: { $first: '$visuals' },
-          isDeleted: { $first: '$isDeleted' },
-          createdById: { $first: '$createdById' },
-          updatedById: { $first: '$updatedById' },
-          createdAt: { $first: '$createdAt' },
-          updatedAt: { $first: '$updatedAt' },
-          status: { $first: '$status' }, // original unit status
-          finalStatus: {
-            $first: {
-              $cond: {
-                if: { $eq: ['$drafts.status', 'active'] },
-                then: '$status', // Use unit status if draft is active
-                else: {
-                  $cond: {
-                    if: { $ne: ['$drafts', null] },
-                    then: '$drafts.status', // Use draft status if it exists
-                    else: '$status', // Use unit status if no draft exists
-                  },
-                },
-              },
-            },
+      const pipeline: PipelineStage[] = [
+        //  Match residences based on filters like residenceId
+        {
+          $match: {
+            ...(residenceId ? { residenceId: new Types.ObjectId(residenceId) } : {}),
           },
         },
-      },
-      {
-        $project: {
-          _id: 1,
-          residenceId: 1,
-          unitName: 1,
-          specs: 1,
-          unitPrice: 1,
-          exclusiveOffer: 1,
-          rooms: 1,
-          briefOverview: 1,
-          unitKeyFeatures: 1,
-          visuals: 1,
-          isDeleted: 1,
-          createdById: 1,
-          updatedById: 1,
-          createdAt: 1,
-          updatedAt: 1,
-          status: 1,
-          finalStatus: 1, // final status after draft check
-          latestDraft: 1, // details of the latest draft
-        },
-      },
-      {
-        $match: {
-          ...(search
-            ? {
-                $or: [
-                  { unitName: { $regex: search, $options: 'i' } },
-                  { 'specs.unitNumber': { $regex: search, $options: 'i' } },
-                ],
-              }
-            : {}),
-          ...(status ? { finalStatus: status } : {}), // Apply status filter on final status
-        },
-      },
-      {
-        $facet: {
-          data: [
-            { $skip: paginationOptions.offset }, // Pagination offset
-            { $limit: Number(paginationOptions.limit) }, // Pagination limit
-          ],
-          totalCount: [{ $count: 'count' }],
-        },
-      },
-      {
-        $project: {
-          data: 1,
-          totalCount: { $arrayElemAt: ['$totalCount.count', 0] },
-        },
-      },
-    ];
 
-    return await this.unitModel.aggregate(pipeline).exec();
+        // Lookup for all drafts from unitdraft collection
+        {
+          $lookup: {
+            from: 'unitdrafts',
+            localField: '_id',
+            foreignField: 'unitId',
+            as: 'drafts',
+          },
+        },
+        {
+          $unwind: {
+            path: '$drafts',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+
+        // Sort drafts by createdAt in descending order (latest draft first)
+        {
+          $sort: {
+            'drafts.createdAt': -1, // Descending order
+          },
+        },
+
+        // Group by unitId and keep only the latest draft
+        {
+          $group: {
+            _id: '$_id', // Group by unitId (current residence)
+            latestDraft: { $first: '$drafts' }, // Keep only the first (latest) draft
+            unitData: { $first: '$$ROOT' }, // Store residence data
+          },
+        },
+
+        // Lookup for the residence status from residence collection
+        {
+          $lookup: {
+            from: 'unit',
+            localField: '_id',
+            foreignField: '_id',
+            as: 'unit',
+          },
+        },
+        {
+          $unwind: {
+            path: '$unit',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+
+        // Handle search criteria (if provided)
+        {
+          $match: {
+            ...(search
+              ? {
+                  $or: [
+                    { 'latestDraft.unitName': { $regex: search, $options: 'i' } },
+                    { 'latestDraft.specs.unitNumber': { $regex: search, $options: 'i' } },
+                  ],
+                }
+              : {}),
+          },
+        },
+        {
+          $sort: sortObject,
+        },
+
+        {
+          $lookup: {
+            from: 'uploads',
+            localField: 'latestDraft.visuals.mainPhotos',
+            foreignField: '_id',
+            as: 'mainPhotos',
+          },
+        },
+        {
+          $lookup: {
+            from: 'uploads',
+            localField: 'latestDraft.visuals.mainGalleryPhotos',
+            foreignField: '_id',
+            as: 'mainGalleryPhotos',
+          },
+        },
+        {
+          $lookup: {
+            from: 'uploads',
+            localField: 'latestDraft.visuals.secondGalleryPhotos',
+            foreignField: '_id',
+            as: 'secondGalleryPhotos',
+          },
+        },
+        {
+          $lookup: {
+            from: 'uploads',
+            localField: 'latestDraft.visuals.videoTour',
+            foreignField: '_id',
+            as: 'videoTour',
+          },
+        },
+
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'latestDraft.createdById',
+            foreignField: '_id',
+            as: 'createdBy',
+          },
+        },
+
+        // Project only relevant fields
+        {
+          $project: {
+            _id: 1,
+            residenceId: '$latestDraft.residenceId',
+            unitName: '$latestDraft.unitName',
+            specs: '$latestDraft.specs',
+            unitPrice: '$latestDraft.unitPrice',
+            exclusiveOffer: '$latestDraft.exclusiveOffer',
+            rooms: '$latestDraft.rooms',
+            briefOverview: '$latestDraft.briefOverview',
+            unitKeyFeatures: '$latestDraft.unitKeyFeatures',
+            visuals: {
+              mainPhotos: { $ifNull: [{ $arrayElemAt: ['$mainPhotos', 0] }, null] },
+              mainGalleryPhotos: { $ifNull: [{ $arrayElemAt: ['$mainGalleryPhotos', 0] }, null] },
+              secondGalleryPhotos: {
+                $ifNull: [{ $arrayElemAt: ['$secondGalleryPhotos', 0] }, null],
+              },
+              videoTour: { $ifNull: [{ $arrayElemAt: ['$videoTour', 0] }, null] },
+            },
+            status: {
+              $cond: {
+                if: { $eq: ['$latestDraft.status', 'active'] },
+                then: '$unit.status',
+                else: '$latestDraft.status',
+              },
+            },
+            isDeleted: '$latestDraft.isDeleted',
+            createdById: {
+              fullName: { $arrayElemAt: ['$createdBy.fullName', 0] },
+              email: { $arrayElemAt: ['$createdBy.email', 0] },
+              role: { $arrayElemAt: ['$createdBy.role', 0] },
+            },
+            updatedById: '$latestDraft.updatedById',
+            createdAt: '$latestDraft.createdAt',
+            updatedAt: '$latestDraft.updatedAt',
+          },
+        },
+
+        // Apply status filter
+        {
+          $match: {
+            ...(status ? { status: status } : {}),
+          },
+        },
+
+        // Pagination and total count
+        {
+          $facet: {
+            data: [
+              { $skip: paginationOptions.offset },
+              { $limit: Number(paginationOptions.limit) },
+            ],
+            totalCount: [{ $count: 'count' }],
+          },
+        },
+        {
+          $project: {
+            data: 1,
+            totalCount: { $arrayElemAt: ['$totalCount.count', 0] },
+          },
+        },
+      ];
+
+      return await this.unitModel.aggregate(pipeline).exec();
+    } catch (error) {
+      throw new Error(`Error while fetching residence draft list: ${error}`);
+    }
   }
 }
