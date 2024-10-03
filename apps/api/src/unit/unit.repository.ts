@@ -15,6 +15,7 @@ export class UnitRepository extends BaseRepository<Unit> {
   async findByIdInDetail(unitId: string): Promise<Unit> {
     return this.unitModel.findById(unitId).populate([
       { path: 'residenceId' },
+      { path: 'visuals.mainPhotos', model: 'Upload' },
       { path: 'visuals.mainGalleryPhotos', model: 'Upload' },
       { path: 'visuals.secondGalleryPhotos', model: 'Upload' },
       { path: 'visuals.videoTour', model: 'Upload' },
