@@ -12,6 +12,7 @@ export class UnitDraftRepository extends BaseRepository<UnitDraft> {
   async findByIdInDetail(unitId: string): Promise<UnitDraft> {
     return this.unitDraftModel.findById(unitId).populate([
       { path: 'unitId' },
+      { path: 'visuals.mainPhotos', model: 'Upload' },
       { path: 'visuals.mainGalleryPhotos', model: 'Upload' },
       { path: 'visuals.secondGalleryPhotos', model: 'Upload' },
       { path: 'visuals.videoTour', model: 'Upload' },
