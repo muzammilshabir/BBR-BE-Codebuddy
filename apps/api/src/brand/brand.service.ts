@@ -10,19 +10,18 @@ export class BrandService {
   async findAll(listBrandDto: ListBrandDto) {
     const filter = listBrandDto.search
       ? {
-          $or: [
-            { name: { $regex: listBrandDto.search, $options: 'i' } },
-          ],
+          $or: [{ name: { $regex: listBrandDto.search, $options: 'i' } }],
         }
       : {};
 
     const options = PaginationService.prepareOptions(listBrandDto);
 
-    const { data, count } = await this.brandRepository.findAll(filter, options);
+    const { data, count } = await this.brandRepository.findAll(filter, options, [
+      { path: 'upload.ImageId', select: 'originalFileKey fileKey url mimeType', model: 'Upload' },
+    ]);
 
     const { pagination } = PaginationService.paginate({ rows: data, count }, listBrandDto);
 
     return { pagination, brands: data };
   }
-
 }

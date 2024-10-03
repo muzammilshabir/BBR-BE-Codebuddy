@@ -16,7 +16,9 @@ export class CityService {
 
     const options = PaginationService.prepareOptions(listCityDto);
 
-    const { data, count } = await this.cityRepository.findAll(filter, options);
+    const { data, count } = await this.cityRepository.findAll(filter, options, [
+      { path: 'upload.ImageId', select: 'originalFileKey fileKey url mimeType', model: 'Upload' },
+    ]);
 
     const { pagination } = PaginationService.paginate({ rows: data, count }, listCityDto);
 

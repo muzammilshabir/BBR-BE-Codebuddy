@@ -10,19 +10,18 @@ export class ResidenceTypeService {
   async findAll(listResidenceTypeDto: ListResidenceTypeDto) {
     const filter = listResidenceTypeDto.search
       ? {
-          $or: [
-            { type: { $regex: listResidenceTypeDto.search, $options: 'i' } },
-          ],
+          $or: [{ type: { $regex: listResidenceTypeDto.search, $options: 'i' } }],
         }
       : {};
 
     const options = PaginationService.prepareOptions(listResidenceTypeDto);
 
-    const { data, count } = await this.residenceTypeRepository.findAll(filter, options);
+    const { data, count } = await this.residenceTypeRepository.findAll(filter, options, [
+      { path: 'upload.ImageId', select: 'originalFileKey fileKey url mimeType', model: 'Upload' },
+    ]);
 
     const { pagination } = PaginationService.paginate({ rows: data, count }, listResidenceTypeDto);
 
     return { pagination, residenceType: data };
   }
-
 }
