@@ -16,7 +16,9 @@ export class ListLifeStyleService {
 
     const options = PaginationService.prepareOptions(listAmenitiesDto);
 
-    const { data, count } = await this.lifeStyleRepository.findAll(filter, options);
+    const { data, count } = await this.lifeStyleRepository.findAll(filter, options, [
+      { path: 'upload.ImageId', select: 'originalFileKey fileKey url mimeType', model: 'Upload' },
+    ]);
 
     const { pagination } = PaginationService.paginate({ rows: data, count }, listAmenitiesDto);
 

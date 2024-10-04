@@ -16,7 +16,9 @@ export class CountryService {
 
     const options = PaginationService.prepareOptions(listCountryDto);
 
-    const { data, count } = await this.countryRepository.findAll(filter, options);
+    const { data, count } = await this.countryRepository.findAll(filter, options, [
+      { path: 'upload.ImageId', select: 'originalFileKey fileKey url mimeType', model: 'Upload' },
+    ]);
 
     const { pagination } = PaginationService.paginate({ rows: data, count }, listCountryDto);
 

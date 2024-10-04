@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Residence } from './schema/residences.schema';
@@ -21,6 +21,11 @@ export class ResidenceRepository extends BaseRepository<Residence> {
       { path: 'countryId', select: 'name type' },
       { path: 'associatedBrandId', select: 'name' },
       { path: 'residenceKeyFeatures.featureIds', select: 'name', model: 'ResidenceFeature' },
+      {
+        path: 'visuals.mainPhotos',
+        select: 'originalFileKey fileKey url mimeType',
+        model: 'Upload',
+      },
       {
         path: 'visuals.mainGalleryPhotos',
         select: 'originalFileKey fileKey url mimeType',
@@ -79,180 +84,321 @@ export class ResidenceRepository extends BaseRepository<Residence> {
     listResidenceWithDraftDto: ListResidenceWithDraftDto
   ): Promise<any[]> {
     //TODO: Add search by property name
-    const { status, developerId, search } = listResidenceWithDraftDto;
+    try {
+      const { status, developerId, search } = listResidenceWithDraftDto;
 
-    const paginationOptions = PaginationService.prepareOptions(listResidenceWithDraftDto);
+      const paginationOptions = PaginationService.prepareOptions(listResidenceWithDraftDto);
+      const sortObject = paginationOptions.sort.reduce((acc, [field, order]) => {
+        acc[field] = order;
+        return acc;
+      }, {});
 
-    // Manually convert sort from array to object format
-    const sortObject = paginationOptions.sort.reduce((acc, [field, order]) => {
-      acc[field] = order;
-      return acc;
-    }, {});
+      const pipeline: PipelineStage[] = [
+        //  Match residences based on filters like developerId
+        {
+          $match: {
+            ...(developerId ? { developerId: new Types.ObjectId(developerId) } : {}),
+          },
+        },
 
-    const pipeline: PipelineStage[] = [
-      {
-        $match: {
-          ...(developerId ? { developerId: new Types.ObjectId(developerId) } : {}),
+        // Lookup for all drafts from residencedrafts collection
+        {
+          $lookup: {
+            from: 'residencedrafts',
+            localField: '_id',
+            foreignField: 'residenceId',
+            as: 'drafts',
+          },
         },
-      },
-      {
-        $lookup: {
-          from: 'users',
-          localField: 'developerId',
-          foreignField: '_id',
-          as: 'developerData',
+        {
+          $unwind: {
+            path: '$drafts',
+            preserveNullAndEmptyArrays: true,
+          },
         },
-      },
-      {
-        $unwind: {
-          path: '$developerData',
-          preserveNullAndEmptyArrays: true, // To keep residences without a developer
-        },
-      },
-      {
-        $match: {
-          ...(search
-            ? {
-                $or: [
-                  { name: { $regex: search, $options: 'i' } },
-                  { 'address.city': { $regex: search, $options: 'i' } },
-                  { 'address.country': { $regex: search, $options: 'i' } },
-                  { 'developerData.fullName': { $regex: search, $options: 'i' } },
-                ],
-              }
-            : {}),
-        },
-      },
 
-      {
-        $lookup: {
-          from: 'residencedrafts',
-          localField: '_id',
-          foreignField: 'residenceId',
-          as: 'drafts',
+        // Sort drafts by createdAt in descending order (latest draft first)
+        {
+          $sort: {
+            'drafts.createdAt': -1, // Descending order
+          },
         },
-      },
-      {
-        $unwind: {
-          path: '$drafts',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
 
-      {
-        $sort: sortObject,
-      },
-      {
-        $group: {
-          _id: '$_id',
-          name: { $first: '$name' },
-          residenceTypeId: { $first: '$residenceTypeId' },
-          locationId: { $first: '$locationId' },
-          websiteLink: { $first: '$websiteLink' },
-          associatedBrandId: { $first: '$associatedBrandId' },
-          briefOverview: { $first: '$briefOverview' },
-          comprehensiveOverview: { $first: '$comprehensiveOverview' },
-          budgetLimitationsRange: { $first: '$budgetLimitationsRange' },
-          residenceKeyFeatures: { $first: '$residenceKeyFeatures' },
-          visuals: { $first: '$visuals' },
-          nearbyAmenities: { $first: '$nearbyAmenities' },
-          status: { $first: '$status' }, // original status
-          rejectionReason: { $first: '$rejectionReason' },
-          cityId: { $first: '$cityId' },
-          countryId: { $first: '$countryId' },
-          lifeStyleId: { $first: '$lifeStyleId' },
-          createdById: { $first: '$createdById' },
-          developerId: { $first: '$developerId' },
-          createdAt: { $first: '$createdAt' },
-          updatedById: { $first: '$updatedById' },
-          updatedAt: { $first: '$updatedAt' },
-          submissionDate: { $first: '$submissionDate' },
-          address: { $first: '$address' },
-          latestDraft: { $first: '$drafts' },
-          finalStatus: {
-            $first: {
+        // Group by residenceId and keep only the latest draft
+        {
+          $group: {
+            _id: '$_id', // Group by residenceId (current residence)
+            latestDraft: { $first: '$drafts' }, // Keep only the first (latest) draft
+            developerData: { $first: '$developerData' }, // Retain developer data
+            residenceData: { $first: '$$ROOT' }, // Store residence data
+          },
+        },
+
+        //  Lookup for the developer data from users collection
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'latestDraft.developerId',
+            foreignField: '_id',
+            as: 'developerData',
+          },
+        },
+        {
+          $unwind: {
+            path: '$developerData',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+
+        // Lookup for the residence status from residence collection
+        {
+          $lookup: {
+            from: 'residences',
+            localField: '_id',
+            foreignField: '_id',
+            as: 'residence',
+          },
+        },
+        {
+          $unwind: {
+            path: '$residence',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+
+        // Handle search criteria (if provided)
+        {
+          $match: {
+            ...(search
+              ? {
+                  $or: [
+                    { 'latestDraft.name': { $regex: search, $options: 'i' } },
+                    { 'latestDraft.address.city': { $regex: search, $options: 'i' } },
+                    { 'latestDraft.address.country': { $regex: search, $options: 'i' } },
+                    { 'developerData.fullName': { $regex: search, $options: 'i' } }, // Search in developerData
+                  ],
+                }
+              : {}),
+          },
+        },
+        {
+          $sort: sortObject,
+        },
+        // Lookups for population (residenceTypeId, cityId, etc.)
+        {
+          $lookup: {
+            from: 'residencetypes',
+            localField: 'latestDraft.residenceTypeId',
+            foreignField: '_id',
+            as: 'residenceType',
+          },
+        },
+        {
+          $unwind: {
+            path: '$residenceType',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $lookup: {
+            from: 'cities',
+            localField: 'latestDraft.cityId',
+            foreignField: '_id',
+            as: 'city',
+          },
+        },
+        {
+          $unwind: {
+            path: '$city',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $lookup: {
+            from: 'countries',
+            localField: 'latestDraft.countryId',
+            foreignField: '_id',
+            as: 'country',
+          },
+        },
+        {
+          $unwind: {
+            path: '$country',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $lookup: {
+            from: 'associatedbrands',
+            localField: 'latestDraft.associatedBrandId',
+            foreignField: '_id',
+            as: 'associatedBrand',
+          },
+        },
+        {
+          $unwind: {
+            path: '$associatedBrand',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $lookup: {
+            from: 'residencefeatures',
+            localField: 'latestDraft.residenceKeyFeatures.featureIds',
+            foreignField: '_id',
+            as: 'residenceFeatures',
+          },
+        },
+        {
+          $lookup: {
+            from: 'uploads',
+            localField: 'latestDraft.visuals.mainPhotos',
+            foreignField: '_id',
+            as: 'mainPhotos',
+          },
+        },
+        {
+          $lookup: {
+            from: 'uploads',
+            localField: 'latestDraft.visuals.mainGalleryPhotos',
+            foreignField: '_id',
+            as: 'mainGalleryPhotos',
+          },
+        },
+        {
+          $lookup: {
+            from: 'uploads',
+            localField: 'latestDraft.visuals.secondGalleryPhotos',
+            foreignField: '_id',
+            as: 'secondGalleryPhotos',
+          },
+        },
+        {
+          $lookup: {
+            from: 'uploads',
+            localField: 'latestDraft.visuals.videoTour',
+            foreignField: '_id',
+            as: 'videoTour',
+          },
+        },
+        {
+          $lookup: {
+            from: 'amenities',
+            localField: 'latestDraft.nearbyAmenities.amenitiesList',
+            foreignField: '_id',
+            as: 'amenitiesList',
+          },
+        },
+        {
+          $lookup: {
+            from: 'amenities',
+            localField: 'latestDraft.nearbyAmenities.highlightedAmenities.amenityId',
+            foreignField: '_id',
+            as: 'highlightedAmenities',
+          },
+        },
+        {
+          $lookup: {
+            from: 'uploads',
+            localField: 'latestDraft.nearbyAmenities.highlightedAmenities.imageId',
+            foreignField: '_id',
+            as: 'highlightedAmenitiesImage',
+          },
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'latestDraft.createdById',
+            foreignField: '_id',
+            as: 'createdBy',
+          },
+        },
+
+        // Project only relevant fields
+        {
+          $project: {
+            _id: 1,
+            residenceDraftId: '$latestDraft._id',
+            name: '$latestDraft.name',
+            residenceTypeId: '$residenceType',
+            websiteLink: '$latestDraft.websiteLink',
+            associatedBrand: '$associatedBrand.name',
+            briefOverview: '$latestDraft.briefOverview',
+            comprehensiveOverview: '$latestDraft.comprehensiveOverview',
+            budgetLimitationsRange: '$latestDraft.budgetLimitationsRange',
+            residenceKeyFeatures: '$residenceFeatures',
+            visuals: {
+              mainPhotos: { $ifNull: [{ $arrayElemAt: ['$mainPhotos', 0] }, null] },
+              mainGalleryPhotos: { $ifNull: [{ $arrayElemAt: ['$mainGalleryPhotos', 0] }, null] },
+              secondGalleryPhotos: {
+                $ifNull: [{ $arrayElemAt: ['$secondGalleryPhotos', 0] }, null],
+              },
+              videoTour: { $ifNull: [{ $arrayElemAt: ['$videoTour', 0] }, null] },
+            },
+            nearbyAmenities: {
+              amenitiesList: '$amenitiesList',
+              highlightedAmenities: {
+                amenityId: '$highlightedAmenities',
+                imageId: '$highlightedAmenitiesImage',
+              },
+            },
+            rejectionReason: '$latestDraft.rejectionReason',
+            city: { name: '$city.name', type: '$city.type', countryId: '$city.countryId' },
+            country: { name: '$country.name', type: '$country.type' },
+            lifeStyleId: '$latestDraft.lifeStyleId',
+            createdById: {
+              fullName: { $arrayElemAt: ['$createdBy.fullName', 0] },
+              email: { $arrayElemAt: ['$createdBy.email', 0] },
+              role: { $arrayElemAt: ['$createdBy.role', 0] },
+            },
+            developerId: {
+              fullName: '$developerData.fullName',
+              email: '$developerData.email',
+              role: '$developerData.role',
+            },
+            createdAt: '$latestDraft.createdAt',
+            updatedById: '$latestDraft.updatedById',
+            updatedAt: '$latestDraft.updatedAt',
+            submissionDate: '$latestDraft.submissionDate',
+            address: '$latestDraft.address',
+            status: {
               $cond: {
                 if: { $eq: ['$latestDraft.status', 'active'] },
-                then: '$latestDraft.status', // draft status if active
-                else: '$status', // original status otherwise
+                then: '$residence.status',
+                else: '$latestDraft.status',
               },
             },
           },
         },
-      },
 
-      {
-        $project: {
-          _id: 1,
-          name: 1,
-          residenceTypeId: 1,
-          locationId: 1,
-          websiteLink: 1,
-          associatedBrandId: 1,
-          briefOverview: 1,
-          comprehensiveOverview: 1,
-          budgetLimitationsRange: 1,
-          residenceKeyFeatures: 1,
-          visuals: 1,
-          nearbyAmenities: 1,
-          rejectionReason: 1,
-          cityId: 1,
-          countryId: 1,
-          lifeStyleId: 1,
-          createdById: 1,
-          developerId: 1,
-          createdAt: 1,
-          updatedById: 1,
-          updatedAt: 1,
-          submissionDate: 1,
-          address: 1,
-          finalStatus: 1, // the final status to be used after draft check
-          details: {
-            $cond: {
-              if: { $eq: ['$latestDraft.status', 'active'] },
-              then: {
-                status: '$status',
-              },
-              else: {
-                // Return latest draft details
-                _id: '$latestDraft._id',
-                residenceId: '$latestDraft.residenceId',
-                status: '$latestDraft.status',
-                rejectionReason: '$rejectionReason',
-                createdAt: '$latestDraft.createdAt',
-                createdById: '$latestDraft.createdById',
-                // Add any other fields you want to return from the latest draft
-              },
-            },
+        // Apply status filter
+        {
+          $match: {
+            ...(status ? { status: status } : {}),
           },
         },
-      },
-      // Apply status filter after finalStatus has been evaluated
-      {
-        $match: {
-          ...(status ? { finalStatus: status } : {}), // filter based on finalStatus
-        },
-      },
 
-      {
-        $facet: {
-          data: [
-            { $skip: paginationOptions.offset }, // Apply pagination skip
-            { $limit: Number(paginationOptions.limit) }, // Apply pagination limit
-          ],
-          totalCount: [
-            { $count: 'count' }, // Get total count of matching documents
-          ],
+        // Pagination and total count
+        {
+          $facet: {
+            data: [
+              { $skip: paginationOptions.offset },
+              { $limit: Number(paginationOptions.limit) },
+            ],
+            totalCount: [{ $count: 'count' }],
+          },
         },
-      },
-      {
-        $project: {
-          data: 1,
-          totalCount: { $arrayElemAt: ['$totalCount.count', 0] },
+        {
+          $project: {
+            data: 1,
+            totalCount: { $arrayElemAt: ['$totalCount.count', 0] },
+          },
         },
-      },
-    ];
+      ];
 
-    return await this.residenceModel.aggregate(pipeline).exec();
+      return await this.residenceModel.aggregate(pipeline).exec();
+    } catch (error) {
+      throw new Error(`Error while fetching residence draft list: ${error}`);
+    }
   }
 }

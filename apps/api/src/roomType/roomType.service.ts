@@ -16,7 +16,9 @@ export class RoomTypeService {
 
     const options = PaginationService.prepareOptions(listRoomTypeDto);
 
-    const { data, count } = await this.roomTypeRepository.findAll(filter, options);
+    const { data, count } = await this.roomTypeRepository.findAll(filter, options, [
+      { path: 'upload.ImageId', select: 'originalFileKey fileKey url mimeType', model: 'Upload' },
+    ]);
 
     const { pagination } = PaginationService.paginate({ rows: data, count }, listRoomTypeDto);
 

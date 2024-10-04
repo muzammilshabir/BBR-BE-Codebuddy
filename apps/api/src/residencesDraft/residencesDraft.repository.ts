@@ -20,6 +20,11 @@ export class ResidenceDraftRepository extends BaseRepository<ResidenceDraft> {
       { path: 'associatedBrandId', select: 'name' },
       { path: 'residenceKeyFeatures.featureIds', select: 'name', model: 'ResidenceFeature' },
       {
+        path: 'visuals.mainPhotos',
+        select: 'originalFileKey fileKey url mimeType',
+        model: 'Upload',
+      },
+      {
         path: 'visuals.mainGalleryPhotos',
         select: 'originalFileKey fileKey url mimeType',
         model: 'Upload',
@@ -42,6 +47,7 @@ export class ResidenceDraftRepository extends BaseRepository<ResidenceDraft> {
         model: 'Upload',
       },
       { path: 'createdById', model: 'User', select: 'fullName email role' },
+      { path: 'updatedById', model: 'User', select: 'fullName email role' },
       { path: 'developerId', model: 'User', select: 'fullName email role' },
     ]);
 

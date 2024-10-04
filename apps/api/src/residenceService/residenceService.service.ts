@@ -16,7 +16,9 @@ export class ResidenceServicesService {
 
     const options = PaginationService.prepareOptions(listResidenceServiceDto);
 
-    const { data, count } = await this.residenceServiceRepository.findAll(filter, options);
+    const { data, count } = await this.residenceServiceRepository.findAll(filter, options, [
+      { path: 'upload.ImageId', select: 'originalFileKey fileKey url mimeType', model: 'Upload' },
+    ]);
 
     const { pagination } = PaginationService.paginate(
       { rows: data, count },

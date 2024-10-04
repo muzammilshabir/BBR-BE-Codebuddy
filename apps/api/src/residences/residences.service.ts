@@ -376,8 +376,14 @@ export class ResidenceService {
 
     const { data, count } = await this.residenceRepository.findAll(filter, options, [
       { path: 'residenceTypeId', select: 'type' },
-      { path: 'locationId', select: 'name type parentId' },
+      { path: 'cityId', select: 'name countryId upload' },
+      { path: 'countryId', select: 'name geographicalAreasId upload' },
       { path: 'associatedBrandId', select: 'name' },
+      {
+        path: 'visuals.mainPhotos',
+        select: 'originalFileKey fileKey url mimeType',
+        model: 'Upload',
+      },
       {
         path: 'visuals.mainGalleryPhotos',
         select: 'originalFileKey fileKey url mimeType',
@@ -400,8 +406,8 @@ export class ResidenceService {
         select: 'originalFileKey fileKey url mimeType',
         model: 'Upload',
       },
-      { path: 'createdById', model: 'User' },
-      { path: 'developerId', model: 'User' },
+      { path: 'createdById', select: 'fullName email role', model: 'User' },
+      { path: 'developerId', select: 'fullName email role', model: 'User' },
     ]);
 
     const updatedData = data.map((residence) => {

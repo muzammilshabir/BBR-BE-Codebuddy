@@ -10,19 +10,18 @@ export class AmenityService {
   async findAll(listAmenitiesDto: ListAmenitiesDto) {
     const filter = listAmenitiesDto.search
       ? {
-          $or: [
-            { name: { $regex: listAmenitiesDto.search, $options: 'i' } },
-          ],
+          $or: [{ name: { $regex: listAmenitiesDto.search, $options: 'i' } }],
         }
       : {};
 
     const options = PaginationService.prepareOptions(listAmenitiesDto);
 
-    const { data, count } = await this.amenityRepository.findAll(filter, options);
+    const { data, count } = await this.amenityRepository.findAll(filter, options, [
+      { path: 'upload.ImageId', select: 'originalFileKey fileKey url mimeType', model: 'Upload' },
+    ]);
 
     const { pagination } = PaginationService.paginate({ rows: data, count }, listAmenitiesDto);
 
     return { pagination, amenities: data };
   }
-
 }
