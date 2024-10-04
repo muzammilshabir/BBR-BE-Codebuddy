@@ -185,9 +185,7 @@ export class ResidenceController {
         return res.send(result);
       }
     }
-    return res.json(
-      ResponseService.buildResponse({ residences: result }, 'Residence retrieved successfully')
-    );
+    return res.json(ResponseService.buildResponse(result, 'Residence retrieved successfully'));
   }
 
   @Get('/with-draft')
@@ -199,10 +197,7 @@ export class ResidenceController {
   async listResidencesWithDraft(@Query() query: ListResidenceWithDraftDto) {
     const result = await this.residenceService.listResidencesWithDraft(query);
 
-    return ResponseService.buildResponse(
-      { residences: result },
-      'Residence retrieved successfully'
-    );
+    return ResponseService.buildResponse(result, 'Residence retrieved successfully');
   }
 
   @Get(':id')
