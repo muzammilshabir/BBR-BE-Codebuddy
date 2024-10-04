@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { CityRepository } from './city.repository';
 import { ListCityDto } from './dto/listCity.dto';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
+import { UpdateCityDto } from './dto/updateCity.dto';
+import { NotFoundException } from '@bbr/api-core/modules/exceptions';
 
 @Injectable()
 export class CityService {
@@ -23,5 +25,15 @@ export class CityService {
     const { pagination } = PaginationService.paginate({ rows: data, count }, listCityDto);
 
     return { pagination, cities: data };
+  }
+
+  async update(id: string, updateCityDto: UpdateCityDto) {
+    const city = await this.cityRepository.findById(id);
+
+    if (!city) {
+      throw new NotFoundException(`City with id ${id} not found`);
+    }
+
+    return await this.cityRepository.update(id, updateCityDto);
   }
 }

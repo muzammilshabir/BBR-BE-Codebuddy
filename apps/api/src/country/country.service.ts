@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { CountryRepository } from './country.repository';
 import { ListCountryDto } from './dto/listCountry.dto';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
+import { NotFoundException } from '@bbr/api-core/modules/exceptions';
+import { UpdateCountryDto } from './dto/updateCountry.dto';
 
 @Injectable()
 export class CountryService {
@@ -22,6 +24,16 @@ export class CountryService {
 
     const { pagination } = PaginationService.paginate({ rows: data, count }, listCountryDto);
 
-    return { pagination, lifeStyles: data };
+    return { pagination, countries: data };
+  }
+
+  async update(id: string, updateCountryDto: UpdateCountryDto) {
+    const country = await this.countryRepository.findById(id);
+
+    if (!country) {
+      throw new NotFoundException(`Country with id ${id} not found`);
+    }
+
+    return await this.countryRepository.update(id, updateCountryDto);
   }
 }
