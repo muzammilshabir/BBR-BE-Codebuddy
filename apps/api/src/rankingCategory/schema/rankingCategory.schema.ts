@@ -8,20 +8,26 @@ import { PaymentStatus } from '../enum/payment-status.enum';
 
 @Schema({ timestamps: true })
 export class RankingCategory extends Document {
-  @Prop({ required: true, unique: true })
+  @Prop({ required: true })
   title: string;
 
   @Prop({ required: true, enum: CategoryType })
   categoryType: CategoryType;
 
-  @Prop({ required: false })
-  subCategory: string;
+  @Prop({ type: Types.ObjectId, ref: 'PropertyType' })
+  propertyTypeSubCategoryId: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'LifeStyle' })
+  lifeStyleSubCategoryId: Types.ObjectId;
 
   @Prop({ type: [RankingCriteria], required: true })
   criteria: RankingCriteria[];
 
   @Prop({ required: true })
   price: number;
+
+  @Prop({ required: true })
+  residenceLimitation: number;
 
   @Prop({ required: true, enum: RankingCategoryStatus, default: RankingCategoryStatus.DRAFT })
   status: RankingCategoryStatus;
