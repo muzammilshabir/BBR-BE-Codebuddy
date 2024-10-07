@@ -1,10 +1,13 @@
-import { Controller, Get, Query, UsePipes } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Param, Patch, Query, UsePipes } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CountryService } from './country.service';
 import { Public } from '../auth/decorators/public.decorator';
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
 import { ListCountryDto, listCountrySchema } from './dto/listCountry.dto';
+import { UserRole } from '../users/enum/user.enum';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UpdateCountryDto, updateCountrySchema } from './dto/updateCountry.dto';
 
 @ApiTags('Country')
 @Controller('country')
@@ -20,5 +23,17 @@ export class CountryController {
   async list(@Query() listCountryDto: ListCountryDto) {
     const data = await this.countryService.findAll(listCountryDto);
     return ResponseService.buildResponse(data);
+  }
+
+  @Patch(':id')
+  @ApiOperation({
+    summary: 'Update an Country by ID',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(updateCountrySchema, 'body'))
+  async update(@Param('id') id: string, @Body() updateCountryDto: UpdateCountryDto) {
+    const updatedCountry = await this.countryService.update(id, updateCountryDto);
+    return ResponseService.buildResponse(updatedCountry);
   }
 }

@@ -20,6 +20,14 @@ export class ListUnitDto extends ListPropsDto {
     required: false,
   })
   status?: ResidenceStatus;
+
+  @ApiProperty({
+    description: 'Search by unit name and number',
+    example: 'test',
+    required: false,
+    type: String,
+  })
+  search?: string;
 }
 
 export const listUnitSchema = PaginationSchema.append({
@@ -27,4 +35,5 @@ export const listUnitSchema = PaginationSchema.append({
   status: Joi.string()
     .valid(...Object.values(ResidenceStatus))
     .optional(),
+  search: Joi.string().optional(),
 });

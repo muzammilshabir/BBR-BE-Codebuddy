@@ -96,6 +96,7 @@ export class Unit extends Document {
 
   @Prop({
     type: {
+      mainPhotos: [{ required: false, type: Types.ObjectId, ref: 'Upload' }],
       mainGalleryPhotos: [{ type: Types.ObjectId, ref: 'Upload' }],
       secondGalleryPhotos: [{ type: Types.ObjectId, ref: 'Upload' }],
       videoTour: { type: Types.ObjectId, ref: 'Upload' },

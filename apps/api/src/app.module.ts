@@ -39,6 +39,8 @@ import { ResidenceDraftModule } from './residencesDraft/residencesDraft.module';
 import { UnitDraftModule } from './unitDraft/unitDraft.module';
 import { StripeModule } from './stripe/stripe.module';
 import { ClaimRequestModule } from './claimRequest/claimRequest.module';
+import { AppController } from './app.controller';
+import { RankingCategoryModule } from './rankingCategory/rankingCategory.module';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -79,8 +81,9 @@ import { ClaimRequestModule } from './claimRequest/claimRequest.module';
     UnitDraftModule,
     StripeModule,
     ClaimRequestModule,
+    RankingCategoryModule,
   ],
-  controllers: [],
+  controllers: [AppController],
   providers: [
     ServiceConfig,
     {

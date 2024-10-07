@@ -1,10 +1,13 @@
-import { Controller, Get, Query, UsePipes } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Param, Patch, Query, UsePipes } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CityService } from './city.service';
 import { Public } from '../auth/decorators/public.decorator';
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
 import { ListCityDto, listCitySchema } from './dto/listCity.dto';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UserRole } from '../users/enum/user.enum';
+import { UpdateCityDto, updateCitySchema } from './dto/updateCity.dto';
 
 @ApiTags('City')
 @Controller('city')
@@ -20,5 +23,17 @@ export class CityController {
   async list(@Query() listCityDto: ListCityDto) {
     const data = await this.cityService.findAll(listCityDto);
     return ResponseService.buildResponse(data);
+  }
+
+  @Patch(':id')
+  @ApiOperation({
+    summary: 'Update an City by ID',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(updateCitySchema, 'body'))
+  async update(@Param('id') id: string, @Body() updateCityDto: UpdateCityDto) {
+    const updatedCity = await this.cityService.update(id, updateCityDto);
+    return ResponseService.buildResponse(updatedCity);
   }
 }
