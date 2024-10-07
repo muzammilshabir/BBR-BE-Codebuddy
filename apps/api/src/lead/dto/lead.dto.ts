@@ -11,6 +11,9 @@ export class CreateLeadDto {
   @ApiProperty({ example: '+123456789', required: true })
   phoneNumber: string;
 
+  @ApiProperty({ example: 'jone@gamil.com', required: false })
+  email: string;
+
   @ApiProperty({ example: '60d9c6a0a11c3c6c6a9a1a2a', required: false, type: String })
   residenceId?: Types.ObjectId;
 
@@ -34,6 +37,7 @@ export class CreateLeadDto {
 export const createLeadSchema = Joi.object({
   name: Joi.string().required(),
   phoneNumber: Joi.string().required(),
+  email: Joi.string().optional(),
   residenceId: Joi.string().optional().custom(joiObjectIdValidator('residenceId')),
   unitId: Joi.string().optional().custom(joiObjectIdValidator('unitId')),
   pageUrl: Joi.string().optional(),

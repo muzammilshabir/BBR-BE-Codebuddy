@@ -16,6 +16,7 @@ import {
   ListResidenceByFiltersDto,
   ListResidenceByFiltersQueryPropsDto,
   ListResidenceDto,
+  ListResidenceWithDraftDto,
 } from './dto/list-residence.dto';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
 import * as XLSX from 'xlsx';
@@ -375,8 +376,14 @@ export class ResidenceService {
 
     const { data, count } = await this.residenceRepository.findAll(filter, options, [
       { path: 'residenceTypeId', select: 'type' },
-      { path: 'locationId', select: 'name type parentId' },
+      { path: 'cityId', select: 'name countryId upload' },
+      { path: 'countryId', select: 'name geographicalAreasId upload' },
       { path: 'associatedBrandId', select: 'name' },
+      {
+        path: 'visuals.mainPhotos',
+        select: 'originalFileKey fileKey url mimeType',
+        model: 'Upload',
+      },
       {
         path: 'visuals.mainGalleryPhotos',
         select: 'originalFileKey fileKey url mimeType',
@@ -399,8 +406,8 @@ export class ResidenceService {
         select: 'originalFileKey fileKey url mimeType',
         model: 'Upload',
       },
-      { path: 'createdById', model: 'User' },
-      { path: 'developerId', model: 'User' },
+      { path: 'createdById', select: 'fullName email role', model: 'User' },
+      { path: 'developerId', select: 'fullName email role', model: 'User' },
     ]);
 
     const updatedData = data.map((residence) => {
@@ -817,5 +824,19 @@ export class ResidenceService {
     });
 
     return updatedResidence;
+  }
+
+  async listResidencesWithDraft(listResidenceWithDraftDto: ListResidenceWithDraftDto) {
+    const result =
+      await this.residenceRepository.listResidencesWithDraft(listResidenceWithDraftDto);
+    const count = result[0]?.totalCount || 0;
+    const data = result[0]?.data || [];
+
+    const { pagination } = PaginationService.paginate(
+      { rows: data, count },
+      listResidenceWithDraftDto
+    );
+
+    return { pagination, residences: data };
   }
 }

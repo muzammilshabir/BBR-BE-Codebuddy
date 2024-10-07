@@ -1,10 +1,13 @@
 import { Public } from '@bbr/api-core/modules/decorators';
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
-import { Controller, Get, Query, UsePipes } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Param, Patch, Query, UsePipes } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PropertyTypeService } from './propertyType.service';
 import { PropertyTypeDto, propertyTypeSchema } from './dto/propertyType.dto';
+import { UserRole } from '../users/enum/user.enum';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UpdatePropertyTypeDto, updatePropertyTypeSchema } from './dto/updatePropertyType.dto';
 
 @ApiTags('PropertyType')
 @Controller('property-type')
@@ -20,5 +23,17 @@ export class PropertyTypeController {
   async list(@Query() propertyTypeDto: PropertyTypeDto) {
     const data = await this.propertyTypeService.findAll(propertyTypeDto);
     return ResponseService.buildResponse(data);
+  }
+
+  @Patch(':id')
+  @ApiOperation({
+    summary: 'Update an PropertyType by ID',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(updatePropertyTypeSchema, 'body'))
+  async update(@Param('id') id: string, @Body() updatePropertyTypeDto: UpdatePropertyTypeDto) {
+    const updatedPropertyType = await this.propertyTypeService.update(id, updatePropertyTypeDto);
+    return ResponseService.buildResponse(updatedPropertyType);
   }
 }

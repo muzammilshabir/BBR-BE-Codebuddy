@@ -3,10 +3,10 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UnitDraftService } from './unitDraft.service';
 import { UserRole } from '../users/enum/user.enum';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { GetUnitByIdDto, getUnitByIdSchema } from '../unit/dto/get-unit-by-id.dto';
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
 import { ListUnitDraftDto, listUnitDraftSchema } from './dto/listUnitDraft.dto';
+import { GetUnitDraftByIdDto, getUnitDraftByIdSchema } from './dto/get-unitDraft-by-id.dto';
 
 @ApiTags('UnitDraft')
 @Controller('unit-draft')
@@ -19,9 +19,9 @@ export class UnitDraftController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
-  @UsePipes(new JoiValidationPipe(getUnitByIdSchema, 'param'))
-  async getUnitDraftById(@Param() params: GetUnitByIdDto) {
-    const unitDraft = await this.unitDraftService.getUnitDraftById(params.unitId);
+  @UsePipes(new JoiValidationPipe(getUnitDraftByIdSchema, 'param'))
+  async getUnitDraftById(@Param() params: GetUnitDraftByIdDto) {
+    const unitDraft = await this.unitDraftService.getUnitDraftById(params.unitDraftId);
     return ResponseService.buildResponse(
       { unitDraft },
       'Unit draft request retrieved successfully'

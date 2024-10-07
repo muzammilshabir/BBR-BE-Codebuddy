@@ -52,7 +52,7 @@ export class UploadService {
           const fileDocument = {
             originalFileKey: formidableFile.originalFilename,
             fileKey: response.Key,
-            url: `https://${config.s3.bucket}.${config.s3.endpoint}/${response.Key}`,
+            url: `https://${config.s3.cdnUrl}/${response.Key}`,
             mimeType: formidableFile.mimetype,
             size: formidableFile.size,
             driver: 'S3',

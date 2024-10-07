@@ -13,6 +13,9 @@ import { Types } from 'mongoose';
 import { ClaimRequestStatus } from './enum/claimReques-enum';
 import { SignupMethod, UserRole } from '../users/enum/user.enum';
 import { AuthService } from '../auth/auth.service';
+import { GetClaimRequestByIdDto, ListClaimRequestDto } from './dto/getClaimRequest.dto';
+import { RejectClaimRequestDto } from './dto/rejectClaimRequest.dto';
+import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
 
 @Injectable()
 export class ClaimRequestService {
@@ -251,5 +254,146 @@ export class ClaimRequestService {
     };
 
     return await this.claimRequestRepository.create(transformedDto);
+  }
+
+  async associateClaims(userId: string): Promise<any> {
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+    const existingClaimRequest = await this.claimRequestRepository.findAll({
+      email: user.email,
+      status: ClaimRequestStatus.Pending,
+      developerId: { $exists: false },
+    });
+
+    if (!existingClaimRequest || existingClaimRequest.data.length === 0) {
+      throw new BadRequestException('No pending claim requests found for this email.');
+    }
+
+    const updatedClaims = await Promise.all(
+      existingClaimRequest.data.map(async (claimRequest) => {
+        const residence = await this.residenceRepository.findById(
+          claimRequest.residenceId.toString()
+        );
+
+        if (residence) {
+          const residenceDomain = this.extractDomain(residence.websiteLink, 'url');
+          const userEmailDomain = this.extractDomain(user.email, 'email');
+
+          const updateData: any = { developerId: user._id };
+          if (residenceDomain === userEmailDomain) {
+            updateData.status = ClaimRequestStatus.Approved;
+          }
+
+          return this.claimRequestRepository.update(claimRequest.id, updateData);
+        }
+
+        return this.claimRequestRepository.update(claimRequest.id, {
+          developerId: user._id,
+        });
+      })
+    );
+
+    return updatedClaims;
+  }
+
+  async approveClaimRequest(getClaimRequestByIdDto: GetClaimRequestByIdDto): Promise<ClaimRequest> {
+    const claimRequest = await this.claimRequestRepository.findById(getClaimRequestByIdDto.id);
+    if (!claimRequest) {
+      throw new NotFoundException(`claimRequest with ID ${getClaimRequestByIdDto.id} not found`);
+    }
+
+    if (!claimRequest.developerId) {
+      throw new BadRequestException('Developer is not associate with claim request');
+    }
+
+    if (claimRequest.status === ClaimRequestStatus.Rejected) {
+      throw new BadRequestException('Rejected claim request can not be approved');
+    }
+
+    const residence = await this.residenceRepository.findById(claimRequest.residenceId.toString());
+    if (!residence) {
+      throw new NotFoundException(
+        `residence with ID ${claimRequest.residenceId.toString()} not found`
+      );
+    }
+
+    const approvedClaimRequest = await this.claimRequestRepository.update(
+      getClaimRequestByIdDto.id,
+      { status: ClaimRequestStatus.Approved }
+    );
+
+    await this.residenceRepository.update(claimRequest.residenceId.toString(), {
+      developerId: new Types.ObjectId(claimRequest.developerId),
+    });
+
+    return approvedClaimRequest;
+  }
+
+  async rejectClaimRequest(
+    getClaimRequestByIdDto: GetClaimRequestByIdDto,
+    rejectClaimRequestDto: RejectClaimRequestDto
+  ): Promise<ClaimRequest> {
+    const claimRequest = await this.claimRequestRepository.findById(getClaimRequestByIdDto.id);
+    if (!claimRequest) {
+      throw new NotFoundException(`claimRequest with ID ${getClaimRequestByIdDto.id} not found`);
+    }
+
+    if (!claimRequest.developerId) {
+      throw new BadRequestException('Developer is not associate with claim request');
+    }
+
+    const residence = await this.residenceRepository.findById(claimRequest.residenceId.toString());
+    if (!residence) {
+      throw new NotFoundException(
+        `residence with ID ${claimRequest.residenceId.toString()} not found`
+      );
+    }
+
+    return await this.claimRequestRepository.update(getClaimRequestByIdDto.id, {
+      status: ClaimRequestStatus.Rejected,
+      rejectionReason: rejectClaimRequestDto.rejectionReason,
+    });
+  }
+
+  async getClaimRequestById(getClaimRequestByIdDto: GetClaimRequestByIdDto): Promise<ClaimRequest> {
+    return await this.claimRequestRepository.findByIdInDetail(getClaimRequestByIdDto.id);
+  }
+
+  async getClaimRequests(listClaimRequestDto: ListClaimRequestDto) {
+    const { search, status, developerId, residenceId } = listClaimRequestDto;
+
+    const query: any = {};
+
+    if (search) {
+      query.$or = [
+        { fullName: { $regex: search, $options: 'i' } },
+        { companyName: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    if (status) {
+      query.status = status;
+    }
+
+    if (developerId) {
+      query.developerId = new Types.ObjectId(developerId);
+    }
+
+    if (residenceId) {
+      query.residenceId = new Types.ObjectId(residenceId);
+    }
+
+    const options = PaginationService.prepareOptions(listClaimRequestDto);
+
+    const { data, count } = await this.claimRequestRepository.findAll(query, options, [
+      { path: 'residenceId' },
+      { path: 'developerId', select: 'fullName email role' },
+    ]);
+
+    const { pagination } = PaginationService.paginate({ rows: data, count }, listClaimRequestDto);
+
+    return { pagination, claimRequests: data };
   }
 }

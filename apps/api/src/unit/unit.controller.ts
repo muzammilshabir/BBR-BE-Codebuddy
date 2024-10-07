@@ -112,7 +112,7 @@ export class UnitController {
   @UsePipes(new JoiValidationPipe(listUnitSchema, 'query'))
   async listUnits(@Query() query: ListUnitDto) {
     const units = await this.unitService.listUnits(query);
-    return ResponseService.buildResponse({ units }, 'Units retrieved successfully');
+    return ResponseService.buildResponse(units, 'Units retrieved successfully');
   }
 
   @Get('/with-draft')
@@ -124,7 +124,7 @@ export class UnitController {
   @UsePipes(new JoiValidationPipe(listUnitSchema, 'query'))
   async listUnitsWithDraft(@Query() query: ListUnitDto) {
     const units = await this.unitService.listUnitsWithDraft(query);
-    return ResponseService.buildResponse({ units }, 'Units retrieved successfully');
+    return ResponseService.buildResponse(units, 'Units retrieved successfully');
   }
 
   @Get(':unitId')
