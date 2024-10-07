@@ -1,6 +1,6 @@
 // Define the possible permission levels as an enum
 export enum PermissionLevel {
-  VIEW = 'view',
+  READ = 'read',
   EDIT = 'edit',
   DELETE = 'delete',
 }

@@ -4,11 +4,12 @@ import { Section, SectionSchema } from './schema/section.schema';
 import { SectionService } from './section.service';
 import { SectionController } from './section.controller';
 import { SectionRepository } from './section.repository';
+import { SectionSeeder } from './section.seeder';
 
 @Module({
   imports: [MongooseModule.forFeature([{ name: Section.name, schema: SectionSchema }])],
-  providers: [SectionService, SectionRepository],
-  exports: [],
+  providers: [SectionService, SectionRepository, SectionSeeder],
+  exports: [SectionSeeder],
   controllers: [SectionController],
 })
-export class ResidenceTypeModule {}
+export class SectionModule {}
