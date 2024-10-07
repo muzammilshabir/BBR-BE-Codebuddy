@@ -33,10 +33,10 @@ export class Section extends Document {
   }[];
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: false })
-  createdBy?: Types.ObjectId;
+  createdById?: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: false })
-  updatedBy?: Types.ObjectId;
+  updatedById?: Types.ObjectId;
 
   @Prop({ default: false })
   isDeleted: boolean;
