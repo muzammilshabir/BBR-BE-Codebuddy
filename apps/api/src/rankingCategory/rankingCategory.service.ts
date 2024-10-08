@@ -12,6 +12,7 @@ import { LifeStyleRepository } from '../lifestyles/lifeStyle.repository';
 import { DeletionStatus } from '../unit/enum/unit-enum';
 import { PropertyTypeRepository } from '../propertyType/propertyType.repository';
 import { RankingCategoryListDto } from './dto/list-ranking-category.dto';
+import { RejectRankingCategoryDto } from './dto/reject-ranking-category.dto';
 
 @Injectable()
 export class RankingCategoryService {
@@ -234,6 +235,36 @@ export class RankingCategoryService {
       throw new ForbiddenException('You do not have permission to delete this RankingCategory');
     }
     return rankingCategory;
+  }
+
+  async approveRankingCategory(id: string) {
+    const rankingCategory = await this.findRankingCategoryById(id);
+
+    if (rankingCategory.status === RankingCategoryStatus.APPROVED)
+      throw new BadRequestException('Ranking category is already approved');
+
+    const updatedRankingCategory = await this.rankingCategoryRepository.update(id, {
+      status: RankingCategoryStatus.APPROVED,
+      rejectionReason: {
+        unset: true,
+      },
+    });
+
+    return updatedRankingCategory;
+  }
+
+  async rejectRankingCategory(id: string, rejectRankingCategoryDto: RejectRankingCategoryDto) {
+    const rankingCategory = await this.findRankingCategoryById(id);
+
+    if (rankingCategory.status === RankingCategoryStatus.REJECTED)
+      throw new BadRequestException('Ranking category is already approved');
+
+    const updatedRankingCategory = await this.rankingCategoryRepository.update(id, {
+      status: RankingCategoryStatus.APPROVED,
+      rejectionReason: rejectRankingCategoryDto.reason,
+    });
+
+    return updatedRankingCategory;
   }
 
   async delete(id: string, user: JwtPayloadType): Promise<RankingCategory> {
