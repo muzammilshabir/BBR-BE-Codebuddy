@@ -92,12 +92,15 @@ export class SectionSeeder extends AbstractSeeder {
         },
       ];
 
+      // Use upsert to avoid duplicates, matching based on slug
       const upsertPromises = sections.map((section) =>
         this.sectionRepository.upsert(
-          { slug: section.slug },
+          { slug: section.slug }, // Use slug to ensure unique entries
           {
-            ...section,
-            isDeleted: false,
+            $set: {
+              ...section,
+              isDeleted: false, // Ensure the section is marked as not deleted
+            },
           }
         )
       );
