@@ -1,23 +1,21 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsArray, IsString } from 'class-validator';
+import { ApiProperty, PartialType } from '@nestjs/swagger';
+import { CreateModulePolicyDto } from './createModulePolicy.dto';
 import { PermissionLevel } from '../enum/permission-enum';
+import { Types } from 'mongoose';
 import * as Joi from 'joi';
 import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
-import { Types } from 'mongoose';
 
-export class CreateSectionDto {
-  @ApiProperty({ example: 'Customer Support', required: true })
-  @IsString()
-  name: string;
+export class UpdateSectionDto extends PartialType(CreateModulePolicyDto) {
+  @ApiProperty({ example: 'Customer Support', required: false })
+  name?: string;
 
   @ApiProperty({
-    example: [PermissionLevel.READ, PermissionLevel.EDIT, PermissionLevel.DELETE],
-    required: true,
+    example: [PermissionLevel.READ, PermissionLevel.EDIT],
+    required: false,
     enum: PermissionLevel,
     type: [String],
   })
-  @IsArray()
-  permissions: PermissionLevel[];
+  permissions?: PermissionLevel[];
 
   @ApiProperty({
     example: [
@@ -26,7 +24,7 @@ export class CreateSectionDto {
         type: 'logo',
       },
     ],
-    required: true,
+    required: false,
   })
   upload?: {
     ImageId: Types.ObjectId;
@@ -34,11 +32,11 @@ export class CreateSectionDto {
   }[];
 }
 
-export const createSectionSchema = Joi.object({
-  name: Joi.string().trim().required(),
+export const updateSectionSchema = Joi.object({
+  name: Joi.string().trim().optional(),
   permissions: Joi.array()
     .items(Joi.string().valid(...Object.values(PermissionLevel)))
-    .required(),
+    .optional(),
   upload: Joi.array()
     .items(
       Joi.object({

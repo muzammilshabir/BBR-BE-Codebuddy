@@ -3,7 +3,7 @@ import { Document, Types } from 'mongoose';
 import { PermissionLevel } from '../enum/permission-enum';
 
 @Schema({ timestamps: true })
-export class Section extends Document {
+export class ModulePolicy extends Document {
   @Prop({ required: true, unique: true })
   name: string;
 
@@ -45,4 +45,4 @@ export class Section extends Document {
   updatedAt: Date;
 }
 
-export const SectionSchema = SchemaFactory.createForClass(Section);
+export const ModulePolicySchema = SchemaFactory.createForClass(ModulePolicy);

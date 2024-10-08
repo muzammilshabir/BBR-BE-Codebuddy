@@ -39,7 +39,7 @@ import { ResidenceDraftModule } from './residencesDraft/residencesDraft.module';
 import { UnitDraftModule } from './unitDraft/unitDraft.module';
 import { ClaimRequestModule } from './claimRequest/claimRequest.module';
 import { AppController } from './app.controller';
-import { SectionModule } from './section/section.module';
+import { ModulePolicyModule } from './modulePolicy/modulePolicy.module';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -79,7 +79,7 @@ import { SectionModule } from './section/section.module';
     CareerModule,
     UnitDraftModule,
     ClaimRequestModule,
-    SectionModule,
+    ModulePolicyModule,
   ],
   controllers: [AppController],
   providers: [

@@ -1,20 +1,20 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { AbstractSeeder } from '@bbr/api-core/modules/seeder/abstractSeeder.service';
-import { SectionRepository } from './section.repository';
+import { ModulePolicyRepository } from './modulePolicy.repository';
 import { PermissionLevel } from './enum/permission-enum';
 
 @Injectable()
-export class SectionSeeder extends AbstractSeeder {
-  public name = SectionSeeder.name;
-  private readonly logger = new Logger(SectionSeeder.name);
+export class ModulePolicySeeder extends AbstractSeeder {
+  public name = ModulePolicySeeder.name;
+  private readonly logger = new Logger(ModulePolicySeeder.name);
 
-  constructor(private readonly sectionRepository: SectionRepository) {
+  constructor(private readonly modulePolicyRepository: ModulePolicyRepository) {
     super();
   }
 
   async seed() {
     try {
-      const sections = [
+      const modules = [
         {
           name: 'Dashboard',
           slug: 'dashboard',
@@ -93,22 +93,22 @@ export class SectionSeeder extends AbstractSeeder {
       ];
 
       // Use upsert to avoid duplicates, matching based on slug
-      const upsertPromises = sections.map((section) =>
-        this.sectionRepository.upsert(
-          { slug: section.slug }, // Use slug to ensure unique entries
+      const upsertPromises = modules.map((module) =>
+        this.modulePolicyRepository.upsert(
+          { slug: module.slug }, // Use slug to ensure unique entries
           {
             $set: {
-              ...section,
-              isDeleted: false, // Ensure the section is marked as not deleted
+              ...module,
+              isDeleted: false, // Ensure the module is marked as not deleted
             },
           }
         )
       );
 
       await Promise.all(upsertPromises);
-      this.logger.log('Seeding completed for Section.');
+      this.logger.log('Seeding completed for module.');
     } catch (error) {
-      this.logger.error('Error while seeding Section:', error);
+      this.logger.error('Error while seeding module:', error);
     }
   }
 }

@@ -2,13 +2,13 @@ import { ApiProperty } from '@nestjs/swagger';
 import { ListPropsDto, PaginationSchema } from '@bbr/api-core/modules/dto/listProps.dto';
 import * as Joi from 'joi';
 
-export const listSectionSchema = PaginationSchema.append({
+export const listModulePolicySchema = PaginationSchema.append({
   search: Joi.string().trim().max(100),
 });
 
-export class ListSectionDto extends ListPropsDto {
+export class ListModulePolicyDto extends ListPropsDto {
   @ApiProperty({
-    description: 'Search by section name',
+    description: 'Search by ModulePolicy name',
     example: 'test',
     required: false,
     type: String,
