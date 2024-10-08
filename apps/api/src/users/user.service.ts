@@ -8,11 +8,11 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import * as bcrypt from 'bcryptjs';
-import { Model } from 'mongoose';
-import { ExceptionCodes } from '../../../../packages/api-core/modules/types/exceptionCodes.type';
+import { Model, Types } from 'mongoose';
+import { ExceptionCodes } from '@bbr/api-core/modules/types/exceptionCodes.type';
 import { CreateDummyUserDto, CreateUserDto } from './dto/createUser.dto';
 import { UpdateUserDto } from './dto/updateUser.dto';
-import { UserRole } from './enum/user.enum';
+import { UserRole, UserStatus } from './enum/user.enum';
 import { User } from './schema/user.schema';
 import { UserRepository } from './user.repository';
 import { UpdateSellerProfileDto } from '../auth/dto/updateProfile';
@@ -173,8 +173,22 @@ export class UserService {
         message: 'Please verify your account first',
       };
     }
+    const transformedDto = {
+      ...updateSellerProfileDto,
+      associatedBrandId: updateSellerProfileDto.associatedBrandId
+        ? updateSellerProfileDto.associatedBrandId.map((brandId) => new Types.ObjectId(brandId))
+        : undefined,
 
-    const updatedUser = await this.userRepository.update(id, updateSellerProfileDto);
+      avatarImage: updateSellerProfileDto.avatarImage
+        ? new Types.ObjectId(updateSellerProfileDto.avatarImage)
+        : undefined,
+      companyLogo: updateSellerProfileDto.companyLogo
+        ? new Types.ObjectId(updateSellerProfileDto.companyLogo)
+        : undefined,
+      status: UserStatus.ACTIVE,
+    };
+
+    const updatedUser = await this.userRepository.update(id, transformedDto);
     if (!updatedUser) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }

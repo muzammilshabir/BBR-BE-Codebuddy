@@ -16,3 +16,12 @@ export enum UserContactMethod {
   PHONE = 'PHONE',
   WHATSAPP = 'WHATSAPP',
 }
+
+export enum UserStatus {
+  PENDING = 'pending',
+  ACTIVE = 'active',
+  FLAGGED = 'flagged',
+  ARCHIVED = 'archived',
+  SUSPENDED = 'suspended',
+  REJECTED = 'rejected',
+}

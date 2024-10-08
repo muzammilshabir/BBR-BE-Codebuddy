@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
-import { SignupMethod, UserRole } from '../enum/user.enum';
+import { SignupMethod, UserRole, UserStatus } from '../enum/user.enum';
 import {
   UserCompanyInfo,
   UserContactInfo,
@@ -82,6 +82,33 @@ export class User extends Document {
 
   @Prop({ required: false, type: Types.ObjectId, ref: 'Upload' })
   avatarImage: Types.ObjectId;
+
+  @Prop({ required: false, type: Types.ObjectId, ref: 'Upload' })
+  companyLogo: Types.ObjectId;
+
+  @Prop({ required: false, type: [{ type: Types.ObjectId, ref: 'Brand' }] })
+  associatedBrandId?: Types.ObjectId[];
+
+  @Prop({ required: false })
+  yearEstablished: string;
+
+  @Prop({ required: false })
+  briefCompanyDescription: string;
+
+  @Prop({ required: false, enum: UserStatus })
+  status: UserStatus;
+
+  @Prop({ type: Date })
+  createdAt: Date;
+
+  @Prop({ type: Date })
+  updatedAt: Date;
+
+  @Prop({ type: Types.ObjectId, ref: 'User' })
+  createdById: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'User' })
+  updatedById: Types.ObjectId;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
