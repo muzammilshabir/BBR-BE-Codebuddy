@@ -26,6 +26,12 @@ export class RankingCategory extends Document {
   @Prop({ required: true })
   price: number;
 
+  @Prop({
+    type: String,
+    example: 'Invalid Document',
+  })
+  rejectionReason: string;
+
   @Prop({ required: true })
   residenceLimitation: number;
 

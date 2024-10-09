@@ -16,6 +16,10 @@ import {
   updateRankingCategorySchema,
 } from './dto/update-ranking-category.dto';
 import { RankingCategoryListDto, rankingCategorySchema } from './dto/list-ranking-category.dto';
+import {
+  RejectRankingCategoryDto,
+  rejectRankingCategorySchema,
+} from './dto/reject-ranking-category.dto';
 
 @ApiTags('RankingCategory')
 @Controller('rankingCategory')
@@ -109,6 +113,39 @@ export class RankingCategoryController {
     return ResponseService.buildResponse(
       { rankingCategory },
       'Ranking category deleted successfully'
+    );
+  }
+
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Approve a ranking category' })
+  @Patch(':id/approve')
+  @Roles(UserRole.ADMIN)
+  async approveRankingCategory(@Param('id') id: string) {
+    const rankingCategory = await this.rankingCategoryService.approveRankingCategory(id);
+
+    return ResponseService.buildResponse(
+      { rankingCategory },
+      'Ranking category approved successfully'
+    );
+  }
+
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Reject a ranking category' })
+  @Patch(':id/reject')
+  @Roles(UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(rejectRankingCategorySchema, 'body'))
+  async rejectRankingCategory(
+    @Param('id') id: string,
+    @Body() rejectRankingCategoryDto: RejectRankingCategoryDto
+  ) {
+    const rankingCategory = await this.rankingCategoryService.rejectRankingCategory(
+      id,
+      rejectRankingCategoryDto
+    );
+
+    return ResponseService.buildResponse(
+      { rankingCategory },
+      'Ranking category Rejected successfully'
     );
   }
 }
