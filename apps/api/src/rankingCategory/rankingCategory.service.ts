@@ -1,4 +1,9 @@
-import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { Types } from 'mongoose';
 import { NotFoundException } from '@bbr/api-core/modules/exceptions';
 import { RankingCategoryRepository } from './rankingCategory.repository';
@@ -6,20 +11,21 @@ import { CreateRankingCategoryDto } from './dto/create-ranking-category.dto';
 import { JwtPayloadType } from '../auth/type/jwt-payload.type';
 import { RankingCategory } from './schema/rankingCategory.schema';
 import { RankingCategoryStatus } from './enum/rankingCategory-status.enum';
-import { UpdateRankingCategoryDto } from './dto/update-ranking-category.dto';
-import { CategoryType } from './enum/category-type.enum';
-import { LifeStyleRepository } from '../lifestyles/lifeStyle.repository';
+import {
+  UpdateRankingCategoryDto,
+  UpdateRankingCategoryStatusDto,
+} from './dto/update-ranking-category.dto';
 import { DeletionStatus } from '../unit/enum/unit-enum';
-import { PropertyTypeRepository } from '../propertyType/propertyType.repository';
 import { RankingCategoryListDto } from './dto/list-ranking-category.dto';
 import { RejectRankingCategoryDto } from './dto/reject-ranking-category.dto';
+import { RankingCategoryDraftRepository } from '../rankingCategoryDraft/rankingCategoryDraft.repository';
+import { PaginationService } from '../../../../packages/api-core/modules/pagination/pagination.service';
 
 @Injectable()
 export class RankingCategoryService {
   constructor(
     private readonly rankingCategoryRepository: RankingCategoryRepository,
-    private readonly lifeStyleRepository: LifeStyleRepository,
-    private readonly propertyTypeRepository: PropertyTypeRepository
+    private readonly rankingCategoryDraftRepository: RankingCategoryDraftRepository
   ) {}
 
   async findAll(rankingCategoryDto: RankingCategoryListDto, user: JwtPayloadType) {
@@ -43,16 +49,6 @@ export class RankingCategoryService {
 
     return await this.rankingCategoryRepository.findAll(query, rankingCategoryDto, [
       {
-        path: 'lifeStyleSubCategoryId',
-        select: 'name description',
-        model: 'LifeStyle',
-      },
-      {
-        path: 'propertyTypeSubCategoryId',
-        select: 'name',
-        model: 'PropertyType',
-      },
-      {
         path: 'createdById',
         select: 'name email',
         model: 'User',
@@ -72,63 +68,15 @@ export class RankingCategoryService {
         type: upload.type,
       })),
     };
-    if (createResidenceDto?.lifeStyleSubCategoryId) {
-      const lifeStyle = await this.lifeStyleRepository.find({
-        _id: createResidenceDto?.lifeStyleSubCategoryId,
-        isDeleted: { $ne: DeletionStatus.DELETED },
-      });
-      if (!lifeStyle) {
-        throw new BadRequestException(
-          `lifeStyle with ID ${createResidenceDto.lifeStyleSubCategoryId} does not exist or is deleted`
-        );
-      }
-      const isSubCategoryExist = await this.rankingCategoryRepository.find({
-        categoryType: CategoryType.LIFESTYLE,
-        lifeStyleSubCategoryId: new Types.ObjectId(createResidenceDto?.lifeStyleSubCategoryId),
-      });
-      if (isSubCategoryExist) {
-        throw new BadRequestException(
-          `Ranking category for lifeStyle sub category with ID ${createResidenceDto.lifeStyleSubCategoryId} already exist `
-        );
-      }
 
-      transformedDto.lifeStyleSubCategoryId = new Types.ObjectId(
-        createResidenceDto?.lifeStyleSubCategoryId
-      );
-    }
+    const rankingCategory = await this.rankingCategoryRepository.create(transformedDto);
 
-    if (createResidenceDto?.propertyTypeSubCategoryId) {
-      const propertyType = await this.propertyTypeRepository.find({
-        _id: createResidenceDto?.propertyTypeSubCategoryId,
-        isDeleted: { $ne: DeletionStatus.DELETED },
-      });
-      if (!propertyType) {
-        throw new BadRequestException(
-          `property type with ID ${createResidenceDto.propertyTypeSubCategoryId} does not exist or is deleted`
-        );
-      }
-      const isSubCategoryExist = await this.rankingCategoryRepository.find({
-        categoryType: CategoryType.PROPERTY_TYPE,
-        propertyTypeSubCategoryId: new Types.ObjectId(
-          createResidenceDto?.propertyTypeSubCategoryId
-        ),
-      });
-      if (isSubCategoryExist) {
-        throw new BadRequestException(
-          `Ranking category for property type sub category with ID ${createResidenceDto.lifeStyleSubCategoryId} already exist `
-        );
-      }
-      transformedDto.propertyTypeSubCategoryId = new Types.ObjectId(
-        createResidenceDto?.propertyTypeSubCategoryId
-      );
-    }
+    await this.rankingCategoryDraftRepository.create({
+      ...transformedDto,
+      rankingCategoryId: new Types.ObjectId(rankingCategory.id),
+    });
 
-    transformedDto.status =
-      createResidenceDto.status === RankingCategoryStatus.PENDING
-        ? RankingCategoryStatus.PENDING
-        : RankingCategoryStatus.DRAFT;
-
-    return await this.rankingCategoryRepository.create(transformedDto);
+    return rankingCategory;
   }
 
   async update(
@@ -150,80 +98,33 @@ export class RankingCategoryService {
       updatedById: new Types.ObjectId(user.sub),
     };
 
-    if (updateRankingCategoryDto?.propertyTypeSubCategoryId) {
-      const propertyType = await this.propertyTypeRepository.find({
-        _id: updateRankingCategoryDto?.propertyTypeSubCategoryId,
-        isDeleted: { $ne: DeletionStatus.DELETED },
-      });
-      if (!propertyType) {
-        throw new BadRequestException(
-          `Property type with ID ${updateRankingCategoryDto.propertyTypeSubCategoryId} does not exist or is deleted`
-        );
-      }
-
-      const isSubCategoryExist = await this.rankingCategoryRepository.find({
-        categoryType: CategoryType.PROPERTY_TYPE,
-        propertyTypeSubCategoryId: new Types.ObjectId(
-          updateRankingCategoryDto?.propertyTypeSubCategoryId
-        ),
-      });
-      if (
-        isSubCategoryExist &&
-        rankingCategory._id.toString() !== isSubCategoryExist._id.toString()
-      ) {
-        throw new BadRequestException(
-          `Ranking category for property type sub category with ID ${updateRankingCategoryDto.propertyTypeSubCategoryId} already exists`
-        );
-      }
-
-      transformedDto.propertyTypeSubCategoryId = new Types.ObjectId(
-        updateRankingCategoryDto?.propertyTypeSubCategoryId
+    const rankingCategoryDraft = await this.checkRankingCategoryDraft(rankingCategoryId);
+    if (rankingCategoryDraft) {
+      return await this.rankingCategoryDraftRepository.update(
+        rankingCategoryDraft.id,
+        transformedDto
       );
     }
 
-    if (updateRankingCategoryDto?.lifeStyleSubCategoryId) {
-      const lifeStyle = await this.lifeStyleRepository.find({
-        _id: updateRankingCategoryDto?.lifeStyleSubCategoryId,
-        isDeleted: { $ne: DeletionStatus.DELETED },
-      });
-      if (!lifeStyle) {
-        throw new BadRequestException(
-          `lifeStyle with ID ${updateRankingCategoryDto.lifeStyleSubCategoryId} does not exist or is deleted`
-        );
-      }
-      const isSubCategoryExist = await this.rankingCategoryRepository.find({
-        categoryType: CategoryType.LIFESTYLE,
-        lifeStyleSubCategoryId: new Types.ObjectId(
-          updateRankingCategoryDto?.lifeStyleSubCategoryId
-        ),
-      });
-      if (
-        isSubCategoryExist &&
-        rankingCategory._id.toString() !== isSubCategoryExist._id.toString()
-      ) {
-        throw new BadRequestException(
-          `Ranking category for lifeStyle sub category with ID ${updateRankingCategoryDto.lifeStyleSubCategoryId} already exist `
-        );
-      }
-
-      transformedDto.lifeStyleSubCategoryId = new Types.ObjectId(
-        updateRankingCategoryDto?.lifeStyleSubCategoryId
-      );
-    }
-
-    transformedDto.status =
-      updateRankingCategoryDto.status === RankingCategoryStatus.PENDING
-        ? RankingCategoryStatus.PENDING
-        : RankingCategoryStatus.DRAFT;
-    return await this.rankingCategoryRepository.update(rankingCategoryId, transformedDto);
+    return await this.rankingCategoryDraftRepository.create({
+      ...transformedDto,
+      rankingCategoryId: new Types.ObjectId(rankingCategoryId),
+    });
   }
 
   async findRankingCategoryById(id: string): Promise<RankingCategory> {
     const rankingCategory = await this.rankingCategoryRepository.findById(id);
     if (!rankingCategory) {
-      throw new NotFoundException(`Residence with ID ${id}`);
+      throw new NotFoundException(`Ranking category with ID ${id}`);
     }
     return rankingCategory;
+  }
+
+  async checkRankingCategoryDraft(rankingCategoryId: string) {
+    return await this.rankingCategoryDraftRepository.find({
+      rankingCategoryId: new Types.ObjectId(rankingCategoryId),
+      status: { $in: [RankingCategoryStatus.DRAFT, RankingCategoryStatus.PENDING] },
+    });
   }
 
   async findRankingCategory(id: string, user: JwtPayloadType): Promise<RankingCategory> {
@@ -237,47 +138,162 @@ export class RankingCategoryService {
     return rankingCategory;
   }
 
-  async approveRankingCategory(id: string) {
-    const rankingCategory = await this.findRankingCategoryById(id);
+  async approveRankingCategory(rankingCategoryId: string, userId: string) {
+    try {
+      await this.checkRankingCategoryRejectedStatus(rankingCategoryId);
 
-    if (rankingCategory.status === RankingCategoryStatus.APPROVED)
-      throw new BadRequestException('Ranking category is already approved');
+      const rankingCategoryDraft = await this.checkRankingCategoryDraft(rankingCategoryId);
+      if (!rankingCategoryDraft) {
+        throw new BadRequestException(
+          `Not found pending Ranking category Draft Request with rankingCategoryId ${rankingCategoryId}`
+        );
+      }
+      const draftRequestId = rankingCategoryDraft.id.toString();
 
-    const updatedRankingCategory = await this.rankingCategoryRepository.update(id, {
-      status: RankingCategoryStatus.APPROVED,
-      rejectionReason: {
-        unset: true,
-      },
-    });
+      const updatedRankingCategoryDraftRequest = await this.rankingCategoryDraftRepository.update(
+        draftRequestId,
+        {
+          status: RankingCategoryStatus.ACTIVE,
+          updatedById: new Types.ObjectId(userId),
+        }
+      );
 
-    return updatedRankingCategory;
+      const plainUpdatedDrafRequest = updatedRankingCategoryDraftRequest.toJSON();
+      delete plainUpdatedDrafRequest.residenceId;
+      delete plainUpdatedDrafRequest._id;
+
+      await this.rankingCategoryRepository.update(rankingCategoryId, {
+        ...plainUpdatedDrafRequest,
+      });
+
+      return updatedRankingCategoryDraftRequest;
+    } catch (error) {
+      throw new InternalServerErrorException(
+        'An error occurred while approving the ranking category',
+        error
+      );
+    }
   }
 
-  async rejectRankingCategory(id: string, rejectRankingCategoryDto: RejectRankingCategoryDto) {
-    const rankingCategory = await this.findRankingCategoryById(id);
-
-    if (rankingCategory.status === RankingCategoryStatus.REJECTED)
-      throw new BadRequestException('Ranking category is already approved');
-
-    const updatedRankingCategory = await this.rankingCategoryRepository.update(id, {
-      status: RankingCategoryStatus.APPROVED,
-      rejectionReason: rejectRankingCategoryDto.reason,
-    });
-
-    return updatedRankingCategory;
+  async checkRankingCategoryRejectedStatus(rankingCategoryId: string) {
+    const rankingCategory = await this.rankingCategoryRepository.findById(rankingCategoryId);
+    if (!rankingCategory) {
+      throw new NotFoundException(`Ranking Category with ID ${rankingCategoryId}`);
+    }
+    if (rankingCategory.status === RankingCategoryStatus.REJECTED) {
+      throw new BadRequestException(`Rejected  Ranking Category cannot be updated`);
+    }
   }
 
-  async delete(id: string, user: JwtPayloadType): Promise<RankingCategory> {
-    const existingCategory = await this.findRankingCategoryById(id);
+  async rejectRankingCategory(
+    rankingCategoryId: string,
+    userId: string,
+    rejectRankingCategoryDto: RejectRankingCategoryDto
+  ) {
+    await this.checkRankingCategoryRejectedStatus(rankingCategoryId);
 
-    if (!existingCategory) {
-      throw new NotFoundException(`RankingCategory with ID ${id} not found`);
-    }
-    if (existingCategory.createdById._id.toString() !== user.sub) {
-      throw new ForbiddenException('You do not have permission to delete this RankingCategory');
+    const rankingCategoryDraft = await this.checkRankingCategoryDraft(rankingCategoryId);
+    if (!rankingCategoryDraft) {
+      throw new BadRequestException(
+        `Not found pending Ranking category Draft Request with rankingCategoryId ${rankingCategoryId}`
+      );
     }
 
-    existingCategory.isDeleted = true;
-    return await existingCategory.save();
+    const updatedRankingCategoryDraftRequest = await this.rankingCategoryDraftRepository.update(
+      rankingCategoryDraft.id,
+      {
+        status: RankingCategoryStatus.REJECTED,
+        rejectionReason: rejectRankingCategoryDto.reason,
+        updatedById: new Types.ObjectId(userId),
+      }
+    );
+
+    const rankingCategory = await this.findRankingCategoryById(rankingCategoryId);
+
+    if (
+      rankingCategory.status === RankingCategoryStatus.PENDING ||
+      rankingCategory.status === RankingCategoryStatus.DRAFT
+    ) {
+      await this.rankingCategoryRepository.update(rankingCategoryId, {
+        status: RankingCategoryStatus.REJECTED,
+        rejectionReason: rejectRankingCategoryDto.reason,
+        updatedById: new Types.ObjectId(userId),
+      });
+    }
+
+    return updatedRankingCategoryDraftRequest;
+  }
+
+  async updateRankingCategoryStatus(
+    rankingCategoryId: string,
+    userId: string,
+    updateRankingCategoryStatusDto: UpdateRankingCategoryStatusDto
+  ) {
+    const rankingCategory = await this.findRankingCategoryById(rankingCategoryId);
+
+    if (!rankingCategory) {
+      throw new NotFoundException(`Ranking Category with ID ${rankingCategoryId} not found`);
+    }
+
+    if (
+      [
+        RankingCategoryStatus.DRAFT,
+        RankingCategoryStatus.REJECTED,
+        RankingCategoryStatus.ACTIVE,
+      ].includes(updateRankingCategoryStatusDto.status)
+    ) {
+      throw new BadRequestException(
+        `Cannot update Ranking category with status: ${updateRankingCategoryStatusDto.status}`
+      );
+    }
+    const updatePayload: any = {
+      status: updateRankingCategoryStatusDto.status,
+      updatedById: new Types.ObjectId(userId),
+    };
+
+    if (updateRankingCategoryStatusDto.status === RankingCategoryStatus.DELETED) {
+      updatePayload.isDeleted = DeletionStatus.DELETED;
+    }
+
+    const updatedResidence = await this.rankingCategoryRepository.update(
+      rankingCategoryId,
+      updatePayload
+    );
+
+    return updatedResidence;
+  }
+
+  async unarchiveRankingCategory(rankingCategoryId: string, userId: string): Promise<any> {
+    const rankingCategory = await this.rankingCategoryRepository.find({
+      _id: new Types.ObjectId(rankingCategoryId),
+      status: RankingCategoryStatus.ARCHIVED,
+    });
+
+    if (!rankingCategory) {
+      throw new NotFoundException(
+        `Ranking category with ID ${rankingCategoryId} with status: ${RankingCategoryStatus.ARCHIVED} not found`
+      );
+    }
+
+    const updatedResidence = await this.rankingCategoryRepository.update(rankingCategoryId, {
+      status: RankingCategoryStatus.DRAFT,
+      updatedById: new Types.ObjectId(userId),
+    });
+
+    return updatedResidence;
+  }
+
+  async listResidencesWithDraft(rankingCategoryListDto: RankingCategoryListDto) {
+    const result =
+      await this.rankingCategoryRepository.listRankingCategoriesWithDraft(rankingCategoryListDto);
+    const count = result[0]?.totalCount || 0;
+    const data = result[0]?.data || [];
+
+    const { pagination } = PaginationService.paginate(
+      { rows: data, count },
+      rankingCategoryListDto
+    );
+
+    return { pagination, rankingCategory: data };
   }
 }
