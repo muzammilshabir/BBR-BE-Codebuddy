@@ -16,9 +16,10 @@ import { UserRole, UserStatus } from './enum/user.enum';
 import { User } from './schema/user.schema';
 import { UserRepository } from './user.repository';
 import { UpdateSellerProfileDto } from '../auth/dto/updateProfile';
-import { AddFavouritesDto, PropertyType } from '../auth/dto/addToFavourite';
+import { AddFavouritesDto, ListFavouritesDto, PropertyType } from '../auth/dto/addToFavourite';
 import { ResidenceRepository } from '../residences/residences.repository';
 import { UnitRepository } from '../unit/unit.repository';
+import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
 
 @Injectable()
 export class UserService {
@@ -244,5 +245,42 @@ export class UserService {
     }
 
     return await this.userModel.findById(userId);
+  }
+
+  async getFavourites(userId: string, listFavouritesDto: ListFavouritesDto) {
+    const user = await this.userModel.findById(userId);
+    const { propertyType, search } = listFavouritesDto;
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const options = PaginationService.prepareOptions(listFavouritesDto);
+
+    const filter: any = {};
+
+    if (search) {
+      filter.$or = [{ name: { $regex: search, $options: 'i' } }];
+    }
+
+    if (propertyType === PropertyType.UNIT) {
+      filter._id = { $in: user.favouritesUnitIds };
+
+      const { data, count } = await this.unitRepository.findAll(filter, options);
+
+      const { pagination } = PaginationService.paginate({ rows: data, count }, listFavouritesDto);
+
+      return { pagination, favourites: data };
+    } else if (propertyType === PropertyType.RESIDENCE) {
+      filter._id = { $in: user.favouriteResidenceIds };
+
+      const { data, count } = await this.residenceRepository.findAll(filter, options);
+
+      const { pagination } = PaginationService.paginate({ rows: data, count }, listFavouritesDto);
+
+      return { pagination, favourites: data };
+    } else {
+      throw new BadRequestException('Invalid property type');
+    }
   }
 }

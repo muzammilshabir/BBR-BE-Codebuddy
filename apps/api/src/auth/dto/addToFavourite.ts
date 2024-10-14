@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import * as Joi from 'joi';
 import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
+import { ListPropsDto } from '@bbr/api-core/modules/dto/listProps.dto';
 
 export enum PropertyType {
   UNIT = 'unit',
@@ -24,8 +25,30 @@ export class AddFavouritesDto {
 
 export const addFavouritesSchema = Joi.object({
   favouriteId: Joi.string().custom(joiObjectIdValidator('favouriteIds')).required(),
-
   propertyType: Joi.string()
     .valid(...Object.values(PropertyType))
     .required(),
+});
+
+export class ListFavouritesDto extends ListPropsDto {
+  @ApiProperty({
+    example: PropertyType.RESIDENCE,
+    enum: PropertyType,
+    description: 'favourites (unit/residence)',
+    required: true,
+  })
+  propertyType: PropertyType;
+
+  @ApiProperty({
+    description: 'Search by residence name',
+    example: 'test',
+    required: false,
+    type: String,
+  })
+  search?: string;
+}
+
+export const getFavouritesSchema = Joi.object({
+  propertyType: Joi.string().valid('unit', 'residence').required(),
+  search: Joi.string().optional(),
 });
