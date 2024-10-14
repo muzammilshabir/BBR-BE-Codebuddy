@@ -4,8 +4,13 @@ import Stripe from 'stripe';
 import { Request } from 'express';
 import { StripeService } from './stripe.service';
 import { ResidenceService } from 'src/residences/residences.service';
-interface InvoiceItem {
+import { TransactionRepository } from './transaction.repository';
+import { Types } from 'mongoose';
+export interface InvoiceItem {
   name: string;
+  invoiceId: string;
+  productId: string;
+  subscriptionId?: string;
   residenceId: string;
   type: 'listing' | 'ranked' | 'featured';
 }
@@ -17,18 +22,22 @@ export class StripeWebhookService {
     private readonly configService: ServiceConfig,
     private readonly stripeService: StripeService,
     private readonly residenceService: ResidenceService,
+    private readonly transactionRepository: TransactionRepository,
   ) {
     this.stripe = new Stripe(configService.stripe.secretKey, {
       apiVersion: '2024-06-20',
     });
   }
 
-  private async parseInvoiceLineItems(items: Stripe.InvoiceLineItem[]) {
+  private async parseInvoiceLineItems(invoice: Stripe.Invoice) {
     const parsedItems: InvoiceItem[] = [];
-    for (const item of items) {
+    for (const item of invoice.lines.data) {
       const product = await this.stripeService.getStripeProduct(item.price.product.toString());
       parsedItems.push({
         name: product.name,
+        invoiceId: invoice.id,
+        productId: item.id,
+        subscriptionId: item.subscription_item.toString(),
         residenceId: product.metadata.id,
         type: product.metadata.type as any,
       });
@@ -69,7 +78,7 @@ export class StripeWebhookService {
   }
 
   private async handleInvoicePaid(invoice: Stripe.Invoice) {
-    const items = await this.parseInvoiceLineItems(invoice.lines.data);
+    const items = await this.parseInvoiceLineItems(invoice);
     for (const item of items) {
       switch (item.type) {
         case 'listing':
@@ -89,7 +98,14 @@ export class StripeWebhookService {
   }
 
   async handleListingPayment(item: InvoiceItem) {
-    return this.residenceService.upgradeResidence(item.residenceId);
+
+    const transaction = {
+      residenceId: new Types.ObjectId(item.residenceId),
+      subscriptionId: item.subscriptionId,
+      invoiceId: item.invoiceId,
+    };
+    await this.transactionRepository.create(transaction);
+    return this.residenceService.upgradeResidence(item);
   }
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async handleRankedPayment(_item: InvoiceItem) {

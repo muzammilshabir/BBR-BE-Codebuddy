@@ -4,34 +4,37 @@ import Stripe from 'stripe';
 import { CustomerDto } from './dto/customer.dto';
 import { PaymentLineItemDto } from './dto/payment-line-item.dto';
 import { SubscriptionLineItemDto } from './dto/subscription-line-item.dto';
+import { ResidenceService } from 'src/residences/residences.service';
+import { RefundPaymentDto } from './dto/refund-payment.dto';
 @Injectable()
 export class StripeService {
   private stripe: Stripe;
 
   constructor(
-     private readonly configService: ServiceConfig,
+    private readonly configService: ServiceConfig,
+    private readonly residenceService: ResidenceService
   ) {
     this.stripe = new Stripe(configService.stripe.secretKey, {
-      apiVersion: '2024-06-20',
+      typescript: true,
     });
   }
 
   private mapPaymentMethodToType(method: Stripe.PaymentMethod) {
-    if(method.type == 'card') {
+    if (method.type == 'card') {
       return {
         'type': 'card',
         'brand': method.card.brand,
         'last4': method.card.last4,
       };
-    } else if(method.type == 'paypal') {
+    } else if (method.type == 'paypal') {
       return {
         'type': 'paypal',
         'email': method.paypal.payer_email,
       };
-    } else if(method.type == 'us_bank_account') {
+    } else if (method.type == 'us_bank_account') {
       return {
         'type': 'wire',
-        'email': method.us_bank_account.bank_name,
+        'bank_name': method.us_bank_account.bank_name,
       };
     } else {
       return {
@@ -58,19 +61,21 @@ export class StripeService {
     return this.stripe.customers.create(customer);
   }
 
-  async getCustomerByEmail(email: string): Promise<Stripe.Customer> {
+  async getCustomerByEmail(email: string): Promise<Stripe.Customer | null> {
     const parsedEmail = email.replace(/["']/g, '');
-    const list = await this.stripe.customers.search({
-      query: `email:"${parsedEmail}"`
+    const searchResult = await this.stripe.customers.search({
+      query: `email:"${parsedEmail}"`,
     });
-    return list[0];
+    return searchResult.data[0] || null;
   }
 
-  async getCustomerByStripeId(customerId: string): Promise<Stripe.Customer | Stripe.DeletedCustomer> {
+  async getCustomerByStripeId(
+    customerId: string
+  ): Promise<Stripe.Customer | Stripe.DeletedCustomer> {
     return this.stripe.customers.retrieve(customerId);
   }
   async listCustomers(): Promise<Stripe.Customer[]> {
-    return (await (this.stripe.customers.list())).data;
+    return (await this.stripe.customers.list()).data;
   }
 
   async getInvoice(invoiceId: string) {
@@ -93,7 +98,7 @@ export class StripeService {
   async retrieveCustomerPaymentMethod(customerId: string, paymentMethodId: string) {
     const paymentMethod = await this.stripe.customers.retrievePaymentMethod(
       customerId,
-      paymentMethodId,
+      paymentMethodId
     );
     return this.mapPaymentMethodToType(paymentMethod);
   }
@@ -106,13 +111,16 @@ export class StripeService {
     const parsedItems = [];
     for (const item of data) {
       const product = await this.getStripeProduct(item.price.product.toString());
-      parsedItems.push({
+      const parsedItem: any = {
         name: product.name,
         description: product.description,
         price: item.price.unit_amount,
-        interval: item.price.recurring.interval,
-        interval_count: item.price.recurring.interval_count,
-      });
+      };
+      if (item.price.recurring) {
+        parsedItem.interval = item.price.recurring.interval;
+        parsedItem.interval_count = item.price.recurring.interval_count;
+      }
+      parsedItems.push(parsedItem);
     }
     return parsedItems;
   }
@@ -122,14 +130,78 @@ export class StripeService {
       customer: customerId,
     });
 
-    return invoices;
+    return invoices.data;
   }
 
-  async refundInvoice(invoiceId: string) {
+  async getCustomerInvoice(customerId: string, invoiceId: string) {
+    const invoices = await this.stripe.invoices.list({
+      customer:customerId,
+
+    });
+    let invoiceBelongsToCustomer = false;
+    for (const invoice of invoices.data) {
+      if(invoice.id == invoiceId) {
+        invoiceBelongsToCustomer = true;
+        break;
+      }
+    }
+    if(!invoiceBelongsToCustomer) {
+      throw new Error("Invalid invoice id");
+    }
     const invoice = await this.stripe.invoices.retrieve(invoiceId);
+    return this.processInvoice(invoice);
+  }
+
+  async getCustomerInvoiceAdmin(invoiceId: string) {
+    const invoice = await this.stripe.invoices.retrieve(invoiceId);
+    return this.processInvoice(invoice);
+  }
+
+  async processInvoice(invoice: Stripe.Invoice) {
+    const items = invoice.lines.data;
+    const products = [];
+    const subscriptions = [];
+    for (const item of items) {
+      const product = await this.stripe.products.retrieve(item.price.product.toString());
+      if(item.type == 'subscription') {
+        subscriptions.push({
+          id: product.id,
+          name: product.name,
+          quantity: item.quantity,
+          amount: item.amount,
+        });
+      } else {
+        products.push({
+          id: product.id,
+          name: product.name,
+          quantity: item.quantity,
+          amount: item.amount,
+        });
+      }
+    }
+    return {
+      status: invoice.status,
+      due: invoice.due_date,
+      subscriptions,
+      products,
+      hosted_invoice_url: invoice.hosted_invoice_url,
+      invoice_pdf: invoice.invoice_pdf,
+    };
+  }
+
+  async refundInvoice(invoiceId: string, refundPaymentDto: RefundPaymentDto) {
+    const invoice = await this.stripe.invoices.retrieve(invoiceId);
+    if(invoice.amount_paid < refundPaymentDto.amount) {
+      throw new Error("Invalid refund amount");
+    }
     const refund = await this.stripe.refunds.create({
       payment_intent: invoice.payment_intent.toString(),
-      reason: "requested_by_customer",
+      reason: 'requested_by_customer',
+      amount: refundPaymentDto.amount,
+      metadata: {
+        note: refundPaymentDto.note,
+        reason: refundPaymentDto.reason,
+      }
     });
 
     return {
@@ -138,6 +210,8 @@ export class StripeService {
       status: refund.status,
       receipt_number: refund.receipt_number,
       failure_reason: refund.failure_reason,
+      note: refundPaymentDto.note,
+      reason: refundPaymentDto.reason,
       created: refund.created,
     };
   }
@@ -149,7 +223,10 @@ export class StripeService {
     const parsedSubscriptions = [];
     for (const subscription of subscriptions.data) {
       const lineItems = await this.processListItems(subscription.items.data);
-      const paymentMethod = await this.retrieveCustomerPaymentMethod(customerId, subscription.default_payment_method.toString());
+      const paymentMethod = await this.retrieveCustomerPaymentMethod(
+        customerId,
+        subscription.default_payment_method.toString()
+      );
       parsedSubscriptions.push({
         currency: subscription.currency,
         status: subscription.status,
@@ -179,7 +256,7 @@ export class StripeService {
         description: payment.description,
         status: payment.status,
         items: await this.processListItems((payment.invoice as Stripe.Invoice).lines.data),
-        payment_method: this.mapPaymentMethodToType((payment.payment_method as Stripe.PaymentMethod)),
+        payment_method: this.mapPaymentMethodToType(payment.payment_method as Stripe.PaymentMethod),
         invoice: {
           invoiceId: (payment.invoice as Stripe.Invoice).id,
           web: (payment.invoice as Stripe.Invoice).hosted_invoice_url,
@@ -213,7 +290,7 @@ export class StripeService {
           recurring: lineItem.price_data.recurring,
         },
         quantity: lineItem.quantity,
-      }); 
+      });
     }
     const subscription = await this.stripe.subscriptions.create({
       customer: customerId,
@@ -223,7 +300,7 @@ export class StripeService {
       expand: ['latest_invoice.payment_intent'],
       items: parsedItems,
     });
-    const invoice = (subscription.latest_invoice as Stripe.Invoice);
+    const invoice = subscription.latest_invoice as Stripe.Invoice;
     return {
       amount: invoice.amount_due,
       customer: invoice.customer_name,
@@ -233,13 +310,13 @@ export class StripeService {
     };
   }
 
-  async createPaymentInvoice(customerId: string, lineItems: PaymentLineItemDto[]) {
-    const invoice = await this.stripe.invoices.create({
-      customer: customerId,
-      auto_advance: false,
-      collection_method: 'send_invoice',
-      days_until_due: 30,
-    });
+  async createPaymentInvoice(
+    customerId: string,
+    residenceId: string,
+    lineItems: PaymentLineItemDto[]
+  ) {
+    const products = [];
+    const residence = await this.residenceService.getResidenceById(residenceId);
     for (const lineItem of lineItems) {
       const product = await this.stripe.products.create({
         name: lineItem.price_data.product_data.name,
@@ -250,6 +327,7 @@ export class StripeService {
         },
         metadata: lineItem.price_data.product_data.metadata,
       });
+      products.push(product);
       await this.stripe.invoiceItems.create({
         customer: customerId,
         price_data: {
@@ -258,21 +336,11 @@ export class StripeService {
           unit_amount: lineItem.price_data.unit_amount,
         },
         quantity: lineItem.quantity,
-        invoice: invoice.id,
-      }); 
+        subscription: residence.subscriptionId,
+      });
     }
 
-    const finalInvoice = await this.stripe.invoices.finalizeInvoice(invoice.id, {
-      expand: ['payment_intent'],
-    });
-
-    return {
-      amount: finalInvoice.amount_due,
-      customer: finalInvoice.customer_name,
-      customer_email: finalInvoice.customer_email,
-      items: this.parseInvoiceLineItems(finalInvoice.lines.data),
-      client_secret: (finalInvoice.payment_intent as Stripe.PaymentIntent).client_secret,
-    };
+    return {products};
   }
 
   async createSubscriptionSession(customerId: string, lineItems: SubscriptionLineItemDto[]) {
@@ -283,7 +351,7 @@ export class StripeService {
       success_url: this.configService.stripe.successPage,
       cancel_url: this.configService.stripe.cancelPage,
     });
-    
+
     return {
       amount: session.amount_total,
       customer: session.customer_details,

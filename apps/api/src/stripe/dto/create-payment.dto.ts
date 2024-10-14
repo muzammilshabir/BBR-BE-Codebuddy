@@ -21,13 +21,6 @@ export class PaymentItem {
     required: true,
   })
   type: "listing" | "ranked" | "featured";
-  
-  @ApiProperty({
-    example: '60d9c6a0a11c3c6c6a9a132a',
-    required: true,
-    type: String,
-  })
-  residenceId: Types.ObjectId;
 
   @ApiProperty({
     example: 30000,
@@ -44,16 +37,23 @@ export class PaymentItem {
 }
 
 export class CreatePaymentDto {
+  @ApiProperty({
+    example: '60d9c6a0a11c3c6c6a9a132a',
+    required: true,
+    type: String,
+  })
+  residenceId: Types.ObjectId;
+
   @ApiProperty({ required: true, type: PaymentItem, isArray: true })
   paymentItems: PaymentItem[];
 }
 
 export const createPaymentDtoSchema = Joi.object({
+  residenceId: Joi.string().custom(joiObjectIdValidator('residenceId')).required(),
   paymentItems: Joi.array().items(Joi.object({
     name: Joi.string().required(),
     description: Joi.string().required(),
     type: Joi.string().valid('ranked', 'featured', 'listing').required(),
-    residenceId: Joi.string().custom(joiObjectIdValidator('residenceId')).required(),
     price: Joi.number().required(), 
     quantity: Joi.number().required(),
   })).required(),

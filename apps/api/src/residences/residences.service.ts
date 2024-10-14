@@ -37,6 +37,7 @@ import { AmenityRepository } from '../amenities/amenities.repository';
 import { LifeStyleRepository } from '../lifestyles/lifeStyle.repository';
 import { UnitDraftRepository } from '../unitDraft/unitDraft.repository';
 import { UnitRepository } from '../unit/unit.repository';
+import { InvoiceItem } from 'src/stripe/stripe-webhook.service';
 
 @Injectable()
 export class ResidenceService {
@@ -291,9 +292,11 @@ export class ResidenceService {
     return residenceDetails;
   }
 
-  async upgradeResidence(residenceId: string) {
-    const residence = await this.residenceRepository.findById(residenceId);
+  async upgradeResidence(upgradeInfo: InvoiceItem) {
+    const residence = await this.residenceRepository.findById(upgradeInfo.residenceId);
     residence.premium = true;
+    residence.invoiceId = upgradeInfo.invoiceId;
+    residence.subscriptionId = upgradeInfo.subscriptionId;
     await this.residenceRepository.update(residence.id, residence);
   }
 

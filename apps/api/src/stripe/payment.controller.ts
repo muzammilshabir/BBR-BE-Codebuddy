@@ -8,6 +8,8 @@ import { PaymentService } from './payment.service';
 import { CreatePaymentDto, createPaymentDtoSchema } from './dto/create-payment.dto';
 import { CreateSubscriptionDto, createSubscriptionDtoSchema } from './dto/create-subscription.dto';
 import { GetCurrentUserId } from 'src/auth/decorators/getCurrentUserId.decorator';
+import { Public } from '@bbr/api-core/modules/decorators';
+import { RefundPaymentDto, refundPaymentDtoSchema } from './dto/refund-payment.dto';
 
 @ApiTags('Payment')
 @Controller('payment')
@@ -46,47 +48,33 @@ export class PaymentController {
     return ResponseService.buildResponse({ intent }, 'Payment request created successfully');
   }
 
-  @Post('/subscription/session')
+  @Post('/invoices/')
   @ApiOperation({
-    summary: 'Create Subscription Session',
+    summary: 'Get Customer Invoices',
   })
-  @ApiBearerAuth()
-  @Roles(UserRole.BUYER)
-  @UsePipes(new JoiValidationPipe(createSubscriptionDtoSchema, 'body'))
-  async createSubscriptionSession(
+  @Public()
+  // @ApiBearerAuth()
+  // @Roles(UserRole.SELLER)
+  async getCustomerInvoices(
     @GetCurrentUserId() userId: string,
-    @Body() createSubscriptionDto: CreateSubscriptionDto,
-    ) {
-    const session = await this.paymentService.createSubscriptionSession(userId, createSubscriptionDto);
-    return ResponseService.buildResponse({ session }, 'Subscription session created successfully');
+  ) {
+    const invoices = await this.paymentService.getUserInvoices(userId);
+    return ResponseService.buildResponse({ invoices }, 'Customer Invoices retrieved successfully');
   }
 
-  @Post('/one-time/session')
+  @Post('/invoice/:invoiceId')
   @ApiOperation({
-    summary: 'Create One-time Payment Session',
+    summary: 'Get Customer Invoice',
   })
+  @Public()
   @ApiBearerAuth()
-  @Roles(UserRole.BUYER)
-  @UsePipes(new JoiValidationPipe(createPaymentDtoSchema, 'body'))
-  async createPaymentSession(
+  @Roles(UserRole.SELLER)
+  async getCustomerInvoice(
     @GetCurrentUserId() userId: string,
-    @Body() createPaymentDto: CreatePaymentDto,
-    ) {
-    const session = await this.paymentService.createPaymentSession(userId, createPaymentDto);
-    return ResponseService.buildResponse({ session }, 'Payment session created successfully');
-  }
-
-  @Post('/customer-portal/session')
-  @ApiOperation({
-    summary: 'Create Customer Portal Session',
-  })
-  @ApiBearerAuth()
-  @Roles(UserRole.BUYER)
-  async createCustomerPortalSession(
-    @GetCurrentUserId() userId: string,
-    ) {
-    const session = await this.paymentService.createCustomerPortalSession(userId);
-    return ResponseService.buildResponse({ session }, 'Customer Portal session created successfully');
+    @Param('invoiceId') invoiceId: string,
+  ) {
+    const invoices = await this.paymentService.getUserInvoice(userId, invoiceId);
+    return ResponseService.buildResponse({ invoices }, 'Customer Invoice retrieved successfully');
   }
 
   @Post('/admin/customer-portal/session/:userId')
@@ -156,13 +144,28 @@ export class PaymentController {
   @ApiOperation({
     summary: 'Get Customer Invoices',
   })
-  @ApiBearerAuth()
-  @Roles(UserRole.ADMIN)
-  async getCustomerInvoices(
+  @Public()
+  // @ApiBearerAuth()
+  // @Roles(UserRole.ADMIN)
+  async getCustomerInvoicesAdmin(
     @Param('userId') userId: string,
   ) {
     const invoices = await this.paymentService.getUserInvoices(userId);
     return ResponseService.buildResponse({ invoices }, 'Customer Invoices retrieved successfully');
+  }
+
+  @Post('/admin/customer/invoice/:invoiceId')
+  @ApiOperation({
+    summary: 'Get Customer Invoice',
+  })
+  @Public()
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  async getCustomerInvoiceAdmin(
+    @Param('invoiceId') invoiceId: string,
+  ) {
+    const invoices = await this.paymentService.getUserInvoiceAdmin(invoiceId);
+    return ResponseService.buildResponse({ invoices }, 'Customer Invoice retrieved successfully');
   }
 
   @Post('/admin/refund/:invoiceId')
@@ -171,10 +174,12 @@ export class PaymentController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(refundPaymentDtoSchema, 'body'))
   async refundCustomerInvoice(
     @Param('invoiceId') invoiceId: string,
+    @Body() refundPaymentDto: RefundPaymentDto,
   ) {
-    const refund = await this.paymentService.refundUserInvoice(invoiceId);
+    const refund = await this.paymentService.refundUserInvoice(invoiceId, refundPaymentDto);
     return ResponseService.buildResponse({ refund }, 'Invoice refunded successfully');
   }
 }

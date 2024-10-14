@@ -5,16 +5,19 @@ import { CreateSubscriptionDto, SubscriptionItem } from './dto/create-subscripti
 import { PaymentLineItemDto } from './dto/payment-line-item.dto';
 import { SubscriptionLineItemDto } from './dto/subscription-line-item.dto';
 import { UserService } from 'src/users/user.service';
+import { ResidenceService } from 'src/residences/residences.service';
+import { RefundPaymentDto } from './dto/refund-payment.dto';
 
 @Injectable()
 export class PaymentService {
   constructor(
      private readonly stripeService: StripeService,
      private readonly userService: UserService,
+     private readonly residenceService: ResidenceService,
   ) {
   }
 
-  private convertPaymentItemsToLineItems(items: PaymentItem[]): PaymentLineItemDto[] {
+  private convertPaymentItemsToLineItems(residenceId: string, items: PaymentItem[]): PaymentLineItemDto[] {
     const lineItems: PaymentLineItemDto[] = [];
 
     for (const item of items) {
@@ -25,7 +28,7 @@ export class PaymentService {
             name: item.name,
             description: item.description,
             metadata: {
-              id: item.residenceId.toString(),
+              id: residenceId,
               type: item.type,
             },
           },
@@ -76,8 +79,8 @@ export class PaymentService {
   async createPayment(userId: string, createPaymentDto: CreatePaymentDto) {
     const user = await this.userService.findById(userId);
     const customerId = user.stripeCustomerId;
-    const lineItems = this.convertPaymentItemsToLineItems(createPaymentDto.paymentItems);
-    return this.stripeService.createPaymentInvoice(customerId, lineItems);
+    const lineItems = this.convertPaymentItemsToLineItems(createPaymentDto.residenceId.toString(), createPaymentDto.paymentItems);
+    return this.stripeService.createPaymentInvoice(customerId, createPaymentDto.residenceId.toString(), lineItems);
   }
 
   async createSubscriptionSession(userId: string, createSubscriptionDto: CreateSubscriptionDto) {
@@ -90,7 +93,7 @@ export class PaymentService {
   async createPaymentSession(userId: string, createPaymentDto: CreatePaymentDto) {
     const user = await this.userService.findById(userId);
     const customerId = user.stripeCustomerId;
-    const lineItems = this.convertPaymentItemsToLineItems(createPaymentDto.paymentItems);
+    const lineItems = this.convertPaymentItemsToLineItems(createPaymentDto.residenceId.toString(), createPaymentDto.paymentItems);
     return this.stripeService.createPaymentSession(customerId, lineItems);
   }
 
@@ -128,7 +131,17 @@ export class PaymentService {
     return this.stripeService.getCustomerInvoices(customerId);
   }
 
-  async refundUserInvoice(invoiceId: string) {
-    return this.stripeService.refundInvoice(invoiceId);
+  async getUserInvoice(userId: string, invoiceId: string) {
+    const user = await this.userService.findById(userId);
+    const customerId = user.stripeCustomerId;
+    return this.stripeService.getCustomerInvoice(customerId, invoiceId);
+  }
+
+  async getUserInvoiceAdmin(invoiceId: string) {
+    return this.stripeService.getCustomerInvoiceAdmin(invoiceId);
+  }
+
+  async refundUserInvoice(invoiceId: string, refundPaymentDto: RefundPaymentDto) {
+    return this.stripeService.refundInvoice(invoiceId, refundPaymentDto);
   }
 }
