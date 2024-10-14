@@ -6,6 +6,13 @@ import { PaymentLineItemDto } from './dto/payment-line-item.dto';
 import { SubscriptionLineItemDto } from './dto/subscription-line-item.dto';
 import { ResidenceService } from 'src/residences/residences.service';
 import { RefundPaymentDto } from './dto/refund-payment.dto';
+interface PaymentMethodType {
+  type: string;
+  brand?: string;
+  last4?: string;
+  email?: string;
+  bank_name?: string;
+}
 @Injectable()
 export class StripeService {
   private stripe: Stripe;
@@ -19,27 +26,28 @@ export class StripeService {
     });
   }
 
-  private mapPaymentMethodToType(method: Stripe.PaymentMethod) {
-    if (method.type == 'card') {
-      return {
-        'type': 'card',
-        'brand': method.card.brand,
-        'last4': method.card.last4,
-      };
-    } else if (method.type == 'paypal') {
-      return {
-        'type': 'paypal',
-        'email': method.paypal.payer_email,
-      };
-    } else if (method.type == 'us_bank_account') {
-      return {
-        'type': 'wire',
-        'bank_name': method.us_bank_account.bank_name,
-      };
-    } else {
-      return {
-        'type': method.type,
-      };
+  private mapPaymentMethodToType(method: Stripe.PaymentMethod): PaymentMethodType {
+    switch (method.type) {
+      case 'card':
+        return {
+          type: 'card',
+          brand: method.card.brand,
+          last4: method.card.last4,
+        };
+      case 'paypal':
+        return {
+          type: 'paypal',
+          email: method.paypal.payer_email,
+        };
+      case 'us_bank_account':
+        return {
+          type: 'wire',
+          bank_name: method.us_bank_account.bank_name,
+        };
+      default:
+        return {
+          type: method.type,
+        };
     }
   }
 
@@ -135,18 +143,17 @@ export class StripeService {
 
   async getCustomerInvoice(customerId: string, invoiceId: string) {
     const invoices = await this.stripe.invoices.list({
-      customer:customerId,
-
+      customer: customerId,
     });
     let invoiceBelongsToCustomer = false;
     for (const invoice of invoices.data) {
-      if(invoice.id == invoiceId) {
+      if (invoice.id == invoiceId) {
         invoiceBelongsToCustomer = true;
         break;
       }
     }
-    if(!invoiceBelongsToCustomer) {
-      throw new Error("Invalid invoice id");
+    if (!invoiceBelongsToCustomer) {
+      throw new Error('Invalid invoice id');
     }
     const invoice = await this.stripe.invoices.retrieve(invoiceId);
     return this.processInvoice(invoice);
@@ -163,7 +170,7 @@ export class StripeService {
     const subscriptions = [];
     for (const item of items) {
       const product = await this.stripe.products.retrieve(item.price.product.toString());
-      if(item.type == 'subscription') {
+      if (item.type == 'subscription') {
         subscriptions.push({
           id: product.id,
           name: product.name,
@@ -191,8 +198,8 @@ export class StripeService {
 
   async refundInvoice(invoiceId: string, refundPaymentDto: RefundPaymentDto) {
     const invoice = await this.stripe.invoices.retrieve(invoiceId);
-    if(invoice.amount_paid < refundPaymentDto.amount) {
-      throw new Error("Invalid refund amount");
+    if (invoice.amount_paid < refundPaymentDto.amount) {
+      throw new Error('Invalid refund amount');
     }
     const refund = await this.stripe.refunds.create({
       payment_intent: invoice.payment_intent.toString(),
@@ -201,7 +208,7 @@ export class StripeService {
       metadata: {
         note: refundPaymentDto.note,
         reason: refundPaymentDto.reason,
-      }
+      },
     });
 
     return {
@@ -340,7 +347,7 @@ export class StripeService {
       });
     }
 
-    return {products};
+    return { products };
   }
 
   async createSubscriptionSession(customerId: string, lineItems: SubscriptionLineItemDto[]) {
