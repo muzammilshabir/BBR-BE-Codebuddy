@@ -59,6 +59,7 @@ import {
 } from './dto/addToFavourite';
 import { GetCurrentUserId } from './decorators/getCurrentUserId.decorator';
 import { GetUserByIdDto, getUserByIdSchema } from './dto/getUserById.dto';
+import { ListUserDto, listUserSchema } from './dto/listUsers';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -215,6 +216,17 @@ export class AuthController {
   ) {
     const user = await this.authService.acceptBbrCommitment(userDetails, acceptBBRCommitment);
     return ResponseService.buildResponse(user, 'BBR Commitment accepted successfully');
+  }
+
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'List developers',
+  })
+  @Get('seller')
+  @UsePipes(new JoiValidationPipe(listUserSchema, 'param'))
+  async listSellers(@Query() query: ListUserDto) {
+    const sellers = await this.authService.listSellers(query);
+    return ResponseService.buildResponse(sellers, 'Seller retrieved successfully');
   }
 
   @ApiBearerAuth()

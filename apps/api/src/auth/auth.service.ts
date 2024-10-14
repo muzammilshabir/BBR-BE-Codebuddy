@@ -29,6 +29,7 @@ import { JwtPayloadType } from './type/jwt-payload.type';
 import { CreateDummyUserDto } from '../users/dto/createUser.dto';
 import { Types } from 'mongoose';
 import { AddFavouritesDto, ListFavouritesDto } from './dto/addToFavourite';
+import { ListUserDto } from './dto/listUsers';
 
 @Injectable()
 export class AuthService {
@@ -373,5 +374,9 @@ export class AuthService {
 
   async getSellerById(id: string): Promise<User> {
     return await this.userService.getSellerById(id);
+  }
+
+  async listSellers(listUserDto: ListUserDto) {
+    return await this.userService.listSellers(listUserDto);
   }
 }

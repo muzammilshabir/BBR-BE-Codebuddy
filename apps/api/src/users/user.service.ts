@@ -20,6 +20,7 @@ import { AddFavouritesDto, ListFavouritesDto, PropertyType } from '../auth/dto/a
 import { ResidenceRepository } from '../residences/residences.repository';
 import { UnitRepository } from '../unit/unit.repository';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
+import { ListUserDto } from '../auth/dto/listUsers';
 
 @Injectable()
 export class UserService {
@@ -286,5 +287,32 @@ export class UserService {
 
   async getSellerById(id: string): Promise<User> {
     return await this.userRepository.getSellerById(id);
+  }
+
+  async listSellers(listUserDto: ListUserDto) {
+    const { search } = listUserDto;
+
+    const filter: any = { role: UserRole.SELLER };
+
+    if (search) {
+      filter.$or = [
+        { fullName: { $regex: search, $options: 'i' } },
+        { companyName: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { 'contactPersonInfo.phone.number': { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    if (listUserDto.status) {
+      filter.status = listUserDto.status;
+    }
+
+    const options = PaginationService.prepareOptions(listUserDto);
+
+    const { data, count } = await this.userRepository.findAll(filter, options);
+
+    const { pagination } = PaginationService.paginate({ rows: data, count }, listUserDto);
+
+    return { pagination, sellers: data };
   }
 }
