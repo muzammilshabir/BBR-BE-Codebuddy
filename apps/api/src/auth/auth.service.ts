@@ -370,4 +370,8 @@ export class AuthService {
 
     return await this.userService.getFavourites(userId, query);
   }
+
+  async getSellerById(id: string): Promise<User> {
+    return await this.userService.getSellerById(id);
+  }
 }

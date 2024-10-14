@@ -283,4 +283,8 @@ export class UserService {
       throw new BadRequestException('Invalid property type');
     }
   }
+
+  async getSellerById(id: string): Promise<User> {
+    return await this.userRepository.getSellerById(id);
+  }
 }

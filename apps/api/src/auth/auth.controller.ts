@@ -1,7 +1,18 @@
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
 import { CaptchaEnum } from '@bbr/api-core/modules/types/captcha.type';
-import { Body, Controller, Get, Ip, Patch, Post, Query, UseGuards, UsePipes } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Ip,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+  UsePipes,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CaptchaGuard } from '../captcha/guards/captcha.guard';
 import { UserRole } from '../users/enum/user.enum';
@@ -47,6 +58,7 @@ import {
   ListFavouritesDto,
 } from './dto/addToFavourite';
 import { GetCurrentUserId } from './decorators/getCurrentUserId.decorator';
+import { GetUserByIdDto, getUserByIdSchema } from './dto/getUserById.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -205,6 +217,17 @@ export class AuthController {
     return ResponseService.buildResponse(user, 'BBR Commitment accepted successfully');
   }
 
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Get seller by ID',
+  })
+  @Get('seller/:id')
+  @UsePipes(new JoiValidationPipe(getUserByIdSchema, 'param'))
+  async getSellerById(@Param() params: GetUserByIdDto) {
+    const seller = await this.authService.getSellerById(params.id);
+    return ResponseService.buildResponse(seller, 'Seller retrieved successfully');
+  }
+
   @ApiOperation({ summary: 'Request a password reset link' })
   @Public()
   @Post('forgot-password')
@@ -221,6 +244,15 @@ export class AuthController {
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     await this.authService.resetPassword(resetPasswordDto);
     return ResponseService.buildResponse({}, 'Password has been reset successfully');
+  }
+
+  @ApiOperation({ summary: 'Send reset password link' })
+  @ApiBearerAuth()
+  @Post('send-reset-password-link')
+  @UsePipes(new JoiValidationPipe(forgotPasswordSchema, 'body'))
+  async sendResetPasswordLink(@Body() forgotPasswordDto: ForgotPasswordDto) {
+    await this.authService.forgotPassword(forgotPasswordDto);
+    return ResponseService.buildResponse({}, 'Reset password link sent successfully');
   }
 
   @ApiBearerAuth()
