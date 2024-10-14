@@ -89,6 +89,12 @@ export class User extends Document {
   @Prop({ required: false, type: [{ type: Types.ObjectId, ref: 'Brand' }] })
   associatedBrandId?: Types.ObjectId[];
 
+  @Prop({ required: false, type: [{ type: Types.ObjectId, ref: 'Residence' }] })
+  favouriteResidenceIds?: Types.ObjectId[];
+
+  @Prop({ required: false, type: [{ type: Types.ObjectId, ref: 'Unit' }] })
+  favouritesUnitIds?: Types.ObjectId[];
+
   @Prop({ required: false })
   yearEstablished: string;
 

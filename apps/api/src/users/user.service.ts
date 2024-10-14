@@ -16,13 +16,18 @@ import { UserRole, UserStatus } from './enum/user.enum';
 import { User } from './schema/user.schema';
 import { UserRepository } from './user.repository';
 import { UpdateSellerProfileDto } from '../auth/dto/updateProfile';
+import { AddFavouritesDto, PropertyType } from '../auth/dto/addToFavourite';
+import { ResidenceRepository } from '../residences/residences.repository';
+import { UnitRepository } from '../unit/unit.repository';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectModel(User.name) private readonly userModel: Model<User>,
     private readonly tokenService: TokenService,
-    private readonly userRepository: UserRepository
+    private readonly userRepository: UserRepository,
+    private readonly residenceRepository: ResidenceRepository,
+    private readonly unitRepository: UnitRepository
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
@@ -205,5 +210,39 @@ export class UserService {
       console.error('Error creating user:', error);
       throw error;
     }
+  }
+
+  async addFavourites(userId: string, addFavouritesDto: AddFavouritesDto) {
+    const user = await this.userModel.findById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const { propertyType, favouriteId } = addFavouritesDto;
+    const objectId = new Types.ObjectId(favouriteId);
+
+    if (propertyType === PropertyType.UNIT) {
+      const unit = await this.unitRepository.findById(favouriteId);
+      if (!unit) {
+        throw new NotFoundException(`Unit with id ${favouriteId} not found`);
+      }
+
+      // Use addToSet to ensure unique entries
+      await this.userModel.findByIdAndUpdate(userId, {
+        $addToSet: { favouritesUnitIds: objectId },
+      });
+    } else if (propertyType === PropertyType.RESIDENCE) {
+      const residence = await this.residenceRepository.findById(favouriteId);
+      if (!residence) {
+        throw new NotFoundException(`Residence with id ${favouriteId} not found`);
+      }
+
+      // Use addToSet to ensure unique entries
+      await this.userModel.findByIdAndUpdate(userId, {
+        $addToSet: { favouriteResidenceIds: objectId },
+      });
+    }
+
+    return await this.userModel.findById(userId);
   }
 }

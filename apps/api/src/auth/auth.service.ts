@@ -28,6 +28,7 @@ import { VerifyUserDto } from './dto/verifyUser.dto';
 import { JwtPayloadType } from './type/jwt-payload.type';
 import { CreateDummyUserDto } from '../users/dto/createUser.dto';
 import { Types } from 'mongoose';
+import { AddFavouritesDto } from './dto/addToFavourite';
 
 @Injectable()
 export class AuthService {
@@ -358,5 +359,9 @@ export class AuthService {
     this.sendVerificationEmail(user.email, user.verificationToken);
 
     return user;
+  }
+
+  async addFavourites(userId: string, addFavouritesDto: AddFavouritesDto) {
+    return await this.userService.addFavourites(userId, addFavouritesDto);
   }
 }

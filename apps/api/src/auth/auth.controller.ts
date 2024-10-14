@@ -40,6 +40,8 @@ import { VerifyUserDto, verifyUserSchema } from './dto/verifyUser.dto';
 import { AtGuard } from './guards/at.guard';
 import { RtGuard } from './guards/rt.guard';
 import { JwtPayloadType } from './type/jwt-payload.type';
+import { AddFavouritesDto, addFavouritesSchema } from './dto/addToFavourite';
+import { GetCurrentUserId } from './decorators/getCurrentUserId.decorator';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -124,6 +126,18 @@ export class AuthController {
     const tokens = await this.authService.refreshToken(userFromToken);
 
     return ResponseService.buildResponse(tokens);
+  }
+
+  @ApiBearerAuth()
+  @Patch('add/favourites')
+  @UsePipes(new JoiValidationPipe(addFavouritesSchema, 'body'))
+  @ApiOperation({ summary: 'Add favourites (unit/residence)' })
+  async addFavourites(
+    @GetCurrentUserId() userId: string,
+    @Body() addFavouritesDto: AddFavouritesDto
+  ) {
+    const user = await this.authService.addFavourites(userId, addFavouritesDto);
+    return ResponseService.buildResponse({ user }, 'Favourites updated successfully');
   }
 
   @ApiOperation({

@@ -11,9 +11,15 @@ import { UserController } from './user.controller';
 import { UserService } from './user.service';
 import { UserRepository } from './user.repository';
 import { UserFixture } from './user.fixture';
+import { Residence, ResidenceSchema } from '../residences/schema/residences.schema';
+import { ResidenceRepository } from '../residences/residences.repository';
+import { Unit, UnitSchema } from '../unit/schema/unit.schema';
+import { UnitRepository } from '../unit/unit.repository';
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
+    MongooseModule.forFeature([{ name: Residence.name, schema: ResidenceSchema }]),
+    MongooseModule.forFeature([{ name: Unit.name, schema: UnitSchema }]),
     JwtModule.register(jwtConfig),
     ConfigModule.forRoot(),
     TokenGenerationModule,
@@ -25,6 +31,8 @@ import { UserFixture } from './user.fixture';
     ServiceConfig,
     UserRepository,
     UserFixture,
+    ResidenceRepository,
+    UnitRepository,
   ],
   exports: [UserService, UserFixture],
 })
