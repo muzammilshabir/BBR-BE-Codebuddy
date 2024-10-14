@@ -1,7 +1,7 @@
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
 import { CaptchaEnum } from '@bbr/api-core/modules/types/captcha.type';
-import { Body, Controller, Get, Ip, Patch, Post, UseGuards, UsePipes } from '@nestjs/common';
+import { Body, Controller, Get, Ip, Patch, Post, Query, UseGuards, UsePipes } from '@nestjs/common';
 import { ApiBearerAuth, ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CaptchaGuard } from '../captcha/guards/captcha.guard';
 import { UserRole } from '../users/enum/user.enum';
@@ -40,7 +40,12 @@ import { VerifyUserDto, verifyUserSchema } from './dto/verifyUser.dto';
 import { AtGuard } from './guards/at.guard';
 import { RtGuard } from './guards/rt.guard';
 import { JwtPayloadType } from './type/jwt-payload.type';
-import { AddFavouritesDto, addFavouritesSchema } from './dto/addToFavourite';
+import {
+  AddFavouritesDto,
+  addFavouritesSchema,
+  getFavouritesSchema,
+  ListFavouritesDto,
+} from './dto/addToFavourite';
 import { GetCurrentUserId } from './decorators/getCurrentUserId.decorator';
 
 @ApiTags('Auth')
@@ -129,7 +134,7 @@ export class AuthController {
   }
 
   @ApiBearerAuth()
-  @Patch('add/favourites')
+  @Patch('buyer/favourites/add')
   @UsePipes(new JoiValidationPipe(addFavouritesSchema, 'body'))
   @ApiOperation({ summary: 'Add favourites (unit/residence)' })
   async addFavourites(
@@ -138,6 +143,15 @@ export class AuthController {
   ) {
     const user = await this.authService.addFavourites(userId, addFavouritesDto);
     return ResponseService.buildResponse({ user }, 'Favourites updated successfully');
+  }
+
+  @ApiBearerAuth()
+  @Get('buyer/favourites')
+  @UsePipes(new JoiValidationPipe(getFavouritesSchema, 'param'))
+  @ApiOperation({ summary: 'Get favourite residences or units' })
+  async getFavourites(@GetCurrentUserId() userId: string, @Query() query: ListFavouritesDto) {
+    const favourites = await this.authService.getFavourites(userId, query);
+    return ResponseService.buildResponse(favourites, 'Favourites retrieved successfully');
   }
 
   @ApiOperation({

@@ -28,7 +28,7 @@ import { VerifyUserDto } from './dto/verifyUser.dto';
 import { JwtPayloadType } from './type/jwt-payload.type';
 import { CreateDummyUserDto } from '../users/dto/createUser.dto';
 import { Types } from 'mongoose';
-import { AddFavouritesDto } from './dto/addToFavourite';
+import { AddFavouritesDto, ListFavouritesDto } from './dto/addToFavourite';
 
 @Injectable()
 export class AuthService {
@@ -363,5 +363,11 @@ export class AuthService {
 
   async addFavourites(userId: string, addFavouritesDto: AddFavouritesDto) {
     return await this.userService.addFavourites(userId, addFavouritesDto);
+  }
+
+  async getFavourites(userId: string, query: ListFavouritesDto) {
+    if (!userId) throw new UnauthorizedException('Invalid user');
+
+    return await this.userService.getFavourites(userId, query);
   }
 }
