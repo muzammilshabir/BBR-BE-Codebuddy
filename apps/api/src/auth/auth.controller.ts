@@ -223,6 +223,15 @@ export class AuthController {
     return ResponseService.buildResponse({}, 'Password has been reset successfully');
   }
 
+  @ApiOperation({ summary: 'Send reset password link' })
+  @ApiBearerAuth()
+  @Post('send-reset-password-link')
+  @UsePipes(new JoiValidationPipe(forgotPasswordSchema, 'body'))
+  async sendResetPasswordLink(@Body() forgotPasswordDto: ForgotPasswordDto) {
+    await this.authService.forgotPassword(forgotPasswordDto);
+    return ResponseService.buildResponse({}, 'Reset password link sent successfully');
+  }
+
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Update Seller Profile',
