@@ -9,6 +9,10 @@ const omittedForBuyer = [
   'corporateEmail',
   'receiveLuxuryInsights',
   'fullName',
+  'companyLogo',
+  'yearEstablished',
+  'briefCompanyDescription',
+  'associatedBrandId',
 ];
 
 export const updateBuyerProfileSchema = updateUserSchema.fork(omittedForBuyer, (schema) =>
@@ -29,14 +33,7 @@ export const acceptBBRCommitmentSchema = Joi.object({
   commitement: Joi.boolean().required(),
 });
 
-const omittedForSeller = [
-  'contactInfo',
-  'companyName',
-  'corporateEmail',
-  'preferences',
-  'receiveLuxuryInsights',
-  'fullName',
-];
+const omittedForSeller = ['contactInfo', 'preferences', 'receiveLuxuryInsights'];
 
 export class UpdateSellerProfileDto extends OmitType(
   UpdateSellerDto,

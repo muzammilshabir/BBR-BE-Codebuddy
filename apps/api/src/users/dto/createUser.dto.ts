@@ -9,6 +9,7 @@ import {
 } from '../types/user.type';
 import { UserCompanyInfo } from './../types/user.type';
 import { Types } from 'mongoose';
+import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
 
 export const phoneSchema = Joi.object({
   countryCode: Joi.string().required(),
@@ -89,7 +90,13 @@ export const createUserSchema = Joi.object({
   contactInfo: contactInfoSchema.optional(),
   preferences: preferencesSchema.optional(),
   notificationPreferences: notificationPreferencesSchema.optional(),
-  avatarImage: Joi.string().optional(),
+  avatarImage: Joi.string().optional().custom(joiObjectIdValidator('avatarImage')),
+  companyLogo: Joi.string().optional().custom(joiObjectIdValidator('companyLogo')),
+  yearEstablished: Joi.string().optional(),
+  briefCompanyDescription: Joi.string().optional(),
+  associatedBrandId: Joi.array()
+    .items(Joi.string().custom(joiObjectIdValidator('associatedBrandId')))
+    .optional(),
 });
 
 export class CreateUserDto {
@@ -189,6 +196,29 @@ export class CreateUserDto {
     required: false,
   })
   avatarImage?: Types.ObjectId;
+
+  @ApiProperty({
+    description: 'Company Logo',
+    example: '66acda8b857c576159b74da4',
+    required: false,
+  })
+  companyLogo?: Types.ObjectId;
+
+  @ApiProperty({ description: 'Year established', example: '2002', required: false })
+  yearEstablished?: string;
+
+  @ApiProperty({
+    description: 'Brief company description',
+    example: 'description',
+    required: false,
+  })
+  briefCompanyDescription?: string;
+
+  @ApiProperty({
+    example: ['66ab4bd5161117eabe919e57', '66ab4bd5161117eabe919e61'],
+    required: true,
+  })
+  associatedBrandId?: Types.ObjectId[];
 }
 
 export class CreateDummyUserDto {

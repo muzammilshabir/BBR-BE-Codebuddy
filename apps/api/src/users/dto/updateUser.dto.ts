@@ -21,6 +21,12 @@ export class UpdateUserDto extends OmitType(CreateUserDto, [
   'verificationToken',
 ]) {}
 
-export class UpdateBuyerDto extends OmitType(UpdateUserDto, ['hundredFiveStarReviews']) {}
+export class UpdateBuyerDto extends OmitType(UpdateUserDto, [
+  'hundredFiveStarReviews',
+  'companyLogo',
+  'yearEstablished',
+  'briefCompanyDescription',
+  'associatedBrandId',
+]) {}
 
 export class UpdateSellerDto extends OmitType(UpdateUserDto, ['hundredFiveStarReviews']) {}

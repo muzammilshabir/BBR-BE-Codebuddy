@@ -27,6 +27,7 @@ import {
 import { VerifyUserDto } from './dto/verifyUser.dto';
 import { JwtPayloadType } from './type/jwt-payload.type';
 import { CreateDummyUserDto } from '../users/dto/createUser.dto';
+import { Types } from 'mongoose';
 
 @Injectable()
 export class AuthService {
@@ -202,7 +203,33 @@ export class AuthService {
 
     if (loggedInUser.role !== UserRole.BUYER) throw new UnauthorizedException('Invalid token');
 
-    return await this.userService.update(loggedInUser.sub, updateBuyerDto);
+    const transformedDto = {
+      ...updateBuyerDto,
+
+      avatarImage: updateBuyerDto.avatarImage
+        ? new Types.ObjectId(updateBuyerDto.avatarImage)
+        : undefined,
+      preferences: {
+        ...updateBuyerDto.preferences,
+        cityIds:
+          updateBuyerDto?.preferences?.cityIds?.map((cityId) => new Types.ObjectId(cityId)) ||
+          undefined,
+        residenceTypeIds:
+          updateBuyerDto?.preferences?.residenceTypeIds?.map(
+            (residenceTypeId) => new Types.ObjectId(residenceTypeId)
+          ) || undefined,
+        countryIds:
+          updateBuyerDto?.preferences?.countryIds?.map(
+            (countryId) => new Types.ObjectId(countryId)
+          ) || undefined,
+        lifeStyleIds:
+          updateBuyerDto?.preferences?.lifeStyleIds?.map(
+            (lifeStyleId) => new Types.ObjectId(lifeStyleId)
+          ) || undefined,
+      },
+    };
+
+    return await this.userService.update(loggedInUser.sub, transformedDto);
   }
 
   async signupDeveloper(sellerSignupDto: SellerSignupDto) {
