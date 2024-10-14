@@ -44,6 +44,8 @@ import {
   acceptBBRCommitmentSchema,
   UpdateBuyerProfileDto,
   updateBuyerProfileSchema,
+  UpdateDeveloperStatusDto,
+  UpdateDeveloperStatusSchema,
   UpdateSellerProfileDto,
   updateSellerProfileSchema,
 } from './dto/updateProfile';
@@ -238,6 +240,18 @@ export class AuthController {
   async getSellerById(@Param() params: GetUserByIdDto) {
     const seller = await this.authService.getSellerById(params.id);
     return ResponseService.buildResponse(seller, 'Seller retrieved successfully');
+  }
+
+  @ApiBearerAuth()
+  @Patch('seller/update-status/:developerId/:status')
+  @ApiOperation({ summary: 'Update Seller status' })
+  async updateSellerStatus(
+    @Param(new JoiValidationPipe(UpdateDeveloperStatusSchema, 'param'))
+    params: UpdateDeveloperStatusDto
+  ) {
+    const { developerId, status } = params;
+    const result = await this.authService.updateSellerStatus({ developerId, status });
+    return { message: 'Seller status updated successfully', data: result };
   }
 
   @ApiOperation({ summary: 'Request a password reset link' })

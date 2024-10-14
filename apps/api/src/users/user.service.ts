@@ -15,7 +15,7 @@ import { UpdateUserDto } from './dto/updateUser.dto';
 import { UserRole, UserStatus } from './enum/user.enum';
 import { User } from './schema/user.schema';
 import { UserRepository } from './user.repository';
-import { UpdateSellerProfileDto } from '../auth/dto/updateProfile';
+import { UpdateDeveloperStatusDto, UpdateSellerProfileDto } from '../auth/dto/updateProfile';
 import { AddFavouritesDto, ListFavouritesDto, PropertyType } from '../auth/dto/addToFavourite';
 import { ResidenceRepository } from '../residences/residences.repository';
 import { UnitRepository } from '../unit/unit.repository';
@@ -314,5 +314,19 @@ export class UserService {
     const { pagination } = PaginationService.paginate({ rows: data, count }, listUserDto);
 
     return { pagination, sellers: data };
+  }
+
+  async updateSellerStatus(updateDeveloperStatusDto: UpdateDeveloperStatusDto) {
+    const { developerId, status } = updateDeveloperStatusDto;
+
+    const seller = await this.userRepository.findById(developerId);
+    if (!seller) {
+      throw new NotFoundException('Seller not found');
+    }
+
+    seller.status = status;
+    await seller.save();
+
+    return seller;
   }
 }
