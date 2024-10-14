@@ -29,11 +29,10 @@ export class RankingCategoryService {
   ) {}
 
   async findAll(rankingCategoryDto: RankingCategoryListDto, user: JwtPayloadType) {
-    const { search, status, limit, page } = rankingCategoryDto;
+    const { search, status, createdById } = rankingCategoryDto;
 
     const query: any = {
       isDeleted: { $ne: DeletionStatus.DELETED },
-      createdById: new Types.ObjectId(user.sub),
     };
 
     if (search) {
@@ -47,7 +46,12 @@ export class RankingCategoryService {
       query.status = status;
     }
 
-    return await this.rankingCategoryRepository.findAll(query, rankingCategoryDto, [
+    if (createdById) {
+      query.createdById = createdById;
+    }
+    const options = PaginationService.prepareOptions(rankingCategoryDto);
+
+    return await this.rankingCategoryRepository.findAll(query, options, [
       {
         path: 'createdById',
         select: 'name email',
