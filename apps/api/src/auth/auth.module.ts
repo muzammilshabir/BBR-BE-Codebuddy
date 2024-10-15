@@ -13,9 +13,17 @@ import { AuthService } from './auth.service';
 import { FailedLoginAttemptsMiddleware } from './middlewares/failed-login-attempts.middleware';
 import { AtStrategy } from './strategies/at.strategy';
 import { RtStrategy } from './strategies/rt.strategy';
+import { StripeModule } from 'src/stripe/stripe.module';
 
 @Module({
-  imports: [UserModule, MailerCoreModule, JwtModule.register(jwtConfig), RedisModule, HttpModule],
+  imports: [
+    UserModule,
+    MailerCoreModule,
+    JwtModule.register(jwtConfig),
+    RedisModule,
+    HttpModule,
+    StripeModule,
+  ],
   providers: [AuthService, AtStrategy, RtStrategy, ServiceConfig, CaptchaGuard, TokenService],
   controllers: [AuthController],
   exports: [TokenService, AuthService],
