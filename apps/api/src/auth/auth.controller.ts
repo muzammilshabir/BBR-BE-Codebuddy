@@ -220,7 +220,7 @@ export class AuthController {
 
   @ApiBearerAuth()
   @ApiOperation({
-    summary: 'List developers',
+    summary: 'List Sellers',
   })
   @Get('seller')
   @UsePipes(new JoiValidationPipe(listUserSchema, 'param'))
