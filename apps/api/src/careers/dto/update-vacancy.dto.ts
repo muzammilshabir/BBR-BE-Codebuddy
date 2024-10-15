@@ -36,14 +36,14 @@ export class UpdateVacancyDto {
   @ApiProperty({
     example: JobType.FULL_TIME,
     required: false,
-    type: JobType,
+    enum: JobType,
   })
   type?: JobType;
 
   @ApiProperty({
     example: JobStatus.ACTIVE,
     required: false,
-    type: JobStatus,
+    enum: JobStatus,
   })
   status?: JobStatus;
 

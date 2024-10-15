@@ -19,10 +19,18 @@ export class Vacancy extends Document {
   @Prop({ required: true, default: false  })
   isRemote: boolean;
 
-  @Prop({ required: true, default: JobType.FULL_TIME  })
+  @Prop({
+    required: true,
+    default: JobType.FULL_TIME,
+    enum: JobType,
+  })
   type: JobType;
 
-  @Prop({ required: true, default: JobStatus.ACTIVE  })
+  @Prop({
+    required: true,
+    default: JobStatus.ACTIVE,
+    enum: JobStatus,
+  })
   status: JobStatus;
 
   @Prop({ type: { type: Types.ObjectId, ref: 'Upload' }})

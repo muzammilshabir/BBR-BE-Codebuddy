@@ -25,7 +25,12 @@ export class VacancyApplication extends Document {
   @Prop({ required: false  })
   message: string;
 
-  @Prop({ required: true, default: ApplicationStatus.PENDING  })
+  @Prop({
+    required: true,
+    default: ApplicationStatus.PENDING,
+    enum: ApplicationStatus,
+
+  })
   status: ApplicationStatus;
 
   @Prop({ type: Boolean, default: false })

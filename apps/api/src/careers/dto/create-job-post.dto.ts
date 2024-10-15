@@ -40,14 +40,14 @@ export class CreateJobPostDto {
   @ApiProperty({
     example: JobType.FULL_TIME,
     required: true,
-    type: JobType,
+    enum: JobType,
   })
   type: JobType;
 
   @ApiProperty({
     example: JobStatus.ACTIVE,
     required: true,
-    type: JobStatus,
+    enum: JobStatus,
   })
   status: JobStatus;
 

@@ -6,7 +6,7 @@ export class UpdateVacancyApplicationDto {
 
   @ApiProperty({
     example: ApplicationStatus.REJECTED,
-    type: String,
+    enum: ApplicationStatus,
   })
   status: ApplicationStatus;
 }
