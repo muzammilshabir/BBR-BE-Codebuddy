@@ -62,6 +62,7 @@ import {
 import { GetCurrentUserId } from './decorators/getCurrentUserId.decorator';
 import { GetUserByIdDto, getUserByIdSchema } from './dto/getUserById.dto';
 import { ListUserDto, listUserSchema } from './dto/listUsers';
+import { AddSellerDto, AddSellerSchema } from '../users/dto/createUser.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -293,6 +294,17 @@ export class AuthController {
   ) {
     const user = await this.authService.updateSeller(userFromToken, updateSellerProfileDto);
     return ResponseService.buildResponse(user, 'Seller updated successfully');
+  }
+
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Add new Seller Profile',
+  })
+  @Patch('seller/add')
+  @UsePipes(new JoiValidationPipe(AddSellerSchema, 'body'))
+  async addSeller(@Body() addSellerDto: AddSellerDto) {
+    const user = await this.authService.addSeller(addSellerDto);
+    return ResponseService.buildResponse(user, 'Seller added successfully');
   }
 
   @ApiOperation({ summary: 'Change password ' })

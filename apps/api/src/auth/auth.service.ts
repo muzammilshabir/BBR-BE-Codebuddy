@@ -27,7 +27,7 @@ import {
 } from './dto/updateProfile';
 import { VerifyUserDto } from './dto/verifyUser.dto';
 import { JwtPayloadType } from './type/jwt-payload.type';
-import { CreateDummyUserDto } from '../users/dto/createUser.dto';
+import { AddSellerDto, CreateDummyUserDto } from '../users/dto/createUser.dto';
 import { Types } from 'mongoose';
 import { AddFavouritesDto, ListFavouritesDto } from './dto/addToFavourite';
 import { ListUserDto } from './dto/listUsers';
@@ -293,12 +293,14 @@ export class AuthService {
       throw new NotFoundException('Invalid credentials');
     }
 
-    const isPasswordMatch = await argon.verify(user.password, resetPasswordDto.password);
+    if (user?.password) {
+      const isPasswordMatch = await argon.verify(user.password, resetPasswordDto.password);
 
-    if (isPasswordMatch) {
-      throw new BadRequestException(
-        'This password has been used before. Please use another password.'
-      );
+      if (isPasswordMatch) {
+        throw new BadRequestException(
+          'This password has been used before. Please use another password.'
+        );
+      }
     }
 
     await this.redisService.delete({ prefix: TokenEnum.PREFIX, key: resetPasswordDto.token });
@@ -383,5 +385,11 @@ export class AuthService {
 
   async updateSellerStatus(updateDeveloperStatusDto: UpdateDeveloperStatusDto): Promise<User> {
     return await this.userService.updateSellerStatus(updateDeveloperStatusDto);
+  }
+
+  async addSeller(addSellerDto: AddSellerDto) {
+    const seller = await this.userService.addSeller(addSellerDto);
+    await this.sendVerificationEmail(seller.email, seller.verificationToken);
+    return seller;
   }
 }
