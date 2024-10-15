@@ -10,9 +10,9 @@ import { InjectModel } from '@nestjs/mongoose';
 import * as bcrypt from 'bcryptjs';
 import { Model, Types } from 'mongoose';
 import { ExceptionCodes } from '@bbr/api-core/modules/types/exceptionCodes.type';
-import { CreateDummyUserDto, CreateUserDto } from './dto/createUser.dto';
+import { AddSellerDto, CreateDummyUserDto, CreateUserDto } from './dto/createUser.dto';
 import { UpdateUserDto } from './dto/updateUser.dto';
-import { UserRole, UserStatus } from './enum/user.enum';
+import { SignupMethod, UserRole, UserStatus } from './enum/user.enum';
 import { User } from './schema/user.schema';
 import { UserRepository } from './user.repository';
 import { UpdateDeveloperStatusDto, UpdateSellerProfileDto } from '../auth/dto/updateProfile';
@@ -328,5 +328,29 @@ export class UserService {
     await seller.save();
 
     return seller;
+  }
+
+  async addSeller(addSellerDto: AddSellerDto): Promise<User> {
+    try {
+      const existingUser = await this.userRepository.find({ email: addSellerDto.corporateEmail });
+
+      if (existingUser) {
+        throw new BadRequestException('A user with this email already exists');
+      }
+
+      const verifyToken = this.tokenService.generateVerificationToken();
+
+      const payload = {
+        ...addSellerDto,
+        signupMethod: SignupMethod.EMAIL,
+        email: addSellerDto.corporateEmail,
+        role: UserRole.SELLER,
+        verificationToken: verifyToken,
+      };
+
+      return await this.userRepository.create(payload);
+    } catch (error) {
+      throw error;
+    }
   }
 }
