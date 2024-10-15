@@ -23,4 +23,7 @@ export class ListUserDto extends ListPropsDto {
 
 export const listUserSchema = Joi.object({
   search: Joi.string().optional(),
+  status: Joi.string()
+    .valid(...Object.values(UserStatus))
+    .optional(),
 });
