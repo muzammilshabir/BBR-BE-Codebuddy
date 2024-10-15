@@ -85,6 +85,7 @@ export class ResidencesFixture extends AbstractFixture {
           },
         ],
       },
+      premium: false,
       status: 'draft',
       unitIds: [],
       createdById: '60d5f485f7c6a4b2b8e8b601', // Replace with actual user ID
