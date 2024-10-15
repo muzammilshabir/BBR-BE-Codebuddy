@@ -40,6 +40,7 @@ import { UnitDraftModule } from './unitDraft/unitDraft.module';
 import { ClaimRequestModule } from './claimRequest/claimRequest.module';
 import { AppController } from './app.controller';
 import { ModulePolicyModule } from './modulePolicy/modulePolicy.module';
+import { RoleModule } from './role/role.module';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -80,6 +81,7 @@ import { ModulePolicyModule } from './modulePolicy/modulePolicy.module';
     UnitDraftModule,
     ClaimRequestModule,
     ModulePolicyModule,
+    RoleModule,
   ],
   controllers: [AppController],
   providers: [
