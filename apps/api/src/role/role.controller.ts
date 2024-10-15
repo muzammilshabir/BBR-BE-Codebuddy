@@ -1,4 +1,4 @@
-import { Body, Controller, Param, Post, Put, UsePipes } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, Query, UsePipes } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { RoleService } from './role.service';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -8,6 +8,7 @@ import { GetCurrentUserId } from '../auth/decorators/getCurrentUserId.decorator'
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
 import { CreateRoleDto, createRoleSchema } from './dto/addRoleDto';
 import { UpdateRoleDto, updateRoleSchema } from './dto/updateRoleDto';
+import { ListRoleDto, ListRoleSchema } from './dto/listRole.dto';
 
 @ApiTags('Role')
 @Controller('role')
@@ -38,7 +39,19 @@ export class RoleController {
     @GetCurrentUserId() userId: string,
     @Body() updateRoleDto: UpdateRoleDto
   ) {
-    const role = await this.roleService.updateRole(roleId, updateRoleDto);
+    const role = await this.roleService.updateRole(roleId, updateRoleDto, userId);
     return ResponseService.buildResponse({ role }, 'Role updated successfully');
+  }
+
+  @Get()
+  @ApiOperation({
+    summary: 'List all roles',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(ListRoleSchema, 'query'))
+  async list(@Query() roleDto: ListRoleDto) {
+    const data = await this.roleService.findAll(roleDto);
+    return ResponseService.buildResponse(data);
   }
 }
