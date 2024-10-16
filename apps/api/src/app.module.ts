@@ -37,10 +37,12 @@ import { ResidenceEnquiryModule } from './residenceEnquiry/residenceEnquiry.modu
 import { CareerModule } from './careers/career.module';
 import { ResidenceDraftModule } from './residencesDraft/residencesDraft.module';
 import { UnitDraftModule } from './unitDraft/unitDraft.module';
+import { StripeModule } from './stripe/stripe.module';
 import { ClaimRequestModule } from './claimRequest/claimRequest.module';
 import { AppController } from './app.controller';
 import { ModulePolicyModule } from './modulePolicy/modulePolicy.module';
 import { RoleModule } from './role/role.module';
+import { RankingCategoryModule } from './rankingCategory/rankingCategory.module';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -79,7 +81,9 @@ import { RoleModule } from './role/role.module';
     ResidenceDraftModule,
     CareerModule,
     UnitDraftModule,
+    StripeModule,
     ClaimRequestModule,
+    RankingCategoryModule,
     ModulePolicyModule,
     RoleModule,
   ],

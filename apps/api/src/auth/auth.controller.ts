@@ -44,6 +44,8 @@ import {
   acceptBBRCommitmentSchema,
   UpdateBuyerProfileDto,
   updateBuyerProfileSchema,
+  UpdateDeveloperStatusDto,
+  UpdateDeveloperStatusSchema,
   UpdateSellerProfileDto,
   updateSellerProfileSchema,
 } from './dto/updateProfile';
@@ -59,6 +61,8 @@ import {
 } from './dto/addToFavourite';
 import { GetCurrentUserId } from './decorators/getCurrentUserId.decorator';
 import { GetUserByIdDto, getUserByIdSchema } from './dto/getUserById.dto';
+import { ListUserDto, listUserSchema } from './dto/listUsers';
+import { AddSellerDto, AddSellerSchema } from '../users/dto/createUser.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -219,6 +223,17 @@ export class AuthController {
 
   @ApiBearerAuth()
   @ApiOperation({
+    summary: 'List Sellers',
+  })
+  @Get('seller')
+  @UsePipes(new JoiValidationPipe(listUserSchema, 'param'))
+  async listSellers(@Query() query: ListUserDto) {
+    const sellers = await this.authService.listSellers(query);
+    return ResponseService.buildResponse(sellers, 'Seller retrieved successfully');
+  }
+
+  @ApiBearerAuth()
+  @ApiOperation({
     summary: 'Get seller by ID',
   })
   @Get('seller/:id')
@@ -226,6 +241,18 @@ export class AuthController {
   async getSellerById(@Param() params: GetUserByIdDto) {
     const seller = await this.authService.getSellerById(params.id);
     return ResponseService.buildResponse(seller, 'Seller retrieved successfully');
+  }
+
+  @ApiBearerAuth()
+  @Patch('seller/update-status/:developerId/:status')
+  @ApiOperation({ summary: 'Update Seller status' })
+  async updateSellerStatus(
+    @Param(new JoiValidationPipe(UpdateDeveloperStatusSchema, 'param'))
+    params: UpdateDeveloperStatusDto
+  ) {
+    const { developerId, status } = params;
+    const result = await this.authService.updateSellerStatus({ developerId, status });
+    return { message: 'Seller status updated successfully', data: result };
   }
 
   @ApiOperation({ summary: 'Request a password reset link' })
@@ -267,6 +294,17 @@ export class AuthController {
   ) {
     const user = await this.authService.updateSeller(userFromToken, updateSellerProfileDto);
     return ResponseService.buildResponse(user, 'Seller updated successfully');
+  }
+
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Add new Seller Profile',
+  })
+  @Patch('seller/add')
+  @UsePipes(new JoiValidationPipe(AddSellerSchema, 'body'))
+  async addSeller(@Body() addSellerDto: AddSellerDto) {
+    const user = await this.authService.addSeller(addSellerDto);
+    return ResponseService.buildResponse(user, 'Seller added successfully');
   }
 
   @ApiOperation({ summary: 'Change password ' })

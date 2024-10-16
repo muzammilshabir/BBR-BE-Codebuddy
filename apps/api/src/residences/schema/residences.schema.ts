@@ -142,6 +142,18 @@ export class Residence extends Document {
   })
   rejectionReason: string;
 
+  @Prop({
+    type: String,
+    example: '33r232432423',
+  })
+  invoiceId: string;
+
+  @Prop({
+    type: String,
+    example: '324sfsdr32r',
+  })
+  subscriptionId: string;
+
   @Prop({ type: Types.ObjectId, ref: 'City' })
   cityId: Types.ObjectId;
 
@@ -150,6 +162,9 @@ export class Residence extends Document {
 
   @Prop({ type: Types.ObjectId, ref: 'LifeStyle' })
   lifeStyleId: Types.ObjectId;
+  
+  @Prop({type: Boolean, default: false})
+  premium: boolean;
 
   @Prop({ type: Types.ObjectId, ref: 'User' })
   createdById: Types.ObjectId;

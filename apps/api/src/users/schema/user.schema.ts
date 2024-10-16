@@ -48,6 +48,9 @@ export class User extends Document {
   companyName?: string;
 
   @Prop({ required: false })
+  stripeCustomerId?: string;
+
+  @Prop({ required: false })
   corporateEmail: string;
 
   @Prop({ required: false })

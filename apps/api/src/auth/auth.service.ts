@@ -22,13 +22,16 @@ import { BuyerSignupDto, SellerSignupDto } from './dto/signup.dto';
 import {
   AcceptBBRCommitment,
   UpdateBuyerProfileDto,
+  UpdateDeveloperStatusDto,
   UpdateSellerProfileDto,
 } from './dto/updateProfile';
 import { VerifyUserDto } from './dto/verifyUser.dto';
 import { JwtPayloadType } from './type/jwt-payload.type';
-import { CreateDummyUserDto } from '../users/dto/createUser.dto';
+import { StripeService } from 'src/stripe/stripe.service';
+import { AddSellerDto, CreateDummyUserDto } from '../users/dto/createUser.dto';
 import { Types } from 'mongoose';
 import { AddFavouritesDto, ListFavouritesDto } from './dto/addToFavourite';
+import { ListUserDto } from './dto/listUsers';
 
 @Injectable()
 export class AuthService {
@@ -38,7 +41,8 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly eventEmitter: EventEmitter2,
     private readonly redisService: RedisService,
-    private readonly tokenService: TokenService
+    private readonly tokenService: TokenService,
+    private readonly stripeService: StripeService
   ) {}
 
   static generateVerificationLink(email: string, verifyToken: string) {
@@ -59,6 +63,16 @@ export class AuthService {
       role: UserRole.BUYER,
       receiveLuxuryInsights: buyerSignupDto.receiveLuxuryInsights,
     });
+
+    const stripeCustomer = await this.stripeService.createCustomer({
+      name: user.fullName,
+      email: user.email,
+      metadata: {
+        company_name: user.companyName,
+      },
+    });
+    user.stripeCustomerId = stripeCustomer.id;
+    await this.userService.updateSeller(user.id, user);
 
     this.sendVerificationEmail(user.email, user.verificationToken);
 
@@ -291,12 +305,14 @@ export class AuthService {
       throw new NotFoundException('Invalid credentials');
     }
 
-    const isPasswordMatch = await argon.verify(user.password, resetPasswordDto.password);
+    if (user?.password) {
+      const isPasswordMatch = await argon.verify(user.password, resetPasswordDto.password);
 
-    if (isPasswordMatch) {
-      throw new BadRequestException(
-        'This password has been used before. Please use another password.'
-      );
+      if (isPasswordMatch) {
+        throw new BadRequestException(
+          'This password has been used before. Please use another password.'
+        );
+      }
     }
 
     await this.redisService.delete({ prefix: TokenEnum.PREFIX, key: resetPasswordDto.token });
@@ -373,5 +389,19 @@ export class AuthService {
 
   async getSellerById(id: string): Promise<User> {
     return await this.userService.getSellerById(id);
+  }
+
+  async listSellers(listUserDto: ListUserDto) {
+    return await this.userService.listSellers(listUserDto);
+  }
+
+  async updateSellerStatus(updateDeveloperStatusDto: UpdateDeveloperStatusDto): Promise<User> {
+    return await this.userService.updateSellerStatus(updateDeveloperStatusDto);
+  }
+
+  async addSeller(addSellerDto: AddSellerDto) {
+    const seller = await this.userService.addSeller(addSellerDto);
+    await this.sendVerificationEmail(seller.email, seller.verificationToken);
+    return seller;
   }
 }
