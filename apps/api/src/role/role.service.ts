@@ -7,6 +7,8 @@ import { Types } from 'mongoose';
 import { UpdateRoleDto } from './dto/updateRoleDto';
 import { ListRoleDto } from './dto/listRole.dto';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
+import { User } from '../users/schema/user.schema';
+import { PermissionLevel } from '../modulePolicy/enum/permission-enum';
 
 @Injectable()
 export class RoleService {
@@ -88,5 +90,28 @@ export class RoleService {
     const { pagination } = PaginationService.paginate({ rows: data, count }, roleDto);
 
     return { pagination, propertyTypes: data };
+  }
+
+  async hasPermission(
+    user: User,
+    requiredPermissions: { module: string; permission: PermissionLevel }
+  ): Promise<boolean> {
+    const role = await this.roleRepository.findById(user.roleId.toString());
+    if (!role) {
+      return false;
+    }
+
+    const modulePolicy = role.modulePermissions.find((modulePermission: any) => {
+      return modulePermission.moduleId?.slug === requiredPermissions.module;
+    });
+
+    if (!modulePolicy) {
+      // Module not assigned to the role
+      return false;
+    }
+
+    const hasRequiredPermission = modulePolicy.permissions.includes(requiredPermissions.permission);
+
+    return hasRequiredPermission;
   }
 }

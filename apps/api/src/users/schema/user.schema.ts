@@ -104,6 +104,9 @@ export class User extends Document {
   @Prop({ required: false, enum: UserStatus })
   status: UserStatus;
 
+  @Prop({ type: Types.ObjectId, ref: 'Role', required: false })
+  roleId: Types.ObjectId;
+
   @Prop({ type: Date })
   createdAt: Date;
 

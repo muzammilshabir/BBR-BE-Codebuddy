@@ -45,6 +45,8 @@ import { GetCurrentUserId } from '../auth/decorators/getCurrentUserId.decorator'
 import { GetCurrentUser } from '../auth/decorators/getCurrentUser.decorator';
 import { JwtPayloadType } from '../auth/type/jwt-payload.type';
 import { Public } from '../auth/decorators/public.decorator';
+import { Permissions } from '../auth/decorators/permissions.decorator';
+import { PermissionLevel } from '../modulePolicy/enum/permission-enum';
 
 @ApiTags('Residence')
 @Controller('residence')
@@ -57,6 +59,7 @@ export class ResidenceController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @Permissions('residence', PermissionLevel.EDIT)
   @UsePipes(new JoiValidationPipe(createResidenceSchema, 'body'))
   async create(
     @Body() createResidenceDto: CreateResidenceDto,

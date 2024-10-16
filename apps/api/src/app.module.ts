@@ -41,6 +41,7 @@ import { ClaimRequestModule } from './claimRequest/claimRequest.module';
 import { AppController } from './app.controller';
 import { ModulePolicyModule } from './modulePolicy/modulePolicy.module';
 import { RoleModule } from './role/role.module';
+import { PermissionsGuard } from './auth/guards/permissions.guard';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -89,6 +90,10 @@ import { RoleModule } from './role/role.module';
     {
       provide: APP_GUARD,
       useClass: AtGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: PermissionsGuard, // Permissions Guard
     },
   ],
 })
