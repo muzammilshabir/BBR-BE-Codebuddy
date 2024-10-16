@@ -8,21 +8,28 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import * as bcrypt from 'bcryptjs';
-import { Model } from 'mongoose';
-import { ExceptionCodes } from '../../../../packages/api-core/modules/types/exceptionCodes.type';
-import { CreateDummyUserDto, CreateUserDto } from './dto/createUser.dto';
+import { Model, Types } from 'mongoose';
+import { ExceptionCodes } from '@bbr/api-core/modules/types/exceptionCodes.type';
+import { AddSellerDto, CreateDummyUserDto, CreateUserDto } from './dto/createUser.dto';
 import { UpdateUserDto } from './dto/updateUser.dto';
-import { UserRole } from './enum/user.enum';
+import { SignupMethod, UserRole, UserStatus } from './enum/user.enum';
 import { User } from './schema/user.schema';
 import { UserRepository } from './user.repository';
-import { UpdateSellerProfileDto } from '../auth/dto/updateProfile';
+import { UpdateDeveloperStatusDto, UpdateSellerProfileDto } from '../auth/dto/updateProfile';
+import { AddFavouritesDto, ListFavouritesDto, PropertyType } from '../auth/dto/addToFavourite';
+import { ResidenceRepository } from '../residences/residences.repository';
+import { UnitRepository } from '../unit/unit.repository';
+import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
+import { ListUserDto } from '../auth/dto/listUsers';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectModel(User.name) private readonly userModel: Model<User>,
     private readonly tokenService: TokenService,
-    private readonly userRepository: UserRepository
+    private readonly userRepository: UserRepository,
+    private readonly residenceRepository: ResidenceRepository,
+    private readonly unitRepository: UnitRepository
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
@@ -173,8 +180,22 @@ export class UserService {
         message: 'Please verify your account first',
       };
     }
+    const transformedDto = {
+      ...updateSellerProfileDto,
+      associatedBrandId: updateSellerProfileDto.associatedBrandId
+        ? updateSellerProfileDto.associatedBrandId.map((brandId) => new Types.ObjectId(brandId))
+        : undefined,
 
-    const updatedUser = await this.userRepository.update(id, updateSellerProfileDto);
+      avatarImage: updateSellerProfileDto.avatarImage
+        ? new Types.ObjectId(updateSellerProfileDto.avatarImage)
+        : undefined,
+      companyLogo: updateSellerProfileDto.companyLogo
+        ? new Types.ObjectId(updateSellerProfileDto.companyLogo)
+        : undefined,
+      status: UserStatus.ACTIVE,
+    };
+
+    const updatedUser = await this.userRepository.update(id, transformedDto);
     if (!updatedUser) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
@@ -189,6 +210,146 @@ export class UserService {
       return await this.userRepository.create(userDetails);
     } catch (error) {
       console.error('Error creating user:', error);
+      throw error;
+    }
+  }
+
+  async addFavourites(userId: string, addFavouritesDto: AddFavouritesDto) {
+    const user = await this.userModel.findById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const { propertyType, favouriteId } = addFavouritesDto;
+    const objectId = new Types.ObjectId(favouriteId);
+
+    if (propertyType === PropertyType.UNIT) {
+      const unit = await this.unitRepository.findById(favouriteId);
+      if (!unit) {
+        throw new NotFoundException(`Unit with id ${favouriteId} not found`);
+      }
+
+      // Use addToSet to ensure unique entries
+      await this.userModel.findByIdAndUpdate(userId, {
+        $addToSet: { favouritesUnitIds: objectId },
+      });
+    } else if (propertyType === PropertyType.RESIDENCE) {
+      const residence = await this.residenceRepository.findById(favouriteId);
+      if (!residence) {
+        throw new NotFoundException(`Residence with id ${favouriteId} not found`);
+      }
+
+      // Use addToSet to ensure unique entries
+      await this.userModel.findByIdAndUpdate(userId, {
+        $addToSet: { favouriteResidenceIds: objectId },
+      });
+    }
+
+    return await this.userModel.findById(userId);
+  }
+
+  async getFavourites(userId: string, listFavouritesDto: ListFavouritesDto) {
+    const user = await this.userModel.findById(userId);
+    const { propertyType, search } = listFavouritesDto;
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const options = PaginationService.prepareOptions(listFavouritesDto);
+
+    const filter: any = {};
+
+    if (search) {
+      filter.$or = [{ name: { $regex: search, $options: 'i' } }];
+    }
+
+    if (propertyType === PropertyType.UNIT) {
+      filter._id = { $in: user.favouritesUnitIds };
+
+      const { data, count } = await this.unitRepository.findAll(filter, options);
+
+      const { pagination } = PaginationService.paginate({ rows: data, count }, listFavouritesDto);
+
+      return { pagination, favourites: data };
+    } else if (propertyType === PropertyType.RESIDENCE) {
+      filter._id = { $in: user.favouriteResidenceIds };
+
+      const { data, count } = await this.residenceRepository.findAll(filter, options);
+
+      const { pagination } = PaginationService.paginate({ rows: data, count }, listFavouritesDto);
+
+      return { pagination, favourites: data };
+    } else {
+      throw new BadRequestException('Invalid property type');
+    }
+  }
+
+  async getSellerById(id: string): Promise<User> {
+    return await this.userRepository.getSellerById(id);
+  }
+
+  async listSellers(listUserDto: ListUserDto) {
+    const { search } = listUserDto;
+
+    const filter: any = { role: UserRole.SELLER };
+
+    if (search) {
+      filter.$or = [
+        { fullName: { $regex: search, $options: 'i' } },
+        { companyName: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { 'contactPersonInfo.phone.number': { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    if (listUserDto.status) {
+      filter.status = listUserDto.status;
+    }
+
+    const options = PaginationService.prepareOptions(listUserDto);
+
+    const { data, count } = await this.userRepository.findAll(filter, options);
+
+    const { pagination } = PaginationService.paginate({ rows: data, count }, listUserDto);
+
+    return { pagination, sellers: data };
+  }
+
+  async updateSellerStatus(updateDeveloperStatusDto: UpdateDeveloperStatusDto) {
+    const { developerId, status } = updateDeveloperStatusDto;
+
+    const seller = await this.userRepository.findById(developerId);
+    if (!seller) {
+      throw new NotFoundException('Seller not found');
+    }
+
+    seller.status = status;
+    await seller.save();
+
+    return seller;
+  }
+
+  async addSeller(addSellerDto: AddSellerDto): Promise<User> {
+    try {
+      const existingUser = await this.userRepository.find({ email: addSellerDto.corporateEmail });
+
+      if (existingUser) {
+        throw new BadRequestException('A user with this email already exists');
+      }
+
+      const verifyToken = this.tokenService.generateVerificationToken();
+
+      const payload = {
+        ...addSellerDto,
+        signupMethod: SignupMethod.EMAIL,
+        email: addSellerDto.corporateEmail,
+        role: UserRole.SELLER,
+        verificationToken: verifyToken,
+      };
+
+      return await this.userRepository.create(payload);
+    } catch (error) {
       throw error;
     }
   }

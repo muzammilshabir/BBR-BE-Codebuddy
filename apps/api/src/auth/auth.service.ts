@@ -22,12 +22,16 @@ import { BuyerSignupDto, SellerSignupDto } from './dto/signup.dto';
 import {
   AcceptBBRCommitment,
   UpdateBuyerProfileDto,
+  UpdateDeveloperStatusDto,
   UpdateSellerProfileDto,
 } from './dto/updateProfile';
 import { VerifyUserDto } from './dto/verifyUser.dto';
 import { JwtPayloadType } from './type/jwt-payload.type';
 import { StripeService } from 'src/stripe/stripe.service';
-import { CreateDummyUserDto } from '../users/dto/createUser.dto';
+import { AddSellerDto, CreateDummyUserDto } from '../users/dto/createUser.dto';
+import { Types } from 'mongoose';
+import { AddFavouritesDto, ListFavouritesDto } from './dto/addToFavourite';
+import { ListUserDto } from './dto/listUsers';
 
 @Injectable()
 export class AuthService {
@@ -38,7 +42,7 @@ export class AuthService {
     private readonly eventEmitter: EventEmitter2,
     private readonly redisService: RedisService,
     private readonly tokenService: TokenService,
-    private readonly stripeService: StripeService,
+    private readonly stripeService: StripeService
   ) {}
 
   static generateVerificationLink(email: string, verifyToken: string) {
@@ -65,10 +69,10 @@ export class AuthService {
       email: user.email,
       metadata: {
         company_name: user.companyName,
-      }
+      },
     });
     user.stripeCustomerId = stripeCustomer.id;
-    await this.userService.updateSeller(user.id, user);    
+    await this.userService.updateSeller(user.id, user);
 
     this.sendVerificationEmail(user.email, user.verificationToken);
 
@@ -214,7 +218,33 @@ export class AuthService {
 
     if (loggedInUser.role !== UserRole.BUYER) throw new UnauthorizedException('Invalid token');
 
-    return await this.userService.update(loggedInUser.sub, updateBuyerDto);
+    const transformedDto = {
+      ...updateBuyerDto,
+
+      avatarImage: updateBuyerDto.avatarImage
+        ? new Types.ObjectId(updateBuyerDto.avatarImage)
+        : undefined,
+      preferences: {
+        ...updateBuyerDto.preferences,
+        cityIds:
+          updateBuyerDto?.preferences?.cityIds?.map((cityId) => new Types.ObjectId(cityId)) ||
+          undefined,
+        residenceTypeIds:
+          updateBuyerDto?.preferences?.residenceTypeIds?.map(
+            (residenceTypeId) => new Types.ObjectId(residenceTypeId)
+          ) || undefined,
+        countryIds:
+          updateBuyerDto?.preferences?.countryIds?.map(
+            (countryId) => new Types.ObjectId(countryId)
+          ) || undefined,
+        lifeStyleIds:
+          updateBuyerDto?.preferences?.lifeStyleIds?.map(
+            (lifeStyleId) => new Types.ObjectId(lifeStyleId)
+          ) || undefined,
+      },
+    };
+
+    return await this.userService.update(loggedInUser.sub, transformedDto);
   }
 
   async signupDeveloper(sellerSignupDto: SellerSignupDto) {
@@ -275,12 +305,14 @@ export class AuthService {
       throw new NotFoundException('Invalid credentials');
     }
 
-    const isPasswordMatch = await argon.verify(user.password, resetPasswordDto.password);
+    if (user?.password) {
+      const isPasswordMatch = await argon.verify(user.password, resetPasswordDto.password);
 
-    if (isPasswordMatch) {
-      throw new BadRequestException(
-        'This password has been used before. Please use another password.'
-      );
+      if (isPasswordMatch) {
+        throw new BadRequestException(
+          'This password has been used before. Please use another password.'
+        );
+      }
     }
 
     await this.redisService.delete({ prefix: TokenEnum.PREFIX, key: resetPasswordDto.token });
@@ -343,5 +375,33 @@ export class AuthService {
     this.sendVerificationEmail(user.email, user.verificationToken);
 
     return user;
+  }
+
+  async addFavourites(userId: string, addFavouritesDto: AddFavouritesDto) {
+    return await this.userService.addFavourites(userId, addFavouritesDto);
+  }
+
+  async getFavourites(userId: string, query: ListFavouritesDto) {
+    if (!userId) throw new UnauthorizedException('Invalid user');
+
+    return await this.userService.getFavourites(userId, query);
+  }
+
+  async getSellerById(id: string): Promise<User> {
+    return await this.userService.getSellerById(id);
+  }
+
+  async listSellers(listUserDto: ListUserDto) {
+    return await this.userService.listSellers(listUserDto);
+  }
+
+  async updateSellerStatus(updateDeveloperStatusDto: UpdateDeveloperStatusDto): Promise<User> {
+    return await this.userService.updateSellerStatus(updateDeveloperStatusDto);
+  }
+
+  async addSeller(addSellerDto: AddSellerDto) {
+    const seller = await this.userService.addSeller(addSellerDto);
+    await this.sendVerificationEmail(seller.email, seller.verificationToken);
+    return seller;
   }
 }

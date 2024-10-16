@@ -1,7 +1,18 @@
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
 import { CaptchaEnum } from '@bbr/api-core/modules/types/captcha.type';
-import { Body, Controller, Get, Ip, Patch, Post, UseGuards, UsePipes } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Ip,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+  UsePipes,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CaptchaGuard } from '../captcha/guards/captcha.guard';
 import { UserRole } from '../users/enum/user.enum';
@@ -33,6 +44,8 @@ import {
   acceptBBRCommitmentSchema,
   UpdateBuyerProfileDto,
   updateBuyerProfileSchema,
+  UpdateDeveloperStatusDto,
+  UpdateDeveloperStatusSchema,
   UpdateSellerProfileDto,
   updateSellerProfileSchema,
 } from './dto/updateProfile';
@@ -40,6 +53,16 @@ import { VerifyUserDto, verifyUserSchema } from './dto/verifyUser.dto';
 import { AtGuard } from './guards/at.guard';
 import { RtGuard } from './guards/rt.guard';
 import { JwtPayloadType } from './type/jwt-payload.type';
+import {
+  AddFavouritesDto,
+  addFavouritesSchema,
+  getFavouritesSchema,
+  ListFavouritesDto,
+} from './dto/addToFavourite';
+import { GetCurrentUserId } from './decorators/getCurrentUserId.decorator';
+import { GetUserByIdDto, getUserByIdSchema } from './dto/getUserById.dto';
+import { ListUserDto, listUserSchema } from './dto/listUsers';
+import { AddSellerDto, AddSellerSchema } from '../users/dto/createUser.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -126,6 +149,27 @@ export class AuthController {
     return ResponseService.buildResponse(tokens);
   }
 
+  @ApiBearerAuth()
+  @Patch('buyer/favourites/add')
+  @UsePipes(new JoiValidationPipe(addFavouritesSchema, 'body'))
+  @ApiOperation({ summary: 'Add favourites (unit/residence)' })
+  async addFavourites(
+    @GetCurrentUserId() userId: string,
+    @Body() addFavouritesDto: AddFavouritesDto
+  ) {
+    const user = await this.authService.addFavourites(userId, addFavouritesDto);
+    return ResponseService.buildResponse({ user }, 'Favourites updated successfully');
+  }
+
+  @ApiBearerAuth()
+  @Get('buyer/favourites')
+  @UsePipes(new JoiValidationPipe(getFavouritesSchema, 'param'))
+  @ApiOperation({ summary: 'Get favourite residences or units' })
+  async getFavourites(@GetCurrentUserId() userId: string, @Query() query: ListFavouritesDto) {
+    const favourites = await this.authService.getFavourites(userId, query);
+    return ResponseService.buildResponse(favourites, 'Favourites retrieved successfully');
+  }
+
   @ApiOperation({
     summary: 'Seller Signup',
   })
@@ -177,6 +221,40 @@ export class AuthController {
     return ResponseService.buildResponse(user, 'BBR Commitment accepted successfully');
   }
 
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'List Sellers',
+  })
+  @Get('seller')
+  @UsePipes(new JoiValidationPipe(listUserSchema, 'param'))
+  async listSellers(@Query() query: ListUserDto) {
+    const sellers = await this.authService.listSellers(query);
+    return ResponseService.buildResponse(sellers, 'Seller retrieved successfully');
+  }
+
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Get seller by ID',
+  })
+  @Get('seller/:id')
+  @UsePipes(new JoiValidationPipe(getUserByIdSchema, 'param'))
+  async getSellerById(@Param() params: GetUserByIdDto) {
+    const seller = await this.authService.getSellerById(params.id);
+    return ResponseService.buildResponse(seller, 'Seller retrieved successfully');
+  }
+
+  @ApiBearerAuth()
+  @Patch('seller/update-status/:developerId/:status')
+  @ApiOperation({ summary: 'Update Seller status' })
+  async updateSellerStatus(
+    @Param(new JoiValidationPipe(UpdateDeveloperStatusSchema, 'param'))
+    params: UpdateDeveloperStatusDto
+  ) {
+    const { developerId, status } = params;
+    const result = await this.authService.updateSellerStatus({ developerId, status });
+    return { message: 'Seller status updated successfully', data: result };
+  }
+
   @ApiOperation({ summary: 'Request a password reset link' })
   @Public()
   @Post('forgot-password')
@@ -195,6 +273,15 @@ export class AuthController {
     return ResponseService.buildResponse({}, 'Password has been reset successfully');
   }
 
+  @ApiOperation({ summary: 'Send reset password link' })
+  @ApiBearerAuth()
+  @Post('send-reset-password-link')
+  @UsePipes(new JoiValidationPipe(forgotPasswordSchema, 'body'))
+  async sendResetPasswordLink(@Body() forgotPasswordDto: ForgotPasswordDto) {
+    await this.authService.forgotPassword(forgotPasswordDto);
+    return ResponseService.buildResponse({}, 'Reset password link sent successfully');
+  }
+
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Update Seller Profile',
@@ -207,6 +294,17 @@ export class AuthController {
   ) {
     const user = await this.authService.updateSeller(userFromToken, updateSellerProfileDto);
     return ResponseService.buildResponse(user, 'Seller updated successfully');
+  }
+
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Add new Seller Profile',
+  })
+  @Patch('seller/add')
+  @UsePipes(new JoiValidationPipe(AddSellerSchema, 'body'))
+  async addSeller(@Body() addSellerDto: AddSellerDto) {
+    const user = await this.authService.addSeller(addSellerDto);
+    return ResponseService.buildResponse(user, 'Seller added successfully');
   }
 
   @ApiOperation({ summary: 'Change password ' })

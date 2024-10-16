@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import * as Joi from 'joi';
-import { SignupMethod, UserContactMethod, UserRole } from '../enum/user.enum';
+import { SignupMethod, UserContactMethod, UserRole, UserStatus } from '../enum/user.enum';
 import {
   UserContactInfo,
   UserContactPersonInfo,
@@ -9,6 +9,7 @@ import {
 } from '../types/user.type';
 import { UserCompanyInfo } from './../types/user.type';
 import { Types } from 'mongoose';
+import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
 
 export const phoneSchema = Joi.object({
   countryCode: Joi.string().required(),
@@ -89,7 +90,13 @@ export const createUserSchema = Joi.object({
   contactInfo: contactInfoSchema.optional(),
   preferences: preferencesSchema.optional(),
   notificationPreferences: notificationPreferencesSchema.optional(),
-  avatarImage: Joi.string().optional(),
+  avatarImage: Joi.string().optional().custom(joiObjectIdValidator('avatarImage')),
+  companyLogo: Joi.string().optional().custom(joiObjectIdValidator('companyLogo')),
+  yearEstablished: Joi.string().optional(),
+  briefCompanyDescription: Joi.string().optional(),
+  associatedBrandId: Joi.array()
+    .items(Joi.string().custom(joiObjectIdValidator('associatedBrandId')))
+    .optional(),
 });
 
 export class CreateUserDto {
@@ -189,6 +196,29 @@ export class CreateUserDto {
     required: false,
   })
   avatarImage?: Types.ObjectId;
+
+  @ApiProperty({
+    description: 'Company Logo',
+    example: '66acda8b857c576159b74da4',
+    required: false,
+  })
+  companyLogo?: Types.ObjectId;
+
+  @ApiProperty({ description: 'Year established', example: '2002', required: false })
+  yearEstablished?: string;
+
+  @ApiProperty({
+    description: 'Brief company description',
+    example: 'description',
+    required: false,
+  })
+  briefCompanyDescription?: string;
+
+  @ApiProperty({
+    example: ['66ab4bd5161117eabe919e57', '66ab4bd5161117eabe919e61'],
+    required: true,
+  })
+  associatedBrandId?: Types.ObjectId[];
 }
 
 export class CreateDummyUserDto {
@@ -220,3 +250,99 @@ export class CreateDummyUserDto {
   })
   verificationToken?: string;
 }
+
+export class AddSellerDto {
+  @ApiProperty({ description: 'Full name of the user', example: 'John Doe' })
+  fullName: string;
+
+  @ApiProperty({
+    example: UserStatus.ACTIVE,
+    enum: UserStatus,
+    description: 'The status of the user',
+    required: true,
+  })
+  status: UserStatus;
+
+  @ApiProperty({ description: 'Company name', example: 'Example Corp', required: true })
+  companyName: string;
+
+  @ApiProperty({
+    description: 'Corporate email of the user',
+    example: 'corporate@example.com',
+    required: true,
+  })
+  corporateEmail: string;
+
+  @ApiProperty({ description: 'Company information', type: UserCompanyInfo, required: true })
+  companyInfo: UserCompanyInfo;
+
+  @ApiProperty({
+    description: 'Contact person information',
+    type: UserContactPersonInfo,
+    required: true,
+  })
+  contactPersonInfo: UserContactPersonInfo;
+
+  @ApiProperty({
+    description: 'Notification preferences',
+    type: UserNotificationPreferences,
+    required: true,
+  })
+  notificationPreferences: UserNotificationPreferences;
+
+  @ApiProperty({
+    description: 'Profile Avatar',
+    example: '66acda8b857c576159b74da4',
+    required: false,
+  })
+  avatarImage?: Types.ObjectId;
+
+  @ApiProperty({
+    description: 'Company Logo',
+    example: '66acda8b857c576159b74da4',
+    required: false,
+  })
+  companyLogo?: Types.ObjectId;
+}
+
+export const AddSellerSchema = Joi.object({
+  fullName: Joi.string().required(),
+
+  status: Joi.string()
+    .valid(...Object.values(UserStatus))
+    .required(),
+
+  companyName: Joi.string().required(),
+
+  corporateEmail: Joi.string().email().required(),
+
+  companyInfo: Joi.object({
+    address: Joi.string().required(),
+    corporatePhone: Joi.object({
+      countryCode: Joi.string().required(),
+      number: Joi.string().required(),
+    }).required(),
+    website: Joi.string().uri().required(),
+  }).required(),
+
+  contactPersonInfo: Joi.object({
+    fullName: Joi.string().required(),
+    jobTitle: Joi.string().required(),
+    email: Joi.string().email().required(),
+    phone: Joi.object({
+      countryCode: Joi.string().required(),
+      number: Joi.string().required(),
+    }).required(),
+  }).required(),
+
+  notificationPreferences: Joi.object({
+    latestNews: Joi.boolean().required(),
+    marketTrends: Joi.boolean().required(),
+    blogs: Joi.boolean().required(),
+    pushNotifications: Joi.boolean().required(),
+    emailNotifications: Joi.boolean().required(),
+  }).required(),
+
+  avatarImage: Joi.string().custom(joiObjectIdValidator('avatarImage')).optional(),
+  companyLogo: Joi.string().custom(joiObjectIdValidator('companyLogo')).optional(),
+});

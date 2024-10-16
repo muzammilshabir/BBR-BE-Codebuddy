@@ -40,6 +40,7 @@ import { UnitDraftModule } from './unitDraft/unitDraft.module';
 import { StripeModule } from './stripe/stripe.module';
 import { ClaimRequestModule } from './claimRequest/claimRequest.module';
 import { AppController } from './app.controller';
+import { ModulePolicyModule } from './modulePolicy/modulePolicy.module';
 import { RankingCategoryModule } from './rankingCategory/rankingCategory.module';
 @Module({
   imports: [
@@ -82,6 +83,7 @@ import { RankingCategoryModule } from './rankingCategory/rankingCategory.module'
     StripeModule,
     ClaimRequestModule,
     RankingCategoryModule,
+    ModulePolicyModule,
   ],
   controllers: [AppController],
   providers: [
