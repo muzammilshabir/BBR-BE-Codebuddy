@@ -12,4 +12,8 @@ export class RoleRepository extends BaseRepository<Role> {
   ) {
     super(roleModel);
   }
+
+  async findById(roleId: string) {
+    return await this.roleModel.findById(roleId).populate('modulePermissions.moduleId').exec();
+  }
 }

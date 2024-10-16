@@ -43,6 +43,7 @@ import { AppController } from './app.controller';
 import { ModulePolicyModule } from './modulePolicy/modulePolicy.module';
 import { RoleModule } from './role/role.module';
 import { RankingCategoryModule } from './rankingCategory/rankingCategory.module';
+import { PermissionsGuard } from './auth/guards/permissions.guard';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -93,6 +94,10 @@ import { RankingCategoryModule } from './rankingCategory/rankingCategory.module'
     {
       provide: APP_GUARD,
       useClass: AtGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: PermissionsGuard, // Permissions Guard
     },
   ],
 })

@@ -10,7 +10,7 @@ export class Role extends Document {
   @Prop({ required: true, enum: ['admin', 'seller', 'buyer'], default: 'admin' })
   userType: string; // The type of user this role applies to (admin, seller, buyer)
 
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  @Prop({ type: Types.ObjectId, ref: 'User', required: false })
   createdById: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: false })
@@ -19,7 +19,7 @@ export class Role extends Document {
   @Prop({
     type: [
       {
-        module: { type: Types.ObjectId, ref: 'ModulePolicy' },
+        moduleId: { type: Types.ObjectId, ref: 'ModulePolicy' },
         permissions: { type: [String], enum: PermissionLevel, required: true },
       },
     ],
@@ -27,7 +27,7 @@ export class Role extends Document {
     default: [],
   })
   modulePermissions: {
-    module: Types.ObjectId; // The ModulePolicy ID
+    moduleId: Types.ObjectId; // The ModulePolicy ID
     permissions: PermissionLevel[]; // Array of permissions (read, edit, delete)
   }[];
 
