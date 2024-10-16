@@ -41,6 +41,7 @@ import { StripeModule } from './stripe/stripe.module';
 import { ClaimRequestModule } from './claimRequest/claimRequest.module';
 import { AppController } from './app.controller';
 import { ModulePolicyModule } from './modulePolicy/modulePolicy.module';
+import { RoleModule } from './role/role.module';
 import { RankingCategoryModule } from './rankingCategory/rankingCategory.module';
 @Module({
   imports: [
@@ -84,6 +85,7 @@ import { RankingCategoryModule } from './rankingCategory/rankingCategory.module'
     ClaimRequestModule,
     RankingCategoryModule,
     ModulePolicyModule,
+    RoleModule,
   ],
   controllers: [AppController],
   providers: [
