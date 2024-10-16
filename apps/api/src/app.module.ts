@@ -43,6 +43,7 @@ import { AppController } from './app.controller';
 import { ModulePolicyModule } from './modulePolicy/modulePolicy.module';
 import { RoleModule } from './role/role.module';
 import { RankingCategoryModule } from './rankingCategory/rankingCategory.module';
+import { RankingCategoryDraftModule } from './rankingCategoryDraft/rankingCategoryDraft.module';
 import { PermissionsGuard } from './auth/guards/permissions.guard';
 @Module({
   imports: [
@@ -85,6 +86,7 @@ import { PermissionsGuard } from './auth/guards/permissions.guard';
     StripeModule,
     ClaimRequestModule,
     RankingCategoryModule,
+    RankingCategoryDraftModule,
     ModulePolicyModule,
     RoleModule,
   ],

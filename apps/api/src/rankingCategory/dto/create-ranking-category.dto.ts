@@ -54,20 +54,6 @@ export class CreateRankingCategoryDto {
   categoryType: CategoryType;
 
   @ApiProperty({
-    description: 'Property Type Subcategory (optional)',
-    required: false,
-    type: String,
-  })
-  propertyTypeSubCategoryId?: Types.ObjectId;
-
-  @ApiProperty({
-    description: 'Lifestyle Subcategory (optional)',
-    required: false,
-    type: String,
-  })
-  lifeStyleSubCategoryId?: Types.ObjectId;
-
-  @ApiProperty({
     description: 'List of criteria for ranking',
     example: [
       {
@@ -101,14 +87,6 @@ export class CreateRankingCategoryDto {
   residenceLimitation: number;
 
   @ApiProperty({
-    description: 'Status of the ranking category',
-    example: RankingCategoryStatus.DRAFT,
-    required: false,
-    enum: RankingCategoryStatus,
-  })
-  status?: RankingCategoryStatus;
-
-  @ApiProperty({
     description: 'Array of upload objects',
     example: [{ ImageId: '60d7fe6f9eb1f24a04d65633', type: 'docs' }],
     required: false,
@@ -125,20 +103,6 @@ export const createRankingCategorySchema = Joi.object({
   categoryType: Joi.string()
     .valid(...Object.values(CategoryType))
     .required(),
-  propertyTypeSubCategoryId: Joi.when('categoryType', {
-    is: CategoryType.PROPERTY_TYPE,
-    then: Joi.string()
-      .pattern(/^[0-9a-fA-F]{24}$/)
-      .required(),
-    otherwise: Joi.forbidden(),
-  }),
-  lifeStyleSubCategoryId: Joi.when('categoryType', {
-    is: CategoryType.LIFESTYLE,
-    then: Joi.string()
-      .pattern(/^[0-9a-fA-F]{24}$/)
-      .required(),
-    otherwise: Joi.forbidden(),
-  }),
   criteria: Joi.array()
     .items(
       Joi.object({
@@ -166,7 +130,6 @@ export const createRankingCategorySchema = Joi.object({
     }),
   price: Joi.number().required(),
   residenceLimitation: Joi.number().required(),
-  status: Joi.string().valid(RankingCategoryStatus.DRAFT, RankingCategoryStatus.PENDING).optional(),
   upload: Joi.array()
     .items(
       Joi.object({

@@ -2,7 +2,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { Vacancy } from './vacancy.schema';
 import { Upload } from 'src/upload/schema/upload.schema';
-import { ApplicationStatus } from '../enum/application-status.enum';
+import { ApplicationStatus } from '../enum/career.enum';
 
 @Schema({ timestamps: true })
 export class VacancyApplication extends Document {
@@ -22,7 +22,15 @@ export class VacancyApplication extends Document {
   @Prop({ type: { type: Types.ObjectId, ref: 'Vacancy' }})
   vacancy: Vacancy;
 
-  @Prop({ required: true, default: ApplicationStatus.PENDING  })
+  @Prop({ required: false  })
+  message: string;
+
+  @Prop({
+    required: true,
+    default: ApplicationStatus.PENDING,
+    enum: ApplicationStatus,
+
+  })
   status: ApplicationStatus;
 
   @Prop({ type: Boolean, default: false })
