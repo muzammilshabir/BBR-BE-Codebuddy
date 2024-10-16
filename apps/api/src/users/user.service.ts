@@ -10,16 +10,17 @@ import { InjectModel } from '@nestjs/mongoose';
 import * as bcrypt from 'bcryptjs';
 import { Model, Types } from 'mongoose';
 import { ExceptionCodes } from '@bbr/api-core/modules/types/exceptionCodes.type';
-import { CreateDummyUserDto, CreateUserDto } from './dto/createUser.dto';
+import { AddSellerDto, CreateDummyUserDto, CreateUserDto } from './dto/createUser.dto';
 import { UpdateUserDto } from './dto/updateUser.dto';
-import { UserRole, UserStatus } from './enum/user.enum';
+import { SignupMethod, UserRole, UserStatus } from './enum/user.enum';
 import { User } from './schema/user.schema';
 import { UserRepository } from './user.repository';
-import { UpdateSellerProfileDto } from '../auth/dto/updateProfile';
+import { UpdateDeveloperStatusDto, UpdateSellerProfileDto } from '../auth/dto/updateProfile';
 import { AddFavouritesDto, ListFavouritesDto, PropertyType } from '../auth/dto/addToFavourite';
 import { ResidenceRepository } from '../residences/residences.repository';
 import { UnitRepository } from '../unit/unit.repository';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
+import { ListUserDto } from '../auth/dto/listUsers';
 
 @Injectable()
 export class UserService {
@@ -286,5 +287,70 @@ export class UserService {
 
   async getSellerById(id: string): Promise<User> {
     return await this.userRepository.getSellerById(id);
+  }
+
+  async listSellers(listUserDto: ListUserDto) {
+    const { search } = listUserDto;
+
+    const filter: any = { role: UserRole.SELLER };
+
+    if (search) {
+      filter.$or = [
+        { fullName: { $regex: search, $options: 'i' } },
+        { companyName: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { 'contactPersonInfo.phone.number': { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    if (listUserDto.status) {
+      filter.status = listUserDto.status;
+    }
+
+    const options = PaginationService.prepareOptions(listUserDto);
+
+    const { data, count } = await this.userRepository.findAll(filter, options);
+
+    const { pagination } = PaginationService.paginate({ rows: data, count }, listUserDto);
+
+    return { pagination, sellers: data };
+  }
+
+  async updateSellerStatus(updateDeveloperStatusDto: UpdateDeveloperStatusDto) {
+    const { developerId, status } = updateDeveloperStatusDto;
+
+    const seller = await this.userRepository.findById(developerId);
+    if (!seller) {
+      throw new NotFoundException('Seller not found');
+    }
+
+    seller.status = status;
+    await seller.save();
+
+    return seller;
+  }
+
+  async addSeller(addSellerDto: AddSellerDto): Promise<User> {
+    try {
+      const existingUser = await this.userRepository.find({ email: addSellerDto.corporateEmail });
+
+      if (existingUser) {
+        throw new BadRequestException('A user with this email already exists');
+      }
+
+      const verifyToken = this.tokenService.generateVerificationToken();
+
+      const payload = {
+        ...addSellerDto,
+        signupMethod: SignupMethod.EMAIL,
+        email: addSellerDto.corporateEmail,
+        role: UserRole.SELLER,
+        verificationToken: verifyToken,
+      };
+
+      return await this.userRepository.create(payload);
+    } catch (error) {
+      throw error;
+    }
   }
 }

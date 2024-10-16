@@ -14,6 +14,7 @@ import { FailedLoginAttemptsMiddleware } from './middlewares/failed-login-attemp
 import { AtStrategy } from './strategies/at.strategy';
 import { RtStrategy } from './strategies/rt.strategy';
 import { RoleModule } from '../role/role.module';
+import { StripeModule } from 'src/stripe/stripe.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { RoleModule } from '../role/role.module';
     JwtModule.register(jwtConfig),
     RedisModule,
     HttpModule,
+    StripeModule,
     RoleModule,
   ],
   providers: [AuthService, AtStrategy, RtStrategy, ServiceConfig, CaptchaGuard, TokenService],
