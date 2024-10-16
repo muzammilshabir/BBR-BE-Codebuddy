@@ -4,7 +4,6 @@ import { User } from 'src/users/schema/user.schema';
 import { CategoryType } from '../enum/category-type.enum';
 import { RankingCategoryStatus } from '../enum/rankingCategory-status.enum';
 import { RankingCriteria } from './rankingCriteria.schema';
-import { PaymentStatus } from '../enum/payment-status.enum';
 
 @Schema({ timestamps: true })
 export class RankingCategory extends Document {
@@ -13,12 +12,6 @@ export class RankingCategory extends Document {
 
   @Prop({ required: true, enum: CategoryType })
   categoryType: CategoryType;
-
-  @Prop({ type: Types.ObjectId, ref: 'PropertyType' })
-  propertyTypeSubCategoryId: Types.ObjectId;
-
-  @Prop({ type: Types.ObjectId, ref: 'LifeStyle' })
-  lifeStyleSubCategoryId: Types.ObjectId;
 
   @Prop({ type: [RankingCriteria], required: true })
   criteria: RankingCriteria[];
@@ -43,9 +36,6 @@ export class RankingCategory extends Document {
 
   @Prop({ type: Boolean, default: false })
   isDeleted: boolean;
-
-  @Prop({ required: true, enum: PaymentStatus, default: PaymentStatus.UNPAID })
-  paymentStatus: PaymentStatus;
 
   @Prop({
     type: [

@@ -41,6 +41,7 @@ import { StripeModule } from './stripe/stripe.module';
 import { ClaimRequestModule } from './claimRequest/claimRequest.module';
 import { AppController } from './app.controller';
 import { RankingCategoryModule } from './rankingCategory/rankingCategory.module';
+import { RankingCategoryDraftModule } from './rankingCategoryDraft/rankingCategoryDraft.module';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -82,6 +83,7 @@ import { RankingCategoryModule } from './rankingCategory/rankingCategory.module'
     StripeModule,
     ClaimRequestModule,
     RankingCategoryModule,
+    RankingCategoryDraftModule,
   ],
   controllers: [AppController],
   providers: [
