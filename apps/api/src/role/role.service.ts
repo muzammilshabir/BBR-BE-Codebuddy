@@ -114,4 +114,8 @@ export class RoleService {
 
     return hasRequiredPermission;
   }
+
+  async findSuperAdmin(): Promise<Role> {
+    return await this.roleRepository.find({ roleName: 'super admin' });
+  }
 }

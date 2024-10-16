@@ -10,7 +10,7 @@ export class Role extends Document {
   @Prop({ required: true, enum: ['admin', 'seller', 'buyer'], default: 'admin' })
   userType: string; // The type of user this role applies to (admin, seller, buyer)
 
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  @Prop({ type: Types.ObjectId, ref: 'User', required: false })
   createdById: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: false })
