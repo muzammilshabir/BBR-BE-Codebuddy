@@ -9,7 +9,9 @@ export async function bootstrap(appModule: any) {
   BigInt.prototype['toJSON'] = function () {
     return Number(this.toString());
   };
-  const app = await NestFactory.create(appModule);
+  const app = await NestFactory.create(appModule, {
+    rawBody: true,
+  });
   app.enableCors();
 
   app.useLogger(app.get(Logger));

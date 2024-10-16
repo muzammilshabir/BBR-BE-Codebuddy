@@ -40,5 +40,4 @@ export class NewsletterService {
     };
     return this.newsletterRepository.update(existingNewsletter._id.toString(), updatedValues);
   }
-
 }

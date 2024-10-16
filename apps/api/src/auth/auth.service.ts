@@ -27,6 +27,7 @@ import {
 } from './dto/updateProfile';
 import { VerifyUserDto } from './dto/verifyUser.dto';
 import { JwtPayloadType } from './type/jwt-payload.type';
+import { StripeService } from 'src/stripe/stripe.service';
 import { AddSellerDto, CreateDummyUserDto } from '../users/dto/createUser.dto';
 import { Types } from 'mongoose';
 import { AddFavouritesDto, ListFavouritesDto } from './dto/addToFavourite';
@@ -40,7 +41,8 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly eventEmitter: EventEmitter2,
     private readonly redisService: RedisService,
-    private readonly tokenService: TokenService
+    private readonly tokenService: TokenService,
+    private readonly stripeService: StripeService
   ) {}
 
   static generateVerificationLink(email: string, verifyToken: string) {
@@ -61,6 +63,16 @@ export class AuthService {
       role: UserRole.BUYER,
       receiveLuxuryInsights: buyerSignupDto.receiveLuxuryInsights,
     });
+
+    const stripeCustomer = await this.stripeService.createCustomer({
+      name: user.fullName,
+      email: user.email,
+      metadata: {
+        company_name: user.companyName,
+      },
+    });
+    user.stripeCustomerId = stripeCustomer.id;
+    await this.userService.updateSeller(user.id, user);
 
     this.sendVerificationEmail(user.email, user.verificationToken);
 
