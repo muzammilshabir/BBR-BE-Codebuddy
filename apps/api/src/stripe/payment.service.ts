@@ -7,6 +7,7 @@ import { SubscriptionLineItemDto } from './dto/subscription-line-item.dto';
 import { UserService } from 'src/users/user.service';
 import { ResidenceService } from 'src/residences/residences.service';
 import { RefundPaymentDto } from './dto/refund-payment.dto';
+import { ChangeSubscriptionPaymentDto } from './dto/change-subscription-payment-method.dto';
 
 @Injectable()
 export class PaymentService {
@@ -111,6 +112,12 @@ export class PaymentService {
     const user = await this.userService.findById(userId);
     const customerId = user.stripeCustomerId;
     return this.stripeService.getCustomerPaymentMethods(customerId);
+  }
+
+  async changeSubscriptionPaymentMethod(userId: string, changeSubscriptionPaymentDto: ChangeSubscriptionPaymentDto) {
+    const user = await this.userService.findById(userId);
+    const customerId = user.stripeCustomerId;
+    return this.stripeService.changeSubscriptionPaymentMethod(customerId, changeSubscriptionPaymentDto.subscriptionId, changeSubscriptionPaymentDto.paymentMethodId);
   }
 
   async getUserPayments(userId: string) {

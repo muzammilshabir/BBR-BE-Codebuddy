@@ -103,6 +103,31 @@ export class StripeService {
     return parsedMethods;
   }
 
+  async changeSubscriptionPaymentMethod(
+    customerId: string,
+    subscriptionId: string,
+    paymentMethodId: string
+  ): Promise<Stripe.Subscription> {
+    const subs = await this.stripe.subscriptions.list({
+      customer: customerId,
+    });
+    let subBelongsToCustomer = false;
+    for (const sub of subs.data) {
+      if (sub.id == subscriptionId) {
+        subBelongsToCustomer = true;
+        break;
+      }
+    }
+    if (!subBelongsToCustomer) {
+      throw new Error('Invalid sub id');
+    }
+    return this.stripe.subscriptions.update(subscriptionId,
+      {
+        default_payment_method: paymentMethodId,
+      }
+    );
+  }
+
   async retrieveCustomerPaymentMethod(customerId: string, paymentMethodId: string) {
     const paymentMethod = await this.stripe.customers.retrievePaymentMethod(
       customerId,
