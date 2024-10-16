@@ -61,7 +61,7 @@ export class UserPreferences {
   @ApiProperty({
     description: 'IDs of preferred residence types',
     isArray: true,
-    example: ['residence1', 'residence2'],
+    example: ['66acda8b857c576159b74da4', '66acda8b857c576159b74da4'],
   })
   residenceTypeIds?: Types.ObjectId[];
 

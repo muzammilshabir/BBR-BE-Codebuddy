@@ -55,7 +55,7 @@ export class ResidenceService {
     private readonly lifeStyleRepository: LifeStyleRepository
   ) {}
 
-  async create(createResidenceDto: CreateResidenceDto, user: JwtPayloadType): Promise<Residence> {
+  async create(createResidenceDto: CreateResidenceDto, user: JwtPayloadType): Promise<any> {
     const transformedDto: any = {
       ...createResidenceDto,
       residenceTypeId: new Types.ObjectId(createResidenceDto.residenceTypeId),
@@ -87,12 +87,13 @@ export class ResidenceService {
 
     const residence = await this.residenceRepository.create(transformedDto);
 
-    await this.residenceDraftRepository.create({
+    const residenceDraft = await this.residenceDraftRepository.create({
       ...transformedDto,
       residenceId: new Types.ObjectId(residence.id),
     });
 
-    return residence;
+    const residenceData = residence.toObject();
+    return { ...residenceData, residenceDraftId: residenceDraft._id };
   }
 
   async updateGeneralInfo(
