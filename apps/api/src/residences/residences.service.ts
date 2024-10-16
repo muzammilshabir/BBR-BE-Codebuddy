@@ -37,6 +37,7 @@ import { AmenityRepository } from '../amenities/amenities.repository';
 import { LifeStyleRepository } from '../lifestyles/lifeStyle.repository';
 import { UnitDraftRepository } from '../unitDraft/unitDraft.repository';
 import { UnitRepository } from '../unit/unit.repository';
+import { InvoiceItem } from 'src/stripe/stripe-webhook.service';
 
 @Injectable()
 export class ResidenceService {
@@ -291,6 +292,14 @@ export class ResidenceService {
     return residenceDetails;
   }
 
+  async upgradeResidence(upgradeInfo: InvoiceItem) {
+    const residence = await this.residenceRepository.findById(upgradeInfo.residenceId);
+    residence.premium = true;
+    residence.invoiceId = upgradeInfo.invoiceId;
+    residence.subscriptionId = upgradeInfo.subscriptionId;
+    await this.residenceRepository.update(residence.id, residence);
+  }
+
   async approveResidence(residenceId: string, userId: string): Promise<ResidenceDraft> {
     try {
       await this.checkResidenceRejectedStatus(residenceId);
@@ -376,8 +385,14 @@ export class ResidenceService {
 
     const { data, count } = await this.residenceRepository.findAll(filter, options, [
       { path: 'residenceTypeId', select: 'type' },
-      { path: 'locationId', select: 'name type parentId' },
+      { path: 'cityId', select: 'name countryId upload' },
+      { path: 'countryId', select: 'name geographicalAreasId upload' },
       { path: 'associatedBrandId', select: 'name' },
+      {
+        path: 'visuals.mainPhotos',
+        select: 'originalFileKey fileKey url mimeType',
+        model: 'Upload',
+      },
       {
         path: 'visuals.mainGalleryPhotos',
         select: 'originalFileKey fileKey url mimeType',

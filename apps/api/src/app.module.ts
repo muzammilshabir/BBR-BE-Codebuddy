@@ -37,8 +37,11 @@ import { ResidenceEnquiryModule } from './residenceEnquiry/residenceEnquiry.modu
 import { CareerModule } from './careers/career.module';
 import { ResidenceDraftModule } from './residencesDraft/residencesDraft.module';
 import { UnitDraftModule } from './unitDraft/unitDraft.module';
+import { StripeModule } from './stripe/stripe.module';
 import { ClaimRequestModule } from './claimRequest/claimRequest.module';
 import { AppController } from './app.controller';
+import { RankingCategoryModule } from './rankingCategory/rankingCategory.module';
+import { RankingCategoryDraftModule } from './rankingCategoryDraft/rankingCategoryDraft.module';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -77,7 +80,10 @@ import { AppController } from './app.controller';
     ResidenceDraftModule,
     CareerModule,
     UnitDraftModule,
+    StripeModule,
     ClaimRequestModule,
+    RankingCategoryModule,
+    RankingCategoryDraftModule,
   ],
   controllers: [AppController],
   providers: [

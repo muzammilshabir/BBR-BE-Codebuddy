@@ -1,12 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
 import * as Joi from 'joi';
-import { ApplicationStatus } from '../enum/application-status.enum';
+import { ApplicationStatus } from '../enum/career.enum';
 
 export class UpdateVacancyApplicationDto {
 
   @ApiProperty({
     example: ApplicationStatus.REJECTED,
-    type: String,
+    enum: ApplicationStatus,
   })
   status: ApplicationStatus;
 }

@@ -27,6 +27,13 @@ export class CreateJobApplicationDto {
   })
   location: string;
 
+  @ApiProperty({
+    example: 'Dear BBR Team, I am thrilled to apply for this position.',
+    required: false,
+    type: String,
+  })
+  message: string;
+
   @ApiProperty({ example: '66acda8b857c576159b742a2', required: true })
   resume: Types.ObjectId;
 
@@ -38,6 +45,7 @@ export const createJobApplicationDtoSchema = Joi.object({
   fullName: Joi.string().required(),
   email: Joi.string().trim().email().required(),
   location: Joi.string().required(),
+  message: Joi.string().optional(),
   resume: Joi.string().custom(joiObjectIdValidator('resume')).required(),
   vacancy: Joi.string().custom(joiObjectIdValidator('vacancy')).required(),
 });

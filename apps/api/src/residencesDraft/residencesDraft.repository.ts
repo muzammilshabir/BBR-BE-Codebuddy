@@ -47,6 +47,7 @@ export class ResidenceDraftRepository extends BaseRepository<ResidenceDraft> {
         model: 'Upload',
       },
       { path: 'createdById', model: 'User', select: 'fullName email role' },
+      { path: 'updatedById', model: 'User', select: 'fullName email role' },
       { path: 'developerId', model: 'User', select: 'fullName email role' },
     ]);
 
