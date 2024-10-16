@@ -1,6 +1,9 @@
 export enum RankingCategoryStatus {
-  DRAFT = 'draft',
+  ACTIVE = 'active',
   PENDING = 'pending',
-  APPROVED = 'approved',
+  DRAFT = 'draft',
   REJECTED = 'rejected',
+  INACTIVE = 'inactive',
+  ARCHIVED = 'archived',
+  DELETED = 'deleted',
 }

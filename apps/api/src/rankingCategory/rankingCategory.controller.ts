@@ -1,6 +1,6 @@
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UsePipes } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, UsePipes } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/enum/user.enum';
@@ -14,13 +14,36 @@ import {
 import {
   UpdateRankingCategoryDto,
   updateRankingCategorySchema,
+  UpdateRankingCategoryStatusDto,
+  updateRankingCategoryStatusSchema,
 } from './dto/update-ranking-category.dto';
 import { RankingCategoryListDto, rankingCategorySchema } from './dto/list-ranking-category.dto';
+import {
+  RejectRankingCategoryDto,
+  rejectRankingCategorySchema,
+} from './dto/reject-ranking-category.dto';
+import {
+  GetRankingCategoryByIdDto,
+  getRankingCategoryByIdSchema,
+} from './dto/get-ranking-category-by-id.dto';
+import { GetCurrentUserId } from '../auth/decorators/getCurrentUserId.decorator';
 
 @ApiTags('RankingCategory')
 @Controller('rankingCategory')
 export class RankingCategoryController {
   constructor(private readonly rankingCategoryService: RankingCategoryService) {}
+
+  @Get('/with-draft')
+  @ApiOperation({
+    summary: 'List Ranking category with draft',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  async listResidencesWithDraft(@Query() query: RankingCategoryListDto) {
+    const result = await this.rankingCategoryService.listResidencesWithDraft(query);
+
+    return ResponseService.buildResponse(result, 'Ranking Category retrieved successfully');
+  }
 
   @Get(':id')
   @ApiOperation({
@@ -28,8 +51,12 @@ export class RankingCategoryController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.ADMIN)
-  async findRankingCategory(@Param('id') id: string, @GetCurrentUser() user: JwtPayloadType) {
-    const rankingCategory = await this.rankingCategoryService.findRankingCategory(id, user);
+  @UsePipes(new JoiValidationPipe(getRankingCategoryByIdSchema, 'param'))
+  async findRankingCategory(
+    @Param() params: GetRankingCategoryByIdDto,
+    @GetCurrentUser() user: JwtPayloadType
+  ) {
+    const rankingCategory = await this.rankingCategoryService.findRankingCategory(params.id, user);
     return ResponseService.buildResponse(
       { rankingCategory },
       'Ranking category retrieved successfully'
@@ -41,7 +68,7 @@ export class RankingCategoryController {
     summary: 'Get all ranking categories with filters and pagination',
   })
   @ApiBearerAuth()
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.SELLER)
   @UsePipes(new JoiValidationPipe(rankingCategorySchema, 'query'))
   async getAllRankingCategories(
     @Query() rankingCategoryDto: RankingCategoryListDto,
@@ -98,17 +125,91 @@ export class RankingCategoryController {
     );
   }
 
-  @Delete(':id')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Approve a ranking category' })
+  @Patch(':id/approve')
+  @Roles(UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(getRankingCategoryByIdSchema, 'param'))
+  async approveRankingCategory(
+    @Param() Param: GetRankingCategoryByIdDto,
+    @GetCurrentUserId() userId: string
+  ) {
+    const rankingCategory = await this.rankingCategoryService.approveRankingCategory(
+      Param.id,
+      userId
+    );
+
+    return ResponseService.buildResponse(
+      { rankingCategory },
+      'Ranking category approved successfully'
+    );
+  }
+
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Reject a ranking category' })
+  @Patch(':id/reject')
+  @Roles(UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(getRankingCategoryByIdSchema, 'param'))
+  @UsePipes(new JoiValidationPipe(rejectRankingCategorySchema, 'body'))
+  async rejectRankingCategory(
+    @Param() Param: GetRankingCategoryByIdDto,
+    @GetCurrentUserId() userId: string,
+    @Body() rejectRankingCategoryDto: RejectRankingCategoryDto
+  ) {
+    const rankingCategory = await this.rankingCategoryService.rejectRankingCategory(
+      Param.id,
+      userId,
+      rejectRankingCategoryDto
+    );
+
+    return ResponseService.buildResponse(
+      { rankingCategory },
+      'Ranking category Rejected successfully'
+    );
+  }
+
+  @Patch('/:id/update-status')
   @ApiOperation({
-    summary: 'Delete ranking category',
+    summary: 'Update Ranking category Status',
   })
   @ApiBearerAuth()
   @Roles(UserRole.ADMIN)
-  async delete(@Param('id') id: string, @GetCurrentUser() user: JwtPayloadType) {
-    const rankingCategory = await this.rankingCategoryService.delete(id, user);
+  @UsePipes(new JoiValidationPipe(getRankingCategoryByIdSchema, 'param'))
+  @UsePipes(new JoiValidationPipe(updateRankingCategoryStatusSchema, 'body'))
+  async updateRankingCategoryStatus(
+    @GetCurrentUserId() userId: string,
+    @Param() params: GetRankingCategoryByIdDto,
+    @Body() updateRankingCategoryStatusDto: UpdateRankingCategoryStatusDto
+  ) {
+    const updatedRankingCategory = await this.rankingCategoryService.updateRankingCategoryStatus(
+      params.id,
+      userId,
+      updateRankingCategoryStatusDto
+    );
     return ResponseService.buildResponse(
-      { rankingCategory },
-      'Ranking category deleted successfully'
+      { updatedRankingCategory },
+      'Ranking category status updated successfully'
+    );
+  }
+
+  @Patch('/:id/unarchive')
+  @ApiOperation({
+    summary: 'Update Ranking category Status unarchive',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(getRankingCategoryByIdSchema, 'param'))
+  async unarchiveRankingCategory(
+    @GetCurrentUserId() userId: string,
+    @Param() params: GetRankingCategoryByIdDto
+  ) {
+    const updatedRankingCategory = await this.rankingCategoryService.unarchiveRankingCategory(
+      params.id,
+      userId
+    );
+    return ResponseService.buildResponse(
+      { updatedRankingCategory },
+      'Ranking category status unarchived successfully'
     );
   }
 }
