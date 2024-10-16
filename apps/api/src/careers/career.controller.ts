@@ -133,6 +133,20 @@ export class CareerController {
     return ResponseService.buildResponse({ result });
   }
 
+  @Get('/admin/get/vacancies')
+  @ApiOperation({
+    summary: 'Admin Get Job',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(listVacanciesSchema, 'query'))
+  async adminListVacancies(
+    @Query() query: ListVacanciesDto,
+    ) {
+    const result = await this.careerService.adminListVacancies(query);
+    return ResponseService.buildResponse({ result });
+  }
+
   @Post('/apply')
   @ApiOperation({
     summary: 'Apply for a Job',

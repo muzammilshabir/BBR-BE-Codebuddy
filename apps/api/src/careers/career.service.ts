@@ -19,6 +19,7 @@ import { CreateJobApplicationDto } from './dto/create-job-application.dto';
 import { UpdateVacancyApplicationDto } from './dto/update-vacancy-application.dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { SendEmailEvent } from 'src/mailer/events/send-email.event';
+import { JobStatus } from './enum/career.enum';
 
 @Injectable()
 export class CareerService {
@@ -33,6 +34,8 @@ export class CareerService {
   async createVacancy(createJobPostDto: CreateJobPostDto): Promise<Vacancy> {
     const transformedDto = {
       ...createJobPostDto,
+      location: createJobPostDto.isRemote ? 'Remote' : createJobPostDto.location,
+      jobPicture: new Types.ObjectId(createJobPostDto.jobPicture),
       department: new Types.ObjectId(createJobPostDto.department),
     };
 
@@ -45,8 +48,12 @@ export class CareerService {
   ): Promise<Vacancy> {
     const transformedDto: any = {
       ...updateVacancyDto,
+      location: updateVacancyDto.isRemote ? 'Remote' : updateVacancyDto.location,
       department: updateVacancyDto.department
         ? new Types.ObjectId(updateVacancyDto.department)
+        : undefined,
+      jobPicture: updateVacancyDto.jobPicture
+        ? new Types.ObjectId(updateVacancyDto.jobPicture)
         : undefined,
     };
 
@@ -62,6 +69,7 @@ export class CareerService {
   ): Promise<Vacancy> {
     const closeVacancyDto: any = {
       isDeleted: DeletionStatus.DELETED,
+      status: JobStatus.ARCHIVED,
     };
 
     const existingVacancy = await this.vacancyRepository.update(id, closeVacancyDto);
@@ -101,6 +109,14 @@ export class CareerService {
     const deleteDepartmentDto: any = {
       isDeleted: DeletionStatus.DELETED,
     };
+    const jobs = await this.vacancyRepository.findAll({
+      department: id,
+    });
+    for (const job of jobs.data) {
+      await this.vacancyRepository.update(job.id, {
+        status: JobStatus.ARCHIVED,
+      });
+    }
 
     const existingDepartment = await this.vacancyDepartmentRepository.update(id, deleteDepartmentDto);
     if (!existingDepartment) {
@@ -169,6 +185,28 @@ export class CareerService {
   async listVacancies(listVacanciesDto: ListVacanciesDto) {
     const filter: any = {
       isDeleted: DeletionStatus.ACTIVE,
+      status: JobStatus.ACTIVE,
+      postedOn: { $lt: new Date() },
+    };
+
+    if(listVacanciesDto.search) {
+      filter.$or = [
+        { title: { $regex: listVacanciesDto.search, $options: 'i' } },
+        { description: { $regex: listVacanciesDto.search, $options: 'i' } },
+      ];
+    }
+
+    const options = PaginationService.prepareOptions(listVacanciesDto);
+
+    const { data, count } = await this.vacancyRepository.findAll(filter, options);
+
+    const { pagination } = PaginationService.paginate({ rows: data, count }, listVacanciesDto);
+
+    return { pagination, jobs: data };
+  }
+
+  async adminListVacancies(listVacanciesDto: ListVacanciesDto) {
+    const filter: any = {
     };
 
     if(listVacanciesDto.search) {
