@@ -1,5 +1,5 @@
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
-import { Body, Controller, Param, Post, UsePipes } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UsePipes } from '@nestjs/common';
 import {  ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
 import { Roles } from 'src/auth/decorators/roles.decorator';
@@ -8,8 +8,8 @@ import { PaymentService } from './payment.service';
 import { CreatePaymentDto, createPaymentDtoSchema } from './dto/create-payment.dto';
 import { CreateSubscriptionDto, createSubscriptionDtoSchema } from './dto/create-subscription.dto';
 import { GetCurrentUserId } from 'src/auth/decorators/getCurrentUserId.decorator';
-import { Public } from '@bbr/api-core/modules/decorators';
 import { RefundPaymentDto, refundPaymentDtoSchema } from './dto/refund-payment.dto';
+import { ChangeSubscriptionPaymentDto, changeSubscriptionPaymentDtoSchema } from './dto/change-subscription-payment-method.dto';
 
 @ApiTags('Payment')
 @Controller('payment')
@@ -23,7 +23,7 @@ export class PaymentController {
     summary: 'Create Subscription Intent/Invoice',
   })
   @ApiBearerAuth()
-  @Roles(UserRole.BUYER)
+  @Roles(UserRole.SELLER)
   @UsePipes(new JoiValidationPipe(createSubscriptionDtoSchema, 'body'))
   async createSubscription(
     @GetCurrentUserId() userId: string,
@@ -38,7 +38,7 @@ export class PaymentController {
     summary: 'Create One-time Intent/Invoice',
   })
   @ApiBearerAuth()
-  @Roles(UserRole.BUYER)
+  @Roles(UserRole.SELLER)
   @UsePipes(new JoiValidationPipe(createPaymentDtoSchema, 'body'))
   async createPayment(
     @GetCurrentUserId() userId: string,
@@ -48,13 +48,12 @@ export class PaymentController {
     return ResponseService.buildResponse({ intent }, 'Payment request created successfully');
   }
 
-  @Post('/invoices/')
+  @Get('/invoices/')
   @ApiOperation({
     summary: 'Get Customer Invoices',
   })
-  @Public()
-  // @ApiBearerAuth()
-  // @Roles(UserRole.SELLER)
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
   async getCustomerInvoices(
     @GetCurrentUserId() userId: string,
   ) {
@@ -62,11 +61,10 @@ export class PaymentController {
     return ResponseService.buildResponse({ invoices }, 'Customer Invoices retrieved successfully');
   }
 
-  @Post('/invoice/:invoiceId')
+  @Get('/invoice/:invoiceId')
   @ApiOperation({
     summary: 'Get Customer Invoice',
   })
-  @Public()
   @ApiBearerAuth()
   @Roles(UserRole.SELLER)
   async getCustomerInvoice(
@@ -77,7 +75,35 @@ export class PaymentController {
     return ResponseService.buildResponse({ invoices }, 'Customer Invoice retrieved successfully');
   }
 
-  @Post('/admin/customer-portal/session/:userId')
+  @Get('/payment-methods/')
+  @ApiOperation({
+    summary: 'Get Payment Methods',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
+  async getPaymentMethods(
+    @GetCurrentUserId() userId: string,
+  ) {
+    const paymentMethods = await this.paymentService.getUserPaymentMethods(userId);
+    return ResponseService.buildResponse({ paymentMethods }, 'Payment Methods successfully');
+  }
+
+  @Get('/subscription/change-method')
+  @ApiOperation({
+    summary: 'Change Payment Method For Subscription',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
+  @UsePipes(new JoiValidationPipe(changeSubscriptionPaymentDtoSchema, 'body'))
+  async changeSubscriptionPaymentMethods(
+    @GetCurrentUserId() userId: string,
+    @Body() changeSubscriptionPaymentDto: ChangeSubscriptionPaymentDto,
+  ) {
+    const paymentMethods = await this.paymentService.changeSubscriptionPaymentMethod(userId, changeSubscriptionPaymentDto);
+    return ResponseService.buildResponse({ paymentMethods }, 'Payment Methods successfully');
+  }
+
+  @Get('/admin/customer-portal/session/:userId')
   @ApiOperation({
     summary: 'Create Customer Portal Session As Admin',
   })
@@ -90,7 +116,7 @@ export class PaymentController {
     return ResponseService.buildResponse({ session }, 'Customer Portal session created successfully');
   }
 
-  @Post('/admin/customers')
+  @Get('/admin/customers')
   @ApiOperation({
     summary: 'Get Customers',
   })
@@ -101,7 +127,7 @@ export class PaymentController {
     return ResponseService.buildResponse({ customers }, 'Customers retrieved successfully');
   }
 
-  @Post('/admin/customer/payment-methods/:userId')
+  @Get('/admin/customer/payment-methods/:userId')
   @ApiOperation({
     summary: 'Get Customer Payment Methods',
   })
@@ -114,7 +140,7 @@ export class PaymentController {
     return ResponseService.buildResponse({ paymentMethods }, 'Customer Payment Methods successfully');
   }
 
-  @Post('/admin/customer/payments/:userId')
+  @Get('/admin/customer/payments/:userId')
   @ApiOperation({
     summary: 'Get Customer Payments',
   })
@@ -127,7 +153,7 @@ export class PaymentController {
     return ResponseService.buildResponse({ payments }, 'Customer Payments retrieved successfully');
   }
 
-  @Post('/admin/customer/subscriptions/:userId')
+  @Get('/admin/customer/subscriptions/:userId')
   @ApiOperation({
     summary: 'Get Customer Subscriptions',
   })
@@ -140,13 +166,12 @@ export class PaymentController {
     return ResponseService.buildResponse({ subscriptions }, 'Customer Subscriptions retrieved successfully');
   }
 
-  @Post('/admin/customer/invoices/:userId')
+  @Get('/admin/customer/invoices/:userId')
   @ApiOperation({
     summary: 'Get Customer Invoices',
   })
-  @Public()
-  // @ApiBearerAuth()
-  // @Roles(UserRole.ADMIN)
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
   async getCustomerInvoicesAdmin(
     @Param('userId') userId: string,
   ) {
@@ -154,11 +179,10 @@ export class PaymentController {
     return ResponseService.buildResponse({ invoices }, 'Customer Invoices retrieved successfully');
   }
 
-  @Post('/admin/customer/invoice/:invoiceId')
+  @Get('/admin/customer/invoice/:invoiceId')
   @ApiOperation({
     summary: 'Get Customer Invoice',
   })
-  @Public()
   @ApiBearerAuth()
   @Roles(UserRole.ADMIN)
   async getCustomerInvoiceAdmin(
