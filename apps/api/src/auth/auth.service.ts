@@ -24,6 +24,7 @@ import {
   UpdateBuyerProfileDto,
   UpdateDeveloperStatusDto,
   UpdateSellerProfileDto,
+  UpdateStaffMemberDto,
 } from './dto/updateProfile';
 import { VerifyUserDto } from './dto/verifyUser.dto';
 import { JwtPayloadType } from './type/jwt-payload.type';
@@ -422,5 +423,17 @@ export class AuthService {
     this.sendVerificationEmail(user.email, user.verificationToken);
 
     return user;
+  }
+
+  async updateStaffMember(updateStaffMemberDto: UpdateStaffMemberDto, userId: string) {
+    const { staffMemberId, ...updateData } = updateStaffMemberDto;
+
+    const updatedUser = await this.userService.updateStaffMember(
+      staffMemberId.toString(),
+      updateData,
+      userId
+    );
+
+    return updatedUser;
   }
 }

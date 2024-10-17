@@ -50,6 +50,8 @@ import {
   UpdateDeveloperStatusSchema,
   UpdateSellerProfileDto,
   updateSellerProfileSchema,
+  UpdateStaffMemberDto,
+  updateStaffMemberSchema,
 } from './dto/updateProfile';
 import { VerifyUserDto, verifyUserSchema } from './dto/verifyUser.dto';
 import { AtGuard } from './guards/at.guard';
@@ -349,5 +351,20 @@ export class AuthController {
   ) {
     const user = await this.authService.addStaffMember(addStaffMemberDto, userId);
     return ResponseService.buildResponse({ user }, 'staffMember added successfully');
+  }
+
+  @ApiOperation({
+    summary: 'Update staff member',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @Patch('/admin/staff-member/update')
+  @UsePipes(new JoiValidationPipe(updateStaffMemberSchema, 'body'))
+  async updateStaffMember(
+    @Body() updateStaffMemberDto: UpdateStaffMemberDto,
+    @GetCurrentUserId() userId: string
+  ) {
+    const updatedUser = await this.authService.updateStaffMember(updateStaffMemberDto, userId);
+    return ResponseService.buildResponse({ updatedUser }, 'Staff member updated successfully');
   }
 }

@@ -1,8 +1,10 @@
-import { ApiProperty, OmitType } from '@nestjs/swagger';
+import { ApiProperty, OmitType, PartialType } from '@nestjs/swagger';
 import { UpdateBuyerDto, UpdateSellerDto, updateUserSchema } from '../../users/dto/updateUser.dto';
 import * as Joi from 'joi';
 import { UserStatus } from '../../users/enum/user.enum';
 import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
+import { AddStaffMemberDto } from './signup.dto';
+import { Types } from 'mongoose';
 
 const omittedForBuyer = [
   'companyInfo',
@@ -68,4 +70,25 @@ export const UpdateDeveloperStatusSchema = Joi.object({
   status: Joi.string()
     .valid(...Object.values(UserStatus))
     .required(),
+});
+
+export class UpdateStaffMemberDto extends PartialType(AddStaffMemberDto) {
+  @ApiProperty({
+    description: 'Unique identifier of the staff member to be updated',
+    example: '66acda8b857c576159b74da4',
+    required: true,
+  })
+  staffMemberId: Types.ObjectId;
+}
+
+export const updateStaffMemberSchema = Joi.object({
+  staffMemberId: Joi.string().required().custom(joiObjectIdValidator('staffMemberId')),
+  fullName: Joi.string().optional(),
+  email: Joi.string().email().optional(),
+  phone: Joi.object({
+    countryCode: Joi.string().optional(),
+    number: Joi.string().optional(),
+  }).optional(),
+  avatarImage: Joi.string().optional().custom(joiObjectIdValidator('avatarImage')),
+  roleId: Joi.string().optional().custom(joiObjectIdValidator('roleId')),
 });

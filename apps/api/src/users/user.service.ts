@@ -387,4 +387,44 @@ export class UserService {
       throw error;
     }
   }
+
+  async updateStaffMember(
+    staffMemberId: string,
+    updateData: Partial<AddStaffMemberDto>,
+    userId: string
+  ): Promise<User> {
+    try {
+      const existingUser = await this.userRepository.findById(staffMemberId);
+      if (!existingUser) {
+        throw new NotFoundException('Staff member not found');
+      }
+
+      const existingRole = await this.roleRepository.findById(updateData.roleId.toString());
+
+      if (existingRole) {
+        throw new BadRequestException(
+          'The specified role does not exist. Please verify the role and try again.'
+        );
+      }
+
+      if (updateData.email) {
+        const userWithSameEmail = await this.userRepository.find({ email: updateData.email });
+        if (userWithSameEmail && userWithSameEmail._id.toString() !== staffMemberId) {
+          throw new BadRequestException(
+            'The provided email is already in use by another user. Please choose a different email.'
+          );
+        }
+      }
+
+      const updatedUser = await this.userRepository.update(staffMemberId, {
+        ...updateData,
+        updatedById: new Types.ObjectId(userId),
+      });
+
+      return updatedUser;
+    } catch (error) {
+      console.error('Error updating user:', error);
+      throw error;
+    }
+  }
 }
