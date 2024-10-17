@@ -51,13 +51,28 @@ export class RankingCategoryService {
     }
     const options = PaginationService.prepareOptions(rankingCategoryDto);
 
-    return await this.rankingCategoryRepository.findAll(query, options, [
+    const { data } = await this.rankingCategoryRepository.findAll(query, options, [
       {
         path: 'createdById',
         select: 'name email',
         model: 'User',
       },
     ]);
+
+    const updatedData = data.map((rankingCategory) => {
+      const cleanRankingCategory = rankingCategory.toObject();
+
+      return {
+        ...cleanRankingCategory,
+        // This is sample analytics  function to calculate engagement score
+        // Once analytics module finish need to change here
+        engagementScore: this.calculateEngagementScore(
+          this.getMatrixWeight(),
+          this.generateRandomMetrics()
+        ),
+      };
+    });
+    return updatedData;
   }
 
   async create(
@@ -131,7 +146,7 @@ export class RankingCategoryService {
     });
   }
 
-  async findRankingCategory(id: string, user: JwtPayloadType): Promise<RankingCategory> {
+  async findRankingCategory(id: string, user: JwtPayloadType) {
     const rankingCategory = await this.findRankingCategoryById(id);
     if (!rankingCategory) {
       throw new NotFoundException(`Residence with ID ${id}`);
@@ -139,7 +154,13 @@ export class RankingCategoryService {
     if (rankingCategory.createdById._id.toString() !== user.sub) {
       throw new ForbiddenException('You do not have permission to delete this RankingCategory');
     }
-    return rankingCategory;
+    return {
+      ...rankingCategory,
+      engagementScore: this.calculateEngagementScore(
+        this.getMatrixWeight(),
+        this.generateRandomMetrics()
+      ),
+    };
   }
 
   async approveRankingCategory(rankingCategoryId: string, userId: string) {
@@ -299,5 +320,56 @@ export class RankingCategoryService {
     );
 
     return { pagination, rankingCategory: data };
+  }
+
+  // This is sample analytics  function to calculate engagement score
+  // Once analytics module finish need to change here
+  private generateRandomMetrics() {
+    return {
+      clicks: Math.floor(Math.random() * 101),
+      views: Math.floor(Math.random() * 101),
+      inquiries: Math.floor(Math.random() * 101),
+      shares: Math.floor(Math.random() * 101),
+      addToFavorites: Math.floor(Math.random() * 101),
+      interactionTime: Math.floor(Math.random() * 101),
+    };
+  }
+
+  // This is sample analytics function to calculate engagement score
+  // Once analytics module finish need to change here
+  private getMatrixWeight() {
+    const weights = {
+      clicks: 30,
+      views: 15,
+      inquiries: 25,
+      shares: 10,
+      addToFavorites: 15,
+      interactionTime: 5,
+    };
+    return weights;
+  }
+
+  private calculateEngagementScore(weights, metrics) {
+    let weightedScore = 0;
+    let totalWeight = 0;
+
+    // Calculate the weighted sum of all metrics
+    for (const metric in weights) {
+      if (weights.hasOwnProperty(metric) && metrics.hasOwnProperty(metric)) {
+        const weight = weights[metric];
+        const count = metrics[metric];
+        weightedScore += count * (weight / 100);
+        totalWeight += weight;
+      }
+    }
+
+    // Ensure weights sum to 100% to avoid incorrect calculations
+    if (totalWeight !== 100) {
+      throw new Error('Total weight of all metrics should be 100%');
+    }
+
+    // Convert the score to a 10-point scale by dividing the weighted score by 10
+    const engagementScore = Math.round((weightedScore / 10) * 100) / 100;
+    return engagementScore;
   }
 }
