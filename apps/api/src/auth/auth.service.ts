@@ -440,4 +440,8 @@ export class AuthService {
   async updateStaffMemberStatus(updateStaffMemberStatusDto: UpdateUserStatusDto): Promise<User> {
     return await this.userService.updateStaffMemberStatus(updateStaffMemberStatusDto);
   }
+
+  async getStaffMemberById(id: string): Promise<User> {
+    return await this.userService.getStaffMemberById(id);
+  }
 }
