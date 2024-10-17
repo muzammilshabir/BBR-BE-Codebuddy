@@ -68,7 +68,7 @@ export class RankingCategoryController {
     summary: 'Get all ranking categories with filters and pagination',
   })
   @ApiBearerAuth()
-  @Roles(UserRole.ADMIN, UserRole.SELLER)
+  @Roles(UserRole.ADMIN, UserRole.SELLER, UserRole.BUYER)
   @UsePipes(new JoiValidationPipe(rankingCategorySchema, 'query'))
   async getAllRankingCategories(
     @Query() rankingCategoryDto: RankingCategoryListDto,
@@ -128,6 +128,8 @@ export class RankingCategoryController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Approve a ranking category' })
   @Patch(':id/approve')
+  //This API is only accessible to super admin,
+  //Once super admin created change role to super admin
   @Roles(UserRole.ADMIN)
   @UsePipes(new JoiValidationPipe(getRankingCategoryByIdSchema, 'param'))
   async approveRankingCategory(
@@ -148,6 +150,8 @@ export class RankingCategoryController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Reject a ranking category' })
   @Patch(':id/reject')
+  //This API is only accessible to super admin,
+  //Once super admin created change role to super admin
   @Roles(UserRole.ADMIN)
   @UsePipes(new JoiValidationPipe(getRankingCategoryByIdSchema, 'param'))
   @UsePipes(new JoiValidationPipe(rejectRankingCategorySchema, 'body'))
