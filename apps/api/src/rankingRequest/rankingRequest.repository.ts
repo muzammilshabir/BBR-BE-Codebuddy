@@ -198,7 +198,7 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
     }
   }
 
-  // Temporary implementation: Currently returning sample data for the top 10 residences
+  // TODO: Temporary implementation: Currently returning sample data for the top 10 residences
   // due to the absence of the analytics module. This function will require refactoring
   // to integrate actual analytics data once the module is implemented, ensuring accurate
   // representation of the top residences based on views. Please revisit this function

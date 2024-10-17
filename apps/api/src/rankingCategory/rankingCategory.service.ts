@@ -322,8 +322,8 @@ export class RankingCategoryService {
     return { pagination, rankingCategory: data };
   }
 
-  // This is sample analytics  function to calculate engagement score
-  // Once analytics module finish need to change here
+  // TODO: This is a sample analytics function to calculate the engagement score.
+  // Once the analytics module is completed, this function will need to be updated accordingly.
   private generateRandomMetrics() {
     return {
       clicks: Math.floor(Math.random() * 101),
@@ -335,8 +335,8 @@ export class RankingCategoryService {
     };
   }
 
-  // This is sample analytics function to calculate engagement score
-  // Once analytics module finish need to change here
+  // TODO: This is a sample analytics function to calculate the engagement score.
+  // Once the analytics module is completed, this function will need to be updated accordingly.
   private getMatrixWeight() {
     const weights = {
       clicks: 30,

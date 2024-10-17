@@ -206,8 +206,8 @@ export class RankingRequestController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Approve a ranking request' })
   @Patch(':id/approve')
-  //This API is only accessible to super admin,
-  //Once super admin created change role to super admin
+  // TODO: This API should only be accessible to super admin.
+  // After a super admin is created, change the role to super admin.
   @Roles(UserRole.ADMIN)
   @UsePipes(new JoiValidationPipe(getRankingRequestByIdSchema, 'param'))
   async approveRankingRequest(
@@ -225,8 +225,8 @@ export class RankingRequestController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Reject a ranking request' })
   @Patch(':id/reject')
-  //This API is only accessible to super admin,
-  //Once super admin created change role to super admin
+  // TODO: This API should only be accessible to super admin.
+  // After a super admin is created, change the role to super admin.
   @Roles(UserRole.ADMIN)
   @UsePipes(new JoiValidationPipe(getRankingRequestByIdSchema, 'param'))
   @UsePipes(new JoiValidationPipe(rejectRankingRequestSchema, 'body'))
