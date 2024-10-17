@@ -9,6 +9,8 @@ import { ListRoleDto } from './dto/listRole.dto';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
 import { User } from '../users/schema/user.schema';
 import { PermissionLevel } from '../modulePolicy/enum/permission-enum';
+import { GetRoleByIdDto } from './dto/getRoleById.dto';
+import { DeletionStatus } from '../unit/enum/unit-enum';
 
 @Injectable()
 export class RoleService {
@@ -80,16 +82,19 @@ export class RoleService {
     const filter = roleDto.search
       ? {
           $or: [{ roleName: { $regex: roleDto.search, $options: 'i' } }],
+          isDeleted: false,
         }
-      : {};
+      : { isDeleted: false };
 
     const options = PaginationService.prepareOptions(roleDto);
 
-    const { data, count } = await this.roleRepository.findAll(filter, options);
+    const { data, count } = await this.roleRepository.findAll(filter, options, [
+      { path: 'modulePermissions.moduleId', model: 'ModulePolicy' },
+    ]);
 
     const { pagination } = PaginationService.paginate({ rows: data, count }, roleDto);
 
-    return { pagination, propertyTypes: data };
+    return { pagination, roles: data };
   }
 
   async hasPermission(
@@ -117,5 +122,21 @@ export class RoleService {
 
   async findSuperAdmin(): Promise<Role> {
     return await this.roleRepository.find({ roleName: 'super admin' });
+  }
+
+  async getRoleById(getRoleByIdDto: GetRoleByIdDto): Promise<Role> {
+    const role = await this.roleRepository.findById(getRoleByIdDto.roleId);
+    return role;
+  }
+
+  async deleteRole(roleId: string, userId: string): Promise<Role> {
+    const updatedUnit = await this.roleRepository.update(roleId, {
+      isDeleted: DeletionStatus.DELETED,
+      updatedById: new Types.ObjectId(userId),
+    });
+    if (!updatedUnit) {
+      throw new NotFoundException(`Role with ID ${roleId}`);
+    }
+    return updatedUnit;
   }
 }
