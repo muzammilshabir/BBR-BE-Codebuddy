@@ -355,14 +355,21 @@ export class UserService {
     }
   }
 
-  async addStaffMember(addStaffMemberDto: AddStaffMemberDto): Promise<User> {
+  async addStaffMember(addStaffMemberDto: AddStaffMemberDto, userId: string): Promise<User> {
     try {
+      const existingUser = await this.userRepository.find({ email: addStaffMemberDto.email });
+
+      if (existingUser) {
+        throw new BadRequestException('A user with this email already exists');
+      }
+
       const verificationToken = this.tokenService.generateVerificationToken();
       const payload = {
         ...addStaffMemberDto,
         verificationToken: verificationToken,
         signupMethod: SignupMethod.EMAIL,
         role: UserRole.ADMIN,
+        createdById: new Types.ObjectId(userId),
       };
       return await this.userRepository.create(payload);
     } catch (error) {

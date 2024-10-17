@@ -343,8 +343,11 @@ export class AuthController {
   @Roles(UserRole.ADMIN)
   @Post('/admin/staff-member/add')
   @UsePipes(new JoiValidationPipe(addStaffMemberSchema, 'body'))
-  async addStaffMember(@Body() addStaffMemberDto: AddStaffMemberDto) {
-    const user = await this.authService.addStaffMember(addStaffMemberDto);
+  async addStaffMember(
+    @Body() addStaffMemberDto: AddStaffMemberDto,
+    @GetCurrentUserId() userId: string
+  ) {
+    const user = await this.authService.addStaffMember(addStaffMemberDto, userId);
     return ResponseService.buildResponse({ user }, 'staffMember added successfully');
   }
 }

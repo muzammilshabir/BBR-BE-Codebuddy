@@ -405,13 +405,19 @@ export class AuthService {
     return seller;
   }
 
-  async addStaffMember(addStaffMemberDto: AddStaffMemberDto) {
-    const user = await this.userService.addStaffMember({
-      fullName: addStaffMemberDto.fullName,
-      email: addStaffMemberDto.email,
-      roleId: addStaffMemberDto.roleId as Types.ObjectId,
-      phone: addStaffMemberDto.phone,
-    });
+  async addStaffMember(addStaffMemberDto: AddStaffMemberDto, userId: string) {
+    const user = await this.userService.addStaffMember(
+      {
+        fullName: addStaffMemberDto.fullName,
+        email: addStaffMemberDto.email,
+        roleId: new Types.ObjectId(addStaffMemberDto.roleId),
+        phone: addStaffMemberDto.phone,
+        avatarImage: addStaffMemberDto.avatarImage
+          ? new Types.ObjectId(addStaffMemberDto.avatarImage)
+          : undefined,
+      },
+      userId
+    );
 
     this.sendVerificationEmail(user.email, user.verificationToken);
 
