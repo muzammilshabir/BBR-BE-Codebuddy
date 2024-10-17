@@ -22,6 +22,7 @@ import { UnitRepository } from '../unit/unit.repository';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
 import { ListUserDto } from '../auth/dto/listUsers';
 import { AddStaffMemberDto } from '../auth/dto/signup.dto';
+import { RoleRepository } from '../role/role.repository';
 
 @Injectable()
 export class UserService {
@@ -30,7 +31,8 @@ export class UserService {
     private readonly tokenService: TokenService,
     private readonly userRepository: UserRepository,
     private readonly residenceRepository: ResidenceRepository,
-    private readonly unitRepository: UnitRepository
+    private readonly unitRepository: UnitRepository,
+    private readonly roleRepository: RoleRepository
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
@@ -361,6 +363,14 @@ export class UserService {
 
       if (existingUser) {
         throw new BadRequestException('A user with this email already exists');
+      }
+
+      const existingRole = await this.roleRepository.findById(addStaffMemberDto.roleId.toString());
+
+      if (existingRole) {
+        throw new BadRequestException(
+          'The specified role does not exist. Please verify the role and try again.'
+        );
       }
 
       const verificationToken = this.tokenService.generateVerificationToken();

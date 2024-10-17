@@ -18,6 +18,7 @@ import { JwtService } from '@nestjs/jwt';
 import { RedisService } from '../redis/redis.service';
 import { RedisModule } from '../redis/redis.module';
 import { StripeModule } from 'src/stripe/stripe.module';
+import { RoleModule } from '../role/role.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { StripeModule } from 'src/stripe/stripe.module';
     MongooseModule.forFeature([{ name: Unit.name, schema: UnitSchema }]),
     RedisModule,
     StripeModule,
+    RoleModule,
   ],
   providers: [
     ClaimRequestService,
