@@ -46,8 +46,8 @@ import {
   acceptBBRCommitmentSchema,
   UpdateBuyerProfileDto,
   updateBuyerProfileSchema,
-  UpdateDeveloperStatusDto,
-  UpdateDeveloperStatusSchema,
+  UpdateUserStatusDto,
+  UpdateUserStatusSchema,
   UpdateSellerProfileDto,
   updateSellerProfileSchema,
   UpdateStaffMemberDto,
@@ -249,14 +249,15 @@ export class AuthController {
   }
 
   @ApiBearerAuth()
-  @Patch('seller/update-status/:developerId/:status')
+  @Roles(UserRole.ADMIN)
+  @Patch('seller/update-status/:id/:status')
   @ApiOperation({ summary: 'Update Seller status' })
   async updateSellerStatus(
-    @Param(new JoiValidationPipe(UpdateDeveloperStatusSchema, 'param'))
-    params: UpdateDeveloperStatusDto
+    @Param(new JoiValidationPipe(UpdateUserStatusSchema, 'param'))
+    params: UpdateUserStatusDto
   ) {
-    const { developerId, status } = params;
-    const result = await this.authService.updateSellerStatus({ developerId, status });
+    const { id, status } = params;
+    const result = await this.authService.updateSellerStatus({ id, status });
     return { message: 'Seller status updated successfully', data: result };
   }
 
@@ -366,5 +367,18 @@ export class AuthController {
   ) {
     const updatedUser = await this.authService.updateStaffMember(updateStaffMemberDto, userId);
     return ResponseService.buildResponse({ updatedUser }, 'Staff member updated successfully');
+  }
+
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @Patch('admin/update-status/:id/:status')
+  @ApiOperation({ summary: 'Update staffMember status' })
+  async updateStaffMemberStatus(
+    @Param(new JoiValidationPipe(UpdateUserStatusSchema, 'param'))
+    params: UpdateUserStatusDto
+  ) {
+    const { id, status } = params;
+    const result = await this.authService.updateStaffMemberStatus({ id, status });
+    return { message: 'staffMember status updated successfully', data: result };
   }
 }

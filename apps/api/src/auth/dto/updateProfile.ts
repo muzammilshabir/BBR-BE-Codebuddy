@@ -48,13 +48,13 @@ export const updateSellerProfileSchema = updateUserSchema.fork(omittedForSeller,
   schema.forbidden()
 );
 
-export class UpdateDeveloperStatusDto {
+export class UpdateUserStatusDto {
   @ApiProperty({
     example: '64b1b5f4e05c12a1f5d8e7c2',
-    description: 'ID of the developer',
+    description: 'ID of the user',
     required: true,
   })
-  developerId: string;
+  id: string;
 
   @ApiProperty({
     example: UserStatus.ACTIVE,
@@ -65,8 +65,8 @@ export class UpdateDeveloperStatusDto {
   status: UserStatus;
 }
 
-export const UpdateDeveloperStatusSchema = Joi.object({
-  developerId: Joi.string().custom(joiObjectIdValidator('developerId')).required(),
+export const UpdateUserStatusSchema = Joi.object({
+  id: Joi.string().custom(joiObjectIdValidator('id')).required(),
   status: Joi.string()
     .valid(...Object.values(UserStatus))
     .required(),

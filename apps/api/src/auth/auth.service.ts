@@ -22,7 +22,7 @@ import { AddStaffMemberDto, BuyerSignupDto, SellerSignupDto } from './dto/signup
 import {
   AcceptBBRCommitment,
   UpdateBuyerProfileDto,
-  UpdateDeveloperStatusDto,
+  UpdateUserStatusDto,
   UpdateSellerProfileDto,
   UpdateStaffMemberDto,
 } from './dto/updateProfile';
@@ -396,7 +396,7 @@ export class AuthService {
     return await this.userService.listSellers(listUserDto);
   }
 
-  async updateSellerStatus(updateDeveloperStatusDto: UpdateDeveloperStatusDto): Promise<User> {
+  async updateSellerStatus(updateDeveloperStatusDto: UpdateUserStatusDto): Promise<User> {
     return await this.userService.updateSellerStatus(updateDeveloperStatusDto);
   }
 
@@ -435,5 +435,9 @@ export class AuthService {
     );
 
     return updatedUser;
+  }
+
+  async updateStaffMemberStatus(updateStaffMemberStatusDto: UpdateUserStatusDto): Promise<User> {
+    return await this.userService.updateStaffMemberStatus(updateStaffMemberStatusDto);
   }
 }

@@ -24,4 +24,5 @@ export enum UserStatus {
   ARCHIVED = 'archived',
   SUSPENDED = 'suspended',
   REJECTED = 'rejected',
+  INACTIVE = 'inactive',
 }
