@@ -318,4 +318,18 @@ export class AuthController {
     await this.authService.changePassword(changePasswordDto, user);
     return ResponseService.buildResponse({}, 'Password has been changed successfully');
   }
+
+  @Post('/admin/login/email')
+  @Public()
+  @ApiHeader({
+    name: CaptchaEnum.HEADER,
+    required: false,
+    description: 'Send captcha token with this header, when getting captcha error',
+  })
+  @UseGuards(CaptchaGuard)
+  @UsePipes(new JoiValidationPipe(loginSchema, 'body'))
+  async adminLoginWithEmailPassword(@Body() loginDto: LoginDto, @Ip() ip: string) {
+    const response = await this.authService.loginWithEmailPassword(loginDto, UserRole.ADMIN, ip);
+    return ResponseService.buildResponse(response);
+  }
 }
