@@ -21,6 +21,8 @@ import { ResidenceRepository } from '../residences/residences.repository';
 import { UnitRepository } from '../unit/unit.repository';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
 import { ListUserDto } from '../auth/dto/listUsers';
+import { AddStaffMemberDto } from '../auth/dto/signup.dto';
+import { RoleRepository } from '../role/role.repository';
 
 @Injectable()
 export class UserService {
@@ -29,7 +31,8 @@ export class UserService {
     private readonly tokenService: TokenService,
     private readonly userRepository: UserRepository,
     private readonly residenceRepository: ResidenceRepository,
-    private readonly unitRepository: UnitRepository
+    private readonly unitRepository: UnitRepository,
+    private readonly roleRepository: RoleRepository
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
@@ -350,6 +353,37 @@ export class UserService {
 
       return await this.userRepository.create(payload);
     } catch (error) {
+      throw error;
+    }
+  }
+
+  async addStaffMember(addStaffMemberDto: AddStaffMemberDto, userId: string): Promise<User> {
+    try {
+      const existingUser = await this.userRepository.find({ email: addStaffMemberDto.email });
+
+      if (existingUser) {
+        throw new BadRequestException('A user with this email already exists');
+      }
+
+      const existingRole = await this.roleRepository.findById(addStaffMemberDto.roleId.toString());
+
+      if (existingRole) {
+        throw new BadRequestException(
+          'The specified role does not exist. Please verify the role and try again.'
+        );
+      }
+
+      const verificationToken = this.tokenService.generateVerificationToken();
+      const payload = {
+        ...addStaffMemberDto,
+        verificationToken: verificationToken,
+        signupMethod: SignupMethod.EMAIL,
+        role: UserRole.ADMIN,
+        createdById: new Types.ObjectId(userId),
+      };
+      return await this.userRepository.create(payload);
+    } catch (error) {
+      console.error('Error creating user:', error);
       throw error;
     }
   }
