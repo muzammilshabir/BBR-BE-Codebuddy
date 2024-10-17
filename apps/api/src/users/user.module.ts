@@ -15,11 +15,19 @@ import { Residence, ResidenceSchema } from '../residences/schema/residences.sche
 import { ResidenceRepository } from '../residences/residences.repository';
 import { Unit, UnitSchema } from '../unit/schema/unit.schema';
 import { UnitRepository } from '../unit/unit.repository';
+import { SuperAdminSeeder } from './superAdmin.seeder';
+import { RoleRepository } from '../role/role.repository';
+import { Role, RoleSchema } from '../role/schema/role.schema';
+import { ModulePolicyRepository } from '../modulePolicy/modulePolicy.repository';
+import { ModulePolicy, ModulePolicySchema } from '../modulePolicy/schema/modulePolicy.schema';
+import { RoleService } from '../role/role.service';
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
     MongooseModule.forFeature([{ name: Residence.name, schema: ResidenceSchema }]),
     MongooseModule.forFeature([{ name: Unit.name, schema: UnitSchema }]),
+    MongooseModule.forFeature([{ name: Role.name, schema: RoleSchema }]),
+    MongooseModule.forFeature([{ name: ModulePolicy.name, schema: ModulePolicySchema }]),
     JwtModule.register(jwtConfig),
     ConfigModule.forRoot(),
     TokenGenerationModule,
@@ -33,7 +41,11 @@ import { UnitRepository } from '../unit/unit.repository';
     UserFixture,
     ResidenceRepository,
     UnitRepository,
+    RoleRepository,
+    ModulePolicyRepository,
+    SuperAdminSeeder,
+    RoleService,
   ],
-  exports: [UserService, UserFixture],
+  exports: [UserService, UserFixture, SuperAdminSeeder],
 })
 export class UserModule {}

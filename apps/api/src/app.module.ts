@@ -41,8 +41,10 @@ import { StripeModule } from './stripe/stripe.module';
 import { ClaimRequestModule } from './claimRequest/claimRequest.module';
 import { AppController } from './app.controller';
 import { ModulePolicyModule } from './modulePolicy/modulePolicy.module';
+import { RoleModule } from './role/role.module';
 import { RankingCategoryModule } from './rankingCategory/rankingCategory.module';
 import { RankingCategoryDraftModule } from './rankingCategoryDraft/rankingCategoryDraft.module';
+import { PermissionsGuard } from './auth/guards/permissions.guard';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -86,6 +88,7 @@ import { RankingCategoryDraftModule } from './rankingCategoryDraft/rankingCatego
     RankingCategoryModule,
     RankingCategoryDraftModule,
     ModulePolicyModule,
+    RoleModule,
   ],
   controllers: [AppController],
   providers: [
@@ -93,6 +96,10 @@ import { RankingCategoryDraftModule } from './rankingCategoryDraft/rankingCatego
     {
       provide: APP_GUARD,
       useClass: AtGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: PermissionsGuard, // Permissions Guard
     },
   ],
 })
