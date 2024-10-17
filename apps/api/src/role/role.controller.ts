@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Put, Query, UsePipes } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query, UsePipes } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { RoleService } from './role.service';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -64,7 +64,19 @@ export class RoleController {
   @Roles(UserRole.ADMIN)
   @UsePipes(new JoiValidationPipe(getRoleByIdSchema, 'param'))
   async getRoleById(@Param() getRoleByIdDto: GetRoleByIdDto) {
-    const data = await this.roleService.getRoleById(getRoleByIdDto);
-    return ResponseService.buildResponse(data);
+    const role = await this.roleService.getRoleById(getRoleByIdDto);
+    return ResponseService.buildResponse({ role }, 'Role retrieved successfully');
+  }
+
+  @Delete(':roleId')
+  @ApiOperation({
+    summary: 'Delete Role by ID',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(getRoleByIdSchema, 'param'))
+  async deleteRole(@Param() getRoleByIdDto: GetRoleByIdDto, @GetCurrentUserId() userId: string) {
+    const role = await this.roleService.deleteRole(getRoleByIdDto.roleId, userId);
+    return ResponseService.buildResponse({ role }, 'Role Deleted successfully');
   }
 }
