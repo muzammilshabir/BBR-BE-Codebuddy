@@ -1,5 +1,5 @@
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
-import { Body, Controller, Get, Param, Post, UsePipes } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, UsePipes } from '@nestjs/common';
 import {  ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
 import { Roles } from 'src/auth/decorators/roles.decorator';
@@ -10,6 +10,7 @@ import { CreateSubscriptionDto, createSubscriptionDtoSchema } from './dto/create
 import { GetCurrentUserId } from 'src/auth/decorators/getCurrentUserId.decorator';
 import { RefundPaymentDto, refundPaymentDtoSchema } from './dto/refund-payment.dto';
 import { ChangeSubscriptionPaymentDto, changeSubscriptionPaymentDtoSchema } from './dto/change-subscription-payment-method.dto';
+import { UpdateSubscriptionDto, UpdateSubscriptionDtoSchema } from './dto/update-subscription.dto';
 
 @ApiTags('Payment')
 @Controller('payment')
@@ -85,10 +86,37 @@ export class PaymentController {
     @GetCurrentUserId() userId: string,
   ) {
     const paymentMethods = await this.paymentService.getUserPaymentMethods(userId);
-    return ResponseService.buildResponse({ paymentMethods }, 'Payment Methods successfully');
+    return ResponseService.buildResponse({ paymentMethods }, 'Payment Methods retrieved successfully');
   }
 
-  @Get('/subscription/change-method')
+  @Post('/payment-method/')
+  @ApiOperation({
+    summary: 'Create Payment Method Setup Intent',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
+  async createSetupIntent(
+    @GetCurrentUserId() userId: string,
+  ) {
+    const intent = await this.paymentService.createSetupIntent(userId);
+    return ResponseService.buildResponse({ intent }, 'Payment Method created successfully');
+  }
+
+  @Delete('/payment-method/:methodId')
+  @ApiOperation({
+    summary: 'Delete Payment Method',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
+  async deletePaymentMethod(
+    @GetCurrentUserId() userId: string,
+    @Param('methodId') methodId: string,
+  ) {
+    const intent = await this.paymentService.deletePaymentMethod(userId, methodId);
+    return ResponseService.buildResponse({ intent }, 'Payment Method deleted successfully');
+  }
+
+  @Post('/subscription/change-method')
   @ApiOperation({
     summary: 'Change Payment Method For Subscription',
   })
@@ -101,6 +129,22 @@ export class PaymentController {
   ) {
     const paymentMethods = await this.paymentService.changeSubscriptionPaymentMethod(userId, changeSubscriptionPaymentDto);
     return ResponseService.buildResponse({ paymentMethods }, 'Payment Methods successfully');
+  }
+
+  @Put('/subscription/:residenceId')
+  @ApiOperation({
+    summary: 'Update Subscription',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
+  @UsePipes(new JoiValidationPipe(UpdateSubscriptionDtoSchema, 'body'))
+  async updateSubscription(
+    @GetCurrentUserId() userId: string,
+    @Param('residenceId') residenceId: string,
+    @Body() updateSubscriptionDto: UpdateSubscriptionDto,
+  ) {
+    const subscription = await this.paymentService.updateSubscription(userId, residenceId, updateSubscriptionDto);
+    return ResponseService.buildResponse({ subscription }, 'Subscription Updated successfully');
   }
 
   @Get('/admin/customer-portal/session/:userId')
