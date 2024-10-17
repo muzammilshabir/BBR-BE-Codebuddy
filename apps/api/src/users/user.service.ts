@@ -441,4 +441,8 @@ export class UserService {
 
     return user;
   }
+
+  async getStaffMemberById(id: string): Promise<User> {
+    return await this.userRepository.getStaffMemberById(id);
+  }
 }

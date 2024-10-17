@@ -381,4 +381,16 @@ export class AuthController {
     const result = await this.authService.updateStaffMemberStatus({ id, status });
     return { message: 'staffMember status updated successfully', data: result };
   }
+
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({
+    summary: 'Get Staff member by ID',
+  })
+  @Get('/admin/staff-member/:id')
+  @UsePipes(new JoiValidationPipe(getUserByIdSchema, 'param'))
+  async getStaffMemberById(@Param() params: GetUserByIdDto) {
+    const seller = await this.authService.getStaffMemberById(params.id);
+    return ResponseService.buildResponse(seller, 'Seller retrieved successfully');
+  }
 }
