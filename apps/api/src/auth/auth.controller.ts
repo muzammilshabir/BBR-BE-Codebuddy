@@ -34,6 +34,8 @@ import {
   resendVerificationEmailSchema,
 } from './dto/resendVerificationEmail';
 import {
+  AddStaffMemberDto,
+  addStaffMemberSchema,
   BuyerSignupDto,
   buyerSignupSchema,
   SellerSignupDto,
@@ -63,6 +65,7 @@ import { GetCurrentUserId } from './decorators/getCurrentUserId.decorator';
 import { GetUserByIdDto, getUserByIdSchema } from './dto/getUserById.dto';
 import { ListUserDto, listUserSchema } from './dto/listUsers';
 import { AddSellerDto, AddSellerSchema } from '../users/dto/createUser.dto';
+import { Roles } from './decorators/roles.decorator';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -331,5 +334,17 @@ export class AuthController {
   async adminLoginWithEmailPassword(@Body() loginDto: LoginDto, @Ip() ip: string) {
     const response = await this.authService.loginWithEmailPassword(loginDto, UserRole.ADMIN, ip);
     return ResponseService.buildResponse(response);
+  }
+
+  @ApiOperation({
+    summary: 'Add staff member',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @Post('/admin/staff-member/add')
+  @UsePipes(new JoiValidationPipe(addStaffMemberSchema, 'body'))
+  async addStaffMember(@Body() addStaffMemberDto: AddStaffMemberDto) {
+    const user = await this.authService.addStaffMember(addStaffMemberDto);
+    return ResponseService.buildResponse({ user }, 'staffMember added successfully');
   }
 }

@@ -21,6 +21,7 @@ import { ResidenceRepository } from '../residences/residences.repository';
 import { UnitRepository } from '../unit/unit.repository';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
 import { ListUserDto } from '../auth/dto/listUsers';
+import { AddStaffMemberDto } from '../auth/dto/signup.dto';
 
 @Injectable()
 export class UserService {
@@ -350,6 +351,22 @@ export class UserService {
 
       return await this.userRepository.create(payload);
     } catch (error) {
+      throw error;
+    }
+  }
+
+  async addStaffMember(addStaffMemberDto: AddStaffMemberDto): Promise<User> {
+    try {
+      const verificationToken = this.tokenService.generateVerificationToken();
+      const payload = {
+        ...addStaffMemberDto,
+        verificationToken: verificationToken,
+        signupMethod: SignupMethod.EMAIL,
+        role: UserRole.ADMIN,
+      };
+      return await this.userRepository.create(payload);
+    } catch (error) {
+      console.error('Error creating user:', error);
       throw error;
     }
   }

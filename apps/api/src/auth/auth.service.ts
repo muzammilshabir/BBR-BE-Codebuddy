@@ -18,7 +18,7 @@ import { UserService } from '../users/user.service';
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto, ForgotPasswordDto, ResetPasswordDto } from './dto/passwordReset.dto';
 import { ResendVerificationEmailDto } from './dto/resendVerificationEmail';
-import { BuyerSignupDto, SellerSignupDto } from './dto/signup.dto';
+import { AddStaffMemberDto, BuyerSignupDto, SellerSignupDto } from './dto/signup.dto';
 import {
   AcceptBBRCommitment,
   UpdateBuyerProfileDto,
@@ -403,5 +403,18 @@ export class AuthService {
     const seller = await this.userService.addSeller(addSellerDto);
     await this.sendVerificationEmail(seller.email, seller.verificationToken);
     return seller;
+  }
+
+  async addStaffMember(addStaffMemberDto: AddStaffMemberDto) {
+    const user = await this.userService.addStaffMember({
+      fullName: addStaffMemberDto.fullName,
+      email: addStaffMemberDto.email,
+      roleId: addStaffMemberDto.roleId as Types.ObjectId,
+      phone: addStaffMemberDto.phone,
+    });
+
+    this.sendVerificationEmail(user.email, user.verificationToken);
+
+    return user;
   }
 }
