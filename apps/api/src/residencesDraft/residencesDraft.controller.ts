@@ -37,12 +37,10 @@ export class ResidenceDraftController {
   @Roles(UserRole.SELLER, UserRole.ADMIN)
   @UsePipes(new JoiValidationPipe(listResidenceDraftSchema, 'query'))
   async listResidences(@Query() listResidenceDraftDto: ListResidenceDraftDto) {
-    const result = await this.residenceDraftService.listResidencesDraft(listResidenceDraftDto);
+    const residencesDraft =
+      await this.residenceDraftService.listResidencesDraft(listResidenceDraftDto);
 
-    return ResponseService.buildResponse(
-      { residencesDraft: result },
-      'Residence retrieved successfully'
-    );
+    return ResponseService.buildResponse(residencesDraft, 'Residence retrieved successfully');
   }
 
   @Post('/:id/approval-requests')

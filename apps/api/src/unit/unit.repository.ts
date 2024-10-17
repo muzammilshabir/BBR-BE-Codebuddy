@@ -159,6 +159,7 @@ export class UnitRepository extends BaseRepository<Unit> {
         {
           $project: {
             _id: 1,
+            unitDraftId: '$latestDraft._id',
             residenceId: '$latestDraft.residenceId',
             unitName: '$latestDraft.unitName',
             specs: '$latestDraft.specs',
