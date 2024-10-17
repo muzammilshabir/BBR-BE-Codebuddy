@@ -44,6 +44,8 @@ import { ModulePolicyModule } from './modulePolicy/modulePolicy.module';
 import { RoleModule } from './role/role.module';
 import { RankingCategoryModule } from './rankingCategory/rankingCategory.module';
 import { RankingCategoryDraftModule } from './rankingCategoryDraft/rankingCategoryDraft.module';
+import { RankingRequestDraftModule } from './rankingRequestDraft/rankingRequestDraft.module';
+import { RankingRequestModule } from './rankingRequest/rankingRequest.module';
 import { PermissionsGuard } from './auth/guards/permissions.guard';
 @Module({
   imports: [
@@ -88,6 +90,8 @@ import { PermissionsGuard } from './auth/guards/permissions.guard';
     RankingCategoryModule,
     RankingCategoryDraftModule,
     ModulePolicyModule,
+    RankingRequestDraftModule,
+    RankingRequestModule,
     RoleModule,
   ],
   controllers: [AppController],

@@ -103,6 +103,61 @@ export class StripeService {
     return parsedMethods;
   }
 
+  async createSetupIntent(customerId: string) {
+    return await this.stripe.setupIntents.create({
+      customer: customerId,
+      usage: 'off_session',
+    });
+  }
+
+  async deletePaymentMethod(customerId: string, methodId: string) {
+    const paymentMethods = await this.stripe.paymentMethods.list({
+      customer: customerId,
+    });
+    let methodBelongsToCustomer = false;
+    for (const paymentMethod of paymentMethods.data) {
+      if (paymentMethod.id == methodId) {
+        methodBelongsToCustomer = true;
+        break;
+      }
+    }
+    if (!methodBelongsToCustomer) {
+      throw new Error('Invalid payment method id');
+    }
+    return this.stripe.paymentMethods.detach(methodId);
+  }
+
+  async updateSubscription(subscriptionId: string, lineItems: {itemId: string, item: SubscriptionLineItemDto}[]) {
+    const parsedItems: Stripe.SubscriptionUpdateParams.Item[] = [];
+    for (const lineItem of lineItems) {
+      const product = await this.stripe.products.create({
+        name: lineItem.item.price_data.product_data.name,
+        description: lineItem.item.price_data.product_data.description,
+        default_price_data: {
+          currency: lineItem.item.price_data.currency,
+          unit_amount: lineItem.item.price_data.unit_amount,
+          recurring: lineItem.item.price_data.recurring,
+        },
+        metadata: lineItem.item.price_data.product_data.metadata,
+      });
+      parsedItems.push({
+        id: lineItem.itemId,
+        price_data: {
+          product: product.id,
+          currency: lineItem.item.price_data.currency,
+          unit_amount: lineItem.item.price_data.unit_amount,
+          recurring: lineItem.item.price_data.recurring,
+        },
+        quantity: lineItem.item.quantity,
+      });
+    }
+    const subscription = await this.stripe.subscriptions.update(subscriptionId, {
+      items: parsedItems,
+    });
+
+    return subscription;
+  }
+
   async changeSubscriptionPaymentMethod(
     customerId: string,
     subscriptionId: string,
