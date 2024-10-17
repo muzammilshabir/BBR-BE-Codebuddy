@@ -9,6 +9,7 @@ import { ListRoleDto } from './dto/listRole.dto';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
 import { User } from '../users/schema/user.schema';
 import { PermissionLevel } from '../modulePolicy/enum/permission-enum';
+import { GetRoleByIdDto } from './dto/getRoleById.dto';
 
 @Injectable()
 export class RoleService {
@@ -85,7 +86,9 @@ export class RoleService {
 
     const options = PaginationService.prepareOptions(roleDto);
 
-    const { data, count } = await this.roleRepository.findAll(filter, options);
+    const { data, count } = await this.roleRepository.findAll(filter, options, [
+      { path: 'modulePermissions.moduleId', model: 'ModulePolicy' },
+    ]);
 
     const { pagination } = PaginationService.paginate({ rows: data, count }, roleDto);
 
@@ -117,5 +120,10 @@ export class RoleService {
 
   async findSuperAdmin(): Promise<Role> {
     return await this.roleRepository.find({ roleName: 'super admin' });
+  }
+
+  async getRoleById(getRoleByIdDto: GetRoleByIdDto): Promise<any> {
+    const residenceDetails = await this.roleRepository.findById(getRoleByIdDto.roleId);
+    return residenceDetails;
   }
 }

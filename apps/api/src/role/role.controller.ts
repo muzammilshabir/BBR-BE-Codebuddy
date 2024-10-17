@@ -9,6 +9,7 @@ import { ResponseService } from '@bbr/api-core/modules/response/response.service
 import { CreateRoleDto, createRoleSchema } from './dto/addRoleDto';
 import { UpdateRoleDto, updateRoleSchema } from './dto/updateRoleDto';
 import { ListRoleDto, ListRoleSchema } from './dto/listRole.dto';
+import { GetRoleByIdDto, getRoleByIdSchema } from './dto/getRoleById.dto';
 
 @ApiTags('Role')
 @Controller('role')
@@ -52,6 +53,18 @@ export class RoleController {
   @UsePipes(new JoiValidationPipe(ListRoleSchema, 'query'))
   async list(@Query() roleDto: ListRoleDto) {
     const data = await this.roleService.findAll(roleDto);
+    return ResponseService.buildResponse(data);
+  }
+
+  @Get(':roleId')
+  @ApiOperation({
+    summary: 'get role by id',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(getRoleByIdSchema, 'param'))
+  async getRoleById(@Param() getRoleByIdDto: GetRoleByIdDto) {
+    const data = await this.roleService.getRoleById(getRoleByIdDto);
     return ResponseService.buildResponse(data);
   }
 }
