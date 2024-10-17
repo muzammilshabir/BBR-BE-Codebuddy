@@ -8,6 +8,8 @@ import { UserService } from 'src/users/user.service';
 import { ResidenceService } from 'src/residences/residences.service';
 import { RefundPaymentDto } from './dto/refund-payment.dto';
 import { ChangeSubscriptionPaymentDto } from './dto/change-subscription-payment-method.dto';
+import { UpdateSubscriptionDto, UpdateSubscriptionItem } from './dto/update-subscription.dto';
+import { Residence } from 'src/residences/schema/residences.schema';
 
 @Injectable()
 export class PaymentService {
@@ -70,6 +72,36 @@ export class PaymentService {
     return lineItems;
   }
 
+  private convertUpdateSubscriptionItems(items: UpdateSubscriptionItem[]): {itemId: string, item: SubscriptionLineItemDto}[] {
+    const lineItems: {itemId: string, item: SubscriptionLineItemDto}[] = [];
+
+    for (const item of items) {
+      lineItems.push({
+        itemId: item.id,
+        item: {
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: item.name,
+            description: item.description,
+            metadata: {
+              id: item.residenceId.toString(),
+              type: item.type,
+            },
+          },
+          recurring: {
+            interval: item.interval,
+            interval_count: item.intervalCount,
+          },
+          unit_amount: item.price,
+        },
+        quantity: item.quantity,
+      }});
+    }
+
+    return lineItems;
+  }
+
   async createSubscription(userId: string, createSubscriptionDto: CreateSubscriptionDto) {
     const user = await this.userService.findById(userId);
     const customerId = user.stripeCustomerId;
@@ -118,6 +150,27 @@ export class PaymentService {
     const user = await this.userService.findById(userId);
     const customerId = user.stripeCustomerId;
     return this.stripeService.changeSubscriptionPaymentMethod(customerId, changeSubscriptionPaymentDto.subscriptionId, changeSubscriptionPaymentDto.paymentMethodId);
+  }
+
+  async createSetupIntent(userId: string) {
+    const user = await this.userService.findById(userId);
+    const customerId = user.stripeCustomerId;
+    return (await this.stripeService.createSetupIntent(customerId)).client_secret;    
+  }
+
+  async deletePaymentMethod(userId: string, methodId: string) {
+    const user = await this.userService.findById(userId);
+    const customerId = user.stripeCustomerId;
+    return this.stripeService.deletePaymentMethod(customerId, methodId);
+  }
+
+  async updateSubscription(userId: string, residenceId: string, updateSubscriptionDto: UpdateSubscriptionDto) {
+    const residence: Residence = await this.residenceService.getResidenceById(residenceId);
+    if(residence.developerId.toString() != userId) {
+      throw new Error('Residence not found');
+    }
+    const lineItems = this.convertUpdateSubscriptionItems(updateSubscriptionDto.subscriptionItems);
+    return this.stripeService.updateSubscription(residence.subscriptionId, lineItems);
   }
 
   async getUserPayments(userId: string) {
