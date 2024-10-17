@@ -46,10 +46,12 @@ import {
   acceptBBRCommitmentSchema,
   UpdateBuyerProfileDto,
   updateBuyerProfileSchema,
-  UpdateDeveloperStatusDto,
-  UpdateDeveloperStatusSchema,
+  UpdateUserStatusDto,
+  UpdateUserStatusSchema,
   UpdateSellerProfileDto,
   updateSellerProfileSchema,
+  UpdateStaffMemberDto,
+  updateStaffMemberSchema,
 } from './dto/updateProfile';
 import { VerifyUserDto, verifyUserSchema } from './dto/verifyUser.dto';
 import { AtGuard } from './guards/at.guard';
@@ -247,14 +249,15 @@ export class AuthController {
   }
 
   @ApiBearerAuth()
-  @Patch('seller/update-status/:developerId/:status')
+  @Roles(UserRole.ADMIN)
+  @Patch('seller/update-status/:id/:status')
   @ApiOperation({ summary: 'Update Seller status' })
   async updateSellerStatus(
-    @Param(new JoiValidationPipe(UpdateDeveloperStatusSchema, 'param'))
-    params: UpdateDeveloperStatusDto
+    @Param(new JoiValidationPipe(UpdateUserStatusSchema, 'param'))
+    params: UpdateUserStatusDto
   ) {
-    const { developerId, status } = params;
-    const result = await this.authService.updateSellerStatus({ developerId, status });
+    const { id, status } = params;
+    const result = await this.authService.updateSellerStatus({ id, status });
     return { message: 'Seller status updated successfully', data: result };
   }
 
@@ -349,5 +352,33 @@ export class AuthController {
   ) {
     const user = await this.authService.addStaffMember(addStaffMemberDto, userId);
     return ResponseService.buildResponse({ user }, 'staffMember added successfully');
+  }
+
+  @ApiOperation({
+    summary: 'Update staff member',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @Patch('/admin/staff-member/update')
+  @UsePipes(new JoiValidationPipe(updateStaffMemberSchema, 'body'))
+  async updateStaffMember(
+    @Body() updateStaffMemberDto: UpdateStaffMemberDto,
+    @GetCurrentUserId() userId: string
+  ) {
+    const updatedUser = await this.authService.updateStaffMember(updateStaffMemberDto, userId);
+    return ResponseService.buildResponse({ updatedUser }, 'Staff member updated successfully');
+  }
+
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @Patch('admin/update-status/:id/:status')
+  @ApiOperation({ summary: 'Update staffMember status' })
+  async updateStaffMemberStatus(
+    @Param(new JoiValidationPipe(UpdateUserStatusSchema, 'param'))
+    params: UpdateUserStatusDto
+  ) {
+    const { id, status } = params;
+    const result = await this.authService.updateStaffMemberStatus({ id, status });
+    return { message: 'staffMember status updated successfully', data: result };
   }
 }

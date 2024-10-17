@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Types } from 'mongoose';
 import { AbstractSeeder } from '@bbr/api-core/modules/seeder/abstractSeeder.service';
 import { RoleRepository } from '../role/role.repository';
-import { UserRole, SignupMethod } from './enum/user.enum';
+import { UserRole, SignupMethod, UserStatus } from './enum/user.enum';
 import { ModulePolicyRepository } from '../modulePolicy/modulePolicy.repository';
 import { UserRepository } from './user.repository';
 import { UserService } from './user.service';
@@ -59,7 +59,7 @@ export class SuperAdminSeeder extends AbstractSeeder {
       //  Create or fetch the Super Admin user
       const adminUser = await this.userRepository.find({ email: 'tiyodo7791@paxnw.com' });
       if (!adminUser) {
-        const newAdminUser = await this.userService.create({
+        await this.userRepository.create({
           email: 'tiyodo7791@paxnw.com',
           password: await argon.hash('Pass@123'), // Ensure to hash this password
           roleId: superAdminRole?._id as Types.ObjectId,
@@ -68,10 +68,8 @@ export class SuperAdminSeeder extends AbstractSeeder {
           signupMethod: SignupMethod.EMAIL,
           isVerified: true,
           emailVerified: true,
+          status: UserStatus.ACTIVE,
         });
-
-        // TODO: The isVerified field is being passed as true during creation, but it is showing as false afterward. Please check this issue
-        await this.userRepository.update(newAdminUser.id, { isVerified: true });
 
         this.logger.log('Super Admin user created successfully.');
       } else {

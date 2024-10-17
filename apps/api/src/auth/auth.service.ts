@@ -22,8 +22,9 @@ import { AddStaffMemberDto, BuyerSignupDto, SellerSignupDto } from './dto/signup
 import {
   AcceptBBRCommitment,
   UpdateBuyerProfileDto,
-  UpdateDeveloperStatusDto,
+  UpdateUserStatusDto,
   UpdateSellerProfileDto,
+  UpdateStaffMemberDto,
 } from './dto/updateProfile';
 import { VerifyUserDto } from './dto/verifyUser.dto';
 import { JwtPayloadType } from './type/jwt-payload.type';
@@ -395,7 +396,7 @@ export class AuthService {
     return await this.userService.listSellers(listUserDto);
   }
 
-  async updateSellerStatus(updateDeveloperStatusDto: UpdateDeveloperStatusDto): Promise<User> {
+  async updateSellerStatus(updateDeveloperStatusDto: UpdateUserStatusDto): Promise<User> {
     return await this.userService.updateSellerStatus(updateDeveloperStatusDto);
   }
 
@@ -422,5 +423,21 @@ export class AuthService {
     this.sendVerificationEmail(user.email, user.verificationToken);
 
     return user;
+  }
+
+  async updateStaffMember(updateStaffMemberDto: UpdateStaffMemberDto, userId: string) {
+    const { staffMemberId, ...updateData } = updateStaffMemberDto;
+
+    const updatedUser = await this.userService.updateStaffMember(
+      staffMemberId.toString(),
+      updateData,
+      userId
+    );
+
+    return updatedUser;
+  }
+
+  async updateStaffMemberStatus(updateStaffMemberStatusDto: UpdateUserStatusDto): Promise<User> {
+    return await this.userService.updateStaffMemberStatus(updateStaffMemberStatusDto);
   }
 }
