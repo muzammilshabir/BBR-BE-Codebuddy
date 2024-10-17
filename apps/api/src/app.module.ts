@@ -43,6 +43,8 @@ import { AppController } from './app.controller';
 import { ModulePolicyModule } from './modulePolicy/modulePolicy.module';
 import { RankingCategoryModule } from './rankingCategory/rankingCategory.module';
 import { RankingCategoryDraftModule } from './rankingCategoryDraft/rankingCategoryDraft.module';
+import { RankingRequestDraftModule } from './rankingRequestDraft/rankingRequestDraft.module';
+import { RankingRequestModule } from './rankingRequest/rankingRequest.module';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -86,6 +88,8 @@ import { RankingCategoryDraftModule } from './rankingCategoryDraft/rankingCatego
     RankingCategoryModule,
     RankingCategoryDraftModule,
     ModulePolicyModule,
+    RankingRequestDraftModule,
+    RankingRequestModule,
   ],
   controllers: [AppController],
   providers: [
