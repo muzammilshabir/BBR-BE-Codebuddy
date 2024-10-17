@@ -219,6 +219,13 @@ export class CreateUserDto {
     required: true,
   })
   associatedBrandId?: Types.ObjectId[];
+
+  @ApiProperty({
+    description: 'staff member role id',
+    example: '66acda8b857c576159b74da4',
+    required: false,
+  })
+  roleId?: Types.ObjectId;
 }
 
 export class CreateDummyUserDto {
