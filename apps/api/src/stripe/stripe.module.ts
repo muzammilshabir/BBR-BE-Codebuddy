@@ -11,6 +11,7 @@ import { ResidenceModule } from 'src/residences/residences.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Transaction, TransactionSchema } from './schema/transaction.schema';
 import { TransactionRepository } from './transaction.repository';
+import { PaymentAdminController } from './payment-admin.controller';
 
 @Module({
   imports: [
@@ -19,7 +20,7 @@ import { TransactionRepository } from './transaction.repository';
     ResidenceModule,
     MongooseModule.forFeature([{ name: Transaction.name, schema: TransactionSchema }]),
   ],
-  controllers: [StripeController, PaymentController],
+  controllers: [StripeController, PaymentController, PaymentAdminController],
   providers: [
     StripeService,
     PaymentService,
