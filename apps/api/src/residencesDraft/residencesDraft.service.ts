@@ -39,9 +39,14 @@ export class ResidenceDraftService {
     const options = PaginationService.prepareOptions(listResidenceDraftDto);
 
     const { data, count } = await this.residenceDraftRepository.findAll(filter, options, [
-      { path: 'residenceTypeId', select: 'type' },
+      { path: 'residenceTypeIds', select: 'type', model: 'ResidenceType' },
       { path: 'cityId', select: 'name parentId' },
       { path: 'associatedBrandId', select: 'name' },
+      {
+        path: 'visuals.mainPhotos',
+        select: 'originalFileKey fileKey url mimeType',
+        model: 'Upload',
+      },
       {
         path: 'visuals.mainGalleryPhotos',
         select: 'originalFileKey fileKey url mimeType',
