@@ -15,12 +15,14 @@ import { UpdateUserDto } from './dto/updateUser.dto';
 import { SignupMethod, UserRole, UserStatus } from './enum/user.enum';
 import { User } from './schema/user.schema';
 import { UserRepository } from './user.repository';
-import { UpdateDeveloperStatusDto, UpdateSellerProfileDto } from '../auth/dto/updateProfile';
+import { UpdateSellerProfileDto, UpdateUserStatusDto } from '../auth/dto/updateProfile';
 import { AddFavouritesDto, ListFavouritesDto, PropertyType } from '../auth/dto/addToFavourite';
 import { ResidenceRepository } from '../residences/residences.repository';
 import { UnitRepository } from '../unit/unit.repository';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
 import { ListUserDto } from '../auth/dto/listUsers';
+import { AddStaffMemberDto } from '../auth/dto/signup.dto';
+import { RoleRepository } from '../role/role.repository';
 
 @Injectable()
 export class UserService {
@@ -29,7 +31,8 @@ export class UserService {
     private readonly tokenService: TokenService,
     private readonly userRepository: UserRepository,
     private readonly residenceRepository: ResidenceRepository,
-    private readonly unitRepository: UnitRepository
+    private readonly unitRepository: UnitRepository,
+    private readonly roleRepository: RoleRepository
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
@@ -316,10 +319,10 @@ export class UserService {
     return { pagination, sellers: data };
   }
 
-  async updateSellerStatus(updateDeveloperStatusDto: UpdateDeveloperStatusDto) {
-    const { developerId, status } = updateDeveloperStatusDto;
+  async updateSellerStatus(updateDeveloperStatusDto: UpdateUserStatusDto) {
+    const { id, status } = updateDeveloperStatusDto;
 
-    const seller = await this.userRepository.findById(developerId);
+    const seller = await this.userRepository.findById(id);
     if (!seller) {
       throw new NotFoundException('Seller not found');
     }
@@ -352,5 +355,94 @@ export class UserService {
     } catch (error) {
       throw error;
     }
+  }
+
+  async addStaffMember(addStaffMemberDto: AddStaffMemberDto, userId: string): Promise<User> {
+    try {
+      const existingUser = await this.userRepository.find({ email: addStaffMemberDto.email });
+
+      if (existingUser) {
+        throw new BadRequestException('A user with this email already exists');
+      }
+
+      const existingRole = await this.roleRepository.findById(addStaffMemberDto.roleId.toString());
+
+      if (existingRole) {
+        throw new BadRequestException(
+          'The specified role does not exist. Please verify the role and try again.'
+        );
+      }
+
+      const verificationToken = this.tokenService.generateVerificationToken();
+      const payload = {
+        ...addStaffMemberDto,
+        verificationToken: verificationToken,
+        signupMethod: SignupMethod.EMAIL,
+        role: UserRole.ADMIN,
+        createdById: new Types.ObjectId(userId),
+      };
+      return await this.userRepository.create(payload);
+    } catch (error) {
+      console.error('Error creating user:', error);
+      throw error;
+    }
+  }
+
+  async updateStaffMember(
+    staffMemberId: string,
+    updateData: Partial<AddStaffMemberDto>,
+    userId: string
+  ): Promise<User> {
+    try {
+      const existingUser = await this.userRepository.findById(staffMemberId);
+      if (!existingUser) {
+        throw new NotFoundException('Staff member not found');
+      }
+
+      const existingRole = await this.roleRepository.findById(updateData.roleId.toString());
+
+      if (existingRole) {
+        throw new BadRequestException(
+          'The specified role does not exist. Please verify the role and try again.'
+        );
+      }
+
+      if (updateData.email) {
+        const userWithSameEmail = await this.userRepository.find({ email: updateData.email });
+        if (userWithSameEmail && userWithSameEmail._id.toString() !== staffMemberId) {
+          throw new BadRequestException(
+            'The provided email is already in use by another user. Please choose a different email.'
+          );
+        }
+      }
+
+      const updatedUser = await this.userRepository.update(staffMemberId, {
+        ...updateData,
+        updatedById: new Types.ObjectId(userId),
+      });
+
+      return updatedUser;
+    } catch (error) {
+      console.error('Error updating user:', error);
+      throw error;
+    }
+  }
+
+  async updateStaffMemberStatus(updateStaffMemberStatusDto: UpdateUserStatusDto) {
+    const { id, status } = updateStaffMemberStatusDto;
+
+    const user = await this.userRepository.findById(id);
+    if (!user) {
+      throw new NotFoundException('staffMember not found');
+    }
+
+    user.status = status;
+    await user.save();
+
+    return user;
+  }
+
+  async getStaffMemberById(id: string): Promise<User> {
+    return await this.userRepository.getStaffMemberById(id);
   }
 }
