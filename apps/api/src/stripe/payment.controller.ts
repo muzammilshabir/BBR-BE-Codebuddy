@@ -8,7 +8,6 @@ import { PaymentService } from './payment.service';
 import { CreatePaymentDto, createPaymentDtoSchema } from './dto/create-payment.dto';
 import { CreateSubscriptionDto, createSubscriptionDtoSchema } from './dto/create-subscription.dto';
 import { GetCurrentUserId } from 'src/auth/decorators/getCurrentUserId.decorator';
-import { RefundPaymentDto, refundPaymentDtoSchema } from './dto/refund-payment.dto';
 import { ChangeSubscriptionPaymentDto, changeSubscriptionPaymentDtoSchema } from './dto/change-subscription-payment-method.dto';
 import { UpdateSubscriptionDto, UpdateSubscriptionDtoSchema } from './dto/update-subscription.dto';
 
@@ -21,7 +20,7 @@ export class PaymentController {
 
   @Post('/subscription/')
   @ApiOperation({
-    summary: 'Create Subscription Intent/Invoice',
+    summary: 'Add one time payment to upcoming invoice',
   })
   @ApiBearerAuth()
   @Roles(UserRole.SELLER)
@@ -76,7 +75,7 @@ export class PaymentController {
     return ResponseService.buildResponse({ invoices }, 'Customer Invoice retrieved successfully');
   }
 
-  @Get('/payment-methods/')
+  @Get('/payment-method/list')
   @ApiOperation({
     summary: 'Get Payment Methods',
   })
@@ -145,109 +144,5 @@ export class PaymentController {
   ) {
     const subscription = await this.paymentService.updateSubscription(userId, residenceId, updateSubscriptionDto);
     return ResponseService.buildResponse({ subscription }, 'Subscription Updated successfully');
-  }
-
-  @Get('/admin/customer-portal/session/:userId')
-  @ApiOperation({
-    summary: 'Create Customer Portal Session As Admin',
-  })
-  @ApiBearerAuth()
-  @Roles(UserRole.ADMIN)
-  async createCustomerPortalAsAdmin(
-    @Param('userId') userId: string,
-    ) {
-    const session = await this.paymentService.createCustomerPortalSession(userId);
-    return ResponseService.buildResponse({ session }, 'Customer Portal session created successfully');
-  }
-
-  @Get('/admin/customers')
-  @ApiOperation({
-    summary: 'Get Customers',
-  })
-  @ApiBearerAuth()
-  @Roles(UserRole.ADMIN)
-  async getCustomers() {
-    const customers = await this.paymentService.listCustomers();
-    return ResponseService.buildResponse({ customers }, 'Customers retrieved successfully');
-  }
-
-  @Get('/admin/customer/payment-methods/:userId')
-  @ApiOperation({
-    summary: 'Get Customer Payment Methods',
-  })
-  @ApiBearerAuth()
-  @Roles(UserRole.ADMIN)
-  async getCustomerPaymentMethods(
-    @Param('userId') userId: string,
-  ) {
-    const paymentMethods = await this.paymentService.getUserPaymentMethods(userId);
-    return ResponseService.buildResponse({ paymentMethods }, 'Customer Payment Methods successfully');
-  }
-
-  @Get('/admin/customer/payments/:userId')
-  @ApiOperation({
-    summary: 'Get Customer Payments',
-  })
-  @ApiBearerAuth()
-  @Roles(UserRole.ADMIN)
-  async getCustomerPayments(
-    @Param('userId') userId: string,
-  ) {
-    const payments = await this.paymentService.getUserPayments(userId);
-    return ResponseService.buildResponse({ payments }, 'Customer Payments retrieved successfully');
-  }
-
-  @Get('/admin/customer/subscriptions/:userId')
-  @ApiOperation({
-    summary: 'Get Customer Subscriptions',
-  })
-  @ApiBearerAuth()
-  @Roles(UserRole.ADMIN)
-  async getCustomerSubscriptions(
-    @Param('userId') userId: string,
-  ) {
-    const subscriptions = await this.paymentService.getUserSubscriptions(userId);
-    return ResponseService.buildResponse({ subscriptions }, 'Customer Subscriptions retrieved successfully');
-  }
-
-  @Get('/admin/customer/invoices/:userId')
-  @ApiOperation({
-    summary: 'Get Customer Invoices',
-  })
-  @ApiBearerAuth()
-  @Roles(UserRole.ADMIN)
-  async getCustomerInvoicesAdmin(
-    @Param('userId') userId: string,
-  ) {
-    const invoices = await this.paymentService.getUserInvoices(userId);
-    return ResponseService.buildResponse({ invoices }, 'Customer Invoices retrieved successfully');
-  }
-
-  @Get('/admin/customer/invoice/:invoiceId')
-  @ApiOperation({
-    summary: 'Get Customer Invoice',
-  })
-  @ApiBearerAuth()
-  @Roles(UserRole.ADMIN)
-  async getCustomerInvoiceAdmin(
-    @Param('invoiceId') invoiceId: string,
-  ) {
-    const invoices = await this.paymentService.getUserInvoiceAdmin(invoiceId);
-    return ResponseService.buildResponse({ invoices }, 'Customer Invoice retrieved successfully');
-  }
-
-  @Post('/admin/refund/:invoiceId')
-  @ApiOperation({
-    summary: 'Refund/Cancel Customer Invoice',
-  })
-  @ApiBearerAuth()
-  @Roles(UserRole.ADMIN)
-  @UsePipes(new JoiValidationPipe(refundPaymentDtoSchema, 'body'))
-  async refundCustomerInvoice(
-    @Param('invoiceId') invoiceId: string,
-    @Body() refundPaymentDto: RefundPaymentDto,
-  ) {
-    const refund = await this.paymentService.refundUserInvoice(invoiceId, refundPaymentDto);
-    return ResponseService.buildResponse({ refund }, 'Invoice refunded successfully');
   }
 }
