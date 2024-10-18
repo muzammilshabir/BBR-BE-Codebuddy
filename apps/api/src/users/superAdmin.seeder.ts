@@ -32,7 +32,7 @@ export class SuperAdminSeeder extends AbstractSeeder {
       const modulePolicies = await this.modulePolicyRepository.findAll({});
 
       if (!modulePolicies.data.length) {
-        this.logger.warn('No ModulePolicies found');
+        console.log('No ModulePolicies found');
         return;
       }
 
@@ -53,7 +53,7 @@ export class SuperAdminSeeder extends AbstractSeeder {
           isDeleted: false,
         });
       } else {
-        this.logger.log('Super Admin role already exists.');
+        console.log('Super Admin role already exists.');
       }
 
       //  Create or fetch the Super Admin user
@@ -71,12 +71,12 @@ export class SuperAdminSeeder extends AbstractSeeder {
           status: UserStatus.ACTIVE,
         });
 
-        this.logger.log('Super Admin user created successfully.');
+        console.log('Super Admin user created successfully.');
       } else {
-        this.logger.log('Admin user already exists.');
+        console.log('Admin user already exists.');
       }
     } catch (error) {
-      this.logger.error('Error while seeding users:', error);
+      console.error('Error while seeding users:', error);
     }
   }
 }

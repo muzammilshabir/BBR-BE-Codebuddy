@@ -20,7 +20,7 @@ import { AddFavouritesDto, ListFavouritesDto, PropertyType } from '../auth/dto/a
 import { ResidenceRepository } from '../residences/residences.repository';
 import { UnitRepository } from '../unit/unit.repository';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
-import { ListUserDto } from '../auth/dto/listUsers';
+import { ListAdminsDto, ListUserDto } from '../auth/dto/listUsers';
 import { AddStaffMemberDto } from '../auth/dto/signup.dto';
 import { RoleRepository } from '../role/role.repository';
 
@@ -444,5 +444,38 @@ export class UserService {
 
   async getStaffMemberById(id: string): Promise<User> {
     return await this.userRepository.getStaffMemberById(id);
+  }
+
+  async listAdmins(listUserDto: ListAdminsDto) {
+    const { search } = listUserDto;
+
+    const filter: any = { role: UserRole.ADMIN };
+
+    if (search) {
+      filter.$or = [
+        { fullName: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { phone: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    if (listUserDto.status) {
+      filter.status = listUserDto.status;
+    }
+
+    if (listUserDto.roleId) {
+      filter.roleId = listUserDto.roleId;
+    }
+
+    const options = PaginationService.prepareOptions(listUserDto);
+
+    const { data, count } = await this.userRepository.findAll(filter, options, [
+      { path: 'roleId', model: 'Role' },
+      { path: 'avatarImage', select: 'originalFileKey fileKey url mimeType', model: 'Upload' },
+    ]);
+
+    const { pagination } = PaginationService.paginate({ rows: data, count }, listUserDto);
+
+    return { pagination, admins: data };
   }
 }
