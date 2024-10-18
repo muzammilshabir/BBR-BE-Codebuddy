@@ -14,8 +14,13 @@ export class UpdateResidenceDto {
   @ApiProperty({ example: 'Ritz Carlton Miami', required: false })
   name?: string;
 
-  @ApiProperty({ example: '60d9c6a0a11c3c6c6a9a1a2a', required: false, type: String })
-  residenceTypeId?: Types.ObjectId;
+  @ApiProperty({
+    example: ['60d9c6a0a11c3c6c6a9a1a2a', '60d9c6a0a11c3c6c6a9a1b3c'],
+    required: false,
+    type: [String],
+    description: 'Array of residence type IDs',
+  })
+  residenceTypeIds?: Types.ObjectId[];
 
   @ApiProperty({ example: '60d9c6a0a11c3c6c6a9a1a1a', required: false, type: String })
   locationId?: Types.ObjectId;
@@ -37,11 +42,16 @@ export class UpdateResidenceDto {
 
   @ApiProperty({ required: false })
   address: Address;
+
+  @ApiProperty({ required: false })
+  status: ResidenceStatus.ACTIVE;
 }
 
 export const updateResidenceSchema = Joi.object({
   name: Joi.string().optional(),
-  residenceTypeId: Joi.string().optional().custom(joiObjectIdValidator('residenceTypeId')),
+  residenceTypeIds: Joi.array()
+    .items(Joi.string().custom(joiObjectIdValidator('residenceTypeIds')))
+    .optional(),
   locationId: Joi.string().optional().custom(joiObjectIdValidator('locationId')),
   websiteLink: Joi.string().optional(),
   associatedBrandId: Joi.string().optional().custom(joiObjectIdValidator('associatedBrandId')),
@@ -72,6 +82,7 @@ export const updateResidenceSchema = Joi.object({
     }).optional(),
     placeId: Joi.string().optional(),
   }).optional(),
+  status: Joi.string().optional(),
 });
 
 export class RejectResidenceDto {

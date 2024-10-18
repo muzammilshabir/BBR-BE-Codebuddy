@@ -58,7 +58,9 @@ export class ResidenceService {
   async create(createResidenceDto: CreateResidenceDto, user: JwtPayloadType): Promise<any> {
     const transformedDto: any = {
       ...createResidenceDto,
-      residenceTypeId: new Types.ObjectId(createResidenceDto.residenceTypeId),
+      residenceTypeIds: createResidenceDto.residenceTypeIds
+        ? createResidenceDto.residenceTypeIds.map((typeId) => new Types.ObjectId(typeId))
+        : undefined,
       locationId: createResidenceDto.locationId
         ? new Types.ObjectId(createResidenceDto.locationId)
         : undefined,
@@ -103,10 +105,14 @@ export class ResidenceService {
   ): Promise<ResidenceDraft> {
     await this.checkResidenceRejectedStatus(id);
 
+    if (updateResidenceDto?.status && user.role !== UserRole.ADMIN) {
+      delete updateResidenceDto.status;
+    }
+
     const transformedDto: any = {
       ...updateResidenceDto,
-      residenceTypeId: updateResidenceDto.residenceTypeId
-        ? new Types.ObjectId(updateResidenceDto.residenceTypeId)
+      residenceTypeIds: updateResidenceDto.residenceTypeIds
+        ? updateResidenceDto.residenceTypeIds.map((typeId) => new Types.ObjectId(typeId))
         : undefined,
       locationId: updateResidenceDto.locationId
         ? new Types.ObjectId(updateResidenceDto.locationId)
@@ -385,7 +391,11 @@ export class ResidenceService {
     const options = PaginationService.prepareOptions(listResidenceDto);
 
     const { data, count } = await this.residenceRepository.findAll(filter, options, [
-      { path: 'residenceTypeId', select: 'type' },
+      {
+        path: 'residenceTypeIds',
+        select: 'type',
+        model: 'ResidenceType',
+      },
       { path: 'cityId', select: 'name countryId upload' },
       { path: 'countryId', select: 'name geographicalAreasId upload' },
       { path: 'associatedBrandId', select: 'name' },
@@ -446,11 +456,6 @@ export class ResidenceService {
   transformResidences(residences: Residence[]): Residence[] {
     return residences.map((residence) => {
       const transformedResidence: any = { ...residence };
-
-      if (residence.residenceTypeId) {
-        transformedResidence.residenceType = residence.residenceTypeId;
-        delete transformedResidence.residenceTypeId;
-      }
 
       if (residence.locationId) {
         transformedResidence.location = residence.locationId;
@@ -648,7 +653,7 @@ export class ResidenceService {
     }
 
     if (filtersDto.propertyTypes && filtersDto.propertyTypes.length > 0) {
-      filter.residenceTypeId = {
+      filter.residenceTypeIds = {
         $in: filtersDto.propertyTypes.map((propertyType) => new Types.ObjectId(propertyType)),
       };
     }
@@ -756,14 +761,15 @@ export class ResidenceService {
       }
     }
 
-    if (residence?.residenceTypeId) {
-      const residenceType = await this.residenceTypeRepository.find({
-        _id: residence.residenceTypeId,
+    if (residence?.residenceTypeIds?.length) {
+      const validResidenceTypes = await this.residenceTypeRepository.count({
+        _id: { $in: residence.residenceTypeIds },
         isDeleted: { $ne: DeletionStatus.DELETED },
       });
-      if (!residenceType) {
+
+      if (validResidenceTypes.count !== residence.residenceTypeIds.length) {
         throw new BadRequestException(
-          `ResidenceType with ID ${residence.residenceTypeId} does not exist or is deleted`
+          `One or more ResidenceTypes in residenceTypeIds are invalid or deleted`
         );
       }
     }
