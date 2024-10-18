@@ -32,7 +32,7 @@ import { StripeService } from 'src/stripe/stripe.service';
 import { AddSellerDto, CreateDummyUserDto } from '../users/dto/createUser.dto';
 import { Types } from 'mongoose';
 import { AddFavouritesDto, ListFavouritesDto } from './dto/addToFavourite';
-import { ListUserDto } from './dto/listUsers';
+import { ListAdminsDto, ListUserDto } from './dto/listUsers';
 
 @Injectable()
 export class AuthService {
@@ -443,5 +443,9 @@ export class AuthService {
 
   async getStaffMemberById(id: string): Promise<User> {
     return await this.userService.getStaffMemberById(id);
+  }
+
+  async listAdmins(listUserDto: ListAdminsDto) {
+    return await this.userService.listAdmins(listUserDto);
   }
 }

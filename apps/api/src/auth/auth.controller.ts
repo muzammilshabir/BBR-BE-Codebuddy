@@ -65,7 +65,7 @@ import {
 } from './dto/addToFavourite';
 import { GetCurrentUserId } from './decorators/getCurrentUserId.decorator';
 import { GetUserByIdDto, getUserByIdSchema } from './dto/getUserById.dto';
-import { ListUserDto, listUserSchema } from './dto/listUsers';
+import { ListAdminsDto, listAdminsSchema, ListUserDto, listUserSchema } from './dto/listUsers';
 import { AddSellerDto, AddSellerSchema } from '../users/dto/createUser.dto';
 import { Roles } from './decorators/roles.decorator';
 
@@ -392,5 +392,16 @@ export class AuthController {
   async getStaffMemberById(@Param() params: GetUserByIdDto) {
     const seller = await this.authService.getStaffMemberById(params.id);
     return ResponseService.buildResponse(seller, 'Seller retrieved successfully');
+  }
+
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'List admins',
+  })
+  @Get('/admin/staff-member')
+  @UsePipes(new JoiValidationPipe(listAdminsSchema, 'param'))
+  async listAdmins(@Query() query: ListAdminsDto) {
+    const admins = await this.authService.listAdmins(query);
+    return ResponseService.buildResponse(admins, 'admins retrieved successfully');
   }
 }
