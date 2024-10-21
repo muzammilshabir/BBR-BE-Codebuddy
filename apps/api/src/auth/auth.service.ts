@@ -18,12 +18,14 @@ import { UserService } from '../users/user.service';
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto, ForgotPasswordDto, ResetPasswordDto } from './dto/passwordReset.dto';
 import { ResendVerificationEmailDto } from './dto/resendVerificationEmail';
-import { BuyerSignupDto, SellerSignupDto } from './dto/signup.dto';
+import { AddStaffMemberDto, BuyerSignupDto, SellerSignupDto } from './dto/signup.dto';
 import {
   AcceptBBRCommitment,
   UpdateBuyerProfileDto,
-  UpdateDeveloperStatusDto,
+  UpdateUserStatusDto,
   UpdateSellerProfileDto,
+  UpdateStaffMemberDto,
+  ResetStaffMemberPasswordDto,
 } from './dto/updateProfile';
 import { VerifyUserDto } from './dto/verifyUser.dto';
 import { JwtPayloadType } from './type/jwt-payload.type';
@@ -31,7 +33,7 @@ import { StripeService } from 'src/stripe/stripe.service';
 import { AddSellerDto, CreateDummyUserDto } from '../users/dto/createUser.dto';
 import { Types } from 'mongoose';
 import { AddFavouritesDto, ListFavouritesDto } from './dto/addToFavourite';
-import { ListUserDto } from './dto/listUsers';
+import { ListAdminsDto, ListUserDto } from './dto/listUsers';
 
 @Injectable()
 export class AuthService {
@@ -110,7 +112,7 @@ export class AuthService {
   }
 
   async loginWithEmailPassword(loginDto: LoginDto, role: UserRole, ip: string) {
-    const user = await this.userService.findByEmail(loginDto.email);
+    const user = await this.userService.findByEmailAndRole(loginDto.email, role);
 
     let failedCount = await this.redisService.get({
       prefix: CaptchaEnum.PREFIX,
@@ -395,7 +397,7 @@ export class AuthService {
     return await this.userService.listSellers(listUserDto);
   }
 
-  async updateSellerStatus(updateDeveloperStatusDto: UpdateDeveloperStatusDto): Promise<User> {
+  async updateSellerStatus(updateDeveloperStatusDto: UpdateUserStatusDto): Promise<User> {
     return await this.userService.updateSellerStatus(updateDeveloperStatusDto);
   }
 
@@ -403,5 +405,55 @@ export class AuthService {
     const seller = await this.userService.addSeller(addSellerDto);
     await this.sendVerificationEmail(seller.email, seller.verificationToken);
     return seller;
+  }
+
+  async addStaffMember(addStaffMemberDto: AddStaffMemberDto, userId: string) {
+    const user = await this.userService.addStaffMember(
+      {
+        fullName: addStaffMemberDto.fullName,
+        email: addStaffMemberDto.email,
+        roleId: new Types.ObjectId(addStaffMemberDto.roleId),
+        phone: addStaffMemberDto.phone,
+        avatarImage: addStaffMemberDto.avatarImage
+          ? new Types.ObjectId(addStaffMemberDto.avatarImage)
+          : undefined,
+      },
+      userId
+    );
+
+    this.sendVerificationEmail(user.email, user.verificationToken);
+
+    return user;
+  }
+
+  async updateStaffMember(updateStaffMemberDto: UpdateStaffMemberDto, userId: string) {
+    const { staffMemberId, ...updateData } = updateStaffMemberDto;
+
+    const updatedUser = await this.userService.updateStaffMember(
+      staffMemberId.toString(),
+      updateData,
+      userId
+    );
+
+    return updatedUser;
+  }
+
+  async updateStaffMemberStatus(updateStaffMemberStatusDto: UpdateUserStatusDto): Promise<User> {
+    return await this.userService.updateStaffMemberStatus(updateStaffMemberStatusDto);
+  }
+
+  async getStaffMemberById(id: string): Promise<User> {
+    return await this.userService.getStaffMemberById(id);
+  }
+
+  async listAdmins(listUserDto: ListAdminsDto) {
+    return await this.userService.listAdmins(listUserDto);
+  }
+
+  async resetStaffMemberPassword(
+    resetStaffMemberPasswordDto: ResetStaffMemberPasswordDto,
+    userId: string
+  ) {
+    return await this.userService.resetStaffMemberPassword(resetStaffMemberPasswordDto, userId);
   }
 }

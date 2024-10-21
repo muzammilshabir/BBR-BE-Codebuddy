@@ -1,8 +1,10 @@
-import { ApiProperty, OmitType } from '@nestjs/swagger';
+import { ApiProperty, OmitType, PartialType } from '@nestjs/swagger';
 import { UpdateBuyerDto, UpdateSellerDto, updateUserSchema } from '../../users/dto/updateUser.dto';
 import * as Joi from 'joi';
 import { UserStatus } from '../../users/enum/user.enum';
 import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
+import { AddStaffMemberDto } from './signup.dto';
+import { Types } from 'mongoose';
 
 const omittedForBuyer = [
   'companyInfo',
@@ -46,13 +48,13 @@ export const updateSellerProfileSchema = updateUserSchema.fork(omittedForSeller,
   schema.forbidden()
 );
 
-export class UpdateDeveloperStatusDto {
+export class UpdateUserStatusDto {
   @ApiProperty({
     example: '64b1b5f4e05c12a1f5d8e7c2',
-    description: 'ID of the developer',
+    description: 'ID of the user',
     required: true,
   })
-  developerId: string;
+  id: string;
 
   @ApiProperty({
     example: UserStatus.ACTIVE,
@@ -63,9 +65,58 @@ export class UpdateDeveloperStatusDto {
   status: UserStatus;
 }
 
-export const UpdateDeveloperStatusSchema = Joi.object({
-  developerId: Joi.string().custom(joiObjectIdValidator('developerId')).required(),
+export const UpdateUserStatusSchema = Joi.object({
+  id: Joi.string().custom(joiObjectIdValidator('id')).required(),
   status: Joi.string()
     .valid(...Object.values(UserStatus))
     .required(),
+});
+
+export class UpdateStaffMemberDto extends PartialType(AddStaffMemberDto) {
+  @ApiProperty({
+    description: 'Unique identifier of the staff member to be updated',
+    example: '66acda8b857c576159b74da4',
+    required: true,
+  })
+  staffMemberId: Types.ObjectId;
+}
+
+export const updateStaffMemberSchema = Joi.object({
+  staffMemberId: Joi.string().required().custom(joiObjectIdValidator('staffMemberId')),
+  fullName: Joi.string().optional(),
+  email: Joi.string().email().optional(),
+  phone: Joi.object({
+    countryCode: Joi.string().optional(),
+    number: Joi.string().optional(),
+  }).optional(),
+  avatarImage: Joi.string().optional().custom(joiObjectIdValidator('avatarImage')),
+  roleId: Joi.string().optional().custom(joiObjectIdValidator('roleId')),
+});
+
+export class ResetStaffMemberPasswordDto {
+  @ApiProperty({
+    example: '64b1b5f4e05c12a1f5d8e7c2',
+    description: 'ID of the Residence',
+    required: true,
+  })
+  staffMemberId: string;
+
+  @ApiProperty({
+    example: 'Pass@123',
+    description: 'New Password',
+  })
+  password: string;
+}
+
+export const resetStaffMemberPasswordSchema = Joi.object({
+  staffMemberId: Joi.string().custom(joiObjectIdValidator('staffMemberId')).required(),
+  password: Joi.string()
+    .trim()
+    .min(8)
+    .max(32)
+    .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?])/)
+    .messages({
+      'string.pattern.base':
+        'password must be contain at least 1 uppercase letter, 1 lowercase letter, 1 digit and 1 special character',
+    }),
 });

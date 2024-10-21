@@ -34,6 +34,8 @@ import {
   resendVerificationEmailSchema,
 } from './dto/resendVerificationEmail';
 import {
+  AddStaffMemberDto,
+  addStaffMemberSchema,
   BuyerSignupDto,
   buyerSignupSchema,
   SellerSignupDto,
@@ -44,10 +46,14 @@ import {
   acceptBBRCommitmentSchema,
   UpdateBuyerProfileDto,
   updateBuyerProfileSchema,
-  UpdateDeveloperStatusDto,
-  UpdateDeveloperStatusSchema,
+  UpdateUserStatusDto,
+  UpdateUserStatusSchema,
   UpdateSellerProfileDto,
   updateSellerProfileSchema,
+  UpdateStaffMemberDto,
+  updateStaffMemberSchema,
+  ResetStaffMemberPasswordDto,
+  resetStaffMemberPasswordSchema,
 } from './dto/updateProfile';
 import { VerifyUserDto, verifyUserSchema } from './dto/verifyUser.dto';
 import { AtGuard } from './guards/at.guard';
@@ -61,8 +67,9 @@ import {
 } from './dto/addToFavourite';
 import { GetCurrentUserId } from './decorators/getCurrentUserId.decorator';
 import { GetUserByIdDto, getUserByIdSchema } from './dto/getUserById.dto';
-import { ListUserDto, listUserSchema } from './dto/listUsers';
+import { ListAdminsDto, listAdminsSchema, ListUserDto, listUserSchema } from './dto/listUsers';
 import { AddSellerDto, AddSellerSchema } from '../users/dto/createUser.dto';
+import { Roles } from './decorators/roles.decorator';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -244,14 +251,15 @@ export class AuthController {
   }
 
   @ApiBearerAuth()
-  @Patch('seller/update-status/:developerId/:status')
+  @Roles(UserRole.ADMIN)
+  @Patch('seller/update-status/:id/:status')
   @ApiOperation({ summary: 'Update Seller status' })
   async updateSellerStatus(
-    @Param(new JoiValidationPipe(UpdateDeveloperStatusSchema, 'param'))
-    params: UpdateDeveloperStatusDto
+    @Param(new JoiValidationPipe(UpdateUserStatusSchema, 'param'))
+    params: UpdateUserStatusDto
   ) {
-    const { developerId, status } = params;
-    const result = await this.authService.updateSellerStatus({ developerId, status });
+    const { id, status } = params;
+    const result = await this.authService.updateSellerStatus({ id, status });
     return { message: 'Seller status updated successfully', data: result };
   }
 
@@ -317,5 +325,115 @@ export class AuthController {
   ) {
     await this.authService.changePassword(changePasswordDto, user);
     return ResponseService.buildResponse({}, 'Password has been changed successfully');
+  }
+
+  @ApiOperation({
+    summary: 'Verify Admin by email flow',
+  })
+  @Public()
+  @Post('/admin/verify')
+  @UsePipes(new JoiValidationPipe(verifyUserSchema, 'body'))
+  async verifyAdmin(@Body() verifySellerDto: VerifyUserDto) {
+    const tokens = await this.authService.verifyUser(verifySellerDto, UserRole.ADMIN);
+
+    return ResponseService.buildResponse(tokens, 'Admin verified successfully');
+  }
+
+  @Post('/admin/login/email')
+  @Public()
+  @ApiHeader({
+    name: CaptchaEnum.HEADER,
+    required: false,
+    description: 'Send captcha token with this header, when getting captcha error',
+  })
+  @UseGuards(CaptchaGuard)
+  @UsePipes(new JoiValidationPipe(loginSchema, 'body'))
+  async adminLoginWithEmailPassword(@Body() loginDto: LoginDto, @Ip() ip: string) {
+    const response = await this.authService.loginWithEmailPassword(loginDto, UserRole.ADMIN, ip);
+    return ResponseService.buildResponse(response);
+  }
+
+  @ApiOperation({
+    summary: 'Add staff member',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @Post('/admin/staff-member/add')
+  @UsePipes(new JoiValidationPipe(addStaffMemberSchema, 'body'))
+  async addStaffMember(
+    @Body() addStaffMemberDto: AddStaffMemberDto,
+    @GetCurrentUserId() userId: string
+  ) {
+    const user = await this.authService.addStaffMember(addStaffMemberDto, userId);
+    return ResponseService.buildResponse({ user }, 'staffMember added successfully');
+  }
+
+  @ApiOperation({
+    summary: 'Update staff member',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @Patch('/admin/staff-member/update')
+  @UsePipes(new JoiValidationPipe(updateStaffMemberSchema, 'body'))
+  async updateStaffMember(
+    @Body() updateStaffMemberDto: UpdateStaffMemberDto,
+    @GetCurrentUserId() userId: string
+  ) {
+    const updatedUser = await this.authService.updateStaffMember(updateStaffMemberDto, userId);
+    return ResponseService.buildResponse({ updatedUser }, 'Staff member updated successfully');
+  }
+
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @Patch('admin/update-status/:id/:status')
+  @ApiOperation({ summary: 'Update staffMember status' })
+  async updateStaffMemberStatus(
+    @Param(new JoiValidationPipe(UpdateUserStatusSchema, 'param'))
+    params: UpdateUserStatusDto
+  ) {
+    const { id, status } = params;
+    const result = await this.authService.updateStaffMemberStatus({ id, status });
+    return { message: 'staffMember status updated successfully', data: result };
+  }
+
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({
+    summary: 'Get Staff member by ID',
+  })
+  @Get('/admin/staff-member/:id')
+  @UsePipes(new JoiValidationPipe(getUserByIdSchema, 'param'))
+  async getStaffMemberById(@Param() params: GetUserByIdDto) {
+    const seller = await this.authService.getStaffMemberById(params.id);
+    return ResponseService.buildResponse(seller, 'Seller retrieved successfully');
+  }
+
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'List admins',
+  })
+  @Get('/admin/staff-member')
+  @UsePipes(new JoiValidationPipe(listAdminsSchema, 'param'))
+  async listAdmins(@Query() query: ListAdminsDto) {
+    const admins = await this.authService.listAdmins(query);
+    return ResponseService.buildResponse(admins, 'admins retrieved successfully');
+  }
+
+  @Patch('admin/staff-member/reset-password')
+  @ApiOperation({
+    summary: 'Reject Residence by ID',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(resetStaffMemberPasswordSchema, 'body'))
+  async rejectResidence2(
+    @GetCurrentUserId() userId: string,
+    @Body() resetStaffMemberPasswordDto: ResetStaffMemberPasswordDto
+  ) {
+    const user = await this.authService.resetStaffMemberPassword(
+      resetStaffMemberPasswordDto,
+      userId
+    );
+    return ResponseService.buildResponse({ user }, 'Staff member password reset successfully');
   }
 }

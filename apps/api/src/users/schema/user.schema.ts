@@ -6,6 +6,7 @@ import {
   UserContactInfo,
   UserContactPersonInfo,
   UserNotificationPreferences,
+  UserPhone,
   UserPreferences,
 } from '../types/user.type';
 
@@ -109,6 +110,9 @@ export class User extends Document {
 
   @Prop({ type: Types.ObjectId, ref: 'Role', required: false })
   roleId: Types.ObjectId;
+
+  @Prop({ type: UserPhone, required: false })
+  phone?: UserPhone;
 
   @Prop({ type: Date })
   createdAt: Date;

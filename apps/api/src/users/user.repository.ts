@@ -58,4 +58,30 @@ export class UserRepository extends BaseRepository<User> {
 
     return developer;
   }
+
+  async getStaffMemberById(id: string): Promise<any> {
+    const developer: any = await this.userModel
+      .findOne({ _id: id, role: UserRole.ADMIN })
+      .populate([
+        {
+          path: 'avatarImage',
+          select: 'originalFileKey fileKey url mimeType',
+          model: 'Upload',
+        },
+        {
+          path: 'roleId',
+          model: 'Role',
+          populate: {
+            path: 'modulePermissions.moduleId',
+            model: 'ModulePolicy',
+          },
+        },
+      ]);
+
+    if (!developer) {
+      throw new NotFoundException(`developer with ID ${id}`);
+    }
+
+    return developer;
+  }
 }
