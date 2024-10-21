@@ -52,6 +52,8 @@ import {
   updateSellerProfileSchema,
   UpdateStaffMemberDto,
   updateStaffMemberSchema,
+  ResetStaffMemberPasswordDto,
+  resetStaffMemberPasswordSchema,
 } from './dto/updateProfile';
 import { VerifyUserDto, verifyUserSchema } from './dto/verifyUser.dto';
 import { AtGuard } from './guards/at.guard';
@@ -403,5 +405,23 @@ export class AuthController {
   async listAdmins(@Query() query: ListAdminsDto) {
     const admins = await this.authService.listAdmins(query);
     return ResponseService.buildResponse(admins, 'admins retrieved successfully');
+  }
+
+  @Patch('admin/staff-member/reset-password')
+  @ApiOperation({
+    summary: 'Reject Residence by ID',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(resetStaffMemberPasswordSchema, 'body'))
+  async rejectResidence2(
+    @GetCurrentUserId() userId: string,
+    @Body() resetStaffMemberPasswordDto: ResetStaffMemberPasswordDto
+  ) {
+    const user = await this.authService.resetStaffMemberPassword(
+      resetStaffMemberPasswordDto,
+      userId
+    );
+    return ResponseService.buildResponse({ user }, 'Staff member password reset successfully');
   }
 }

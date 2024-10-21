@@ -15,7 +15,11 @@ import { UpdateUserDto } from './dto/updateUser.dto';
 import { SignupMethod, UserRole, UserStatus } from './enum/user.enum';
 import { User } from './schema/user.schema';
 import { UserRepository } from './user.repository';
-import { UpdateSellerProfileDto, UpdateUserStatusDto } from '../auth/dto/updateProfile';
+import {
+  ResetStaffMemberPasswordDto,
+  UpdateSellerProfileDto,
+  UpdateUserStatusDto,
+} from '../auth/dto/updateProfile';
 import { AddFavouritesDto, ListFavouritesDto, PropertyType } from '../auth/dto/addToFavourite';
 import { ResidenceRepository } from '../residences/residences.repository';
 import { UnitRepository } from '../unit/unit.repository';
@@ -23,6 +27,7 @@ import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.s
 import { ListAdminsDto, ListUserDto } from '../auth/dto/listUsers';
 import { AddStaffMemberDto } from '../auth/dto/signup.dto';
 import { RoleRepository } from '../role/role.repository';
+import * as argon from 'argon2';
 
 @Injectable()
 export class UserService {
@@ -129,7 +134,12 @@ export class UserService {
   }
 
   async updatePassword(id: string, password: string) {
-    return await this.userRepository.update(id, { password });
+    return await this.userRepository.update(id, {
+      password,
+      isVerified: true,
+      verificationToken: true,
+      emailVerified: true,
+    });
   }
 
   async update(
@@ -477,5 +487,28 @@ export class UserService {
     const { pagination } = PaginationService.paginate({ rows: data, count }, listUserDto);
 
     return { pagination, admins: data };
+  }
+
+  async resetStaffMemberPassword(
+    resetStaffMemberPasswordDto: ResetStaffMemberPasswordDto,
+    userId: string
+  ): Promise<User> {
+    const { staffMemberId, password } = resetStaffMemberPasswordDto;
+    const staffMember = await this.userRepository.findById(staffMemberId.toString());
+    if (!staffMember) {
+      throw new NotFoundException(`Staff member with ID ${staffMemberId} not found`);
+    }
+    if (!staffMember.isVerified) {
+      throw new BadRequestException('User email is not verified');
+    }
+
+    const hashedPassword = await argon.hash(password);
+    // Update staff member's password
+    const updatedUser = await this.userRepository.update(staffMemberId.toString(), {
+      password: hashedPassword,
+      updatedById: new Types.ObjectId(userId),
+    });
+
+    return updatedUser;
   }
 }

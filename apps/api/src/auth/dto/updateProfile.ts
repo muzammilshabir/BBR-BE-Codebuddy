@@ -92,3 +92,31 @@ export const updateStaffMemberSchema = Joi.object({
   avatarImage: Joi.string().optional().custom(joiObjectIdValidator('avatarImage')),
   roleId: Joi.string().optional().custom(joiObjectIdValidator('roleId')),
 });
+
+export class ResetStaffMemberPasswordDto {
+  @ApiProperty({
+    example: '64b1b5f4e05c12a1f5d8e7c2',
+    description: 'ID of the Residence',
+    required: true,
+  })
+  staffMemberId: string;
+
+  @ApiProperty({
+    example: 'Pass@123',
+    description: 'New Password',
+  })
+  password: string;
+}
+
+export const resetStaffMemberPasswordSchema = Joi.object({
+  staffMemberId: Joi.string().custom(joiObjectIdValidator('staffMemberId')).required(),
+  password: Joi.string()
+    .trim()
+    .min(8)
+    .max(32)
+    .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?])/)
+    .messages({
+      'string.pattern.base':
+        'password must be contain at least 1 uppercase letter, 1 lowercase letter, 1 digit and 1 special character',
+    }),
+});

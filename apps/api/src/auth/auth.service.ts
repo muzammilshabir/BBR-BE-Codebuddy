@@ -25,6 +25,7 @@ import {
   UpdateUserStatusDto,
   UpdateSellerProfileDto,
   UpdateStaffMemberDto,
+  ResetStaffMemberPasswordDto,
 } from './dto/updateProfile';
 import { VerifyUserDto } from './dto/verifyUser.dto';
 import { JwtPayloadType } from './type/jwt-payload.type';
@@ -447,5 +448,12 @@ export class AuthService {
 
   async listAdmins(listUserDto: ListAdminsDto) {
     return await this.userService.listAdmins(listUserDto);
+  }
+
+  async resetStaffMemberPassword(
+    resetStaffMemberPasswordDto: ResetStaffMemberPasswordDto,
+    userId: string
+  ) {
+    return await this.userService.resetStaffMemberPassword(resetStaffMemberPasswordDto, userId);
   }
 }
