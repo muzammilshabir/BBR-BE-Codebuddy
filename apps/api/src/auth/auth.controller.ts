@@ -52,6 +52,8 @@ import {
   updateSellerProfileSchema,
   UpdateStaffMemberDto,
   updateStaffMemberSchema,
+  ResetStaffMemberPasswordDto,
+  resetStaffMemberPasswordSchema,
 } from './dto/updateProfile';
 import { VerifyUserDto, verifyUserSchema } from './dto/verifyUser.dto';
 import { AtGuard } from './guards/at.guard';
@@ -325,6 +327,18 @@ export class AuthController {
     return ResponseService.buildResponse({}, 'Password has been changed successfully');
   }
 
+  @ApiOperation({
+    summary: 'Verify Admin by email flow',
+  })
+  @Public()
+  @Post('/admin/verify')
+  @UsePipes(new JoiValidationPipe(verifyUserSchema, 'body'))
+  async verifyAdmin(@Body() verifySellerDto: VerifyUserDto) {
+    const tokens = await this.authService.verifyUser(verifySellerDto, UserRole.ADMIN);
+
+    return ResponseService.buildResponse(tokens, 'Admin verified successfully');
+  }
+
   @Post('/admin/login/email')
   @Public()
   @ApiHeader({
@@ -403,5 +417,23 @@ export class AuthController {
   async listAdmins(@Query() query: ListAdminsDto) {
     const admins = await this.authService.listAdmins(query);
     return ResponseService.buildResponse(admins, 'admins retrieved successfully');
+  }
+
+  @Patch('admin/staff-member/reset-password')
+  @ApiOperation({
+    summary: 'Reject Residence by ID',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(resetStaffMemberPasswordSchema, 'body'))
+  async rejectResidence2(
+    @GetCurrentUserId() userId: string,
+    @Body() resetStaffMemberPasswordDto: ResetStaffMemberPasswordDto
+  ) {
+    const user = await this.authService.resetStaffMemberPassword(
+      resetStaffMemberPasswordDto,
+      userId
+    );
+    return ResponseService.buildResponse({ user }, 'Staff member password reset successfully');
   }
 }
