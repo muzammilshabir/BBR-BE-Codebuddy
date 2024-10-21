@@ -327,6 +327,18 @@ export class AuthController {
     return ResponseService.buildResponse({}, 'Password has been changed successfully');
   }
 
+  @ApiOperation({
+    summary: 'Verify Admin by email flow',
+  })
+  @Public()
+  @Post('/admin/verify')
+  @UsePipes(new JoiValidationPipe(verifyUserSchema, 'body'))
+  async verifyAdmin(@Body() verifySellerDto: VerifyUserDto) {
+    const tokens = await this.authService.verifyUser(verifySellerDto, UserRole.ADMIN);
+
+    return ResponseService.buildResponse(tokens, 'Admin verified successfully');
+  }
+
   @Post('/admin/login/email')
   @Public()
   @ApiHeader({
