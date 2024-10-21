@@ -169,11 +169,9 @@ export class UnitRepository extends BaseRepository<Unit> {
             briefOverview: '$latestDraft.briefOverview',
             unitKeyFeatures: '$latestDraft.unitKeyFeatures',
             visuals: {
-              mainPhotos: { $ifNull: [{ $arrayElemAt: ['$mainPhotos', 0] }, null] },
-              mainGalleryPhotos: { $ifNull: [{ $arrayElemAt: ['$mainGalleryPhotos', 0] }, null] },
-              secondGalleryPhotos: {
-                $ifNull: [{ $arrayElemAt: ['$secondGalleryPhotos', 0] }, null],
-              },
+              mainPhotos: { $ifNull: ['$mainPhotos', []] },
+              mainGalleryPhotos: { $ifNull: ['$mainGalleryPhotos', []] },
+              secondGalleryPhotos: { $ifNull: ['$secondGalleryPhotos', []] },
               videoTour: { $ifNull: [{ $arrayElemAt: ['$videoTour', 0] }, null] },
             },
             status: {
