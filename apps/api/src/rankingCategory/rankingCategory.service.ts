@@ -76,25 +76,39 @@ export class RankingCategoryService {
   }
 
   async create(
-    createResidenceDto: CreateRankingCategoryDto,
+    createRankingCategoryDto: CreateRankingCategoryDto,
     user: JwtPayloadType
   ): Promise<RankingCategory> {
     const transformedDto: any = {
-      ...createResidenceDto,
+      ...createRankingCategoryDto,
       createdById: new Types.ObjectId(user.sub),
-      upload: createResidenceDto.upload?.map((upload) => ({
+      upload: createRankingCategoryDto.upload?.map((upload) => ({
         ImageId: new Types.ObjectId(upload.ImageId),
         type: upload.type,
       })),
+      status: RankingCategoryStatus.DRAFT,
     };
 
     const rankingCategory = await this.rankingCategoryRepository.create(transformedDto);
 
-    await this.rankingCategoryDraftRepository.create({
+    const rankingCategoryDraft = await this.rankingCategoryDraftRepository.create({
       ...transformedDto,
       rankingCategoryId: new Types.ObjectId(rankingCategory.id),
     });
 
+    if (
+      createRankingCategoryDto.status &&
+      createRankingCategoryDto.status === RankingCategoryStatus.ACTIVE
+    ) {
+      await this.rankingCategoryDraftRepository.update(rankingCategoryDraft.id, {
+        status: RankingCategoryStatus.PENDING,
+        updatedById: new Types.ObjectId(user.sub),
+      });
+      return this.rankingCategoryRepository.update(rankingCategory.id, {
+        status: RankingCategoryStatus.PENDING,
+        updatedById: new Types.ObjectId(user.sub),
+      });
+    }
     return rankingCategory;
   }
 
