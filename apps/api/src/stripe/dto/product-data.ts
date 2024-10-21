@@ -2,7 +2,7 @@ export class ProductData {
     name: string;
     description: string;
     metadata: {
-      type: 'listing' | 'ranked' | 'featured';
+      type: string;
       id: string;
     };
 }

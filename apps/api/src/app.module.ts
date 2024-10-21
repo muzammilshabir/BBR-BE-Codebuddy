@@ -47,6 +47,7 @@ import { RankingCategoryDraftModule } from './rankingCategoryDraft/rankingCatego
 import { RankingRequestDraftModule } from './rankingRequestDraft/rankingRequestDraft.module';
 import { RankingRequestModule } from './rankingRequest/rankingRequest.module';
 import { PermissionsGuard } from './auth/guards/permissions.guard';
+import { SubscriptionPlanModule } from './subscription-plan/subscription-plan.module';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -93,6 +94,7 @@ import { PermissionsGuard } from './auth/guards/permissions.guard';
     RankingRequestDraftModule,
     RankingRequestModule,
     RoleModule,
+    SubscriptionPlanModule,
   ],
   controllers: [AppController],
   providers: [

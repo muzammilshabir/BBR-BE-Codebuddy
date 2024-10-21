@@ -6,6 +6,9 @@ import { PaymentLineItemDto } from './dto/payment-line-item.dto';
 import { SubscriptionLineItemDto } from './dto/subscription-line-item.dto';
 import { ResidenceService } from 'src/residences/residences.service';
 import { RefundPaymentDto } from './dto/refund-payment.dto';
+import { UpdateInvoiceItemDto } from './dto/update-invoice-item.dto';
+import { uuid } from 'short-uuid';
+import { PaymentMethodRepository } from './payment-method.repository';
 interface PaymentMethodType {
   type: string;
   brand?: string;
@@ -19,7 +22,8 @@ export class StripeService {
 
   constructor(
     private readonly configService: ServiceConfig,
-    private readonly residenceService: ResidenceService
+    private readonly residenceService: ResidenceService,
+    private readonly paymentMethodRepository: PaymentMethodRepository,
   ) {
     this.stripe = new Stripe(configService.stripe.secretKey, {
       typescript: true,
@@ -127,7 +131,10 @@ export class StripeService {
     return this.stripe.paymentMethods.detach(methodId);
   }
 
-  async updateSubscription(subscriptionId: string, lineItems: {itemId: string, item: SubscriptionLineItemDto}[]) {
+  async updateSubscription(
+    subscriptionId: string,
+    lineItems: { itemId: string; item: SubscriptionLineItemDto }[]
+  ) {
     const parsedItems: Stripe.SubscriptionUpdateParams.Item[] = [];
     for (const lineItem of lineItems) {
       const product = await this.stripe.products.create({
@@ -176,11 +183,9 @@ export class StripeService {
     if (!subBelongsToCustomer) {
       throw new Error('Invalid sub id');
     }
-    return this.stripe.subscriptions.update(subscriptionId,
-      {
-        default_payment_method: paymentMethodId,
-      }
-    );
+    return this.stripe.subscriptions.update(subscriptionId, {
+      default_payment_method: paymentMethodId,
+    });
   }
 
   async retrieveCustomerPaymentMethod(customerId: string, paymentMethodId: string) {
@@ -356,6 +361,51 @@ export class StripeService {
     return parsedPayments;
   }
 
+  async createInvoice(customerId: string, productIds: string[], paymentMethodId: string, discount: number, tax: number) {
+    const coupon = await this.stripe.coupons.create({
+      name: uuid(),
+      amount_off: discount,
+      currency: 'usd',
+    });
+    const taxRate = await this.stripe.taxRates.create({
+      display_name: uuid(),
+      inclusive: false,
+      percentage: tax,
+    });
+    const paymentMethod = await this.paymentMethodRepository.find({paymentMethodId});
+    const mandateId = paymentMethod.mandateId;
+    const invoice = await this.stripe.invoices.create({
+      customer: customerId,
+      collection_method: 'charge_automatically',
+      auto_advance: true,
+      discounts: [{
+        coupon: coupon.id, 
+      }],
+      default_tax_rates: [taxRate.id],
+      payment_settings: {
+        default_mandate: mandateId,
+      },
+    });
+    for (const Id of productIds) {
+      const product = await this.stripe.products.retrieve(Id);
+      const price = product.default_price.toString();
+      await this.stripe.invoiceItems.create({
+        customer: customerId,
+        price: price,
+        quantity: 1,
+        invoice: invoice.id,
+      });
+    }
+    const fInvoice = await this.stripe.invoices.finalizeInvoice(invoice.id);
+    return {
+      amount: fInvoice.amount_due,
+      customer: fInvoice.customer_name,
+      customer_email: fInvoice.customer_email,
+      items: this.parseInvoiceLineItems(invoice.lines.data),
+      client_secret: (invoice.payment_intent as Stripe.PaymentIntent).client_secret,
+    };
+  }
+
   async createSubscriptionInvoice(customerId: string, lineItems: SubscriptionLineItemDto[]) {
     const parsedItems = [];
     for (const lineItem of lineItems) {
@@ -422,12 +472,52 @@ export class StripeService {
           currency: lineItem.price_data.currency,
           unit_amount: lineItem.price_data.unit_amount,
         },
-        quantity: lineItem.quantity,
+        quantity: 1,
         subscription: residence.subscriptionId,
       });
     }
 
     return { products };
+  }
+
+  async createProducts(lineItems: PaymentLineItemDto[]): Promise<Stripe.Product[]> {
+    const products = [];
+    for (const lineItem of lineItems) {
+      const product = await this.stripe.products.create({
+        name: lineItem.price_data.product_data.name,
+        description: lineItem.price_data.product_data.description,
+        default_price_data: {
+          currency: lineItem.price_data.currency,
+          unit_amount: lineItem.price_data.unit_amount,
+        },
+        metadata: lineItem.price_data.product_data.metadata,
+      });
+      products.push(product);
+    }
+
+    return products;
+  }
+
+  async getProduct(id: string): Promise<Stripe.Product> {
+    return this.stripe.products.retrieve(id);
+  }
+
+  async updateProduct(id: string, updateProduct: UpdateInvoiceItemDto) {
+    const updateData: Partial<Stripe.ProductUpdateParams> = {};
+    if(updateProduct.name) updateData.name = updateProduct.name;
+    if(updateProduct.description) updateData.description = updateProduct.description;
+    if(updateProduct.price) {
+      const price = await this.stripe.prices.create({
+        currency: 'usd',
+        unit_amount: updateProduct.price,
+        product: id,
+      });
+      updateData.default_price = price.id;
+    }
+    if(Object.keys(updateData).length > 0) {
+      return this.stripe.products.update(id, updateData);
+    }
+    return this.stripe.products.retrieve(id);
   }
 
   async createSubscriptionSession(customerId: string, lineItems: SubscriptionLineItemDto[]) {
