@@ -6,4 +6,5 @@ export enum RankingCategoryStatus {
   INACTIVE = 'inactive',
   ARCHIVED = 'archived',
   DELETED = 'deleted',
+  FLAGGED = 'flagged',
 }

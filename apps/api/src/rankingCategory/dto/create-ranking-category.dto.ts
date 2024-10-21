@@ -62,6 +62,14 @@ export class CreateRankingCategoryDto {
   categoryType: CategoryType;
 
   @ApiProperty({
+    description: 'The category status',
+    example: RankingCategoryStatus.INACTIVE,
+    required: false,
+    enum: [RankingCategoryStatus.ACTIVE, RankingCategoryStatus.INACTIVE],
+  })
+  status: RankingCategoryStatus.ACTIVE | RankingCategoryStatus.INACTIVE;
+
+  @ApiProperty({
     description: 'List of criteria for ranking',
     example: [
       {
@@ -112,6 +120,9 @@ export const createRankingCategorySchema = Joi.object({
   categoryType: Joi.string()
     .valid(...Object.values(CategoryType))
     .required(),
+  status: Joi.string()
+    .valid(RankingCategoryStatus.ACTIVE, RankingCategoryStatus.INACTIVE)
+    .optional(),
   criteria: Joi.array()
     .items(
       Joi.object({
