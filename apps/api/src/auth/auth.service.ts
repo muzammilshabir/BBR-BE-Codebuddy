@@ -63,15 +63,6 @@ export class AuthService {
       role: UserRole.BUYER,
       receiveLuxuryInsights: buyerSignupDto.receiveLuxuryInsights,
     });
-
-    const stripeCustomer = await this.stripeService.createCustomer({
-      name: user.fullName,
-      email: user.email,
-      metadata: {
-        company_name: user.companyName,
-      },
-    });
-    user.stripeCustomerId = stripeCustomer.id;
     await this.userService.updateSeller(user.id, user);
 
     this.sendVerificationEmail(user.email, user.verificationToken);
@@ -89,6 +80,16 @@ export class AuthService {
     }
 
     await this.userService.verifyUserEmail(token, email);
+
+
+    const stripeCustomer = await this.stripeService.createCustomer({
+      name: user.fullName,
+      email: user.email,
+      metadata: {
+        company_name: user.companyName,
+      },
+    });
+    user.stripeCustomerId = stripeCustomer.id;
 
     if (role === UserRole.SELLER && user.acceptBBRCommitment !== true) {
       return {
