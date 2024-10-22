@@ -6,5 +6,4 @@ export class PaymentLineItemDto {
     product_data: ProductData;
     unit_amount: number;
   };
-  quantity: number;
 }

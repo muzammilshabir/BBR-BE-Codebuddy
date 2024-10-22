@@ -1,19 +1,23 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
+import { User } from 'src/users/schema/user.schema';
 
 @Schema({ timestamps: true })
-export class Transaction extends Document {
-  @Prop({ required: true, type: Types.ObjectId, ref: 'Residence' })
-  residenceId: Types.ObjectId;
-  
+export class InvoiceItem extends Document {
   @Prop({ required: true, type: Types.ObjectId, ref: 'Invoice' })
-  invoiceId: string;
+  invoiceId: Types.ObjectId;
 
   @Prop({
     type: String,
     example: '33r232432423',
   })
-  paymentId: string;
+  stripeProductId: string;
+
+  @Prop({
+    type: Number,
+    example: 1,
+  })
+  quantity: number;
 
   @Prop({ type: Date })
   createdAt: Date;
@@ -21,8 +25,11 @@ export class Transaction extends Document {
   @Prop({ type: Date })
   updatedAt: Date;
 
+  @Prop({ type: Types.ObjectId, ref: 'User' })
+  createdById: User;
+
   @Prop({ type: Boolean, default: false })
   isDeleted: boolean;
 }
 
-export const TransactionSchema = SchemaFactory.createForClass(Transaction);
+export const InvoiceItemSchema = SchemaFactory.createForClass(InvoiceItem);
