@@ -65,7 +65,6 @@ export class AuthService {
       role: UserRole.BUYER,
       receiveLuxuryInsights: buyerSignupDto.receiveLuxuryInsights,
     });
-    await this.userService.updateSeller(user.id, user);
 
     this.sendVerificationEmail(user.email, user.verificationToken);
 
@@ -92,6 +91,7 @@ export class AuthService {
       },
     });
     user.stripeCustomerId = stripeCustomer.id;
+    await this.userService.updateSeller(user.id, user);
 
     if (role === UserRole.SELLER && user.acceptBBRCommitment !== true) {
       return {
