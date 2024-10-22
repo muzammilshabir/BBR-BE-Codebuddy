@@ -6,6 +6,7 @@ import { StripeService } from './stripe.service';
 import { ResidenceService } from 'src/residences/residences.service';
 import { TransactionRepository } from './transaction.repository';
 import { Types } from 'mongoose';
+import { PaymentMethodRepository } from './payment-method.repository';
 export interface InvoiceItem {
   name: string;
   invoiceId: string;
@@ -23,6 +24,7 @@ export class StripeWebhookService {
     private readonly stripeService: StripeService,
     private readonly residenceService: ResidenceService,
     private readonly transactionRepository: TransactionRepository,
+    private readonly paymentMethodRepository: PaymentMethodRepository
   ) {
     this.stripe = new Stripe(configService.stripe.secretKey, {
       apiVersion: '2024-06-20',
@@ -47,17 +49,32 @@ export class StripeWebhookService {
   }
 
   async handleWebhooks(request: RawBodyRequest<Request>) {
-    
     // Get the signature sent by Stripe
     const signature = request.headers['stripe-signature'];
-    
+
     const event = this.stripe.webhooks.constructEvent(
       request.rawBody,
       signature,
-      this.configService.stripe.webhookSecret,
+      this.configService.stripe.webhookSecret
     );
     // Handle the event
     switch (event.type) {
+      case 'setup_intent.succeeded':
+        const setupIntent = event.data.object as Stripe.SetupIntent;
+        const verifySetupIntent = await this.stripe.setupIntents.verifyMicrodeposits(
+          setupIntent.id,
+          {
+            amounts: [32, 45],
+          }
+        );
+        const paymentMethod = {
+          customerId: verifySetupIntent.customer,
+          paymentMethodId: verifySetupIntent.payment_method,
+          mandateId: verifySetupIntent.mandate,
+        };
+        await this.paymentMethodRepository.create(paymentMethod);
+        console.log(`SetupIntent for ${setupIntent.customer} was successful!`);
+        break;
       case 'payment_intent.succeeded':
         const paymentIntent = event.data.object;
         console.log(`PaymentIntent for ${paymentIntent.amount} was successful!`);
@@ -65,7 +82,7 @@ export class StripeWebhookService {
         // handlePaymentIntentSucceeded(paymentIntent);
         break;
       case 'invoice.paid':
-        const invoice = (event.data.object as Stripe.Invoice);
+        const invoice = event.data.object as Stripe.Invoice;
         await this.handleInvoicePaid(invoice);
         return invoice;
         break;
@@ -90,7 +107,7 @@ export class StripeWebhookService {
         case 'featured':
           await this.handleFeaturedPayment(item);
           break;
-            
+
         default:
           break;
       }
@@ -98,7 +115,6 @@ export class StripeWebhookService {
   }
 
   async handleListingPayment(item: InvoiceItem) {
-
     const transaction = {
       residenceId: new Types.ObjectId(item.residenceId),
       subscriptionId: item.subscriptionId,

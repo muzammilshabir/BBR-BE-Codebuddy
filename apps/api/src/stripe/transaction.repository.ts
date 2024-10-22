@@ -9,6 +9,7 @@ export class TransactionRepository extends BaseRepository<Transaction> {
   constructor(@InjectModel(Transaction.name) private readonly transactionModel: Model<Transaction>) {
     super(transactionModel);
   }
+
   async findByResidenceId(residenceId: string): Promise<Transaction> {
     return this.transactionModel.findOne({ residenceId });
   }
