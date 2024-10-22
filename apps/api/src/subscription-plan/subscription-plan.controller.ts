@@ -59,7 +59,7 @@ export class SubscriptionPlanController {
     return ResponseService.buildResponse({ plan }, 'Plan retrieved successfully');
   }
 
-  @Get('/plan/list')
+  @Get('/plans/')
   @ApiOperation({
     summary: 'Get Plans',
   })
@@ -99,6 +99,17 @@ export class SubscriptionPlanController {
     return ResponseService.buildResponse({ feature }, 'Feature Updated successfully');
   }
 
+  @Get('/features/')
+  @ApiOperation({
+    summary: 'Get Features',
+  })
+  @Public()
+  async getFeatures(
+  ) {
+    const features = await this.planService.getFeatures();
+    return ResponseService.buildResponse({ features }, 'Features retrieved successfully');
+  }
+
   @Get('/feature/:id')
   @ApiOperation({
     summary: 'Get Feature',
@@ -109,16 +120,5 @@ export class SubscriptionPlanController {
   ) {
     const feature = await this.planService.getFeature(id);
     return ResponseService.buildResponse({ feature }, 'Feature retrieved successfully');
-  }
-
-  @Get('/feature/list')
-  @ApiOperation({
-    summary: 'Get Features',
-  })
-  @Public()
-  async getFeatures(
-  ) {
-    const features = await this.planService.getFeatures();
-    return ResponseService.buildResponse({ features }, 'Features retrieved successfully');
   }
 }

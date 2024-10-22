@@ -146,7 +146,7 @@ export class PaymentController {
     return ResponseService.buildResponse({ intent }, 'Invoice Subscription updated successfully');
   }
 
-  @Get('/payment-method/list')
+  @Get('/payment-methods/')
   @ApiOperation({
     summary: 'Get Payment Methods',
   })
