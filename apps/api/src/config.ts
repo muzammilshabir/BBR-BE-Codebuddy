@@ -51,6 +51,13 @@ export class ServiceConfig extends BbrStatefulServiceConfig {
     isDisabled: this.getOrThrow('CAPTCHA_DISABLED') == 1,
   };
 
+  
+  readonly firebase = {
+    projectId: this.getOrThrow('FCM_PROJECT_ID'),
+    privateKey: this.getOrThrow('FCM_PRIVATE_KEY'),
+    clientEmail: this.getOrThrow('FCM_CLIENT_EMAIL'),
+  };
+  
   readonly stripe = {
     apiKey: this.getOrThrow('STRIPE_API_KEY'),
     secretKey: this.getOrThrow('STRIPE_SECRET_KEY'),
