@@ -65,7 +65,7 @@ export class PaymentAdminController {
     @Param('id') id: string,
     ) {
     const intent = await this.paymentService.sendInvoiceEmail(id);
-    return ResponseService.buildResponse({ intent }, 'Invoice Email successfully');
+    return ResponseService.buildResponse({ intent }, 'Invoice Email sent successfully');
   }
 
   @Post('/invoice-items/')
@@ -155,6 +155,31 @@ export class PaymentAdminController {
   ) {
     const invoices = await this.paymentService.getAllInvoices(query);
     return ResponseService.buildResponse({ invoices }, 'Customer Invoices retrieved successfully');
+  }
+
+  @Get('/alerts/')
+  @ApiOperation({
+    summary: 'Get Alerts',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  async getAlerts(
+  ) {
+    const alerts = await this.paymentService.getAlerts();
+    return ResponseService.buildResponse({ alerts }, 'Alerts retrieved successfully');
+  }
+
+  @Get('/manage-alert/:alertId')
+  @ApiOperation({
+    summary: 'Mark Alert as managed',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  async manageAlert(
+    @Param('alertId') alertId: string
+  ) {
+    const alert = await this.paymentService.manageAlert(alertId);
+    return ResponseService.buildResponse({ alert }, 'Alert marked as managed successfully');
   }
 
   @Get('/invoice/:invoiceId')
@@ -265,7 +290,7 @@ export class PaymentAdminController {
     @Param('userId') userId: string,
   ) {
     const paymentMethods = await this.paymentService.getUserPaymentMethods(userId);
-    return ResponseService.buildResponse({ paymentMethods }, 'Customer Payment Methods successfully');
+    return ResponseService.buildResponse({ paymentMethods }, 'Customer Payment Methods retrieved successfully');
   }
 
   @Delete('/payment-method/:userId/:methodId')

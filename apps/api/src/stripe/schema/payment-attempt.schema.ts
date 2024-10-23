@@ -44,6 +44,13 @@ export class PaymentAttempt extends Document {
   })
   status: InvoiceStatus;
 
+  @Prop({
+    type: Boolean,
+    example: false,
+    default: false,
+  })
+  managed: boolean;
+
   @Prop({ type: Date })
   createdAt: Date;
 

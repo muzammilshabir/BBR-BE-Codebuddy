@@ -26,6 +26,7 @@ import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { TransactionRepository } from './transaction.repository';
 import { TransactionStatus } from './enum/transaction-status.enum';
 import { ListTransactionsDto } from './dto/list-transactions.dto';
+import { PaymentAttemptRepository } from './payment-attempt.repository';
 
 @Injectable()
 export class PaymentService {
@@ -39,7 +40,8 @@ export class PaymentService {
     private readonly refundRepository: RefundRepository,
     private readonly paymentMethodRepository: PaymentMethodRepository,
     private readonly subscriptionPlanService: SubscriptionPlanService,
-    private readonly transactionRepository: TransactionRepository
+    private readonly transactionRepository: TransactionRepository,
+    private readonly paymentAttemptRepository: PaymentAttemptRepository,
   ) {}
 
   private convertPaymentItemsToLineItems(
@@ -438,6 +440,14 @@ export class PaymentService {
       filter.developerId = userId;
     }
     return this.transactionRepository.find(filter);
+  }
+
+  async getAlerts() {
+    return this.paymentAttemptRepository.findAll({ managed: false });
+  }
+
+  async manageAlert(alertId: string) {
+    return this.paymentAttemptRepository.update(alertId, { managed: true });
   }
 
   async refundUserInvoice(invoiceId: string, refundPaymentDto: RefundPaymentDto) {
