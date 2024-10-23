@@ -45,6 +45,7 @@ export class UnitRepository extends BaseRepository<Unit> {
         {
           $match: {
             ...(residenceId ? { residenceId: new Types.ObjectId(residenceId) } : {}),
+            isDeleted: false,
           },
         },
 
