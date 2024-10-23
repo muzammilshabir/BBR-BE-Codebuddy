@@ -209,6 +209,13 @@ export class UserService {
       status: UserStatus.ACTIVE,
     };
 
+    if (updateSellerProfileDto.corporateEmail) {
+      const existingUser = await this.findByEmail(updateSellerProfileDto.corporateEmail);
+      if (existingUser && existingUser._id.toString() !== id) {
+        throw new ConflictException('Email is already in use by another user');
+      }
+    }
+
     const updatedUser = await this.userRepository.update(id, transformedDto);
     if (!updatedUser) {
       throw new NotFoundException(`User with ID ${id} not found`);
@@ -515,5 +522,22 @@ export class UserService {
 
   async me(userFromToken: JwtPayloadType) {
     return await this.userRepository.me(userFromToken);
+  }
+  async updateSellerStripeCustomerId(
+    id: string,
+    stripeCustomerId: string
+  ): Promise<User | { errorCode: ExceptionCodes; message: string }> {
+    const user = await this.userModel.findById(id).exec();
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const updatedUser = await this.userRepository.update(id, { stripeCustomerId });
+    if (!updatedUser) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+
+    return updatedUser;
   }
 }

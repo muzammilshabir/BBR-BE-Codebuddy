@@ -5,7 +5,11 @@ import { ExceptionCodes } from '@bbr/api-core/modules/types/exceptionCodes.type'
 import { JwtResponseType, JwtTokenType } from '@bbr/api-core/modules/types/jwtToken.type';
 import { TokenEnum } from '@bbr/api-core/modules/types/verification-token.type';
 import { ForbiddenException, Injectable } from '@nestjs/common';
-import { NotFoundException, UnauthorizedException } from '@nestjs/common/exceptions';
+import {
+  ConflictException,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common/exceptions';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { JwtService } from '@nestjs/jwt';
 import * as argon from 'argon2';
@@ -93,8 +97,10 @@ export class AuthService {
         company_name: user.companyName,
       },
     });
-    user.stripeCustomerId = stripeCustomer.id;
-    await this.userService.updateSeller(user.id, user);
+    //Todo: verify strip flow
+    if (stripeCustomer.id) {
+      await this.userService.updateSellerStripeCustomerId(user.id, stripeCustomer.id);
+    }
 
     if (role === UserRole.SELLER && user.acceptBBRCommitment !== true) {
       return {
@@ -444,37 +450,49 @@ export class AuthService {
   }
 
   async updateBuyer(loggedInUser: JwtPayloadType, updateBuyerDto: UpdateBuyerProfileDto) {
-    if (!loggedInUser || !loggedInUser.sub) throw new UnauthorizedException('Invalid token');
+    try {
+      if (!loggedInUser || !loggedInUser.sub) throw new UnauthorizedException('Invalid token');
 
-    if (loggedInUser.role !== UserRole.BUYER) throw new UnauthorizedException('Invalid token');
+      if (loggedInUser.role !== UserRole.BUYER) throw new UnauthorizedException('Invalid token');
 
-    const transformedDto = {
-      ...updateBuyerDto,
+      const transformedDto = {
+        ...updateBuyerDto,
 
-      avatarImage: updateBuyerDto.avatarImage
-        ? new Types.ObjectId(updateBuyerDto.avatarImage)
-        : undefined,
-      preferences: {
-        ...updateBuyerDto.preferences,
-        cityIds:
-          updateBuyerDto?.preferences?.cityIds?.map((cityId) => new Types.ObjectId(cityId)) ||
-          undefined,
-        residenceTypeIds:
-          updateBuyerDto?.preferences?.residenceTypeIds?.map(
-            (residenceTypeId) => new Types.ObjectId(residenceTypeId)
-          ) || undefined,
-        countryIds:
-          updateBuyerDto?.preferences?.countryIds?.map(
-            (countryId) => new Types.ObjectId(countryId)
-          ) || undefined,
-        lifeStyleIds:
-          updateBuyerDto?.preferences?.lifeStyleIds?.map(
-            (lifeStyleId) => new Types.ObjectId(lifeStyleId)
-          ) || undefined,
-      },
-    };
+        avatarImage: updateBuyerDto.avatarImage
+          ? new Types.ObjectId(updateBuyerDto.avatarImage)
+          : undefined,
+        preferences: {
+          ...updateBuyerDto.preferences,
+          cityIds:
+            updateBuyerDto?.preferences?.cityIds?.map((cityId) => new Types.ObjectId(cityId)) ||
+            undefined,
+          residenceTypeIds:
+            updateBuyerDto?.preferences?.residenceTypeIds?.map(
+              (residenceTypeId) => new Types.ObjectId(residenceTypeId)
+            ) || undefined,
+          countryIds:
+            updateBuyerDto?.preferences?.countryIds?.map(
+              (countryId) => new Types.ObjectId(countryId)
+            ) || undefined,
+          lifeStyleIds:
+            updateBuyerDto?.preferences?.lifeStyleIds?.map(
+              (lifeStyleId) => new Types.ObjectId(lifeStyleId)
+            ) || undefined,
+        },
+      };
 
-    return await this.userService.update(loggedInUser.sub, transformedDto);
+      // Check if the email already exists in the database
+      if (updateBuyerDto.email) {
+        const existingUser = await this.userService.findByEmail(updateBuyerDto.email);
+        if (existingUser && existingUser._id.toString() !== loggedInUser.sub) {
+          throw new ConflictException('Email is already in use by another user');
+        }
+      }
+
+      return await this.userService.update(loggedInUser.sub, transformedDto);
+    } catch (error) {
+      throw error;
+    }
   }
 
   async signupDeveloper(sellerSignupDto: SellerSignupDto) {
