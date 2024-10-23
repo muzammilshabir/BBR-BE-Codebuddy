@@ -60,7 +60,7 @@ export class CreateSubscriptionDto {
   renewalAttempts: number;
 
   @ApiProperty({
-    description: 'The frequency of attempts',
+    description: 'The frequency of attempts per day',
     required: true,
     example: 1,
   })
@@ -83,8 +83,8 @@ export const createSubscriptionDtoSchema = Joi.object({
     interval_count: Joi.number().required(),
   }).required(),
   paymentMethodId: Joi.string().required(),
-  reminderDays: Joi.number().required(),
-  renewalAttempts: Joi.number().required(),
-  attemptsFrequency: Joi.number().required(),
+  reminderDays: Joi.number().min(1).required(),
+  renewalAttempts: Joi.number().min(1).required(),
+  attemptsFrequency: Joi.number().min(1).required(),
   gracePeriod: Joi.number().required(),
 });

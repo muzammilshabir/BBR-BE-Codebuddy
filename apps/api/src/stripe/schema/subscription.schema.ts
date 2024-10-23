@@ -46,7 +46,7 @@ export class Subscription extends Document {
     type: Number,
     example: 1,
   })
-  attemptsFrequency: number
+  attemptsFrequency: number;
 
   @Prop({
     type: Number,

@@ -247,7 +247,7 @@ export class StripeService {
       inclusive: false,
       percentage: tax,
     });
-    const paymentMethod = await this.paymentMethodRepository.find({paymentMethodId});
+    const paymentMethod = await this.paymentMethodRepository.findByStripePaymentMethodId(paymentMethodId);
     const mandateId = paymentMethod.mandateId;
     const invoice = await this.stripe.invoices.create({
       customer: customerId,
@@ -273,6 +273,7 @@ export class StripeService {
     }
     const fInvoice = await this.stripe.invoices.finalizeInvoice(invoice.id);
     return {
+      id: fInvoice.id,
       amount: fInvoice.amount_due,
       customer: fInvoice.customer_name,
       customer_email: fInvoice.customer_email,

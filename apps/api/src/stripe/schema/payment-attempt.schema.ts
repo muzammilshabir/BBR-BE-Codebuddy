@@ -39,7 +39,7 @@ export class PaymentAttempt extends Document {
 
   @Prop({
     type: String,
-    enum: ['failed', 'succeeded'],
+    enum: ['failed', 'pending', 'succeeded'],
     example: 'failed',
   })
   status: InvoiceStatus;

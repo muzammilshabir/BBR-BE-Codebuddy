@@ -52,6 +52,9 @@ export class Invoice extends Document {
   })
   stripeInvoiceId?: string;
 
+  @Prop({ required: false, type: Types.ObjectId, ref: 'Subscription' })
+  subscriptionId?: Types.ObjectId;
+
   @Prop({ type: Date })
   issuedAt: Date;
 

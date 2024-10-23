@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { BaseRepository } from '@bbr/api-core/modules/db/base.repository';
 import { Subscription } from './schema/subscription.schema';
+import { SubscriptionStatus } from './enum/subscription-status.enum';
 
 @Injectable()
 export class SubscriptionRepository extends BaseRepository<Subscription> {
@@ -10,8 +11,8 @@ export class SubscriptionRepository extends BaseRepository<Subscription> {
     super(subscriptionModel);
   }
 
-  async findByInvoiceId(invoiceId: string): Promise<Subscription[]> {
-    return (await this.findAll({ invoiceId })).data;
+  async findByInvoiceId(invoiceId: string): Promise<Subscription> {
+    return this.find({ invoiceId, status: SubscriptionStatus.ACTIVE });
   }
 
   async findByResidenceId(residenceId: string): Promise<Subscription[]> {
