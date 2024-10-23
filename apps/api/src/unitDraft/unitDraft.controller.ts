@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, UsePipes } from '@nestjs/common';
+import { Controller, Delete, Get, Param, Query, UsePipes } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UnitDraftService } from './unitDraft.service';
 import { UserRole } from '../users/enum/user.enum';
@@ -9,6 +9,7 @@ import { ListUnitDraftDto, listUnitDraftSchema } from './dto/listUnitDraft.dto';
 import { GetUnitDraftByIdDto, getUnitDraftByIdSchema } from './dto/get-unitDraft-by-id.dto';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { PermissionLevel } from '../modulePolicy/enum/permission-enum';
+import { GetCurrentUserId } from '../auth/decorators/getCurrentUserId.decorator';
 
 @ApiTags('UnitDraft')
 @Controller('unit-draft')
@@ -45,5 +46,18 @@ export class UnitDraftController {
       { unitDraft },
       'Units draft request list retrieved successfully'
     );
+  }
+
+  @Delete(':unitDraftId')
+  @ApiOperation({
+    summary: 'Delete unitDraft by ID',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @Permissions('residence', PermissionLevel.DELETE)
+  @UsePipes(new JoiValidationPipe(getUnitDraftByIdSchema, 'param'))
+  async deleteUnitDraft(@Param() params: GetUnitDraftByIdDto, @GetCurrentUserId() userId: string) {
+    const unit = await this.unitDraftService.deleteUnitDraft(params.unitDraftId, userId);
+    return ResponseService.buildResponse({ unit }, 'Unit Draft Deleted successfully');
   }
 }
