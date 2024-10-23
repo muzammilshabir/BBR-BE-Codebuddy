@@ -13,4 +13,9 @@ export class PaymentMethodRepository extends BaseRepository<PaymentMethod> {
   async findByCustomerId(customerId: string): Promise<PaymentMethod[]> {
     return (await this.findAll({ customerId })).data;
   }
+
+  async deleteByPaymentMethodId(paymentMethodId: string): Promise<PaymentMethod> {
+    const method = await this.find({ paymentMethodId });
+    return this.update(method.id, { isDeleted: true });
+  }
 }

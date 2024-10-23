@@ -7,13 +7,15 @@ import { UserRole } from 'src/users/enum/user.enum';
 import { PaymentService } from './payment.service';
 import { RefundPaymentDto, refundPaymentDtoSchema } from './dto/refund-payment.dto';
 import { ListInvoicesDto, listInvoicesSchema } from './dto/list-invoices.dto';
-import { UpdateSubscriptionItemDto, updateSubscriptionItemDtoSchema } from './dto/update-subscription-item.dto';
 import { GetCurrentUserId } from 'src/auth/decorators/getCurrentUserId.decorator';
-import { CreateSubscriptionItemDto, createSubscriptionItemDtoSchema } from './dto/create-subscription-item.dto';
+import { CreateSubscriptionDto, createSubscriptionDtoSchema } from './dto/create-subscription.dto';
 import { UpdateInvoiceItemDto, updateInvoiceItemsDtoSchema } from './dto/update-invoice-item.dto';
 import { CreateInvoiceItemsDto, createInvoiceItemsDtoSchema } from './dto/create-invoice-items.dto';
 import { UpdateInvoiceDto, updateInvoiceDtoSchema } from './dto/update-invoice.dto';
 import { CreateInvoiceDto, createInvoiceDtoSchema } from './dto/create-invoice.dto';
+import { UpdateSubscriptionDto, updateSubscriptionDtoSchema } from './dto/update-subscription.dto';
+import { RefundStatus } from './enum/refund-status.enum';
+import { ListTransactionsDto, listTransactionsDtoSchema } from './dto/list-transactions.dto';
 
 @ApiTags('Payment/admin')
 @Controller('payment/admin')
@@ -102,12 +104,12 @@ export class PaymentAdminController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.ADMIN)
-  @UsePipes(new JoiValidationPipe(createSubscriptionItemDtoSchema, 'body'))
+  @UsePipes(new JoiValidationPipe(createSubscriptionDtoSchema, 'body'))
   async createInvoiceSubscription(
     @GetCurrentUserId() userId: string,
-    @Body() createSubscriptionItemDto: CreateSubscriptionItemDto,
+    @Body() createSubscriptionDto: CreateSubscriptionDto,
     ) {
-    const intent = await this.paymentService.createSubscriptionItem(userId, createSubscriptionItemDto, true);
+    const intent = await this.paymentService.createSubscription(userId, createSubscriptionDto, true);
     return ResponseService.buildResponse({ intent }, 'Invoice Subscription created successfully');
   }
 
@@ -117,12 +119,12 @@ export class PaymentAdminController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.ADMIN)
-  @UsePipes(new JoiValidationPipe(updateSubscriptionItemDtoSchema, 'body'))
+  @UsePipes(new JoiValidationPipe(updateSubscriptionDtoSchema, 'body'))
   async updateInvoiceSubscription(
     @Param('id') id: string,
-    @Body() updateSubscriptionItemDto: UpdateSubscriptionItemDto,
+    @Body() updateSubscriptionDto: UpdateSubscriptionDto,
     ) {
-    const intent = await this.paymentService.updateSubscriptionItemAdmin(id, updateSubscriptionItemDto);
+    const intent = await this.paymentService.updateSubscriptionAdmin(id, updateSubscriptionDto);
     return ResponseService.buildResponse({ intent }, 'Invoice Subscription updated successfully');
   }
 
@@ -168,9 +170,79 @@ export class PaymentAdminController {
     return ResponseService.buildResponse({ invoices }, 'Customer Invoice retrieved successfully');
   }
 
+  @Get('/transactions/:userId')
+  @ApiOperation({
+    summary: 'Get Transaction',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(listTransactionsDtoSchema, 'query'))
+  async getTransactions(
+    @Param('userId') userId: string,
+    @Query() listTransactionsDto: ListTransactionsDto,
+  ) {
+    const paymentMethods = await this.paymentService.getTransactions(userId, listTransactionsDto);
+    return ResponseService.buildResponse({ paymentMethods }, 'Transactions retrieved successfully');
+  }
+
+  @Get('/transactions/:residenceId')
+  @ApiOperation({
+    summary: 'Get Transactions By Residence',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(listTransactionsDtoSchema, 'query'))
+  async getTransactionsByResidence(
+    @Param('residenceId') residenceId: string,
+    @Query() listTransactionsDto: ListTransactionsDto,
+  ) {
+    const paymentMethods = await this.paymentService.getTransactionsForResidence(residenceId, listTransactionsDto);
+    return ResponseService.buildResponse({ paymentMethods }, 'Transactions retrieved successfully');
+  }
+
+  @Get('/transaction/:transactionId')
+  @ApiOperation({
+    summary: 'Get Single Transaction',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  async getTransaction(
+    @Param('transactionId') transactionId: string,
+  ) {
+    const paymentMethods = await this.paymentService.getTransaction(transactionId);
+    return ResponseService.buildResponse({ paymentMethods }, 'Transaction retrieved successfully');
+  }
+
+
+  @Post('/refund-request/:refundId/accept')
+  @ApiOperation({
+    summary: 'Accept Customer Invoice Refund Request',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  async acceptRefundRequest(
+    @Param('refundId') refundId: string,
+  ) {
+    const refund = await this.paymentService.acceptRejectInvoiceRefund(refundId, RefundStatus.REFUNDED);
+    return ResponseService.buildResponse({ refund }, 'Invoice refunded successfully');
+  }
+
+  @Post('/refund-request/:refundId/reject')
+  @ApiOperation({
+    summary: 'Reject Customer Invoice Refund Request',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  async rejectRefundRequest(
+    @Param('refundId') refundId: string,
+  ) {
+    const refund = await this.paymentService.acceptRejectInvoiceRefund(refundId, RefundStatus.REJECTED);
+    return ResponseService.buildResponse({ refund }, 'Invoice refund rejected successfully');
+  }
+
   @Post('/refund/:invoiceId')
   @ApiOperation({
-    summary: 'Refund/Cancel Customer Invoice',
+    summary: 'Refund Customer Invoice',
   })
   @ApiBearerAuth()
   @Roles(UserRole.ADMIN)

@@ -1,19 +1,12 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { Interval } from '../enum/interval.enum';
-import { InvoiceItem } from './invoice-item.schema';
 import { User } from 'src/users/schema/user.schema';
 
 @Schema({ timestamps: true })
-export class SubscriptionItem extends Document {
+export class Subscription extends Document {
   @Prop({ required: true, type: Types.ObjectId, ref: 'Invoice' })
   invoiceId: Types.ObjectId;
-
-  @Prop({
-    type: [{ type: Types.ObjectId, ref: 'InvoiceItem' }],
-    _id: false,
-  })
-  invoiceItemIds: InvoiceItem[];
 
   @Prop({
     type: {
@@ -70,4 +63,4 @@ export class SubscriptionItem extends Document {
   isDeleted: boolean;
 }
 
-export const SubscriptionItemSchema = SchemaFactory.createForClass(SubscriptionItem);
+export const SubscriptionSchema = SchemaFactory.createForClass(Subscription);

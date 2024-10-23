@@ -45,6 +45,13 @@ export class Invoice extends Document {
   })
   status: InvoiceStatus;
 
+  @Prop({
+    type: String,
+    example: 'sfhwkrhu23o',
+    required: false,
+  })
+  stripeInvoiceId?: string;
+
   @Prop({ type: Date })
   issuedAt: Date;
 

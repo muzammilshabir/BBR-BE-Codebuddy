@@ -6,7 +6,7 @@ import { ResidenceService } from 'src/residences/residences.service';
 import { TransactionRepository } from './transaction.repository';
 import { InvoiceRepository } from './invoice.repository';
 import { InvoiceItemRepository } from './invoice-item.repository';
-import { SubscriptionItemRepository } from './subscription-item.repository';
+import { SubscriptionRepository } from './subscription.repository';
 import { PaymentAttemptRepository } from './payment-attempt.repository';
 import { UserService } from 'src/users/user.service';
 
@@ -23,7 +23,7 @@ export class ProcessPaymentService {
     private readonly transactionRepository: TransactionRepository,
     private readonly invoiceRepository: InvoiceRepository,
     private readonly invoiceItemRepository: InvoiceItemRepository,
-    private readonly subscriptionItemRepository: SubscriptionItemRepository,
+    private readonly subscriptionRepository: SubscriptionRepository,
     private readonly paymentAttemptRepository: PaymentAttemptRepository,
   ) {
   }
@@ -37,7 +37,7 @@ export class ProcessPaymentService {
     for (const invoice of invoices.data) {
       const developer = await this.userService.findById(invoice.developerId.toString());
       const invoiceItems = await this.invoiceItemRepository.findByInvoiceId(invoice._id.toString());
-      // const invoiceSubscriptions = await this.subscriptionItemRepository.findByInvoiceId(invoice._id.toString());
+      // const invoiceSubscriptions = await this.subscriptionRepository.findByInvoiceId(invoice._id.toString());
       const paymentAttempts = await this.paymentAttemptRepository.findByInvoiceId(invoice._id.toString());
       if(paymentAttempts.length === 0) {
         const productIds = invoiceItems.map(item => item.stripeProductId.toString());

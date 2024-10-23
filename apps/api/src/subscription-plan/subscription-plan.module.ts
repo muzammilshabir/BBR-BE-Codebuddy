@@ -9,11 +9,14 @@ import { Plan, PlanSchema } from './schema/plan.schema';
 import { Feature, FeatureSchema } from './schema/feature.schema';
 import { PlanRepository } from './plan.repository';
 import { FeatureRepository } from './feature.repository';
+import { ResidenceModule } from 'src/residences/residences.module';
+import { SubscriptionPlanSeeder } from './subscription-plan.seeder';
 
 @Module({
   imports: [
     ConfigModule.forRoot(),
     UserModule,
+    ResidenceModule,
     MongooseModule.forFeature([{ name: Plan.name, schema: PlanSchema }]),
     MongooseModule.forFeature([{ name: Feature.name, schema: FeatureSchema }]),
   ],
@@ -25,9 +28,11 @@ import { FeatureRepository } from './feature.repository';
     ServiceConfig,
     FeatureRepository,
     PlanRepository,
+    SubscriptionPlanSeeder,
   ],
   exports: [
     SubscriptionPlanService,
+    SubscriptionPlanSeeder,
   ],
 })
 export class SubscriptionPlanModule {}

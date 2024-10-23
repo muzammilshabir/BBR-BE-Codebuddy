@@ -31,10 +31,22 @@ export class Plan extends Document {
   trialPeriod: number;
 
   @Prop({
-    type: [{ type: Types.ObjectId, ref: 'Feature' }],
+    type: [
+      {
+      type: {
+        id: { type: Types.ObjectId, ref: 'Feature' },
+        active: Boolean,
+        order: Number,
+      }
+    }
+  ],
     _id: false,
   })
-  features: Types.ObjectId[];
+  features: {
+    id: Types.ObjectId,
+    active: boolean,
+    order: number,
+  }[];
 
   @Prop({
     type: Boolean,

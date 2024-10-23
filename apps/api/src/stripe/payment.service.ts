@@ -1,28 +1,31 @@
 import { Injectable } from '@nestjs/common';
 import { StripeService } from './stripe.service';
-import { CreatePaymentDto } from './dto/create-payment.dto';
-import { CreateSubscriptionDto, SubscriptionItem } from './dto/create-subscription.dto';
+import { CreateSubscriptionDto } from './dto/create-subscription.dto';
 import { PaymentLineItemDto } from './dto/payment-line-item.dto';
-import { SubscriptionLineItemDto } from './dto/subscription-line-item.dto';
 import { UserService } from 'src/users/user.service';
 import { ResidenceService } from 'src/residences/residences.service';
 import { RefundPaymentDto } from './dto/refund-payment.dto';
-import { ChangeSubscriptionPaymentDto } from './dto/change-subscription-payment-method.dto';
-import { UpdateSubscriptionDto, UpdateSubscriptionItem } from './dto/update-subscription.dto';
-import { Residence } from 'src/residences/schema/residences.schema';
+import { UpdateSubscriptionDto } from './dto/update-subscription.dto';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { InvoiceRepository } from './invoice.repository';
 import { Types } from 'mongoose';
 import { CreateInvoiceItemsDto, InvoiceItem } from './dto/create-invoice-items.dto';
 import { InvoiceItemRepository } from './invoice-item.repository';
-import { CreateSubscriptionItemDto } from './dto/create-subscription-item.dto';
-import { SubscriptionItemRepository } from './subscription-item.repository';
+import { SubscriptionRepository } from './subscription.repository';
 import { ListInvoicesDto } from './dto/list-invoices.dto';
 import { DeletionStatus } from 'src/unit/enum/unit-enum';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { UpdateInvoiceItemDto } from './dto/update-invoice-item.dto';
-import { UpdateSubscriptionItemDto } from './dto/update-subscription-item.dto';
+import { RefundRepository } from './refund.repository';
+import { InvoiceStatus } from './enum/invoice-status.enum';
+import { RefundStatus } from './enum/refund-status.enum';
+import { PaymentMethodRepository } from './payment-method.repository';
+import { SubscriptionPlanService } from 'src/subscription-plan/subscription-plan.service';
+import { CreateTransactionDto } from './dto/create-transaction.dto';
+import { TransactionRepository } from './transaction.repository';
+import { TransactionStatus } from './enum/transaction-status.enum';
+import { ListTransactionsDto } from './dto/list-transactions.dto';
 
 @Injectable()
 export class PaymentService {
@@ -32,12 +35,16 @@ export class PaymentService {
     private readonly residenceService: ResidenceService,
     private readonly invoiceRepository: InvoiceRepository,
     private readonly invoiceItemRepository: InvoiceItemRepository,
-    private readonly subscriptionItemRepository: SubscriptionItemRepository,
+    private readonly subscriptionRepository: SubscriptionRepository,
+    private readonly refundRepository: RefundRepository,
+    private readonly paymentMethodRepository: PaymentMethodRepository,
+    private readonly subscriptionPlanService: SubscriptionPlanService,
+    private readonly transactionRepository: TransactionRepository
   ) {}
 
   private convertPaymentItemsToLineItems(
     residenceId: string,
-    items: InvoiceItem[]
+    items: { name: string; price: number; metadata: Record<string, string> }[]
   ): PaymentLineItemDto[] {
     const lineItems: PaymentLineItemDto[] = [];
 
@@ -47,10 +54,10 @@ export class PaymentService {
           currency: 'usd',
           product_data: {
             name: item.name,
-            description: item.description,
+            description: item.name,
             metadata: {
-              id: residenceId,
-              type: item.name,
+              residenceId,
+              ...item.metadata,
             },
           },
           unit_amount: item.price,
@@ -59,92 +66,6 @@ export class PaymentService {
     }
 
     return lineItems;
-  }
-
-  private convertSubscriptionItemsToLineItems(
-    items: SubscriptionItem[]
-  ): SubscriptionLineItemDto[] {
-    const lineItems: SubscriptionLineItemDto[] = [];
-
-    for (const item of items) {
-      lineItems.push({
-        price_data: {
-          currency: 'usd',
-          product_data: {
-            name: item.name,
-            description: item.description,
-            metadata: {
-              id: item.residenceId.toString(),
-              type: item.type,
-            },
-          },
-          recurring: {
-            interval: item.interval,
-            interval_count: item.intervalCount,
-          },
-          unit_amount: item.price,
-        },
-        quantity: item.quantity,
-      });
-    }
-
-    return lineItems;
-  }
-
-  private convertUpdateSubscriptionItems(
-    items: UpdateSubscriptionItem[]
-  ): { itemId: string; item: SubscriptionLineItemDto }[] {
-    const lineItems: { itemId: string; item: SubscriptionLineItemDto }[] = [];
-
-    for (const item of items) {
-      lineItems.push({
-        itemId: item.id,
-        item: {
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: item.name,
-              description: item.description,
-              metadata: {
-                id: item.residenceId.toString(),
-                type: item.type,
-              },
-            },
-            recurring: {
-              interval: item.interval,
-              interval_count: item.intervalCount,
-            },
-            unit_amount: item.price,
-          },
-          quantity: item.quantity,
-        },
-      });
-    }
-
-    return lineItems;
-  }
-
-  async createSubscription(userId: string, createSubscriptionDto: CreateSubscriptionDto) {
-    const user = await this.userService.findById(userId);
-    const customerId = user.stripeCustomerId;
-    const lineItems = this.convertSubscriptionItemsToLineItems(
-      createSubscriptionDto.subscriptionItems
-    );
-    return this.stripeService.createSubscriptionInvoice(customerId, lineItems);
-  }
-
-  async createPayment(userId: string, createPaymentDto: CreatePaymentDto) {
-    const user = await this.userService.findById(userId);
-    const customerId = user.stripeCustomerId;
-    const lineItems = this.convertPaymentItemsToLineItems(
-      createPaymentDto.residenceId.toString(),
-      createPaymentDto.paymentItems
-    );
-    return this.stripeService.createPaymentInvoice(
-      customerId,
-      createPaymentDto.residenceId.toString(),
-      lineItems
-    );
   }
 
   async createInvoice(userId: string, createInvoiceDto: CreateInvoiceDto, asAdmin: boolean) {
@@ -183,7 +104,7 @@ export class PaymentService {
     return this.invoiceRepository.update(invoiceId, updateInvoiceDto);
   }
 
-  async sendInvoiceEmail(invoiceId: string,) {
+  async sendInvoiceEmail(invoiceId: string) {
     const invoice = await this.invoiceRepository.find(invoiceId);
     if (invoice) {
       throw new Error('Invoice not found');
@@ -191,15 +112,56 @@ export class PaymentService {
     return 'todo';
   }
 
+  async processInvoiceItems(
+    items: InvoiceItem[]
+  ): Promise<{ name: string; price: number; metadata: Record<string, string> }[]> {
+    const parsedItems = [];
+    for (const item of items) {
+      if (item.custom) {
+        parsedItems.push({
+          name: item.custom.name,
+          price: item.custom.price,
+          metadata: {
+            type: 'custom',
+            id: 0,
+          },
+        });
+      }
+      if (item.feature) {
+        const feature = await this.subscriptionPlanService.getFeature(item.feature.toString());
+        parsedItems.push({
+          name: feature.name,
+          price: item.feature.price,
+          metadata: {
+            type: 'feature',
+            id: feature._id,
+          },
+        });
+      }
+      if (item.plan) {
+        const plan = await this.subscriptionPlanService.getPlan(item.plan.toString());
+        parsedItems.push({
+          name: plan.name,
+          price: plan.fee,
+          metadata: {
+            type: 'plan',
+            id: plan._id,
+          },
+        });
+      }
+    }
+    return parsedItems;
+  }
+
   async createInvoiceItems(
     userId: string,
     createInvoiceItemsDto: CreateInvoiceItemsDto,
-    asAdmin: boolean,
+    asAdmin: boolean
   ) {
     const invoice = await this.invoiceRepository.findById(
       createInvoiceItemsDto.invoiceId.toString()
     );
-  
+
     if (!invoice) {
       throw new Error('Invoice not found');
     }
@@ -209,7 +171,7 @@ export class PaymentService {
 
     const lineItems = this.convertPaymentItemsToLineItems(
       invoice.residenceId.toString(),
-      createInvoiceItemsDto.invoiceItems,
+      await this.processInvoiceItems(createInvoiceItemsDto.invoiceItems)
     );
     const products = await this.stripeService.createProducts(lineItems);
     const invoiceItems = [];
@@ -226,7 +188,11 @@ export class PaymentService {
     return invoiceItems;
   }
 
-  async updateInvoiceItem(userId: string, invoiceItemId: string, updateInvoiceItemDto: UpdateInvoiceItemDto) {
+  async updateInvoiceItem(
+    userId: string,
+    invoiceItemId: string,
+    updateInvoiceItemDto: UpdateInvoiceItemDto
+  ) {
     const invoiceItem = await this.invoiceItemRepository.findOne(invoiceItemId);
     const invoice = await this.invoiceRepository.find({
       developerId: userId,
@@ -237,7 +203,7 @@ export class PaymentService {
     }
     return {
       invoiceItem,
-      product: this.stripeService.updateProduct(invoiceItem.stripeProductId, updateInvoiceItemDto)
+      product: this.stripeService.updateProduct(invoiceItem.stripeProductId, updateInvoiceItemDto),
     };
   }
 
@@ -249,59 +215,62 @@ export class PaymentService {
     }
     return {
       invoiceItem,
-      product: this.stripeService.updateProduct(invoiceItem.stripeProductId, updateInvoiceItemDto)
+      product: this.stripeService.updateProduct(invoiceItem.stripeProductId, updateInvoiceItemDto),
     };
   }
 
-  async createSubscriptionItem(userId: string, createSubscriptionItemDto: CreateSubscriptionItemDto, asAdmin: boolean) {
+  async createSubscription(
+    userId: string,
+    createSubscriptionDto: CreateSubscriptionDto,
+    asAdmin: boolean
+  ) {
     const transformedDto = {
-      ...createSubscriptionItemDto,
-      invoiceId: new Types.ObjectId(createSubscriptionItemDto.invoiceId),
+      ...createSubscriptionDto,
+      invoiceId: new Types.ObjectId(createSubscriptionDto.invoiceId),
       createdById: new Types.ObjectId(userId),
     };
-  
+
     const invoice = await this.invoiceRepository.findById(
-      createSubscriptionItemDto.invoiceId.toString()
+      createSubscriptionDto.invoiceId.toString()
     );
-  
+
     if (!invoice) {
       throw new Error('Invoice not found');
     }
-  
+
     if (!asAdmin && invoice.developerId.toString() !== userId) {
       throw new Error('You are not the developer of this residence');
     }
-  
-    const invoiceItems = await this.invoiceItemRepository.findByInvoiceId(createSubscriptionItemDto.invoiceId.toString());
-    const invoiceItemIds = invoiceItems.map(item => item.id.toString());
-    
-    const difference = createSubscriptionItemDto.invoiceItemIds.filter(x => !invoiceItemIds.includes(x));
-    if (difference.length > 0) {
-      throw new Error('One or more invoice items not found');
-    }
-  
-    return this.subscriptionItemRepository.create(transformedDto);
+
+    return this.subscriptionRepository.create(transformedDto);
   }
 
-  async updateSubscriptionItem(userId: string, subscriptionItemId: string, updateSubscriptionItemDto: UpdateSubscriptionItemDto) {
-    const subscriptionItem = await this.subscriptionItemRepository.findOne(subscriptionItemId);
+  async updateSubscription(
+    userId: string,
+    subscriptionId: string,
+    updateSubscriptionDto: UpdateSubscriptionDto
+  ) {
+    const subscription = await this.subscriptionRepository.findOne(subscriptionId);
     const invoice = await this.invoiceRepository.find({
       developerId: userId,
-      _id: subscriptionItem.invoiceId,
+      _id: subscription.invoiceId,
     });
     if (invoice) {
       throw new Error('Invoice not found');
     }
-    return this.subscriptionItemRepository.update(subscriptionItemId, updateSubscriptionItemDto);
+    return this.subscriptionRepository.update(subscriptionId, updateSubscriptionDto);
   }
 
-  async updateSubscriptionItemAdmin(subscriptionItemId: string, updateSubscriptionItemDto: UpdateSubscriptionItemDto) {
-    const subscriptionItem = await this.subscriptionItemRepository.findOne(subscriptionItemId);
-    const invoice = await this.invoiceRepository.findOne(subscriptionItem.invoiceId.toString());
+  async updateSubscriptionAdmin(
+    subscriptionId: string,
+    updateSubscriptionDto: UpdateSubscriptionDto
+  ) {
+    const subscription = await this.subscriptionRepository.findOne(subscriptionId);
+    const invoice = await this.invoiceRepository.findOne(subscription.invoiceId.toString());
     if (invoice) {
       throw new Error('Invoice not found');
     }
-    return this.subscriptionItemRepository.update(subscriptionItemId, updateSubscriptionItemDto);
+    return this.subscriptionRepository.update(subscriptionId, updateSubscriptionDto);
   }
 
   async listCustomers() {
@@ -314,19 +283,6 @@ export class PaymentService {
     return this.stripeService.getCustomerPaymentMethods(customerId);
   }
 
-  async changeSubscriptionPaymentMethod(
-    userId: string,
-    changeSubscriptionPaymentDto: ChangeSubscriptionPaymentDto
-  ) {
-    const user = await this.userService.findById(userId);
-    const customerId = user.stripeCustomerId;
-    return this.stripeService.changeSubscriptionPaymentMethod(
-      customerId,
-      changeSubscriptionPaymentDto.subscriptionId,
-      changeSubscriptionPaymentDto.paymentMethodId
-    );
-  }
-
   async createSetupIntent(userId: string) {
     const user = await this.userService.findById(userId);
     const customerId = user.stripeCustomerId;
@@ -336,32 +292,8 @@ export class PaymentService {
   async deletePaymentMethod(userId: string, methodId: string) {
     const user = await this.userService.findById(userId);
     const customerId = user.stripeCustomerId;
+    await this.paymentMethodRepository.delete(methodId);
     return this.stripeService.deletePaymentMethod(customerId, methodId);
-  }
-
-  async updateSubscription(
-    userId: string,
-    residenceId: string,
-    updateSubscriptionDto: UpdateSubscriptionDto
-  ) {
-    const residence: Residence = await this.residenceService.getResidenceById(residenceId);
-    if (residence.developerId.toString() != userId) {
-      throw new Error('Residence not found');
-    }
-    const lineItems = this.convertUpdateSubscriptionItems(updateSubscriptionDto.subscriptionItems);
-    return this.stripeService.updateSubscription(residence.subscriptionId, lineItems);
-  }
-
-  async getUserPayments(userId: string) {
-    const user = await this.userService.findById(userId);
-    const customerId = user.stripeCustomerId;
-    return this.stripeService.getCustomerPayments(customerId);
-  }
-
-  async getUserSubscriptions(userId: string) {
-    const user = await this.userService.findById(userId);
-    const customerId = user.stripeCustomerId;
-    return this.stripeService.getCustomerSubscriptions(customerId);
   }
 
   async getAllInvoices(listInvoicesDto: ListInvoicesDto) {
@@ -369,12 +301,12 @@ export class PaymentService {
       isDeleted: DeletionStatus.ACTIVE,
     };
 
-    if(listInvoicesDto.search) {
+    if (listInvoicesDto.search) {
       filter.$or = [
-        { "note": { $regex: listInvoicesDto.search, $options: 'i' } },
-        { "membershipType": { $regex: listInvoicesDto.search, $options: 'i' } },
-        { "tax": { $regex: listInvoicesDto.search, $options: 'i' } },
-        { "status": { $regex: listInvoicesDto.search, $options: 'i' } },
+        { 'note': { $regex: listInvoicesDto.search, $options: 'i' } },
+        { 'membershipType': { $regex: listInvoicesDto.search, $options: 'i' } },
+        { 'tax': { $regex: listInvoicesDto.search, $options: 'i' } },
+        { 'status': { $regex: listInvoicesDto.search, $options: 'i' } },
       ];
     }
 
@@ -393,12 +325,12 @@ export class PaymentService {
       developerId: new Types.ObjectId(userId),
     };
 
-    if(listInvoicesDto.search) {
+    if (listInvoicesDto.search) {
       filter.$or = [
-        { "note": { $regex: listInvoicesDto.search, $options: 'i' } },
-        { "membershipType": { $regex: listInvoicesDto.search, $options: 'i' } },
-        { "tax": { $regex: listInvoicesDto.search, $options: 'i' } },
-        { "status": { $regex: listInvoicesDto.search, $options: 'i' } },
+        { 'note': { $regex: listInvoicesDto.search, $options: 'i' } },
+        { 'membershipType': { $regex: listInvoicesDto.search, $options: 'i' } },
+        { 'tax': { $regex: listInvoicesDto.search, $options: 'i' } },
+        { 'status': { $regex: listInvoicesDto.search, $options: 'i' } },
       ];
     }
 
@@ -414,16 +346,16 @@ export class PaymentService {
   async getUserInvoice(userId: string, invoiceId: string) {
     const invoice = await this.invoiceRepository.find({
       developerId: new Types.ObjectId(userId),
-      _id: new Types.ObjectId(invoiceId)
+      _id: new Types.ObjectId(invoiceId),
     });
     const invoiceItems = await this.invoiceItemRepository.findByInvoiceId(invoiceId);
     for (const item of invoiceItems) {
       const product = await this.stripeService.getProduct(item.stripeProductId);
       item['product'] = product;
     }
-    const subscriptionItems = await this.subscriptionItemRepository.findByInvoiceId(invoiceId);
+    const subscriptions = await this.subscriptionRepository.findByInvoiceId(invoiceId);
 
-    return { invoice, invoiceItems, subscriptionItems };
+    return { invoice, invoiceItems, subscriptions };
   }
 
   async getUserInvoiceAdmin(invoiceId: string) {
@@ -433,12 +365,165 @@ export class PaymentService {
       const product = await this.stripeService.getProduct(item.stripeProductId);
       item['product'] = product;
     }
-    const subscriptionItems = await this.subscriptionItemRepository.findByInvoiceId(invoiceId);
+    const subscriptions = await this.subscriptionRepository.findByInvoiceId(invoiceId);
 
-    return { invoice, invoiceItems, subscriptionItems };
+    return { invoice, invoiceItems, subscriptions };
+  }
+
+  async createTransaction(createTransactionDto: CreateTransactionDto) {
+    await this.transactionRepository.create(createTransactionDto);
+  }
+
+  async getTransactions(userId: string, listTransactionsDto: ListTransactionsDto) {
+    const filter: any = {
+      developerId: userId,
+      isDeleted: DeletionStatus.ACTIVE,
+    };
+
+    if (listTransactionsDto.search) {
+      filter.$or = [
+        { 'id': { $regex: listTransactionsDto.search, $options: 'i' } },
+        { 'developerId': { $regex: listTransactionsDto.search, $options: 'i' } },
+        { 'residenceId': { $regex: listTransactionsDto.search, $options: 'i' } },
+        { 'status': { $regex: listTransactionsDto.search, $options: 'i' } },
+        { 'amount': { $regex: listTransactionsDto.search, $options: 'i' } },
+      ];
+    }
+
+    const options = PaginationService.prepareOptions(listTransactionsDto);
+
+    const { data, count } = await this.transactionRepository.findAll(filter, options);
+
+    const { pagination } = PaginationService.paginate({ rows: data, count }, listTransactionsDto);
+
+    return { pagination, transactions: data };
+  }
+
+  async getTransactionsForResidence(
+    residenceId: string,
+    listTransactionsDto: ListTransactionsDto,
+    userId?: string
+  ) {
+    const filter: any = {
+      residenceId,
+      isDeleted: DeletionStatus.ACTIVE,
+    };
+    if (userId) {
+      filter.developerId = userId;
+    }
+    if (listTransactionsDto.search) {
+      filter.$or = [
+        { 'id': { $regex: listTransactionsDto.search, $options: 'i' } },
+        { 'developerId': { $regex: listTransactionsDto.search, $options: 'i' } },
+        { 'residenceId': { $regex: listTransactionsDto.search, $options: 'i' } },
+        { 'status': { $regex: listTransactionsDto.search, $options: 'i' } },
+        { 'amount': { $regex: listTransactionsDto.search, $options: 'i' } },
+      ];
+    }
+
+    const options = PaginationService.prepareOptions(listTransactionsDto);
+
+    const { data, count } = await this.transactionRepository.findAll(filter, options);
+
+    const { pagination } = PaginationService.paginate({ rows: data, count }, listTransactionsDto);
+
+    return { pagination, transactions: data };
+  }
+
+  async getTransaction(transactionId: string, userId?: string) {
+    const filter: any = {
+      id: transactionId,
+    };
+    if (userId) {
+      filter.developerId = userId;
+    }
+    return this.transactionRepository.find(filter);
   }
 
   async refundUserInvoice(invoiceId: string, refundPaymentDto: RefundPaymentDto) {
-    return this.stripeService.refundInvoice(invoiceId, refundPaymentDto);
+    const transformedDto = {
+      ...refundPaymentDto,
+      invoiceId,
+      attachments: refundPaymentDto.attachments.map((attachment) => new Types.ObjectId(attachment)),
+      status: RefundStatus.REFUNDED,
+    };
+    const invoice = await this.invoiceRepository.findOne(invoiceId);
+    if (!invoice) {
+      throw new Error('Invoice not found');
+    }
+    if (invoice.status !== InvoiceStatus.PAID) {
+      throw new Error('Invoice is not paid');
+    }
+    await this.stripeService.refundInvoice(invoice.stripeInvoiceId, refundPaymentDto);
+
+    await this.invoiceRepository.update(invoiceId, {
+      status: InvoiceStatus.REFUNDED,
+    });
+
+    const transaction: CreateTransactionDto = {
+      residenceId: invoice.residenceId,
+      developerId: invoice.developerId,
+      invoiceId: invoice.id,
+      amount: refundPaymentDto.amount,
+      status: TransactionStatus.REFUNDED,
+    };
+    await this.createTransaction(transaction);
+    return this.refundRepository.create(transformedDto);
+  }
+
+  async acceptRejectInvoiceRefund(refundId: string, action: RefundStatus) {
+    const refund = await this.refundRepository.findOne(refundId);
+    if (refund.status !== RefundStatus.REQUESTED) {
+      throw new Error('Actions can no longer be performed on this refund request');
+    }
+    const invoice = await this.invoiceRepository.findOne(refund.invoiceId.toString());
+    if (!invoice) {
+      throw new Error('Invoice not found');
+    }
+    if (invoice.status !== InvoiceStatus.PAID) {
+      throw new Error('Invoice is not paid');
+    }
+    if (action == RefundStatus.REFUNDED) {
+      const transaction: CreateTransactionDto = {
+        residenceId: invoice.residenceId,
+        developerId: invoice.developerId,
+        invoiceId: invoice.id,
+        amount: refund.amount,
+        status: TransactionStatus.REFUNDED,
+      };
+      await this.createTransaction(transaction);
+      await this.stripeService.refundInvoice(invoice.stripeInvoiceId, refund);
+    }
+
+    await this.invoiceRepository.update(invoice.id, {
+      status: action,
+    });
+    return this.refundRepository.update(refund.id, {
+      status: action,
+    });
+  }
+
+  async requestInvoiceRefund(
+    userId: string,
+    invoiceId: string,
+    refundPaymentDto: RefundPaymentDto
+  ) {
+    const transformedDto = {
+      ...refundPaymentDto,
+      invoiceId,
+      attachments: refundPaymentDto.attachments.map((attachment) => new Types.ObjectId(attachment)),
+      status: RefundStatus.REQUESTED,
+    };
+    const invoice = await this.invoiceRepository.find({
+      id: invoiceId,
+      developerId: userId,
+    });
+    if (!invoice) {
+      throw new Error('Invoice not found');
+    }
+    if (invoice.status !== InvoiceStatus.PAID) {
+      throw new Error('Invoice is not paid');
+    }
+    return this.refundRepository.create(transformedDto);
   }
 }

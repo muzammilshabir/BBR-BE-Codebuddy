@@ -293,9 +293,14 @@ export class ResidenceService {
     return residenceDetails;
   }
 
+  async getResidencesByPlanId(planId: string, options: any): Promise<any> {
+    const residences = await this.residenceRepository.findAll({planId}, options);
+    return residences;
+  }
+
   async upgradeResidence(upgradeInfo: InvoiceItem) {
     const residence = await this.residenceRepository.findById(upgradeInfo.residenceId);
-    residence.premium = true;
+    residence.planId = new Types.ObjectId(upgradeInfo.planId);
     residence.invoiceId = upgradeInfo.invoiceId;
     residence.subscriptionId = upgradeInfo.subscriptionId;
     await this.residenceRepository.update(residence.id, residence);
