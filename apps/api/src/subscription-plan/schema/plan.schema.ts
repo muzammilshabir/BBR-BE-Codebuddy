@@ -34,7 +34,7 @@ export class Plan extends Document {
     type: [
       {
       type: {
-        id: { type: Types.ObjectId, ref: 'Feature' },
+        feature: { type: Types.ObjectId, ref: 'Feature' },
         active: Boolean,
         order: Number,
       }
@@ -43,7 +43,7 @@ export class Plan extends Document {
     _id: false,
   })
   features: {
-    id: Types.ObjectId,
+    feature: Types.ObjectId,
     active: boolean,
     order: number,
   }[];
