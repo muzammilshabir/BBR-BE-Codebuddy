@@ -320,6 +320,20 @@ export class PaymentAdminController {
     return ResponseService.buildResponse({ intent }, 'Payment Method deleted successfully');
   }
 
+  @Patch('/payment-method-default/:methodId/:residenceId')
+  @ApiOperation({
+    summary: 'Set default payment method for residence',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
+  async setDefaultResidencePaymentMethod(
+    @Param('methodId') methodId: string,
+    @Param('residenceId') residenceId: string,
+  ) {
+    const residence = await this.paymentService.setDefaultResidencePaymentMethod(methodId, residenceId);
+    return ResponseService.buildResponse({ residence }, 'Default Residence Payment Method set successfully');
+  }
+
   @Get('/customers')
   @ApiOperation({
     summary: 'Get Customers',

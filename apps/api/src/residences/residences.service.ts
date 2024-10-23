@@ -37,7 +37,6 @@ import { AmenityRepository } from '../amenities/amenities.repository';
 import { LifeStyleRepository } from '../lifestyles/lifeStyle.repository';
 import { UnitDraftRepository } from '../unitDraft/unitDraft.repository';
 import { UnitRepository } from '../unit/unit.repository';
-import { InvoiceItem } from 'src/stripe/stripe-webhook.service';
 
 @Injectable()
 export class ResidenceService {
@@ -299,17 +298,31 @@ export class ResidenceService {
     return residenceDetails;
   }
 
+  async getResidenceByUserIdAndResidenceId(userId: string, residenceId: string): Promise<any> {
+    const residence = await this.residenceRepository.find({
+      id: residenceId,
+      developerId: userId,
+    });
+    return residence;
+  }
+
   async getResidencesByPlanId(planId: string, options: any): Promise<any> {
-    const residences = await this.residenceRepository.findAll({planId}, options);
+    const residences = await this.residenceRepository.findAll({ planId }, options);
     return residences;
   }
 
-  async upgradeResidence(upgradeInfo: InvoiceItem) {
-    const residence = await this.residenceRepository.findById(upgradeInfo.residenceId);
-    residence.planId = new Types.ObjectId(upgradeInfo.planId);
-    residence.invoiceId = upgradeInfo.invoiceId;
-    residence.subscriptionId = upgradeInfo.subscriptionId;
-    await this.residenceRepository.update(residence.id, residence);
+  async upgradeResidence(residenceId: string, subscriptionId: string) {
+    const residence = await this.residenceRepository.findById(residenceId);
+    return this.residenceRepository.update(residence.id, {
+      subscriptionId: new Types.ObjectId(subscriptionId),
+    });
+  }
+
+  async addDefaultPaymentMethod(residenceId: string, paymentMethodId: string) {
+    const residence = await this.residenceRepository.findById(residenceId);
+    return this.residenceRepository.update(residence.id, {
+      paymentMethodId,
+    });
   }
 
   async approveResidence(residenceId: string, userId: string): Promise<ResidenceDraft> {

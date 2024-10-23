@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
-import { InvoiceStatus } from '../enum/invoice-status.enum';
+import { PaymentAttemptStatus } from '../enum/payment-attempt-status.enum';
 
 @Schema({ timestamps: true })
 export class PaymentAttempt extends Document {
@@ -39,10 +39,10 @@ export class PaymentAttempt extends Document {
 
   @Prop({
     type: String,
-    enum: ['failed', 'pending', 'succeeded'],
-    example: 'failed',
+    enum: PaymentAttemptStatus,
+    example: PaymentAttemptStatus.FAILED,
   })
-  status: InvoiceStatus;
+  status: PaymentAttemptStatus;
 
   @Prop({
     type: Boolean,
