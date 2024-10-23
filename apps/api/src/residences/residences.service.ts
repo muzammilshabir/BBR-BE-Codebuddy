@@ -323,10 +323,21 @@ export class ResidenceService {
     });
   }
 
+  async getResidencesByPaymentMethodId(paymentMethodId: string): Promise<any> {
+    return (await this.residenceRepository.findAll({ paymentMethodId })).data;
+  }
+
   async addDefaultPaymentMethod(residenceId: string, paymentMethodId: string) {
     const residence = await this.residenceRepository.findById(residenceId);
     return this.residenceRepository.update(residence.id, {
       paymentMethodId,
+    });
+  }
+
+  async removeDefaultPaymentMethod(residenceId: string) {
+    const residence = await this.residenceRepository.findById(residenceId);
+    return this.residenceRepository.update(residence.id, {
+      paymentMethodId: '',
     });
   }
 

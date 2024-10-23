@@ -325,13 +325,26 @@ export class PaymentAdminController {
     summary: 'Set default payment method for residence',
   })
   @ApiBearerAuth()
-  @Roles(UserRole.SELLER)
+  @Roles(UserRole.ADMIN)
   async setDefaultResidencePaymentMethod(
     @Param('methodId') methodId: string,
     @Param('residenceId') residenceId: string,
   ) {
     const residence = await this.paymentService.setDefaultResidencePaymentMethod(methodId, residenceId);
     return ResponseService.buildResponse({ residence }, 'Default Residence Payment Method set successfully');
+  }
+
+  @Patch('/payment-method-default-unset/:residenceId')
+  @ApiOperation({
+    summary: 'Unset default payment method for residence',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  async unsetDefaultResidencePaymentMethod(
+    @Param('residenceId') residenceId: string,
+  ) {
+    const residence = await this.paymentService.unsetDefaultResidencePaymentMethod(residenceId);
+    return ResponseService.buildResponse({ residence }, 'Default Residence Payment Method unset successfully');
   }
 
   @Get('/customers')

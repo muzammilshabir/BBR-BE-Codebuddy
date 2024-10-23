@@ -214,7 +214,7 @@ export class PaymentController {
   async getPaymentMethods(
     @GetCurrentUserId() userId: string,
   ) {
-    const paymentMethods = await this.paymentService.getUserPaymentMethods(userId);
+    const paymentMethods = await this.paymentService.getSellerPaymentMethods(userId);
     return ResponseService.buildResponse({ paymentMethods }, 'Payment Methods retrieved successfully');
   }
 
@@ -260,4 +260,17 @@ export class PaymentController {
     return ResponseService.buildResponse({ residence }, 'Default Residence Payment Method set successfully');
   }
 
+  @Patch('/payment-method-default-unset/:residenceId')
+  @ApiOperation({
+    summary: 'Unset default payment method for residence',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
+  async unsetDefaultResidencePaymentMethod(
+    @GetCurrentUserId() userId: string,
+    @Param('residenceId') residenceId: string,
+  ) {
+    const residence = await this.paymentService.unsetDefaultResidencePaymentMethod(residenceId, userId);
+    return ResponseService.buildResponse({ residence }, 'Default Residence Payment Method unset successfully');
+  }
 }
