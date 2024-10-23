@@ -145,20 +145,16 @@ export class Residence extends Document {
   @Prop({
     type: String,
     example: '33r232432423',
+    required: false,
   })
-  paymentMethodId: string;
+  paymentMethodId?: string;
 
   @Prop({
-    type: String,
-    example: '33r232432423',
+    type: Types.ObjectId,
+    ref: 'Subscription',
+    required: false,
   })
-  invoiceId: string;
-
-  @Prop({
-    type: String,
-    example: '324sfsdr32r',
-  })
-  subscriptionId: string;
+  subscriptionId?: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'City' })
   cityId: Types.ObjectId;
@@ -168,9 +164,6 @@ export class Residence extends Document {
 
   @Prop({ type: Types.ObjectId, ref: 'LifeStyle' })
   lifeStyleId: Types.ObjectId;
-  
-  @Prop({ type: Types.ObjectId, ref: 'Plan' })
-  planId: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User' })
   createdById: Types.ObjectId;
