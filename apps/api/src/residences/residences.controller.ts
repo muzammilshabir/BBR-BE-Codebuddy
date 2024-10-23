@@ -45,6 +45,8 @@ import { GetCurrentUserId } from '../auth/decorators/getCurrentUserId.decorator'
 import { GetCurrentUser } from '../auth/decorators/getCurrentUser.decorator';
 import { JwtPayloadType } from '../auth/type/jwt-payload.type';
 import { Public } from '../auth/decorators/public.decorator';
+import { Permissions } from '../auth/decorators/permissions.decorator';
+import { PermissionLevel } from '../modulePolicy/enum/permission-enum';
 
 @ApiTags('Residence')
 @Controller('residence')
@@ -57,6 +59,7 @@ export class ResidenceController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @Permissions('residence', PermissionLevel.EDIT)
   @UsePipes(new JoiValidationPipe(createResidenceSchema, 'body'))
   async create(
     @Body() createResidenceDto: CreateResidenceDto,
@@ -72,6 +75,7 @@ export class ResidenceController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @Permissions('residence', PermissionLevel.EDIT)
   @UsePipes(new JoiValidationPipe(updateResidenceSchema, 'body'))
   async update(
     @Param('id') id: string,
@@ -91,6 +95,7 @@ export class ResidenceController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @Permissions('residence', PermissionLevel.EDIT)
   @UsePipes(new JoiValidationPipe(addKeyFeaturesSchema, 'body'))
   async addKeyFeatures(
     @Param('id') id: string,
@@ -110,6 +115,7 @@ export class ResidenceController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @Permissions('residence', PermissionLevel.EDIT)
   @UsePipes(new JoiValidationPipe(addResidenceVisualsSchema, 'body'))
   async addVisuals(
     @Param('id') id: string,
@@ -129,6 +135,7 @@ export class ResidenceController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @Permissions('residence', PermissionLevel.EDIT)
   @UsePipes(new JoiValidationPipe(updateNearbyAmenitiesSchema, 'body'))
   async updateNearbyAmenities(
     @Param('id') id: string,
@@ -152,6 +159,7 @@ export class ResidenceController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.ADMIN)
+  @Permissions('residence', PermissionLevel.EDIT)
   @UsePipes(new JoiValidationPipe(getResidenceByIdSchema, 'param'))
   async approveResidence(@GetCurrentUserId() userId: string, @Param() params: GetResidenceByIdDto) {
     const residence = await this.residenceService.approveResidence(params.id, userId);
@@ -167,6 +175,7 @@ export class ResidenceController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @Permissions('residence', PermissionLevel.READ)
   @UsePipes(new JoiValidationPipe(listResidenceSchema, 'query'))
   async listResidences(@Query() query: ListResidenceDto, @Res() res: Response) {
     const result = await this.residenceService.listResidences(query);
@@ -194,6 +203,7 @@ export class ResidenceController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @Permissions('residence', PermissionLevel.READ)
   async listResidencesWithDraft(@Query() query: ListResidenceWithDraftDto) {
     const result = await this.residenceService.listResidencesWithDraft(query);
 
@@ -217,6 +227,7 @@ export class ResidenceController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.ADMIN)
+  @Permissions('residence', PermissionLevel.EDIT)
   @UsePipes(new JoiValidationPipe(getResidenceByIdSchema, 'param'))
   @UsePipes(new JoiValidationPipe(rejectResidenceSchema, 'body'))
   async rejectResidence(
@@ -238,6 +249,7 @@ export class ResidenceController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.ADMIN)
+  @Permissions('residence', PermissionLevel.READ)
   @UsePipes(new JoiValidationPipe(listResidenceByFiltersSchema, 'body'))
   async residencesListByFilters(
     @Query() listPropsDto: ListResidenceByFiltersQueryPropsDto,
@@ -260,6 +272,7 @@ export class ResidenceController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.ADMIN)
+  @Permissions('residence', PermissionLevel.EDIT)
   @UsePipes(new JoiValidationPipe(getResidenceByIdSchema, 'param'))
   @UsePipes(new JoiValidationPipe(updateResidenceStatusSchema, 'body'))
   async updateResidenceStatus(
@@ -284,6 +297,7 @@ export class ResidenceController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.ADMIN)
+  @Permissions('residence', PermissionLevel.EDIT)
   @UsePipes(new JoiValidationPipe(getResidenceByIdSchema, 'param'))
   async unarchiveResidence(
     @GetCurrentUserId() userId: string,
