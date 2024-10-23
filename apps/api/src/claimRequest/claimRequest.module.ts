@@ -19,6 +19,7 @@ import { RedisService } from '../redis/redis.service';
 import { RedisModule } from '../redis/redis.module';
 import { StripeModule } from 'src/stripe/stripe.module';
 import { RoleModule } from '../role/role.module';
+import { HttpModule } from '@nestjs/axios';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { RoleModule } from '../role/role.module';
     RedisModule,
     StripeModule,
     RoleModule,
+    HttpModule,
   ],
   providers: [
     ClaimRequestService,

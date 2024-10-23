@@ -20,7 +20,7 @@ import { AuthService } from './auth.service';
 import { GetCurrentUser } from './decorators/getCurrentUser.decorator';
 import { Public } from './decorators/public.decorator';
 import { Refresh } from './decorators/refresh.decorator';
-import { LoginDto, loginSchema } from './dto/login.dto';
+import { LoginDto, loginSchema, ThirdPartyLoginDto, thirdPartyLoginSchema } from './dto/login.dto';
 import {
   ChangePasswordDto,
   changePasswordSchema,
@@ -113,6 +113,42 @@ export class AuthController {
   async signupBuyer(@Body() buyerSignupDto: BuyerSignupDto) {
     const user = await this.authService.signupBuyer(buyerSignupDto);
     return ResponseService.buildResponse({ user }, 'Buyer signed up successfully');
+  }
+
+  @Get('google')
+  @Public()
+  @ApiOperation({
+    summary:
+      'Call this url with id_token to generate token after successful authentication by google internally',
+  })
+  @UsePipes(new JoiValidationPipe(thirdPartyLoginSchema, 'query'))
+  async googleAuth(@Query() query: ThirdPartyLoginDto) {
+    const response = await this.authService.handleGoogleAuth(query);
+    return ResponseService.buildResponse({ response });
+  }
+
+  @Public()
+  @ApiOperation({
+    summary:
+      'Call this url with linkedIn access_token to generate token after successful authentication by linkedIn internally',
+  })
+  @Get('linkedIn')
+  @UsePipes(new JoiValidationPipe(thirdPartyLoginSchema, 'query'))
+  async handleLinkedInAuth(@Query() query: ThirdPartyLoginDto) {
+    const response = await this.authService.handleLinkedInAuth(query);
+    return ResponseService.buildResponse({ response });
+  }
+
+  @ApiOperation({
+    summary:
+      'Call this url with fb access_token to generate token after successful authentication by facebook internally',
+  })
+  @Public()
+  @Get('facebook')
+  @UsePipes(new JoiValidationPipe(thirdPartyLoginSchema, 'query'))
+  async fbAuth(@Query() query: ThirdPartyLoginDto) {
+    const response = await this.authService.handleFbAuth(query);
+    return ResponseService.buildResponse({ response });
   }
 
   @ApiOperation({
