@@ -13,6 +13,6 @@ export class PlanRepository extends BaseRepository<Plan> {
   async findAllExpanded(filter: any): Promise<any> {
     return this.planModel
       .find(filter)
-      .populate([{ path: 'features.id', select: 'name', model: 'Feature' }]);
+      .populate([{ path: 'features.feature', select: 'name', model: 'Feature' }]);
   }
 }

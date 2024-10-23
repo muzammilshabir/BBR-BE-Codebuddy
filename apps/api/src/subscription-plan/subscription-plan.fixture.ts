@@ -33,7 +33,7 @@ export class SubscriptionPlanFixture extends AbstractFixture {
       billingCycle: 'month',
       trialPeriod: 0,
       features: {
-        id: feature1.id,
+        feature: feature1.id,
         active: true,
         order: 1,
       },
