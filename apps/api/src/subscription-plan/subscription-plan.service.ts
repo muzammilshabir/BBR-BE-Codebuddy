@@ -9,13 +9,15 @@ import { Types } from 'mongoose';
 import { ResidenceService } from 'src/residences/residences.service';
 import { ListPropsDto } from '@bbr/api-core/modules/dto/listProps.dto';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
+import { SubscriptionRepository } from 'src/stripe/subscription.repository';
 
 @Injectable()
 export class SubscriptionPlanService {
   constructor(
     private readonly planRepository: PlanRepository,
     private readonly featureRepository: FeatureRepository,
-    private readonly residenceService: ResidenceService
+    private readonly residenceService: ResidenceService,
+    private readonly subscriptionRepository: SubscriptionRepository,
   ) {}
 
   async createFeature(feature: CreateFeatureDto) {
@@ -63,7 +65,23 @@ export class SubscriptionPlanService {
   }
 
   async getPlans() {
-    return this.planRepository.findAllExpanded({});
+    return this.planRepository.findAllExpanded({
+      active: true,
+      isDeleted: false,
+    });
+  }
+
+  async getPlansAdmin() {
+    const plans = await this.planRepository.findAllExpanded({});
+    const planResidenceCounts = await this.subscriptionRepository.getResidenceCountForPlans();
+    if(planResidenceCounts.length === 0) {
+      return plans;
+    };
+    for(const plan of plans) {
+      const planResidenceCount = planResidenceCounts.find(planResidenceCount => planResidenceCount.plan.toString() === plan._id.toString());
+      plan.residenceCount = planResidenceCount ? planResidenceCount.residenceCount : 0;
+    }
+    return plans;
   }
 
   async getPlan(id: string) {
@@ -73,9 +91,9 @@ export class SubscriptionPlanService {
   async getPlanResidences(id: string, listResidencesDto: ListPropsDto) {
     const options = PaginationService.prepareOptions(listResidencesDto);
 
-    const { data, count } = await this.residenceService.getResidencesByPlanId(id, options);
+    const data = await this.subscriptionRepository.getSubscriptionResidencesByPlan(id, options);
 
-    const { pagination } = PaginationService.paginate({ rows: data, count }, listResidencesDto);
+    const { pagination } = PaginationService.paginate({ rows: data, count: data.length }, listResidencesDto);
 
     return { pagination, residences: data };
   }
