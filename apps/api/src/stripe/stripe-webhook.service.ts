@@ -5,17 +5,16 @@ import { Request } from 'express';
 import { StripeService } from './stripe.service';
 import { ResidenceService } from 'src/residences/residences.service';
 import { TransactionRepository } from './transaction.repository';
-import { Types } from 'mongoose';
 import { PaymentMethodRepository } from './payment-method.repository';
-export interface InvoiceItem {
-  name: string;
-  invoiceId: string;
-  productId: string;
-  planId: string;
-  subscriptionId?: string;
-  residenceId: string;
-  type: 'listing' | 'ranked' | 'featured';
-}
+import { PaymentAttemptRepository } from './payment-attempt.repository';
+import { SubscriptionRepository } from './subscription.repository';
+import { InvoiceItemRepository } from './invoice-item.repository';
+import { InvoiceRepository } from './invoice.repository';
+import { InvoiceStatus } from './enum/invoice-status.enum';
+import { PaymentAttemptStatus } from './enum/payment-attempt-status.enum';
+import { CreateTransactionDto } from './dto/create-transaction.dto';
+import { TransactionStatus } from './enum/transaction-status.enum';
+
 @Injectable()
 export class StripeWebhookService {
   private stripe: Stripe;
@@ -25,112 +24,125 @@ export class StripeWebhookService {
     private readonly stripeService: StripeService,
     private readonly residenceService: ResidenceService,
     private readonly transactionRepository: TransactionRepository,
-    private readonly paymentMethodRepository: PaymentMethodRepository
+    private readonly paymentMethodRepository: PaymentMethodRepository,
+    private readonly invoiceRepository: InvoiceRepository,
+    private readonly invoiceItemRepository: InvoiceItemRepository,
+    private readonly subscriptionRepository: SubscriptionRepository,
+    private readonly paymentAttemptRepository: PaymentAttemptRepository
   ) {
     this.stripe = new Stripe(configService.stripe.secretKey, {
       apiVersion: '2024-06-20',
     });
   }
 
-  private async parseInvoiceLineItems(invoice: Stripe.Invoice) {
-    const parsedItems: InvoiceItem[] = [];
-    for (const item of invoice.lines.data) {
-      const product = await this.stripeService.getStripeProduct(item.price.product.toString());
-      parsedItems.push({
-        name: product.name,
-        invoiceId: invoice.id,
-        productId: item.id,
-        planId: "1",
-        subscriptionId: item.subscription_item.toString(),
-        residenceId: product.metadata.id,
-        type: product.metadata.type as any,
-      });
-    }
-
-    return parsedItems;
-  }
-
   async handleWebhooks(request: RawBodyRequest<Request>) {
-    // Get the signature sent by Stripe
     const signature = request.headers['stripe-signature'];
+
+    if (!signature) {
+      throw new Error('No Stripe signature found in the request headers');
+    }
 
     const event = this.stripe.webhooks.constructEvent(
       request.rawBody,
       signature,
       this.configService.stripe.webhookSecret
     );
-    // Handle the event
+    
     switch (event.type) {
       case 'setup_intent.succeeded':
-        const setupIntent = event.data.object as Stripe.SetupIntent;
-        const verifySetupIntent = await this.stripe.setupIntents.verifyMicrodeposits(
-          setupIntent.id,
-          {
-            amounts: [32, 45],
-          }
-        );
-        const paymentMethod = {
-          customerId: verifySetupIntent.customer,
-          paymentMethodId: verifySetupIntent.payment_method,
-          mandateId: verifySetupIntent.mandate,
-        };
-        await this.paymentMethodRepository.create(paymentMethod);
-        console.log(`SetupIntent for ${setupIntent.customer} was successful!`);
+        await this.handleSetupIntentSucceeded(event.data.object as Stripe.SetupIntent);
         break;
       case 'payment_intent.succeeded':
-        const paymentIntent = event.data.object;
-        console.log(`PaymentIntent for ${paymentIntent.amount} was successful!`);
-        // Then define and call a method to handle the successful payment intent.
-        // handlePaymentIntentSucceeded(paymentIntent);
+        await this.handlePaymentIntentSucceeded(event.data.object as Stripe.PaymentIntent);
         break;
+      case 'invoice.payment_failed':
+        return await this.handleInvoiceFailed(event.data.object as Stripe.Invoice);
       case 'invoice.paid':
-        const invoice = event.data.object as Stripe.Invoice;
-        await this.handleInvoicePaid(invoice);
-        return invoice;
-        break;
+        return await this.handleInvoicePaid(event.data.object as Stripe.Invoice);
       default:
-        // Unexpected event type
         console.error(`Unhandled event type ${event.type}.`);
     }
-
-    return;
   }
 
-  private async handleInvoicePaid(invoice: Stripe.Invoice) {
-    const items = await this.parseInvoiceLineItems(invoice);
-    for (const item of items) {
-      switch (item.type) {
-        case 'listing':
-          await this.handleListingPayment(item);
-          break;
-        case 'ranked':
-          await this.handleRankedPayment(item);
-          break;
-        case 'featured':
-          await this.handleFeaturedPayment(item);
-          break;
-
-        default:
-          break;
+  private async handleSetupIntentSucceeded(setupIntent: Stripe.SetupIntent) {
+    const verifySetupIntent = await this.stripe.setupIntents.verifyMicrodeposits(
+      setupIntent.id,
+      {
+        amounts: [32, 45],
       }
-    }
+    );
+    const paymentMethod = {
+      customerId: verifySetupIntent.customer,
+      paymentMethodId: verifySetupIntent.payment_method,
+      mandateId: verifySetupIntent.mandate,
+    };
+    await this.paymentMethodRepository.create(paymentMethod);
+    console.log(`SetupIntent for ${setupIntent.customer} was successful!`);
   }
 
-  async handleListingPayment(item: InvoiceItem) {
-    const transaction = {
-      residenceId: new Types.ObjectId(item.residenceId),
-      subscriptionId: item.subscriptionId,
-      invoiceId: item.invoiceId,
+  private async handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent) {
+    console.log(`PaymentIntent for ${paymentIntent.amount} was successful!`);
+  }
+
+  private async handleInvoicePaid(stripeInvoice: Stripe.Invoice) {
+    const paymentAttempt = await this.paymentAttemptRepository.find({
+      stripeInvoiceId: stripeInvoice.id,
+    });
+    if (!paymentAttempt) {
+      console.error(`No payment attempt found for Stripe invoice ${stripeInvoice.id}`);
+      return;
+    }
+    const internalInvoice = await this.invoiceRepository.findOne(paymentAttempt.invoiceId.toString());
+    if (!internalInvoice) {
+      console.error(`No internal invoice found for payment attempt ${paymentAttempt.id}`);
+      return;
+    }
+    await this.paymentAttemptRepository.update(paymentAttempt.id, {
+      status: PaymentAttemptStatus.SUCCEEDED,
+    });
+    await this.invoiceRepository.update(internalInvoice.id, {
+      stripeInvoiceId: stripeInvoice.id,
+      status: InvoiceStatus.PAID,
+    });
+    const transaction: CreateTransactionDto = {
+      residenceId: internalInvoice.residenceId,
+      developerId: internalInvoice.developerId,
+      invoiceId: internalInvoice.id,
+      amount: stripeInvoice.total,
+      status: TransactionStatus.PAID,
     };
     await this.transactionRepository.create(transaction);
-    return this.residenceService.upgradeResidence(item);
+    return internalInvoice;
   }
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async handleRankedPayment(_item: InvoiceItem) {
-    // TODO: Ranked Listing flow has not been created yet, so unable to handle its payment
-  }
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async handleFeaturedPayment(_item: InvoiceItem) {
-    // TODO: Featured Listing flow has not been created yet, so unable to handle its payment
+
+  private async handleInvoiceFailed(stripeInvoice: Stripe.Invoice) {
+    const paymentAttempt = await this.paymentAttemptRepository.find({
+      stripeInvoiceId: stripeInvoice.id,
+    });
+    if (!paymentAttempt) {
+      console.error(`No payment attempt found for Stripe invoice ${stripeInvoice.id}`);
+      return;
+    }
+    const internalInvoice = await this.invoiceRepository.findOne(paymentAttempt.invoiceId.toString());
+    if (!internalInvoice) {
+      console.error(`No internal invoice found for payment attempt ${paymentAttempt.id}`);
+      return;
+    }
+    await this.paymentAttemptRepository.update(paymentAttempt.id, {
+      status: PaymentAttemptStatus.FAILED,
+    });
+    await this.invoiceRepository.update(internalInvoice.id, {
+      stripeInvoiceId: stripeInvoice.id,
+      status: InvoiceStatus.FAILED,
+    });
+    const transaction: CreateTransactionDto = {
+      residenceId: internalInvoice.residenceId,
+      developerId: internalInvoice.developerId,
+      invoiceId: internalInvoice.id,
+      amount: stripeInvoice.total,
+      status: TransactionStatus.FAILED,
+    };
+    await this.transactionRepository.create(transaction);
+    return internalInvoice;
   }
 }

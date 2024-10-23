@@ -9,7 +9,7 @@ class Feature {
     required: true,
     description: 'Id of the feature',
   })
-  id: Types.ObjectId;
+  feature: Types.ObjectId;
 
   @ApiProperty({
     description: 'Whether the feature is active for the plan',

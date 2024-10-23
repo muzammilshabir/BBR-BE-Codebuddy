@@ -38,7 +38,7 @@ export class SubscriptionPlanService {
     const transformedPlan = {
       ...plan,
       features: plan.features.map((feature) => {
-        feature.id = new Types.ObjectId(feature.id);
+        feature.feature = new Types.ObjectId(feature.feature);
         return feature;
       }),
     };
@@ -53,7 +53,7 @@ export class SubscriptionPlanService {
     const transformedPlan = {
       ...plan,
       features: plan.features.map((feature) => {
-        feature.id = new Types.ObjectId(feature.id);
+        feature.feature = new Types.ObjectId(feature.feature);
         return feature;
       }),
     };
@@ -63,11 +63,11 @@ export class SubscriptionPlanService {
   }
 
   async getPlans() {
-    return this.planRepository.findAll({});
+    return this.planRepository.findAllExpanded({});
   }
 
   async getPlan(id: string) {
-    return this.planRepository.findById(id);
+    return this.planRepository.findByIdExpanded(id);
   }
 
   async getPlanResidences(id: string, listResidencesDto: ListPropsDto) {

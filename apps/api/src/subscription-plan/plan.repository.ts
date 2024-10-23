@@ -9,4 +9,16 @@ export class PlanRepository extends BaseRepository<Plan> {
   constructor(@InjectModel(Plan.name) private readonly planModel: Model<Plan>) {
     super(planModel);
   }
+
+  async findAllExpanded(filter: any): Promise<any> {
+    return this.planModel
+      .find(filter)
+      .populate([{ path: 'features.feature', select: 'name', model: 'Feature' }]);
+  }
+
+  async findByIdExpanded(id: string): Promise<any> {
+    return this.planModel
+      .findById(id)
+      .populate([{ path: 'features.feature', select: 'name', model: 'Feature' }]);
+  }
 }
