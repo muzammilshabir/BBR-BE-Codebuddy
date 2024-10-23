@@ -4,6 +4,7 @@ import { GeographicalAreas, GeographicalAreasSchema } from './schema/geographica
 import { GeographicalAreasService } from './geographicalAreas.service';
 import { GeographicalAreasRepository } from './geographicalAreas.repository';
 import { GeographicalAreasSeeder } from './geographicalAreas.seeder';
+import { GeographicalAreasController } from './geographicalAreas.controller';
 
 @Module({
   imports: [
@@ -11,6 +12,6 @@ import { GeographicalAreasSeeder } from './geographicalAreas.seeder';
   ],
   providers: [GeographicalAreasService, GeographicalAreasRepository, GeographicalAreasSeeder],
   exports: [GeographicalAreasSeeder],
-  controllers: [],
+  controllers: [GeographicalAreasController],
 })
 export class GeographicalAreasModule {}
