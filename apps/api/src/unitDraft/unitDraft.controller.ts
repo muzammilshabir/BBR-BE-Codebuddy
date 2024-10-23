@@ -7,6 +7,8 @@ import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
 import { ListUnitDraftDto, listUnitDraftSchema } from './dto/listUnitDraft.dto';
 import { GetUnitDraftByIdDto, getUnitDraftByIdSchema } from './dto/get-unitDraft-by-id.dto';
+import { Permissions } from '../auth/decorators/permissions.decorator';
+import { PermissionLevel } from '../modulePolicy/enum/permission-enum';
 
 @ApiTags('UnitDraft')
 @Controller('unit-draft')
@@ -19,6 +21,7 @@ export class UnitDraftController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @Permissions('residence', PermissionLevel.READ)
   @UsePipes(new JoiValidationPipe(getUnitDraftByIdSchema, 'param'))
   async getUnitDraftById(@Param() params: GetUnitDraftByIdDto) {
     const unitDraft = await this.unitDraftService.getUnitDraftById(params.unitDraftId);
@@ -34,6 +37,7 @@ export class UnitDraftController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @Permissions('residence', PermissionLevel.READ)
   @UsePipes(new JoiValidationPipe(listUnitDraftSchema, 'query'))
   async listDraftUnits(@Query() listUnitDraftDto: ListUnitDraftDto) {
     const unitDraft = await this.unitDraftService.listDraftUnits(listUnitDraftDto);

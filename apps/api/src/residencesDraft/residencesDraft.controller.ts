@@ -12,6 +12,8 @@ import {
   getResidenceDraftByIdSchema,
 } from './dto/getResidenceDraftById.dto';
 import { GetCurrentUserId } from '../auth/decorators/getCurrentUserId.decorator';
+import { Permissions } from '../auth/decorators/permissions.decorator';
+import { PermissionLevel } from '../modulePolicy/enum/permission-enum';
 
 @ApiTags('ResidenceDraft')
 @Controller('residence-draft')
@@ -23,6 +25,7 @@ export class ResidenceDraftController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.ADMIN, UserRole.SELLER)
+  @Permissions('residence', PermissionLevel.READ)
   @UsePipes(new JoiValidationPipe(getResidenceDraftByIdSchema, 'param'))
   async getResidenceDraftById(@Param() params: GetResidenceDraftByIdDto) {
     const residenceDraft = await this.residenceDraftService.getResidenceDraftById(params.id);
@@ -35,6 +38,7 @@ export class ResidenceDraftController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @Permissions('residence', PermissionLevel.READ)
   @UsePipes(new JoiValidationPipe(listResidenceDraftSchema, 'query'))
   async listResidences(@Query() listResidenceDraftDto: ListResidenceDraftDto) {
     const residencesDraft =

@@ -101,7 +101,7 @@ export class RoleService {
     user: User,
     requiredPermissions: { module: string; permission: PermissionLevel }
   ): Promise<boolean> {
-    const role = await this.roleRepository.findById(user.roleId.toString());
+    const role = await this.roleRepository.findById(user?.roleId.toString());
     if (!role) {
       return false;
     }

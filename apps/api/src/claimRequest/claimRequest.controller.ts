@@ -20,6 +20,8 @@ import {
   listClaimRequestSchema,
 } from './dto/getClaimRequest.dto';
 import { RejectClaimRequestDto, rejectClaimRequestSchema } from './dto/rejectClaimRequest.dto';
+import { Permissions } from '../auth/decorators/permissions.decorator';
+import { PermissionLevel } from '../modulePolicy/enum/permission-enum';
 
 @ApiTags('ClaimRequest')
 @Controller('claim-request')
@@ -112,6 +114,7 @@ export class ClaimRequestController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.ADMIN)
+  @Permissions('residence', PermissionLevel.EDIT)
   @UsePipes(new JoiValidationPipe(getClaimRequestIdSchema, 'param'))
   async approveClaimRequest(@Param() getClaimRequestByIdDto: GetClaimRequestByIdDto) {
     const claimRequest = await this.claimRequestService.approveClaimRequest(getClaimRequestByIdDto);
@@ -124,6 +127,7 @@ export class ClaimRequestController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.ADMIN)
+  @Permissions('residence', PermissionLevel.EDIT)
   @UsePipes(new JoiValidationPipe(getClaimRequestIdSchema, 'param'))
   @UsePipes(new JoiValidationPipe(rejectClaimRequestSchema, 'body'))
   async rejectClaimRequest(
@@ -143,6 +147,7 @@ export class ClaimRequestController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.ADMIN, UserRole.SELLER)
+  @Permissions('residence', PermissionLevel.READ)
   @UsePipes(new JoiValidationPipe(getClaimRequestIdSchema, 'param'))
   async getClaimRequestById(@Param() getClaimRequestByIdDto: GetClaimRequestByIdDto) {
     const claimRequest = await this.claimRequestService.getClaimRequestById(getClaimRequestByIdDto);
@@ -155,6 +160,7 @@ export class ClaimRequestController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.ADMIN)
+  @Permissions('residence', PermissionLevel.READ)
   @UsePipes(new JoiValidationPipe(listClaimRequestSchema, 'query'))
   async getClaimRequests(@Query() listClaimRequestDto: ListClaimRequestDto) {
     const claimRequest = await this.claimRequestService.getClaimRequests(listClaimRequestDto);

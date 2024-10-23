@@ -103,47 +103,52 @@ export class ResidenceService {
     updateResidenceDto: UpdateResidenceDto,
     user: JwtPayloadType
   ): Promise<ResidenceDraft> {
-    await this.checkResidenceRejectedStatus(id);
+    try {
+      await this.checkResidenceRejectedStatus(id);
 
-    if (updateResidenceDto?.status && user.role !== UserRole.ADMIN) {
-      delete updateResidenceDto.status;
-    }
-
-    const transformedDto: any = {
-      ...updateResidenceDto,
-      residenceTypeIds: updateResidenceDto.residenceTypeIds
-        ? updateResidenceDto.residenceTypeIds.map((typeId) => new Types.ObjectId(typeId))
-        : undefined,
-      locationId: updateResidenceDto.locationId
-        ? new Types.ObjectId(updateResidenceDto.locationId)
-        : undefined,
-      associatedBrandId: updateResidenceDto.associatedBrandId
-        ? new Types.ObjectId(updateResidenceDto.associatedBrandId)
-        : undefined,
-      updatedById: new Types.ObjectId(user.sub),
-    };
-
-    if (updateResidenceDto.address?.city) {
-      const cityName = updateResidenceDto.address.city.trim();
-      const cityDetails = await this.cityRepository.findByCityName(cityName);
-
-      if (!cityDetails) {
-        throw new NotFoundException(`Unsupported city ${cityName}`);
+      if (updateResidenceDto?.status && user.role !== UserRole.ADMIN) {
+        delete updateResidenceDto.status;
       }
 
-      transformedDto.cityId = new Types.ObjectId(cityDetails.id);
-      transformedDto.countryId = new Types.ObjectId(cityDetails.countryId);
-      transformedDto.address = updateResidenceDto.address;
-    }
-    const residenceDraft = await this.checkResidenceDraft(id);
-    if (residenceDraft) {
-      return await this.residenceDraftRepository.update(residenceDraft.id, transformedDto);
-    }
+      const transformedDto: any = {
+        ...updateResidenceDto,
+        residenceTypeIds: updateResidenceDto.residenceTypeIds
+          ? updateResidenceDto.residenceTypeIds.map((typeId) => new Types.ObjectId(typeId))
+          : undefined,
+        locationId: updateResidenceDto.locationId
+          ? new Types.ObjectId(updateResidenceDto.locationId)
+          : undefined,
+        associatedBrandId: updateResidenceDto.associatedBrandId
+          ? new Types.ObjectId(updateResidenceDto.associatedBrandId)
+          : undefined,
+        updatedById: new Types.ObjectId(user.sub),
+      };
 
-    return await this.residenceDraftRepository.create({
-      ...transformedDto,
-      residenceId: new Types.ObjectId(id),
-    });
+      if (updateResidenceDto.address?.city) {
+        const cityName = updateResidenceDto.address.city.trim();
+        const cityDetails = await this.cityRepository.findByCityName(cityName);
+
+        if (!cityDetails) {
+          throw new NotFoundException(`Unsupported city ${cityName}`);
+        }
+
+        transformedDto.cityId = new Types.ObjectId(cityDetails.id);
+        transformedDto.countryId = new Types.ObjectId(cityDetails.countryId);
+        transformedDto.address = updateResidenceDto.address;
+      }
+      const residenceDraft = await this.checkResidenceDraft(id);
+      if (residenceDraft) {
+        return await this.residenceDraftRepository.update(residenceDraft.id, transformedDto);
+      }
+
+      return await this.residenceDraftRepository.create({
+        ...transformedDto,
+        residenceId: new Types.ObjectId(id),
+      });
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
   }
 
   async checkResidenceRejectedStatus(residenceId: string) {

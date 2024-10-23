@@ -15,6 +15,8 @@ import {
   getRankingCategoryDraftByIdSchema,
 } from './dto/getRankingCategoryDraftById.dto';
 import { GetCurrentUserId } from '../auth/decorators/getCurrentUserId.decorator';
+import { Permissions } from '../auth/decorators/permissions.decorator';
+import { PermissionLevel } from '../modulePolicy/enum/permission-enum';
 
 @ApiTags('RankingCategoryDraft')
 @Controller('rankingCategory-draft')
@@ -26,6 +28,7 @@ export class RankingCategoryDraftController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.ADMIN)
+  @Permissions('rankings', PermissionLevel.READ)
   @UsePipes(new JoiValidationPipe(getRankingCategoryDraftByIdSchema, 'param'))
   async getRankingCategoryDraftById(@Param() params: GetRankingCategoryDraftByIdDto) {
     const rankingCategoryDraftDetails =
@@ -42,6 +45,7 @@ export class RankingCategoryDraftController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @Permissions('rankings', PermissionLevel.READ)
   @UsePipes(new JoiValidationPipe(listRankingCategoryDraftSchema, 'query'))
   async listRankingCategoryDraft(
     @Query() listRankingCategoryDraftDto: ListRankingCategoryDraftDto
@@ -62,6 +66,7 @@ export class RankingCategoryDraftController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.ADMIN)
+  @Permissions('rankings', PermissionLevel.EDIT)
   @UsePipes(new JoiValidationPipe(getRankingCategoryDraftByIdSchema, 'param'))
   async createApprovalRequest(
     @GetCurrentUserId() userId: string,

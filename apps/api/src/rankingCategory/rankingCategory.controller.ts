@@ -27,6 +27,8 @@ import {
   getRankingCategoryByIdSchema,
 } from './dto/get-ranking-category-by-id.dto';
 import { GetCurrentUserId } from '../auth/decorators/getCurrentUserId.decorator';
+import { Permissions } from '../auth/decorators/permissions.decorator';
+import { PermissionLevel } from '../modulePolicy/enum/permission-enum';
 
 @ApiTags('RankingCategory')
 @Controller('rankingCategory')
@@ -39,6 +41,7 @@ export class RankingCategoryController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.ADMIN)
+  @Permissions('rankings', PermissionLevel.READ)
   async listResidencesWithDraft(@Query() query: RankingCategoryListDto) {
     const result = await this.rankingCategoryService.listResidencesWithDraft(query);
 
@@ -51,6 +54,7 @@ export class RankingCategoryController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.ADMIN)
+  @Permissions('rankings', PermissionLevel.READ)
   @UsePipes(new JoiValidationPipe(getRankingCategoryByIdSchema, 'param'))
   async findRankingCategory(
     @Param() params: GetRankingCategoryByIdDto,
@@ -69,6 +73,7 @@ export class RankingCategoryController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.ADMIN, UserRole.SELLER, UserRole.BUYER)
+  @Permissions('rankings', PermissionLevel.READ)
   @UsePipes(new JoiValidationPipe(rankingCategorySchema, 'query'))
   async getAllRankingCategories(
     @Query() rankingCategoryDto: RankingCategoryListDto,
@@ -87,6 +92,7 @@ export class RankingCategoryController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.ADMIN)
+  @Permissions('rankings', PermissionLevel.EDIT)
   @UsePipes(new JoiValidationPipe(createRankingCategorySchema, 'body'))
   async create(
     @Body() createRankingCategoryDto: CreateRankingCategoryDto,
@@ -108,6 +114,7 @@ export class RankingCategoryController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.ADMIN)
+  @Permissions('rankings', PermissionLevel.EDIT)
   @UsePipes(new JoiValidationPipe(updateRankingCategorySchema, 'body'))
   async update(
     @Param('id') id: string,
@@ -131,6 +138,7 @@ export class RankingCategoryController {
   // TODO: This API should only be accessible to super admin.
   // After a super admin is created, change the role to super admin.
   @Roles(UserRole.ADMIN)
+  @Permissions('rankings', PermissionLevel.EDIT)
   @UsePipes(new JoiValidationPipe(getRankingCategoryByIdSchema, 'param'))
   async approveRankingCategory(
     @Param() Param: GetRankingCategoryByIdDto,
@@ -153,6 +161,7 @@ export class RankingCategoryController {
   // TODO: This API should only be accessible to super admin.
   // After a super admin is created, change the role to super admin.
   @Roles(UserRole.ADMIN)
+  @Permissions('rankings', PermissionLevel.EDIT)
   @UsePipes(new JoiValidationPipe(getRankingCategoryByIdSchema, 'param'))
   @UsePipes(new JoiValidationPipe(rejectRankingCategorySchema, 'body'))
   async rejectRankingCategory(
@@ -178,6 +187,7 @@ export class RankingCategoryController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.ADMIN)
+  @Permissions('rankings', PermissionLevel.EDIT)
   @UsePipes(new JoiValidationPipe(getRankingCategoryByIdSchema, 'param'))
   @UsePipes(new JoiValidationPipe(updateRankingCategoryStatusSchema, 'body'))
   async updateRankingCategoryStatus(
@@ -202,6 +212,7 @@ export class RankingCategoryController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.ADMIN)
+  @Permissions('rankings', PermissionLevel.EDIT)
   @UsePipes(new JoiValidationPipe(getRankingCategoryByIdSchema, 'param'))
   async unarchiveRankingCategory(
     @GetCurrentUserId() userId: string,
