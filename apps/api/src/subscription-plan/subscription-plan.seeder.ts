@@ -11,7 +11,7 @@ export class SubscriptionPlanSeeder extends AbstractSeeder {
 
   constructor(
     private readonly featureRepository: FeatureRepository,
-    private readonly planRepository: PlanRepository,
+    private readonly planRepository: PlanRepository
   ) {
     super();
   }
@@ -20,49 +20,49 @@ export class SubscriptionPlanSeeder extends AbstractSeeder {
     try {
       const features = [
         {
-          name: "Includes all Basic Plan features",
+          name: 'Includes all Basic Plan features',
           active: true,
           createdAt: new Date(),
           updatedAt: new Date(),
         },
         {
-          name: "Showcase your brand with enhanced property listings",
+          name: 'Showcase your brand with enhanced property listings',
           active: true,
           createdAt: new Date(),
           updatedAt: new Date(),
         },
         {
-          name: "Access leads from buyers who inquire through our platform",
+          name: 'Access leads from buyers who inquire through our platform',
           active: true,
           createdAt: new Date(),
           updatedAt: new Date(),
         },
         {
-          name: "Boost traffic with advanced SEO and performance analytics",
+          name: 'Boost traffic with advanced SEO and performance analytics',
           active: true,
           createdAt: new Date(),
           updatedAt: new Date(),
         },
         {
-          name: "Easily upload inventory for visitors to view and inquire about",
+          name: 'Easily upload inventory for visitors to view and inquire about',
           active: true,
           createdAt: new Date(),
           updatedAt: new Date(),
         },
         {
-          name: "Highlight units with exclusive BBR offers for our visitors",
+          name: 'Highlight units with exclusive BBR offers for our visitors',
           active: true,
           createdAt: new Date(),
           updatedAt: new Date(),
         },
         {
-          name: "Get AI-driven insights to improve performance and lead generation",
+          name: 'Get AI-driven insights to improve performance and lead generation',
           active: true,
           createdAt: new Date(),
           updatedAt: new Date(),
         },
         {
-          name: "Receive expert support from a dedicated marketing consultant",
+          name: 'Receive expert support from a dedicated marketing consultant',
           active: true,
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -71,9 +71,9 @@ export class SubscriptionPlanSeeder extends AbstractSeeder {
       const planFeatures = [];
       let order = 1;
       for (const feature of features) {
-        const created = await this.featureRepository.create(feature);
+        const created = await this.featureRepository.upsert({ name: feature.name }, feature);
         planFeatures.push({
-          id: created.id,
+          feature: created.id,
           active: true,
           order,
         });
@@ -81,7 +81,7 @@ export class SubscriptionPlanSeeder extends AbstractSeeder {
       }
       const plans = [
         {
-          name: "Free Residence Profile",
+          name: 'Free Residence Profile',
           fee: 25000,
           billingCycle: 'month',
           trialPeriod: 0,
@@ -92,7 +92,7 @@ export class SubscriptionPlanSeeder extends AbstractSeeder {
           updatedAt: new Date(),
         },
         {
-          name: "Premium Residence Profile",
+          name: 'Premium Residence Profile',
           fee: 25000,
           billingCycle: 'month',
           trialPeriod: 0,
@@ -103,7 +103,7 @@ export class SubscriptionPlanSeeder extends AbstractSeeder {
           updatedAt: new Date(),
         },
         {
-          name: "Bespoke Residence Profile",
+          name: 'Bespoke Residence Profile',
           fee: 25000,
           billingCycle: 'month',
           trialPeriod: 0,
@@ -114,7 +114,7 @@ export class SubscriptionPlanSeeder extends AbstractSeeder {
           updatedAt: new Date(),
         },
         {
-          name: "Features Residences",
+          name: 'Features Residences',
           fee: 25000,
           billingCycle: 'month',
           trialPeriod: 0,
@@ -125,7 +125,7 @@ export class SubscriptionPlanSeeder extends AbstractSeeder {
           updatedAt: new Date(),
         },
         {
-          name: "BBR Verification",
+          name: 'BBR Verification',
           fee: 25000,
           billingCycle: 'month',
           trialPeriod: 0,
@@ -136,7 +136,7 @@ export class SubscriptionPlanSeeder extends AbstractSeeder {
           updatedAt: new Date(),
         },
         {
-          name: "Inactive plan example",
+          name: 'Inactive plan example',
           fee: 25000,
           billingCycle: 'month',
           trialPeriod: 0,
@@ -148,7 +148,7 @@ export class SubscriptionPlanSeeder extends AbstractSeeder {
         },
       ];
       for (const plan of plans) {
-        await this.planRepository.create(plan);
+        await this.planRepository.upsert({ name: plan.name }, plan);
       }
     } catch (error) {
       this.logger.error('Error seeding plans and features', error);
