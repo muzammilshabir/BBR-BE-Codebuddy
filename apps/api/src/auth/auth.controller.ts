@@ -77,6 +77,16 @@ import { Roles } from './decorators/roles.decorator';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'return logged in user details',
+  })
+  @Get('/me')
+  async me(@GetCurrentUser() userFromToken: JwtPayloadType) {
+    const user = await this.authService.me(userFromToken);
+    return ResponseService.buildResponse({ user });
+  }
+
   @ApiOperation({
     summary: 'Buyer Login',
   })

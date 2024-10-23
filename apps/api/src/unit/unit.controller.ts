@@ -23,6 +23,8 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/enum/user.enum';
 import { GetCurrentUserId } from '../auth/decorators/getCurrentUserId.decorator';
 import { UpdateUnitDto, updateUnitSchema } from './dto/update-unit.dto';
+import { PermissionLevel } from '../modulePolicy/enum/permission-enum';
+import { Permissions } from '../auth/decorators/permissions.decorator';
 
 @ApiTags('Unit')
 @Controller('unit')
@@ -35,6 +37,7 @@ export class UnitController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @Permissions('residence', PermissionLevel.EDIT)
   @UsePipes(new JoiValidationPipe(addUnitSchema, 'body'))
   async addUnit(
     @Param('residenceId') residenceId: string,
@@ -51,6 +54,7 @@ export class UnitController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @Permissions('residence', PermissionLevel.EDIT)
   @UsePipes(new JoiValidationPipe(addUnitKeyFeaturesSchema, 'body'))
   async addUnitKeyFeatures(
     @Param('unitId') unitId: string,
@@ -74,6 +78,7 @@ export class UnitController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @Permissions('residence', PermissionLevel.EDIT)
   @UsePipes(new JoiValidationPipe(addVisualsSchema, 'body'))
   async addVisuals(
     @Param('unitId') unitId: string,
@@ -93,6 +98,7 @@ export class UnitController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @Permissions('residence', PermissionLevel.EDIT)
   @UsePipes(new JoiValidationPipe(updateUnitSchema, 'body'))
   async updateUnit(
     @Param('unitId') unitId: string,
@@ -109,6 +115,7 @@ export class UnitController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @Permissions('residence', PermissionLevel.READ)
   @UsePipes(new JoiValidationPipe(listUnitSchema, 'query'))
   async listUnits(@Query() query: ListUnitDto) {
     const units = await this.unitService.listUnits(query);
@@ -121,6 +128,7 @@ export class UnitController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @Permissions('residence', PermissionLevel.READ)
   @UsePipes(new JoiValidationPipe(listUnitSchema, 'query'))
   async listUnitsWithDraft(@Query() query: ListUnitDto) {
     const units = await this.unitService.listUnitsWithDraft(query);
@@ -133,6 +141,7 @@ export class UnitController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @Permissions('residence', PermissionLevel.READ)
   @UsePipes(new JoiValidationPipe(getUnitByIdSchema, 'param'))
   async getUnitById(@Param() params: GetUnitByIdDto) {
     const unit = await this.unitService.getUnitById(params.unitId);
@@ -145,6 +154,7 @@ export class UnitController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @Permissions('residence', PermissionLevel.DELETE)
   @UsePipes(new JoiValidationPipe(getUnitByIdSchema, 'param'))
   async deleteUnit(@Param() params: GetUnitByIdDto) {
     const unit = await this.unitService.deleteUnit(params.unitId);
@@ -155,6 +165,7 @@ export class UnitController {
   @ApiOperation({ summary: 'Upload file for bulk add units' })
   @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @Permissions('residence', PermissionLevel.EDIT)
   async uploadUnitFile(@Param() params: FileUploadDto, @GetCurrentUserId() userId: string) {
     try {
       const { residenceId, fileId } = params;

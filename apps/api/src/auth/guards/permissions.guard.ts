@@ -60,23 +60,20 @@ export class PermissionsGuard implements CanActivate {
       const userInDb = await this.userService.findById(user.sub);
       if (!userInDb) throw new UnauthorizedException();
 
-      if (user?.role !== UserRole.ADMIN) {
-        throw new UnauthorizedException('Only admin type of user can access');
+      if (user?.role === UserRole.ADMIN) {
+        if (!userInDb?.roleId) {
+          throw new UnauthorizedException('Role is not assigned');
+        }
+        // Cast `requiredPermissions.permission` to `PermissionLevel`
+        const permissionLevel = requiredPermissions.permission as PermissionLevel;
+
+        const hasPermission = await this.roleService.hasPermission(userInDb, {
+          module: requiredPermissions.module,
+          permission: permissionLevel,
+        });
+
+        if (!hasPermission) throw new ForbiddenException('Insufficient permissions');
       }
-
-      if (!userInDb?.roleId) {
-        throw new UnauthorizedException('Role is not assigned');
-      }
-
-      // Cast `requiredPermissions.permission` to `PermissionLevel`
-      const permissionLevel = requiredPermissions.permission as PermissionLevel;
-
-      const hasPermission = await this.roleService.hasPermission(userInDb, {
-        module: requiredPermissions.module,
-        permission: permissionLevel,
-      });
-
-      if (!hasPermission) throw new ForbiddenException('Insufficient permissions');
 
       return true; // Access granted
     } catch (error) {
