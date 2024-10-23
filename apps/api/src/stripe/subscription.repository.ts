@@ -15,6 +15,92 @@ export class SubscriptionRepository extends BaseRepository<Subscription> {
     return this.find({ invoiceId, status: SubscriptionStatus.ACTIVE });
   }
 
+  async getSubscriptionResidencesByPlan(planId: string, options: any) {
+    const aggregatePipeline = [
+      {
+        $lookup: {
+          from: 'invoiceitems',
+          localField: 'baseInvoiceId',
+          foreignField: 'invoiceId',
+          as: 'invoiceItems'
+        }
+      },
+      {
+        $match: {
+          'invoiceItems': { $ne: [] },
+          'invoiceItems.plan': { $eq: planId }
+        }
+      },
+      {
+        $lookup: {
+          from: 'residences',
+          localField: 'residenceId',
+          foreignField: '_id',
+          as: 'residence'
+        }
+      },
+      {
+        $unwind: '$residence'
+      },
+      {
+        $project: {
+          invoiceItems: 0,
+        }
+      },
+      {
+        $facet: {
+          metadata: [{ $count: "total" }],
+          data: [{ $skip: options.offset }, { $limit: options.limit }]
+        }
+      },
+      {
+        $project: {
+          data: 1,
+          total: { $arrayElemAt: ["$metadata.total", 0] }
+        }
+      }
+    ];
+    
+    return this.subscriptionModel.aggregate(aggregatePipeline);
+  }
+
+  async getResidenceCountForPlans() {
+    const aggregatePipeline = [
+      {
+        $lookup: {
+          from: 'invoiceitems',
+          localField: 'baseInvoiceId',
+          foreignField: 'invoiceId',
+          as: 'invoiceItems'
+        }
+      },
+      {
+        $unwind: '$invoiceItems'
+      },
+      {
+        $match: {
+          'invoiceItems.plan': { $ne: null },
+          'isDeleted': false,
+        }
+      },
+      {
+        $group: {
+          _id: '$invoiceItems.plan',
+          residenceCount: { $addToSet: '$residenceId' }
+        }
+      },
+      {
+        $project: {
+          plan: '$_id',
+          residenceCount: { $size: '$residenceCount' },
+          _id: 0
+        }
+      }
+    ];
+    
+    return this.subscriptionModel.aggregate(aggregatePipeline);
+  }
+
   async findByResidenceId(residenceId: string): Promise<Subscription[]> {
     return (await this.findAll({ residenceId })).data;
   }
