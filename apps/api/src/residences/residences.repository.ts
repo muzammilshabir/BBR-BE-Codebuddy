@@ -392,7 +392,11 @@ export class ResidenceRepository extends BaseRepository<Residence> {
         },
       ];
 
-      return await this.residenceModel.aggregate(pipeline).exec();
+      return await this.residenceModel
+        .aggregate(pipeline, {
+          collation: { locale: 'en', strength: 1 }, // Case-insensitive collation
+        })
+        .exec();
     } catch (error) {
       throw new Error(`Error while fetching residence draft list: ${error}`);
     }
