@@ -5,11 +5,15 @@ import { NotFoundException } from '@bbr/api-core/modules/exceptions';
 import { ListUnitDraftDto } from './dto/listUnitDraft.dto';
 import { DeletionStatus } from '../unit/enum/unit-enum';
 import { Types } from 'mongoose';
-import { PaginationService } from '../../../../packages/api-core/modules/pagination/pagination.service';
+import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
+import { UnitRepository } from '../unit/unit.repository';
 
 @Injectable()
 export class UnitDraftService {
-  constructor(private readonly unitDraftRepository: UnitDraftRepository) {}
+  constructor(
+    private readonly unitDraftRepository: UnitDraftRepository,
+    private readonly unitRepository: UnitRepository
+  ) {}
 
   async getUnitDraftById(unitId: string): Promise<UnitDraft> {
     const unitDraftDetails = await this.unitDraftRepository.findByIdInDetail(unitId);
@@ -37,5 +41,23 @@ export class UnitDraftService {
     const { pagination } = PaginationService.paginate({ rows: data, count }, listUnitDraftDto);
 
     return { pagination, unitDraft: data };
+  }
+
+  async deleteUnitDraft(unitDraftId: string, userId: string): Promise<UnitDraft> {
+    const unitDraft = await this.unitDraftRepository.findById(unitDraftId);
+    if (!unitDraft) {
+      throw new NotFoundException(`Unit draft with ID ${unitDraftId}`);
+    }
+
+    const updatedUnit = await this.unitDraftRepository.update(unitDraftId, {
+      isDeleted: DeletionStatus.DELETED,
+      updatedById: new Types.ObjectId(userId),
+    });
+
+    await this.unitRepository.update(unitDraft.unitId.toString(), {
+      isDeleted: DeletionStatus.DELETED,
+      updatedById: new Types.ObjectId(userId),
+    });
+    return updatedUnit;
   }
 }
