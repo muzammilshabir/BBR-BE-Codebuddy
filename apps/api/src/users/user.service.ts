@@ -514,10 +514,6 @@ export class UserService {
   }
 
   async me(userFromToken: JwtPayloadType) {
-    const user = await this.userRepository.findById(userFromToken.sub);
-    if (!user) throw new UnauthorizedException('Invalid token');
-
-    delete user.password;
-    return user;
+    return await this.userRepository.me(userFromToken);
   }
 }
