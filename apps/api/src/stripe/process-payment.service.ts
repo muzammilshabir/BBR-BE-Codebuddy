@@ -13,6 +13,7 @@ import { InvoiceStatus } from './enum/invoice-status.enum';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Interval } from './enum/interval.enum';
 import { Invoice } from './schema/invoice.schema';
+import { PaymentAttemptStatus } from './enum/payment-attempt-status.enum';
 
 @Injectable()
 export class ProcessPaymentService {
@@ -143,7 +144,7 @@ export class ProcessPaymentService {
             invoiceId: invoice.id,
             paymentMethodId: invoice.paymentMethodId,
             stripeInvoiceId: stripeInvoice.id,
-            status: 'pending',
+            status: PaymentAttemptStatus.PENDING,
             attemptNumber: totalAttemptsMade + 1,
             attemptsRemaining: invoiceSubscription.renewalAttempts - (totalAttemptsMade + 1),
             attemptsRemainingToday: invoiceSubscription.attemptsFrequency - (attemptsToday + 1),

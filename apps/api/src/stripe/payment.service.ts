@@ -42,7 +42,7 @@ export class PaymentService {
     private readonly paymentMethodRepository: PaymentMethodRepository,
     private readonly subscriptionPlanService: SubscriptionPlanService,
     private readonly transactionRepository: TransactionRepository,
-    private readonly paymentAttemptRepository: PaymentAttemptRepository,
+    private readonly paymentAttemptRepository: PaymentAttemptRepository
   ) {}
 
   private convertPaymentItemsToLineItems(
@@ -244,13 +244,22 @@ export class PaymentService {
     if (!asAdmin && invoice.developerId.toString() !== userId) {
       throw new Error('You are not the developer of this residence');
     }
-    const subscriptions = await this.subscriptionRepository.findByResidenceId(transformedDto.residenceId.toString());
-    for(const subscription of subscriptions) {
+    const subscriptions = await this.subscriptionRepository.findByResidenceId(
+      transformedDto.residenceId.toString()
+    );
+    for (const subscription of subscriptions) {
       await this.subscriptionRepository.update(subscription.id, {
         status: SubscriptionStatus.CANCELED,
       });
     }
-    return this.subscriptionRepository.create(transformedDto);
+    const newSubscription = await this.subscriptionRepository.create(transformedDto);
+
+    this.residenceService.upgradeResidence(
+      createSubscriptionDto.residenceId.toString(),
+      newSubscription.id
+    );
+
+    return newSubscription;
   }
 
   async updateSubscription(
@@ -302,6 +311,19 @@ export class PaymentService {
     const customerId = user.stripeCustomerId;
     await this.paymentMethodRepository.delete(methodId);
     return this.stripeService.deletePaymentMethod(customerId, methodId);
+  }
+
+  async setDefaultResidencePaymentMethod(methodId: string, residenceId: string, userId?: string) {
+    if (userId) {
+      const residence = await this.residenceService.getResidenceByUserIdAndResidenceId(
+        userId,
+        residenceId
+      );
+      if (!residence) {
+        throw new Error('Residence not found');
+      }
+    }
+    return this.residenceService.addDefaultPaymentMethod(residenceId, methodId);
   }
 
   async getAllInvoices(listInvoicesDto: ListInvoicesDto) {
@@ -362,7 +384,7 @@ export class PaymentService {
       item['product'] = product;
     }
     const subscriptions = await this.subscriptionRepository.findByInvoiceId(invoiceId);
-    if(invoice.stripeInvoiceId) {
+    if (invoice.stripeInvoiceId) {
       invoice['stripeInvoice'] = await this.stripeService.getInvoice(invoice.stripeInvoiceId);
     }
     return { invoice, invoiceItems, subscriptions };
@@ -376,10 +398,10 @@ export class PaymentService {
       item['product'] = product;
     }
     const subscriptions = await this.subscriptionRepository.findByInvoiceId(invoiceId);
-    if(invoice.stripeInvoiceId) {
+    if (invoice.stripeInvoiceId) {
       invoice['stripeInvoice'] = await this.stripeService.getInvoice(invoice.stripeInvoiceId);
     }
-    
+
     return { invoice, invoiceItems, subscriptions };
   }
 
