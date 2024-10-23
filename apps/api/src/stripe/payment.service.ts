@@ -323,7 +323,7 @@ export class PaymentService {
   async deletePaymentMethod(userId: string, methodId: string) {
     const user = await this.userService.findById(userId);
     const customerId = user.stripeCustomerId;
-    await this.paymentMethodRepository.delete(methodId);
+    await this.paymentMethodRepository.deleteByPaymentMethodId(methodId);
     return this.stripeService.deletePaymentMethod(customerId, methodId);
   }
 
