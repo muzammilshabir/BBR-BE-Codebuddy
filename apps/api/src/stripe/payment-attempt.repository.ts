@@ -13,4 +13,8 @@ export class PaymentAttemptRepository extends BaseRepository<PaymentAttempt> {
   async findByInvoiceId(invoiceId: string): Promise<PaymentAttempt[]> {
     return (await this.findAll({ invoiceId })).data;
   }
+
+  async findByStripeInvoiceId(stripeInvoiceId: string): Promise<PaymentAttempt> {
+    return this.find(stripeInvoiceId );
+  }
 }

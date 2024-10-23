@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { UserService } from 'src/users/user.service';
 import { PlanRepository } from './plan.repository';
 import { FeatureRepository } from './feature.repository';
 import { CreateFeatureDto } from './dto/create-feature.dto';
@@ -7,13 +6,16 @@ import { UpdateFeatureDto } from './dto/update-feature.dto';
 import { CreatePlanDto } from './dto/create-plan.dto';
 import { UpdatePlanDto } from './dto/update-plan.dto';
 import { Types } from 'mongoose';
+import { ResidenceService } from 'src/residences/residences.service';
+import { ListPropsDto } from '@bbr/api-core/modules/dto/listProps.dto';
+import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
 
 @Injectable()
 export class SubscriptionPlanService {
   constructor(
     private readonly planRepository: PlanRepository,
     private readonly featureRepository: FeatureRepository,
-    private readonly userService: UserService,
+    private readonly residenceService: ResidenceService
   ) {}
 
   async createFeature(feature: CreateFeatureDto) {
@@ -35,9 +37,10 @@ export class SubscriptionPlanService {
   async createPlan(plan: CreatePlanDto) {
     const transformedPlan = {
       ...plan,
-      features: plan.features.map(
-        (feature) => new Types.ObjectId(feature)
-      ),
+      features: plan.features.map((feature) => {
+        feature.id = new Types.ObjectId(feature.id);
+        return feature;
+      }),
     };
     return this.planRepository.create(transformedPlan);
   }
@@ -49,14 +52,12 @@ export class SubscriptionPlanService {
     }
     const transformedPlan = {
       ...plan,
-      features: plan.features.map(
-        (feature) => new Types.ObjectId(feature)
-      ),
+      features: plan.features.map((feature) => {
+        feature.id = new Types.ObjectId(feature.id);
+        return feature;
+      }),
     };
-    const mergedFeatures = [
-      ...existingPlan.features,
-      ...transformedPlan.features,
-    ];
+    const mergedFeatures = [...existingPlan.features, ...transformedPlan.features];
     transformedPlan.features = [...new Set(mergedFeatures.flat())];
     return this.planRepository.update(planId, transformedPlan);
   }
@@ -67,5 +68,15 @@ export class SubscriptionPlanService {
 
   async getPlan(id: string) {
     return this.planRepository.findById(id);
+  }
+
+  async getPlanResidences(id: string, listResidencesDto: ListPropsDto) {
+    const options = PaginationService.prepareOptions(listResidencesDto);
+
+    const { data, count } = await this.residenceService.getResidencesByPlanId(id, options);
+
+    const { pagination } = PaginationService.paginate({ rows: data, count }, listResidencesDto);
+
+    return { pagination, residences: data };
   }
 }

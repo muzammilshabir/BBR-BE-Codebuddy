@@ -1,19 +1,16 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { Interval } from '../enum/interval.enum';
-import { InvoiceItem } from './invoice-item.schema';
 import { User } from 'src/users/schema/user.schema';
+import { SubscriptionStatus } from '../enum/subscription-status.enum';
 
 @Schema({ timestamps: true })
-export class SubscriptionItem extends Document {
-  @Prop({ required: true, type: Types.ObjectId, ref: 'Invoice' })
-  invoiceId: Types.ObjectId;
+export class Subscription extends Document {
+  @Prop({ required: true, type: Types.ObjectId, ref: 'Residence' })
+  residenceId: Types.ObjectId;
 
-  @Prop({
-    type: [{ type: Types.ObjectId, ref: 'InvoiceItem' }],
-    _id: false,
-  })
-  invoiceItemIds: InvoiceItem[];
+  @Prop({ required: true, type: Types.ObjectId, ref: 'Invoice' })
+  baseInvoiceId: Types.ObjectId;
 
   @Prop({
     type: {
@@ -49,13 +46,19 @@ export class SubscriptionItem extends Document {
     type: Number,
     example: 1,
   })
-  attemptsFrequency: number
+  attemptsFrequency: number;
 
   @Prop({
     type: Number,
     example: 7,
   })
-  gracePeriod: number;;
+  gracePeriod: number;
+
+  @Prop({
+    enum: SubscriptionStatus,
+    example: SubscriptionStatus.ACTIVE,
+  })
+  status: SubscriptionStatus;
 
   @Prop({ type: Date })
   createdAt: Date;
@@ -70,4 +73,4 @@ export class SubscriptionItem extends Document {
   isDeleted: boolean;
 }
 
-export const SubscriptionItemSchema = SchemaFactory.createForClass(SubscriptionItem);
+export const SubscriptionSchema = SchemaFactory.createForClass(Subscription);

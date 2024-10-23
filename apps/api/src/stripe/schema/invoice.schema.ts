@@ -45,6 +45,16 @@ export class Invoice extends Document {
   })
   status: InvoiceStatus;
 
+  @Prop({
+    type: String,
+    example: 'sfhwkrhu23o',
+    required: false,
+  })
+  stripeInvoiceId?: string;
+
+  @Prop({ required: false, type: Types.ObjectId, ref: 'Subscription' })
+  subscriptionId?: Types.ObjectId;
+
   @Prop({ type: Date })
   issuedAt: Date;
 

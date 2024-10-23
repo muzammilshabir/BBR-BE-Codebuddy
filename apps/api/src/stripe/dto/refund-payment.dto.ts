@@ -1,5 +1,7 @@
+import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
 import { ApiProperty } from '@nestjs/swagger';
 import * as Joi from 'joi';
+import { Types } from 'mongoose';
 
 
 export class RefundPaymentDto {
@@ -24,10 +26,19 @@ export class RefundPaymentDto {
     type: String,
   })
   reason: string;
+
+  @ApiProperty({ example: [
+    '66acda8b857c576159b74da2',
+    '66acda8b857c576159b75da5'
+  ], required: false })
+  attachments: Types.ObjectId[];
 }
 
 export const refundPaymentDtoSchema = Joi.object({
   amount: Joi.number().required(),
   note: Joi.string().required(),
   reason: Joi.string().required(),
+  attachments: Joi.array()
+  .items(Joi.string().custom(joiObjectIdValidator('attachments')))
+  .required(),
 });

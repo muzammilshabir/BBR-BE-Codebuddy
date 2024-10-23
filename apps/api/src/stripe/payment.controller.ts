@@ -1,22 +1,20 @@
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
-import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, UsePipes } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UsePipes } from '@nestjs/common';
 import {  ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { UserRole } from 'src/users/enum/user.enum';
 import { PaymentService } from './payment.service';
-import { CreatePaymentDto, createPaymentDtoSchema } from './dto/create-payment.dto';
-import { CreateSubscriptionDto, createSubscriptionDtoSchema } from './dto/create-subscription.dto';
 import { GetCurrentUserId } from 'src/auth/decorators/getCurrentUserId.decorator';
-import { ChangeSubscriptionPaymentDto, changeSubscriptionPaymentDtoSchema } from './dto/change-subscription-payment-method.dto';
-import { UpdateSubscriptionDto, UpdateSubscriptionDtoSchema } from './dto/update-subscription.dto';
 import { CreateInvoiceDto, createInvoiceDtoSchema } from './dto/create-invoice.dto';
 import { CreateInvoiceItemsDto, createInvoiceItemsDtoSchema } from './dto/create-invoice-items.dto';
-import { CreateSubscriptionItemDto, createSubscriptionItemDtoSchema } from './dto/create-subscription-item.dto';
+import { CreateSubscriptionDto, createSubscriptionDtoSchema } from './dto/create-subscription.dto';
 import { ListInvoicesDto, listInvoicesSchema } from './dto/list-invoices.dto';
-import { UpdateSubscriptionItemDto, updateSubscriptionItemDtoSchema } from './dto/update-subscription-item.dto';
+import { UpdateSubscriptionDto, updateSubscriptionDtoSchema } from './dto/update-subscription.dto';
 import { UpdateInvoiceItemDto, updateInvoiceItemsDtoSchema } from './dto/update-invoice-item.dto';
 import { UpdateInvoiceDto, updateInvoiceDtoSchema } from './dto/update-invoice.dto';
+import { RefundPaymentDto, refundPaymentDtoSchema } from './dto/refund-payment.dto';
+import { ListTransactionsDto, listTransactionsDtoSchema } from './dto/list-transactions.dto';
 
 @ApiTags('Payment')
 @Controller('payment')
@@ -121,12 +119,12 @@ export class PaymentController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.SELLER)
-  @UsePipes(new JoiValidationPipe(createSubscriptionItemDtoSchema, 'body'))
+  @UsePipes(new JoiValidationPipe(createSubscriptionDtoSchema, 'body'))
   async createInvoiceSubscription(
     @GetCurrentUserId() userId: string,
-    @Body() createSubscriptionItemDto: CreateSubscriptionItemDto,
+    @Body() createSubscriptionDto: CreateSubscriptionDto,
     ) {
-    const intent = await this.paymentService.createSubscriptionItem(userId, createSubscriptionItemDto, false);
+    const intent = await this.paymentService.createSubscription(userId, createSubscriptionDto, false);
     return ResponseService.buildResponse({ intent }, 'Invoice Subscription created successfully');
   }
 
@@ -136,14 +134,75 @@ export class PaymentController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.SELLER)
-  @UsePipes(new JoiValidationPipe(updateSubscriptionItemDtoSchema, 'body'))
+  @UsePipes(new JoiValidationPipe(updateSubscriptionDtoSchema, 'body'))
   async updateInvoiceSubscription(
     @GetCurrentUserId() userId: string,
     @Param('id') id: string,
-    @Body() updateSubscriptionItemDto: UpdateSubscriptionItemDto,
+    @Body() updateSubscriptionDto: UpdateSubscriptionDto,
     ) {
-    const intent = await this.paymentService.updateSubscriptionItem(userId, id, updateSubscriptionItemDto);
+    const intent = await this.paymentService.updateSubscription(userId, id, updateSubscriptionDto);
     return ResponseService.buildResponse({ intent }, 'Invoice Subscription updated successfully');
+  }
+
+  @Post('/request-refund/:invoiceId')
+  @ApiOperation({
+    summary: 'Request Refund for Invoice',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
+  @UsePipes(new JoiValidationPipe(refundPaymentDtoSchema, 'body'))
+  async requestRefund(
+    @GetCurrentUserId() userId: string,
+    @Param('invoiceId') invoiceId: string,
+    @Body() refundPaymentDto: RefundPaymentDto,
+  ) {
+    const intent = await this.paymentService.requestInvoiceRefund(userId, invoiceId, refundPaymentDto);
+    return ResponseService.buildResponse({ intent }, 'Refund request created successfully');
+  }
+
+  @Get('/transactions/')
+  @ApiOperation({
+    summary: 'Get Transaction',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
+  @UsePipes(new JoiValidationPipe(listTransactionsDtoSchema, 'query'))
+  async getTransactions(
+    @GetCurrentUserId() userId: string,
+    @Query() listTransactionsDto: ListTransactionsDto,
+  ) {
+    const paymentMethods = await this.paymentService.getTransactions(userId, listTransactionsDto);
+    return ResponseService.buildResponse({ paymentMethods }, 'Transactions retrieved successfully');
+  }
+
+  @Get('/transactions/:residenceId')
+  @ApiOperation({
+    summary: 'Get Transactions By Residence',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
+  @UsePipes(new JoiValidationPipe(listTransactionsDtoSchema, 'query'))
+  async getTransactionsByResidence(
+    @GetCurrentUserId() userId: string,
+    @Param('residenceId') residenceId: string,
+    @Query() listTransactionsDto: ListTransactionsDto,
+  ) {
+    const paymentMethods = await this.paymentService.getTransactionsForResidence(residenceId, listTransactionsDto, userId);
+    return ResponseService.buildResponse({ paymentMethods }, 'Transactions retrieved successfully');
+  }
+
+  @Get('/transaction/:transactionId')
+  @ApiOperation({
+    summary: 'Get Single Transaction',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
+  async getTransaction(
+    @GetCurrentUserId() userId: string,
+    @Param('transactionId') transactionId: string,
+  ) {
+    const paymentMethods = await this.paymentService.getTransaction(userId, transactionId);
+    return ResponseService.buildResponse({ paymentMethods }, 'Transaction retrieved successfully');
   }
 
   @Get('/payment-methods/')
@@ -169,7 +228,7 @@ export class PaymentController {
     @GetCurrentUserId() userId: string,
   ) {
     const intent = await this.paymentService.createSetupIntent(userId);
-    return ResponseService.buildResponse({ intent }, 'Payment Method created successfully');
+    return ResponseService.buildResponse({ intent }, 'Setup intent created successfully');
   }
 
   @Delete('/payment-method/:methodId')
@@ -185,64 +244,5 @@ export class PaymentController {
     const intent = await this.paymentService.deletePaymentMethod(userId, methodId);
     return ResponseService.buildResponse({ intent }, 'Payment Method deleted successfully');
   }
-  @Post('/subscription/')
-  @ApiOperation({
-    summary: 'Add one time payment to upcoming invoice',
-  })
-  @ApiBearerAuth()
-  @Roles(UserRole.SELLER)
-  @UsePipes(new JoiValidationPipe(createSubscriptionDtoSchema, 'body'))
-  async createSubscription(
-    @GetCurrentUserId() userId: string,
-    @Body() createSubscriptionDto: CreateSubscriptionDto,
-    ) {
-    const intent = await this.paymentService.createSubscription(userId, createSubscriptionDto);
-    return ResponseService.buildResponse({ intent }, 'Subscription request created successfully');
-  }
 
-  @Post('/one-time/')
-  @ApiOperation({
-    summary: 'Create One-time Intent/Invoice',
-  })
-  @ApiBearerAuth()
-  @Roles(UserRole.SELLER)
-  @UsePipes(new JoiValidationPipe(createPaymentDtoSchema, 'body'))
-  async createPayment(
-    @GetCurrentUserId() userId: string,
-    @Body() createPaymentDto: CreatePaymentDto,
-    ) {
-    const intent = await this.paymentService.createPayment(userId, createPaymentDto);
-    return ResponseService.buildResponse({ intent }, 'Payment request created successfully');
-  }
-
-  @Post('/subscription/change-method')
-  @ApiOperation({
-    summary: 'Change Payment Method For Subscription',
-  })
-  @ApiBearerAuth()
-  @Roles(UserRole.SELLER)
-  @UsePipes(new JoiValidationPipe(changeSubscriptionPaymentDtoSchema, 'body'))
-  async changeSubscriptionPaymentMethods(
-    @GetCurrentUserId() userId: string,
-    @Body() changeSubscriptionPaymentDto: ChangeSubscriptionPaymentDto,
-  ) {
-    const paymentMethods = await this.paymentService.changeSubscriptionPaymentMethod(userId, changeSubscriptionPaymentDto);
-    return ResponseService.buildResponse({ paymentMethods }, 'Payment Methods successfully');
-  }
-
-  @Put('/subscription/:residenceId')
-  @ApiOperation({
-    summary: 'Update Subscription',
-  })
-  @ApiBearerAuth()
-  @Roles(UserRole.SELLER)
-  @UsePipes(new JoiValidationPipe(UpdateSubscriptionDtoSchema, 'body'))
-  async updateSubscription(
-    @GetCurrentUserId() userId: string,
-    @Param('residenceId') residenceId: string,
-    @Body() updateSubscriptionDto: UpdateSubscriptionDto,
-  ) {
-    const subscription = await this.paymentService.updateSubscription(userId, residenceId, updateSubscriptionDto);
-    return ResponseService.buildResponse({ subscription }, 'Subscription Updated successfully');
-  }
 }

@@ -1,74 +1,90 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Types } from 'mongoose';
+import { Interval } from '../enum/interval.enum';
 import * as Joi from 'joi';
 import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
 
-export class SubscriptionItem {
+class RecurringDto {
   @ApiProperty({
-    example: 'XYZ Heights Residence',
-    required: true,
+    enum: Interval,
+    description: 'The interval of the recurring payment',
   })
-  name: string;
+  interval: Interval;
 
   @ApiProperty({
-    example: 'Listing Subscription for XYZ Heights',
+    description: 'The count of intervals',
     required: true,
+    example: 1,
   })
-  description: string;
+  interval_count: number;
+}
 
+export class CreateSubscriptionDto {
   @ApiProperty({
-    example: 'listing',
-    required: true,
-  })
-  type: "listing" | "ranked" | "featured";
-  
-  @ApiProperty({
-    example: '60d9c6a0a11c3c6c6a9a132a',
-    required: true,
+    description: 'The ID of the residence',
     type: String,
   })
   residenceId: Types.ObjectId;
 
   @ApiProperty({
-    example: 30000,
-    description: "30000 = $300.00 // price is always in cents",
-    required: true,
+    description: 'The ID of the associated invoice',
+    type: String,
   })
-  price: number;
+  invoiceId: Types.ObjectId;
 
   @ApiProperty({
+    type: () => RecurringDto,
+    description: 'The recurring payment details',
+  })
+  recurring: RecurringDto;
+
+  @ApiProperty({
+    description: 'The ID of the payment method',
+    required: true,
+    example: '33r2324sds423',
+  })
+  paymentMethodId: string;
+
+  @ApiProperty({
+    description: 'The number of days for reminders',
+    required: true,
+    example: 7,
+  })
+  reminderDays: number;
+
+  @ApiProperty({
+    description: 'The number of renewal attempts',
+    required: true,
+    example: 3,
+  })
+  renewalAttempts: number;
+
+  @ApiProperty({
+    description: 'The frequency of attempts per day',
+    required: true,
     example: 1,
-    required: true,
   })
-  quantity: number;
+  attemptsFrequency: number;
 
   @ApiProperty({
-    example: 'month',
+    description: 'The grace period in days',
     required: true,
+    example: 7,
   })
-  interval: 'day' | 'week' | 'month' | 'year';
-
-  @ApiProperty({
-    example: 1,
-    required: true,
-  })
-  intervalCount: number;
-}
-
-export class CreateSubscriptionDto {
-  @ApiProperty({ required: true, type: SubscriptionItem, isArray: true })
-  subscriptionItems: SubscriptionItem[];
+  gracePeriod: number;
 }
 
 export const createSubscriptionDtoSchema = Joi.object({
-  subscriptionItems: Joi.array().items(Joi.object({
-    name: Joi.string().required(),
-    description: Joi.string().required(),
-    type: Joi.string().valid('ranked', 'featured', 'listing').required(),
-    residenceId: Joi.string().custom(joiObjectIdValidator('residenceId')).required(),
-    price: Joi.number().required(), 
-    quantity: Joi.number().required(),
-    interval: Joi.string().valid('day', 'week', 'month', 'year').required(),
-    intervalCount: Joi.number().required(),
-  })).required(),
+  invoiceId: Joi.string().custom(joiObjectIdValidator('invoiceId')).required(),
+  recurring: Joi.object({
+    interval: Joi.string()
+      .valid(...Object.values(Interval))
+      .required(),
+    interval_count: Joi.number().required(),
+  }).required(),
+  paymentMethodId: Joi.string().required(),
+  reminderDays: Joi.number().min(1).required(),
+  renewalAttempts: Joi.number().min(1).required(),
+  attemptsFrequency: Joi.number().min(1).required(),
+  gracePeriod: Joi.number().required(),
 });

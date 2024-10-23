@@ -48,7 +48,7 @@ export class CreateInvoiceDto {
   note?: string;
 
   @ApiProperty({
-    description: 'Additional note for the invoice',
+    description: 'Invoice Status',
     type: String,
     enum: ['draft', 'pending'],
     example: 'pending',
