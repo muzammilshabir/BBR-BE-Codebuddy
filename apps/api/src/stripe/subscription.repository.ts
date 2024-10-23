@@ -28,7 +28,9 @@ export class SubscriptionRepository extends BaseRepository<Subscription> {
       {
         $match: {
           'invoiceItems': { $ne: [] },
-          'invoiceItems.plan': { $eq: planId }
+          'invoiceItems.plan': { $eq: planId },
+          'status': SubscriptionStatus.ACTIVE,
+          'isDeleted': false
         }
       },
       {
@@ -80,6 +82,7 @@ export class SubscriptionRepository extends BaseRepository<Subscription> {
       {
         $match: {
           'invoiceItems.plan': { $ne: null },
+          'status': SubscriptionStatus.ACTIVE,
           'isDeleted': false,
         }
       },
