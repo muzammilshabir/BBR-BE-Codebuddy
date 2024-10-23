@@ -82,7 +82,6 @@ export class AuthService {
 
     await this.userService.verifyUserEmail(token, email);
 
-
     const stripeCustomer = await this.stripeService.createCustomer({
       name: user.fullName,
       email: user.email,
@@ -456,5 +455,9 @@ export class AuthService {
     userId: string
   ) {
     return await this.userService.resetStaffMemberPassword(resetStaffMemberPasswordDto, userId);
+  }
+
+  async me(userFromToken: JwtPayloadType) {
+    return await this.userService.me(userFromToken);
   }
 }

@@ -28,6 +28,7 @@ import { ListAdminsDto, ListUserDto } from '../auth/dto/listUsers';
 import { AddStaffMemberDto } from '../auth/dto/signup.dto';
 import { RoleRepository } from '../role/role.repository';
 import * as argon from 'argon2';
+import { JwtPayloadType } from '../auth/type/jwt-payload.type';
 
 @Injectable()
 export class UserService {
@@ -510,5 +511,13 @@ export class UserService {
     });
 
     return updatedUser;
+  }
+
+  async me(userFromToken: JwtPayloadType) {
+    const user = await this.userRepository.findById(userFromToken.sub);
+    if (!user) throw new UnauthorizedException('Invalid token');
+
+    delete user.password;
+    return user;
   }
 }
