@@ -63,7 +63,7 @@ export class SubscriptionPlanService {
   }
 
   async getPlans() {
-    return this.planRepository.findAll({});
+    return this.planRepository.findAllExpanded({});
   }
 
   async getPlan(id: string) {
