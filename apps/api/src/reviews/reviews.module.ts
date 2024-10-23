@@ -19,8 +19,8 @@ import { ResidenceModule } from 'src/residences/residences.module';
     ResidenceModule,
     MongooseModule.forFeature([{ name: Review.name, schema: ReviewSchema }]),
   ],
-  providers: [ReviewService, ReviewRepository, ReviewSeeder,ReviewsFixture],
-  exports: [ReviewSeeder,ReviewsFixture],
+  providers: [ReviewService, ReviewRepository, ReviewSeeder, ReviewsFixture],
+  exports: [ReviewSeeder, ReviewsFixture],
   controllers: [ReviewController],
 })
 export class ReviewModule {}

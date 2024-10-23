@@ -328,11 +328,9 @@ export class ResidenceRepository extends BaseRepository<Residence> {
             budgetLimitationsRange: '$latestDraft.budgetLimitationsRange',
             residenceKeyFeatures: '$residenceFeatures',
             visuals: {
-              mainPhotos: { $ifNull: [{ $arrayElemAt: ['$mainPhotos', 0] }, null] },
-              mainGalleryPhotos: { $ifNull: [{ $arrayElemAt: ['$mainGalleryPhotos', 0] }, null] },
-              secondGalleryPhotos: {
-                $ifNull: [{ $arrayElemAt: ['$secondGalleryPhotos', 0] }, null],
-              },
+              mainPhotos: { $ifNull: ['$mainPhotos', []] },
+              mainGalleryPhotos: { $ifNull: ['$mainGalleryPhotos', []] },
+              secondGalleryPhotos: { $ifNull: ['$secondGalleryPhotos', []] },
               videoTour: { $ifNull: [{ $arrayElemAt: ['$videoTour', 0] }, null] },
             },
             nearbyAmenities: {

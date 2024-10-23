@@ -299,9 +299,14 @@ export class ResidenceService {
     return residenceDetails;
   }
 
+  async getResidencesByPlanId(planId: string, options: any): Promise<any> {
+    const residences = await this.residenceRepository.findAll({planId}, options);
+    return residences;
+  }
+
   async upgradeResidence(upgradeInfo: InvoiceItem) {
     const residence = await this.residenceRepository.findById(upgradeInfo.residenceId);
-    residence.premium = true;
+    residence.planId = new Types.ObjectId(upgradeInfo.planId);
     residence.invoiceId = upgradeInfo.invoiceId;
     residence.subscriptionId = upgradeInfo.subscriptionId;
     await this.residenceRepository.update(residence.id, residence);
@@ -845,14 +850,29 @@ export class ResidenceService {
   async listResidencesWithDraft(listResidenceWithDraftDto: ListResidenceWithDraftDto) {
     const result =
       await this.residenceRepository.listResidencesWithDraft(listResidenceWithDraftDto);
-    const count = result[0]?.totalCount || 0;
-    const data = result[0]?.data || [];
+    let data = result[0]?.data || [];
 
+    // Remove duplicates
+    data = this.removeDuplicates(data);
+    const count = data.length || 0;
     const { pagination } = PaginationService.paginate(
       { rows: data, count },
       listResidenceWithDraftDto
     );
 
     return { pagination, residences: data };
+  }
+
+  // Method to remove duplicates based on _id and residenceDraftId
+  private removeDuplicates(data: any[]): any[] {
+    const seen = new Set();
+    return data.filter((item) => {
+      const identifier = `${item._id.toString()}_${item.residenceDraftId.toString()}`; // Create a unique identifier
+      if (seen.has(identifier)) {
+        return false; // Duplicate found
+      }
+      seen.add(identifier); // Mark as seen
+      return true; // Keep this item
+    });
   }
 }

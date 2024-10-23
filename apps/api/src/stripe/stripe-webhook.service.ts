@@ -11,6 +11,7 @@ export interface InvoiceItem {
   name: string;
   invoiceId: string;
   productId: string;
+  planId: string;
   subscriptionId?: string;
   residenceId: string;
   type: 'listing' | 'ranked' | 'featured';
@@ -39,6 +40,7 @@ export class StripeWebhookService {
         name: product.name,
         invoiceId: invoice.id,
         productId: item.id,
+        planId: "1",
         subscriptionId: item.subscription_item.toString(),
         residenceId: product.metadata.id,
         type: product.metadata.type as any,

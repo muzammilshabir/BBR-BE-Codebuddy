@@ -1,6 +1,6 @@
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
-import { Body, Controller, Get, Param, Patch, Post, UsePipes } from '@nestjs/common';
-import {  ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Param, Patch, Post, Query, UsePipes } from '@nestjs/common';
+import {  ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { UserRole } from 'src/users/enum/user.enum';
@@ -10,9 +10,10 @@ import { Public } from '@bbr/api-core/modules/decorators';
 import { UpdatePlanDto, updatePlanDtoSchema } from './dto/update-plan.dto';
 import { UpdateFeatureDto, updateFeatureDtoSchema } from './dto/update-feature.dto';
 import { CreateFeatureDto, createFeatureDtoSchema } from './dto/create-feature.dto';
+import { ListPropsDto, PaginationSchema } from '@bbr/api-core/modules/dto/listProps.dto';
 
-@ApiTags('Subscription Plans')
-@Controller('plan')
+@ApiTags('SubscriptionPlans')
+@Controller('subscription-plan')
 export class SubscriptionPlanController {
   constructor(
     private readonly planService: SubscriptionPlanService,
@@ -57,6 +58,31 @@ export class SubscriptionPlanController {
   ) {
     const plan = await this.planService.getPlan(id);
     return ResponseService.buildResponse({ plan }, 'Plan retrieved successfully');
+  }
+
+  @Get('/plan/:id/residences')
+  @ApiOperation({
+    summary: 'Get Plan Residences',
+  })
+  @ApiOkResponse({
+    description: 'The residences associated with the provided plan id',
+    example: {
+      message: "",
+      data: {
+        pagination: {},
+        residences: [],
+      },
+    }
+})
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(PaginationSchema, 'query'))
+  async getPlanResidences(
+    @Param('id') id: string,
+    @Query() query: ListPropsDto,
+  ) {
+    const data = await this.planService.getPlanResidences(id, query);
+    return ResponseService.buildResponse({ data }, 'Plan Residences retrieved successfully');
   }
 
   @Get('/plans/')

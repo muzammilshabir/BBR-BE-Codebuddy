@@ -3,18 +3,12 @@ import { Types } from 'mongoose';
 import * as Joi from 'joi';
 import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
 
-export class InvoiceItem {
+class Custom {
   @ApiProperty({
     example: 'XYZ Heights Residence',
-    required: true,
+    required: false,
   })
-  name: string;
-
-  @ApiProperty({
-    example: 'Listing Subscription for XYZ Heights',
-    required: true,
-  })
-  description: string;
+  name?: string;
 
   @ApiProperty({
     example: 30000,
@@ -22,6 +16,45 @@ export class InvoiceItem {
     required: true,
   })
   price: number;
+}
+
+class Feature {
+
+  @ApiProperty({
+    example: '66acda8b857c576159b74da2',
+    required: false,
+  })
+  id: Types.ObjectId;
+
+  @ApiProperty({
+    example: 30000,
+    description: "30000 = $300.00 // price is always in cents",
+    required: true,
+  })
+  price: number;
+}
+
+export class InvoiceItem {
+  @ApiProperty({
+    description: 'Custom item name and price',
+    type: Custom,
+  })
+  custom?: Custom;
+
+  @ApiProperty({
+    description: 'Feature item name and price',
+    type: Feature,
+    required: false,
+  })
+  feature?: Feature;
+
+  @ApiProperty({
+    description: 'Plan item name, the price will be taken from the plan',
+    type: String,
+    example: '66acda8b857c576159b74da2',
+    required: false,
+  })
+  plan?: Types.ObjectId;
 }
 
 export class CreateInvoiceItemsDto {
@@ -39,8 +72,11 @@ export class CreateInvoiceItemsDto {
 export const createInvoiceItemsDtoSchema = Joi.object({
   invoiceId: Joi.string().custom(joiObjectIdValidator('residenceId')).required(),
   invoiceItems: Joi.array().items(Joi.object({
-    name: Joi.string().required(),
-    description: Joi.string().required(),
-    price: Joi.number().required(),
+    custom: Joi.object({
+      name: Joi.string().required(),
+      price: Joi.number().min(0).required(),
+    }).optional(),
+    feature: Joi.string().custom(joiObjectIdValidator('feature')).optional(),
+    plan: Joi.string().custom(joiObjectIdValidator('plan')).optional(),
   })).required(),
 });

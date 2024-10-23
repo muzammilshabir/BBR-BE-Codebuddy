@@ -3,7 +3,28 @@ import { Interval } from '../enum/interval.enum';
 import * as Joi from 'joi';
 import { Types } from 'mongoose';
 import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
+class Feature {
+  @ApiProperty({
+    type: String,
+    required: true,
+    description: 'Id of the feature',
+  })
+  id: Types.ObjectId;
 
+  @ApiProperty({
+    description: 'Whether the feature is active for the plan',
+    required: true,
+    type: Boolean,
+  })
+  active: boolean;
+
+  @ApiProperty({
+    description: 'Order of the feature in plan',
+    required: true,
+    type: Number,
+  })
+  order: number;
+}
 export class CreatePlanDto {
   @ApiProperty({
     example: 'Premium Residence Profile',
@@ -34,9 +55,10 @@ export class CreatePlanDto {
 
   @ApiProperty({
     description: 'The IDs of active features for this plan',
-    type: [String],
+    type: Feature,
+    isArray: true,
   })
-  features: Types.ObjectId[];
+  features: Feature[];
 
   @ApiProperty({
     example: false,
@@ -48,10 +70,18 @@ export class CreatePlanDto {
 export const createPlanDtoSchema = Joi.object({
   name: Joi.string().required(),
   fee: Joi.number().min(0).required(),
-  billingCycle: Joi.string().valid(...Object.values(Interval)).required(),
+  billingCycle: Joi.string()
+    .valid(...Object.values(Interval))
+    .required(),
   trialPeriod: Joi.number().integer().min(0).required(),
   features: Joi.array()
-  .items(Joi.string().custom(joiObjectIdValidator('features')))
-  .required(),
+    .items(
+      Joi.object({
+        id: Joi.string().custom(joiObjectIdValidator('id')),
+        active: Joi.boolean(),
+        order: Joi.number().min(0),
+      })
+    )
+    .required(),
   active: Joi.boolean().required(),
 });
