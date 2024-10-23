@@ -6,8 +6,8 @@ export class Residence extends Document {
   @Prop({ required: true })
   name: string;
 
-  @Prop({ required: true, type: Types.ObjectId, ref: 'ResidenceType' })
-  residenceTypeId: Types.ObjectId;
+  @Prop({ required: true, type: [{ type: Types.ObjectId, ref: 'ResidenceType' }] })
+  residenceTypeIds: Types.ObjectId[];
 
   @Prop({ required: false, type: Types.ObjectId, ref: 'Location' })
   locationId: Types.ObjectId;

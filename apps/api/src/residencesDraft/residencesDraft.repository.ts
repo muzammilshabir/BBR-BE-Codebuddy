@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { Model } from 'mongoose';
 import { ResidenceDraft } from './schema/residencesDraft.schema';
 import { BaseRepository } from '@bbr/api-core/modules/db/base.repository';
 import { NotFoundException } from '@bbr/api-core/modules/exceptions';
@@ -14,7 +14,7 @@ export class ResidenceDraftRepository extends BaseRepository<ResidenceDraft> {
   }
   async findByIdInDetail(residenceDraftId: string): Promise<any> {
     const residenceDraft: any = await this.residenceDraftModel.findById(residenceDraftId).populate([
-      { path: 'residenceTypeId', select: 'type' },
+      { path: 'residenceTypeIds', select: 'type', model: 'ResidenceType' },
       { path: 'cityId', select: 'name type countryId' },
       { path: 'countryId', select: 'name type' },
       { path: 'associatedBrandId', select: 'name' },

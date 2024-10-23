@@ -25,6 +25,12 @@ export class RankingCategory extends Document {
   })
   rejectionReason: string;
 
+  @Prop({
+    type: String,
+    example: 'description',
+  })
+  description: string;
+
   @Prop({ required: true })
   residenceLimitation: number;
 

@@ -38,12 +38,20 @@ export class RankingCriteriaDto {
 
 export class CreateRankingCategoryDto {
   @ApiProperty({
-    description: 'The unique title of the ranking category',
+    description: 'The title of the ranking category',
     example: 'Top 10 Best Cities to Live',
     required: true,
     type: String,
   })
   title: string;
+
+  @ApiProperty({
+    description: 'The description of the ranking category',
+    example: 'This is top 10 Best Cities to Live',
+    required: true,
+    type: String,
+  })
+  description: string;
 
   @ApiProperty({
     description: 'The category type for ranking',
@@ -52,6 +60,14 @@ export class CreateRankingCategoryDto {
     enum: CategoryType,
   })
   categoryType: CategoryType;
+
+  @ApiProperty({
+    description: 'The category status',
+    example: RankingCategoryStatus.INACTIVE,
+    required: false,
+    enum: [RankingCategoryStatus.ACTIVE, RankingCategoryStatus.INACTIVE],
+  })
+  status: RankingCategoryStatus.ACTIVE | RankingCategoryStatus.INACTIVE;
 
   @ApiProperty({
     description: 'List of criteria for ranking',
@@ -100,9 +116,13 @@ export class CreateRankingCategoryDto {
 
 export const createRankingCategorySchema = Joi.object({
   title: Joi.string().required().max(100).trim(),
+  description: Joi.string().optional(),
   categoryType: Joi.string()
     .valid(...Object.values(CategoryType))
     .required(),
+  status: Joi.string()
+    .valid(RankingCategoryStatus.ACTIVE, RankingCategoryStatus.INACTIVE)
+    .optional(),
   criteria: Joi.array()
     .items(
       Joi.object({

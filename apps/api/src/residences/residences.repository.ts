@@ -16,7 +16,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
 
   async findByIdInDetail(residenceId: string): Promise<any> {
     let residence: any = await this.residenceModel.findById(residenceId).populate([
-      { path: 'residenceTypeId', select: 'type' },
+      { path: 'residenceTypeIds', select: 'type', model: 'ResidenceType' },
       { path: 'cityId', select: 'name type countryId' },
       { path: 'countryId', select: 'name type' },
       { path: 'associatedBrandId', select: 'name' },
@@ -184,18 +184,18 @@ export class ResidenceRepository extends BaseRepository<Residence> {
         {
           $sort: sortObject,
         },
-        // Lookups for population (residenceTypeId, cityId, etc.)
         {
+          // Lookup for multiple residence types based on an array of residenceTypeIds
           $lookup: {
             from: 'residencetypes',
-            localField: 'latestDraft.residenceTypeId',
+            localField: 'latestDraft.residenceTypeIds', // Assuming the field is now residenceTypeIds (array)
             foreignField: '_id',
-            as: 'residenceType',
+            as: 'residenceTypes',
           },
         },
         {
           $unwind: {
-            path: '$residenceType',
+            path: '$residenceTypes',
             preserveNullAndEmptyArrays: true,
           },
         },
@@ -320,7 +320,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
             _id: 1,
             residenceDraftId: '$latestDraft._id',
             name: '$latestDraft.name',
-            residenceTypeId: '$residenceType',
+            residenceTypeIds: '$residenceTypes',
             websiteLink: '$latestDraft.websiteLink',
             associatedBrand: '$associatedBrand.name',
             briefOverview: '$latestDraft.briefOverview',
@@ -328,11 +328,9 @@ export class ResidenceRepository extends BaseRepository<Residence> {
             budgetLimitationsRange: '$latestDraft.budgetLimitationsRange',
             residenceKeyFeatures: '$residenceFeatures',
             visuals: {
-              mainPhotos: { $ifNull: [{ $arrayElemAt: ['$mainPhotos', 0] }, null] },
-              mainGalleryPhotos: { $ifNull: [{ $arrayElemAt: ['$mainGalleryPhotos', 0] }, null] },
-              secondGalleryPhotos: {
-                $ifNull: [{ $arrayElemAt: ['$secondGalleryPhotos', 0] }, null],
-              },
+              mainPhotos: { $ifNull: ['$mainPhotos', []] },
+              mainGalleryPhotos: { $ifNull: ['$mainGalleryPhotos', []] },
+              secondGalleryPhotos: { $ifNull: ['$secondGalleryPhotos', []] },
               videoTour: { $ifNull: [{ $arrayElemAt: ['$videoTour', 0] }, null] },
             },
             nearbyAmenities: {
