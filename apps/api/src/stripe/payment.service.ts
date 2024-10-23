@@ -313,6 +313,19 @@ export class PaymentService {
     return this.stripeService.deletePaymentMethod(customerId, methodId);
   }
 
+  async setDefaultResidencePaymentMethod(methodId: string, residenceId: string, userId?: string) {
+    if (userId) {
+      const residence = await this.residenceService.getResidenceByUserIdAndResidenceId(
+        userId,
+        residenceId
+      );
+      if (!residence) {
+        throw new Error('Residence not found');
+      }
+    }
+    return this.residenceService.addDefaultPaymentMethod(residenceId, methodId);
+  }
+
   async getAllInvoices(listInvoicesDto: ListInvoicesDto) {
     const filter: any = {
       isDeleted: DeletionStatus.ACTIVE,

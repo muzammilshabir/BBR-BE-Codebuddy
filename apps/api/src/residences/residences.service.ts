@@ -298,8 +298,16 @@ export class ResidenceService {
     return residenceDetails;
   }
 
+  async getResidenceByUserIdAndResidenceId(userId: string, residenceId: string): Promise<any> {
+    const residence = await this.residenceRepository.find({
+      id: residenceId,
+      developerId: userId,
+    });
+    return residence;
+  }
+
   async getResidencesByPlanId(planId: string, options: any): Promise<any> {
-    const residences = await this.residenceRepository.findAll({planId}, options);
+    const residences = await this.residenceRepository.findAll({ planId }, options);
     return residences;
   }
 
