@@ -169,7 +169,7 @@ export class PaymentAdminController {
     return ResponseService.buildResponse({ alerts }, 'Alerts retrieved successfully');
   }
 
-  @Get('/manage-alert/:alertId')
+  @Patch('/manage-alert/:alertId')
   @ApiOperation({
     summary: 'Mark Alert as managed',
   })
