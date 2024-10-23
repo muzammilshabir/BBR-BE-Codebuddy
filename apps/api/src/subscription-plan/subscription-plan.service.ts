@@ -67,7 +67,7 @@ export class SubscriptionPlanService {
   }
 
   async getPlan(id: string) {
-    return this.planRepository.findById(id);
+    return this.planRepository.findByIdExpanded(id);
   }
 
   async getPlanResidences(id: string, listResidencesDto: ListPropsDto) {

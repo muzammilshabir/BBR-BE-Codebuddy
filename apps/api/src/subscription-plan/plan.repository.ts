@@ -15,4 +15,10 @@ export class PlanRepository extends BaseRepository<Plan> {
       .find(filter)
       .populate([{ path: 'features.feature', select: 'name', model: 'Feature' }]);
   }
+
+  async findByIdExpanded(id: string): Promise<any> {
+    return this.planModel
+      .findById(id)
+      .populate([{ path: 'features.feature', select: 'name', model: 'Feature' }]);
+  }
 }
