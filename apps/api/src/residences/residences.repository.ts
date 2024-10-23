@@ -182,9 +182,6 @@ export class ResidenceRepository extends BaseRepository<Residence> {
           },
         },
         {
-          $sort: sortObject,
-        },
-        {
           // Lookup for multiple residence types based on an array of residenceTypeIds
           $lookup: {
             from: 'residencetypes',
@@ -380,6 +377,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
         {
           $facet: {
             data: [
+              { $sort: sortObject },
               { $skip: paginationOptions.offset },
               { $limit: Number(paginationOptions.limit) },
             ],
