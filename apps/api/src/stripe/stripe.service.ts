@@ -102,7 +102,7 @@ export class StripeService {
     };
   }
 
-  async getCustomerPaymentMethods(customerId: string) {
+  async getCustomerPaymentMethods(customerId: string): Promise<PaymentMethodType[]> {
     const paymentMethods = await this.stripe.customers.listPaymentMethods(customerId);
     const parsedMethods = [];
     for (const method of paymentMethods.data) {
@@ -134,6 +134,7 @@ export class StripeService {
     }
     return this.stripe.paymentMethods.detach(methodId);
   }
+
   async retrieveCustomerPaymentMethod(customerId: string, paymentMethodId: string) {
     const paymentMethod = await this.stripe.customers.retrievePaymentMethod(
       customerId,

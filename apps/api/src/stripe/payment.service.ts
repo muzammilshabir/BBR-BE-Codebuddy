@@ -300,6 +300,20 @@ export class PaymentService {
     return this.stripeService.getCustomerPaymentMethods(customerId);
   }
 
+  async getSellerPaymentMethods(userId: string) {
+    const user = await this.userService.findById(userId);
+    const customerId = user.stripeCustomerId;
+    const paymentMethods = await this.stripeService.getCustomerPaymentMethods(customerId);
+    for(const method of paymentMethods) {
+      const residences = await this.residenceService.getResidencesByPaymentMethodId(method.id);
+      method['residences'] = residences.map(residence => ({
+        id: residence.id,
+        name: residence.name,
+      }));
+    }
+    return paymentMethods;
+  }
+
   async createSetupIntent(userId: string) {
     const user = await this.userService.findById(userId);
     const customerId = user.stripeCustomerId;
@@ -325,7 +339,20 @@ export class PaymentService {
     }
     return this.residenceService.addDefaultPaymentMethod(residenceId, methodId);
   }
-  
+
+  async unsetDefaultResidencePaymentMethod(residenceId: string, userId?: string) {
+    if (userId) {
+      const residence = await this.residenceService.getResidenceByUserIdAndResidenceId(
+        userId,
+        residenceId
+      );
+      if (!residence) {
+        throw new Error('Residence not found');
+      }
+    }
+    return this.residenceService.removeDefaultPaymentMethod(residenceId);
+  }
+
   async getAllInvoices(listInvoicesDto: ListInvoicesDto) {
     const filter: any = {
       isDeleted: DeletionStatus.ACTIVE,
