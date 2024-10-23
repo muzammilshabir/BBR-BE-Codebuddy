@@ -93,8 +93,10 @@ export class AuthService {
         company_name: user.companyName,
       },
     });
-    user.stripeCustomerId = stripeCustomer.id;
-    await this.userService.updateSeller(user.id, user);
+    //Todo: verify strip flow
+    if (stripeCustomer.id) {
+      await this.userService.updateSellerStripeCustomerId(user.id, stripeCustomer.id);
+    }
 
     if (role === UserRole.SELLER && user.acceptBBRCommitment !== true) {
       return {

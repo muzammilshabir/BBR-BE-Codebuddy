@@ -516,4 +516,21 @@ export class UserService {
   async me(userFromToken: JwtPayloadType) {
     return await this.userRepository.me(userFromToken);
   }
+  async updateSellerStripeCustomerId(
+    id: string,
+    stripeCustomerId: string
+  ): Promise<User | { errorCode: ExceptionCodes; message: string }> {
+    const user = await this.userModel.findById(id).exec();
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const updatedUser = await this.userRepository.update(id, { stripeCustomerId });
+    if (!updatedUser) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+
+    return updatedUser;
+  }
 }
