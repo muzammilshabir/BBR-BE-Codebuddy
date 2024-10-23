@@ -12,16 +12,15 @@ const omittedForBuyer = [
   'companyName',
   'corporateEmail',
   'receiveLuxuryInsights',
-  'fullName',
   'companyLogo',
   'yearEstablished',
   'briefCompanyDescription',
   'associatedBrandId',
 ];
 
-export const updateBuyerProfileSchema = updateUserSchema.fork(omittedForBuyer, (schema) =>
-  schema.forbidden()
-);
+export const updateBuyerProfileSchema = updateUserSchema
+  .fork(omittedForBuyer, (schema) => schema.forbidden())
+  .fork(['email'], (schema) => schema.optional());
 
 export class UpdateBuyerProfileDto extends OmitType(UpdateBuyerDto, omittedForBuyer as never[]) {}
 
@@ -37,7 +36,7 @@ export const acceptBBRCommitmentSchema = Joi.object({
   commitement: Joi.boolean().required(),
 });
 
-const omittedForSeller = ['contactInfo', 'preferences', 'receiveLuxuryInsights'];
+const omittedForSeller = ['contactInfo', 'preferences', 'receiveLuxuryInsights', 'email'];
 
 export class UpdateSellerProfileDto extends OmitType(
   UpdateSellerDto,

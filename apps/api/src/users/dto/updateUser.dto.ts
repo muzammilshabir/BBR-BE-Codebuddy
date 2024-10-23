@@ -7,7 +7,6 @@ export const updateUserSchema = createUserSchema.fork(
 );
 
 export class UpdateUserDto extends OmitType(CreateUserDto, [
-  'email',
   'password',
   'role',
   'agreeToTerms',
@@ -27,6 +26,11 @@ export class UpdateBuyerDto extends OmitType(UpdateUserDto, [
   'yearEstablished',
   'briefCompanyDescription',
   'associatedBrandId',
+  'roleId',
 ]) {}
 
-export class UpdateSellerDto extends OmitType(UpdateUserDto, ['hundredFiveStarReviews']) {}
+export class UpdateSellerDto extends OmitType(UpdateUserDto, [
+  'hundredFiveStarReviews',
+  'email',
+  'roleId',
+]) {}
