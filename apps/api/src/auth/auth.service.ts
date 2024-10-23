@@ -15,7 +15,7 @@ import { RedisService } from '../redis/redis.service';
 import { SignupMethod, UserRole } from '../users/enum/user.enum';
 import { User } from '../users/schema/user.schema';
 import { UserService } from '../users/user.service';
-import { LoginDto } from './dto/login.dto';
+import { LoginDto, ThirdPartyLoginDto } from './dto/login.dto';
 import { ChangePasswordDto, ForgotPasswordDto, ResetPasswordDto } from './dto/passwordReset.dto';
 import { ResendVerificationEmailDto } from './dto/resendVerificationEmail';
 import { AddStaffMemberDto, BuyerSignupDto, SellerSignupDto } from './dto/signup.dto';
@@ -34,6 +34,9 @@ import { AddSellerDto, CreateDummyUserDto } from '../users/dto/createUser.dto';
 import { Types } from 'mongoose';
 import { AddFavouritesDto, ListFavouritesDto } from './dto/addToFavourite';
 import { ListAdminsDto, ListUserDto } from './dto/listUsers';
+import { HttpService } from '@nestjs/axios';
+import { catchError, firstValueFrom } from 'rxjs';
+import { AxiosError } from 'axios';
 
 @Injectable()
 export class AuthService {
@@ -44,7 +47,8 @@ export class AuthService {
     private readonly eventEmitter: EventEmitter2,
     private readonly redisService: RedisService,
     private readonly tokenService: TokenService,
-    private readonly stripeService: StripeService
+    private readonly stripeService: StripeService,
+    private readonly httpService: HttpService
   ) {}
 
   static generateVerificationLink(email: string, verifyToken: string) {
@@ -164,6 +168,230 @@ export class AuthService {
     }
 
     return { tokens: await this.generateJwtToken(user) };
+  }
+
+  async handleGoogleAuth(thirdPartyLoginDto: ThirdPartyLoginDto) {
+    const googleUserData = await firstValueFrom(
+      this.httpService
+        .get(`https://oauth2.googleapis.com/tokeninfo?id_token=${thirdPartyLoginDto.token}`)
+        .pipe(
+          catchError((error: AxiosError) => {
+            throw new ForbiddenException(error.message || 'Access Denied');
+          })
+        )
+    );
+
+    const googleUser = googleUserData.data;
+
+    const user = await this.userService.findByEmail(googleUser?.email);
+
+    if (user) {
+      if (user.signupMethod !== SignupMethod.GOOGLE) {
+        throw new BadRequestException(
+          'User already exists with same email address and different signup method!'
+        );
+      }
+      if (!user.isVerified) {
+        await this.resendVerificationEmail({ email: user.email });
+        return {
+          errorCode: ExceptionCodes.UnverifiedUser,
+          message: 'Please verify your account first',
+        };
+      }
+      if (thirdPartyLoginDto.role === UserRole.SELLER && user.acceptBBRCommitment !== true) {
+        return {
+          tokens: await this.generateJwtToken(user),
+          errorCode: ExceptionCodes.AcceptBBRCommitment,
+          message: 'Please accept BBR commitment',
+        };
+      }
+
+      return { tokens: await this.generateJwtToken(user) };
+    }
+
+    if (thirdPartyLoginDto.role === UserRole.BUYER) {
+      const newUser = await this.userService.create({
+        fullName: googleUser.given_name + ' ' + googleUser.family_name,
+        email: googleUser.email,
+        agreeToTerms: true,
+        signupMethod: SignupMethod.GOOGLE,
+        role: UserRole.BUYER,
+        isVerified: true,
+        emailVerified: true,
+      });
+
+      return { tokens: await this.generateJwtToken(newUser) };
+    }
+
+    const newUser = await this.userService.create({
+      fullName: googleUser.given_name + ' ' + googleUser.family_name,
+      email: googleUser.email,
+      agreeToTerms: true,
+      corporateEmail: googleUser.email,
+      signupMethod: SignupMethod.GOOGLE,
+      role: UserRole.SELLER,
+      acceptBBRCommitment: false,
+      isVerified: true,
+      emailVerified: true,
+    });
+
+    return { tokens: await this.generateJwtToken(newUser) };
+  }
+
+  async handleFbAuth(thirdPartyLoginDto: ThirdPartyLoginDto) {
+    const fbUserData = await firstValueFrom(
+      this.httpService
+        .get(
+          `https://graph.facebook.com/v16.0/me?access_token=${thirdPartyLoginDto.token}&fields=first_name,last_name,email`
+        )
+        .pipe(
+          catchError((error: AxiosError) => {
+            throw new ForbiddenException(error.message || 'Access Denied');
+          })
+        )
+    );
+
+    if (fbUserData.status >= 400) throw new ForbiddenException('Access Denied');
+
+    const fbUser = fbUserData.data;
+
+    const user = await this.userService.findByEmail(fbUser?.email);
+
+    if (user) {
+      if (user.signupMethod !== SignupMethod.FACEBOOK) {
+        throw new BadRequestException(
+          'User already exists with same email address and different signup method!'
+        );
+      }
+      if (!user.isVerified) {
+        await this.resendVerificationEmail({ email: user.email });
+        return {
+          errorCode: ExceptionCodes.UnverifiedUser,
+          message: 'Please verify your account first',
+        };
+      }
+      if (thirdPartyLoginDto.role === UserRole.SELLER && user.acceptBBRCommitment !== true) {
+        return {
+          tokens: await this.generateJwtToken(user),
+          errorCode: ExceptionCodes.AcceptBBRCommitment,
+          message: 'Please accept BBR commitment',
+        };
+      }
+    }
+
+    if (thirdPartyLoginDto.role === UserRole.BUYER) {
+      const newUser = await this.userService.create({
+        fullName: fbUser.first_name + fbUser.last_name,
+        email: fbUser.email,
+        agreeToTerms: true,
+        signupMethod: SignupMethod.FACEBOOK,
+        role: UserRole.BUYER,
+        isVerified: true,
+        emailVerified: true,
+      });
+
+      return { tokens: await this.generateJwtToken(newUser) };
+    }
+
+    const newUser = await this.userService.create({
+      fullName: fbUser.first_name + fbUser.last_name,
+      email: fbUser.email,
+      agreeToTerms: true,
+      corporateEmail: fbUser.email,
+      signupMethod: SignupMethod.FACEBOOK,
+      role: UserRole.SELLER,
+      acceptBBRCommitment: false,
+      isVerified: true,
+      emailVerified: true,
+    });
+
+    return { tokens: await this.generateJwtToken(newUser) };
+  }
+
+  async handleLinkedInAuth(thirdPartyLoginDto: ThirdPartyLoginDto) {
+    try {
+      const linkedInUser = await this.fetchLinkedInUserData(thirdPartyLoginDto.token);
+
+      const user = await this.userService.findByEmail(linkedInUser?.email);
+
+      if (user) {
+        if (user.signupMethod !== SignupMethod.LINKEDIN) {
+          throw new BadRequestException(
+            'User already exists with same email address and different signup method!'
+          );
+        }
+        if (!user.isVerified) {
+          await this.resendVerificationEmail({ email: user.email });
+          return {
+            errorCode: ExceptionCodes.UnverifiedUser,
+            message: 'Please verify your account first',
+          };
+        }
+        if (thirdPartyLoginDto.role === UserRole.SELLER && user.acceptBBRCommitment !== true) {
+          return {
+            tokens: await this.generateJwtToken(user),
+            errorCode: ExceptionCodes.AcceptBBRCommitment,
+            message: 'Please accept BBR commitment',
+          };
+        }
+
+        return { tokens: await this.generateJwtToken(user) };
+      }
+
+      return await this.registerNewUser(linkedInUser, thirdPartyLoginDto.role);
+    } catch (error) {
+      throw new ForbiddenException(error.message || 'Access Denied');
+    }
+  }
+
+  private async registerNewUser(linkedInUser, role: UserRole) {
+    if (role === UserRole.BUYER) {
+      const newUser = await this.userService.create({
+        fullName: linkedInUser.given_name + linkedInUser.family_name,
+        email: linkedInUser.email,
+        agreeToTerms: true,
+        signupMethod: SignupMethod.LINKEDIN,
+        role: UserRole.BUYER,
+        isVerified: true,
+        emailVerified: true,
+      });
+
+      return { tokens: await this.generateJwtToken(newUser) };
+    }
+
+    const newUser = await this.userService.create({
+      fullName: linkedInUser.given_name + linkedInUser.family_name,
+      email: linkedInUser.email,
+      agreeToTerms: true,
+      corporateEmail: linkedInUser.email,
+      signupMethod: SignupMethod.LINKEDIN,
+      role: UserRole.SELLER,
+      acceptBBRCommitment: false,
+      isVerified: true,
+      emailVerified: true,
+    });
+
+    return { tokens: await this.generateJwtToken(newUser) };
+  }
+
+  private async fetchLinkedInUserData(accessToken: string) {
+    const { data, status } = await firstValueFrom(
+      this.httpService
+        .get(`https://api.linkedin.com/v2/userinfo`, {
+          headers: {
+            'Authorization': 'Bearer ' + accessToken,
+          },
+        })
+        .pipe(
+          catchError((error: AxiosError) => {
+            throw new ForbiddenException(error.message || 'Access Denied');
+          })
+        )
+    );
+
+    if (status >= 400) throw new ForbiddenException('Access Denied');
+
+    return data;
   }
 
   async refreshToken(userFromToken: JwtPayloadType) {

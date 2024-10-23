@@ -107,7 +107,7 @@ export class CreateUserDto {
   email: string;
 
   @ApiProperty({ description: 'Password of the user', example: 'Pass@123' })
-  password: string;
+  password?: string;
 
   @ApiProperty({ description: 'Method used for signup', enum: SignupMethod })
   signupMethod: SignupMethod;

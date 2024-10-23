@@ -55,7 +55,7 @@ export class UserService {
     // Create a new user object with hashed password, default isVerified=false, and verifyToken
     const newUser = new this.userModel({
       ...createUserDto,
-      isVerified: false,
+      isVerified: createUserDto.isVerified ?? false,
       verificationToken: verifyToken,
     });
 
