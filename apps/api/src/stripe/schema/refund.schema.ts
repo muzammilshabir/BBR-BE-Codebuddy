@@ -18,7 +18,7 @@ export class Refund extends Document {
 
   @Prop({
     enum: RefundStatus,
-    example: '33r232432423',
+    example: RefundStatus.REFUNDED,
   })
   status: RefundStatus;
 

@@ -9,7 +9,12 @@ export class SubscriptionRepository extends BaseRepository<Subscription> {
   constructor(@InjectModel(Subscription.name) private readonly subscriptionModel: Model<Subscription>) {
     super(subscriptionModel);
   }
+
   async findByInvoiceId(invoiceId: string): Promise<Subscription[]> {
     return (await this.findAll({ invoiceId })).data;
+  }
+
+  async findByResidenceId(residenceId: string): Promise<Subscription[]> {
+    return (await this.findAll({ residenceId })).data;
   }
 }

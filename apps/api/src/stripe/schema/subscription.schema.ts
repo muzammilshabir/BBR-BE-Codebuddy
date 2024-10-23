@@ -2,11 +2,15 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { Interval } from '../enum/interval.enum';
 import { User } from 'src/users/schema/user.schema';
+import { SubscriptionStatus } from '../enum/subscription-status.enum';
 
 @Schema({ timestamps: true })
 export class Subscription extends Document {
+  @Prop({ required: true, type: Types.ObjectId, ref: 'Residence' })
+  residenceId: Types.ObjectId;
+
   @Prop({ required: true, type: Types.ObjectId, ref: 'Invoice' })
-  invoiceId: Types.ObjectId;
+  baseInvoiceId: Types.ObjectId;
 
   @Prop({
     type: {
@@ -48,7 +52,13 @@ export class Subscription extends Document {
     type: Number,
     example: 7,
   })
-  gracePeriod: number;;
+  gracePeriod: number;
+
+  @Prop({
+    enum: SubscriptionStatus,
+    example: SubscriptionStatus.ACTIVE,
+  })
+  status: SubscriptionStatus;
 
   @Prop({ type: Date })
   createdAt: Date;

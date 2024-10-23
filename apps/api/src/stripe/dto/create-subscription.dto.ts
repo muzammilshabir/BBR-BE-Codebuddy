@@ -21,6 +21,12 @@ class RecurringDto {
 
 export class CreateSubscriptionDto {
   @ApiProperty({
+    description: 'The ID of the residence',
+    type: String,
+  })
+  residenceId: Types.ObjectId;
+
+  @ApiProperty({
     description: 'The ID of the associated invoice',
     type: String,
   })

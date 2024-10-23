@@ -27,6 +27,7 @@ import { TransactionRepository } from './transaction.repository';
 import { TransactionStatus } from './enum/transaction-status.enum';
 import { ListTransactionsDto } from './dto/list-transactions.dto';
 import { PaymentAttemptRepository } from './payment-attempt.repository';
+import { SubscriptionStatus } from './enum/subscription-status.enum';
 
 @Injectable()
 export class PaymentService {
@@ -243,7 +244,12 @@ export class PaymentService {
     if (!asAdmin && invoice.developerId.toString() !== userId) {
       throw new Error('You are not the developer of this residence');
     }
-
+    const subscriptions = await this.subscriptionRepository.findByResidenceId(transformedDto.residenceId.toString());
+    for(const subscription of subscriptions) {
+      await this.subscriptionRepository.update(subscription.id, {
+        status: SubscriptionStatus.CANCELED,
+      });
+    }
     return this.subscriptionRepository.create(transformedDto);
   }
 
@@ -255,7 +261,7 @@ export class PaymentService {
     const subscription = await this.subscriptionRepository.findOne(subscriptionId);
     const invoice = await this.invoiceRepository.find({
       developerId: userId,
-      _id: subscription.invoiceId,
+      _id: subscription.baseInvoiceId,
     });
     if (invoice) {
       throw new Error('Invoice not found');
@@ -268,7 +274,7 @@ export class PaymentService {
     updateSubscriptionDto: UpdateSubscriptionDto
   ) {
     const subscription = await this.subscriptionRepository.findOne(subscriptionId);
-    const invoice = await this.invoiceRepository.findOne(subscription.invoiceId.toString());
+    const invoice = await this.invoiceRepository.findOne(subscription.baseInvoiceId.toString());
     if (invoice) {
       throw new Error('Invoice not found');
     }
