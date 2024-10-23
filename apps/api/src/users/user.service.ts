@@ -209,6 +209,13 @@ export class UserService {
       status: UserStatus.ACTIVE,
     };
 
+    if (updateSellerProfileDto.corporateEmail) {
+      const existingUser = await this.findByEmail(updateSellerProfileDto.corporateEmail);
+      if (existingUser && existingUser._id.toString() !== id) {
+        throw new ConflictException('Email is already in use by another user');
+      }
+    }
+
     const updatedUser = await this.userRepository.update(id, transformedDto);
     if (!updatedUser) {
       throw new NotFoundException(`User with ID ${id} not found`);
