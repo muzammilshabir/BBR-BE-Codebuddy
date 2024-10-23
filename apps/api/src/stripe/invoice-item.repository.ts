@@ -12,4 +12,10 @@ export class InvoiceItemRepository extends BaseRepository<InvoiceItem> {
   async findByInvoiceId(invoiceId: string): Promise<InvoiceItem[]> {
     return (await this.findAll({ invoiceId })).data;
   }
+
+  async findAllExpanded(filter: any): Promise<any> {
+    return this.invoiceItemModel
+      .find(filter)
+      .populate([{ path: 'invoiceId', select: 'residenceId', model: 'Invoice' }]);
+  }
 }

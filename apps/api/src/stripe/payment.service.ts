@@ -325,7 +325,7 @@ export class PaymentService {
     }
     return this.residenceService.addDefaultPaymentMethod(residenceId, methodId);
   }
-
+  
   async getAllInvoices(listInvoicesDto: ListInvoicesDto) {
     const filter: any = {
       isDeleted: DeletionStatus.ACTIVE,

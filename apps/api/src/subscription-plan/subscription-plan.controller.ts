@@ -85,6 +85,18 @@ export class SubscriptionPlanController {
     return ResponseService.buildResponse({ data }, 'Plan Residences retrieved successfully');
   }
 
+  @Get('/plans/admin')
+  @ApiOperation({
+    summary: 'Get Plans as Admin',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  async getPlansAdmin(
+  ) {
+    const plans = await this.planService.getPlansAdmin();
+    return ResponseService.buildResponse({ plans }, 'Plans retrieved successfully');
+  }
+
   @Get('/plans/')
   @ApiOperation({
     summary: 'Get Plans',

@@ -11,6 +11,8 @@ import { PlanRepository } from './plan.repository';
 import { FeatureRepository } from './feature.repository';
 import { ResidenceModule } from 'src/residences/residences.module';
 import { SubscriptionPlanSeeder } from './subscription-plan.seeder';
+import { Subscription, SubscriptionSchema } from 'src/stripe/schema/subscription.schema';
+import { SubscriptionRepository } from 'src/stripe/subscription.repository';
 
 @Module({
   imports: [
@@ -19,6 +21,7 @@ import { SubscriptionPlanSeeder } from './subscription-plan.seeder';
     ResidenceModule,
     MongooseModule.forFeature([{ name: Plan.name, schema: PlanSchema }]),
     MongooseModule.forFeature([{ name: Feature.name, schema: FeatureSchema }]),
+    MongooseModule.forFeature([{ name: Subscription.name, schema: SubscriptionSchema }]),
   ],
   controllers: [
     SubscriptionPlanController,
@@ -27,6 +30,7 @@ import { SubscriptionPlanSeeder } from './subscription-plan.seeder';
     SubscriptionPlanService,
     ServiceConfig,
     FeatureRepository,
+    SubscriptionRepository,
     PlanRepository,
     SubscriptionPlanSeeder,
   ],
