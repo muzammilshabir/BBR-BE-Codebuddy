@@ -293,6 +293,19 @@ export class PaymentAdminController {
     return ResponseService.buildResponse({ paymentMethods }, 'Customer Payment Methods retrieved successfully');
   }
 
+  @Post('/payment-method/:userId')
+  @ApiOperation({
+    summary: 'Create Payment Method Setup Intent',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  async createSetupIntent(
+    @Param('userId') userId: string,
+  ) {
+    const intent = await this.paymentService.createSetupIntent(userId);
+    return ResponseService.buildResponse({ intent }, 'Setup intent created successfully');
+  }
+
   @Delete('/payment-method/:userId/:methodId')
   @ApiOperation({
     summary: 'Delete Payment Method',
