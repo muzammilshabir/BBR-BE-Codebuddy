@@ -356,7 +356,9 @@ export class PaymentService {
       item['product'] = product;
     }
     const subscriptions = await this.subscriptionRepository.findByInvoiceId(invoiceId);
-
+    if(invoice.stripeInvoiceId) {
+      invoice['stripeInvoice'] = await this.stripeService.getInvoice(invoice.stripeInvoiceId);
+    }
     return { invoice, invoiceItems, subscriptions };
   }
 
@@ -368,7 +370,10 @@ export class PaymentService {
       item['product'] = product;
     }
     const subscriptions = await this.subscriptionRepository.findByInvoiceId(invoiceId);
-
+    if(invoice.stripeInvoiceId) {
+      invoice['stripeInvoice'] = await this.stripeService.getInvoice(invoice.stripeInvoiceId);
+    }
+    
     return { invoice, invoiceItems, subscriptions };
   }
 
