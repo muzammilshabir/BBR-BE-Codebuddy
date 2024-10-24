@@ -4,7 +4,7 @@ import { ListBrandDto } from './dto/listBrand.dto';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
 import { UpdateBrandDto } from './dto/updateBrand.dto';
 import { NotFoundException } from '@bbr/api-core/modules/exceptions';
-import { CreateBrandDraftDto } from './dto/createBrandDraft.dto';
+import { CreateBrandApplyDto, CreateBrandDraftDto } from './dto/createBrandDraft.dto';
 import { BrandDraftRepository } from '../brandDraft/brandDraft.repository';
 import { BrandStatus } from './enum/brand-enum';
 import { Types } from 'mongoose';
@@ -115,5 +115,97 @@ export class BrandService {
     });
 
     return newDraft;
+  }
+
+  async saveAndApplyBrand(createBrandApplyDto: CreateBrandApplyDto) {
+    const { brandId, name, description, brandCategoryId, upload, registeredDate } =
+      createBrandApplyDto;
+
+    // If brandId does not exist, create a new active brand and draft
+    if (!brandId) {
+      const newBrand = await this.brandRepository.create({
+        name,
+        description,
+        brandCategoryId: new Types.ObjectId(brandCategoryId),
+        upload,
+        status: BrandStatus.ACTIVE, // New brand is marked as active
+        registeredDate,
+      });
+
+      // Create an active draft associated with the new brand
+      const brandDraft = await this.brandDraftRepository.create({
+        brandId: newBrand._id,
+        name,
+        description,
+        brandCategoryId: new Types.ObjectId(brandCategoryId),
+        upload,
+        status: BrandStatus.ACTIVE, // Draft is also marked as active
+        registeredDate,
+      });
+
+      return { brand: newBrand, draft: brandDraft };
+    }
+
+    const existingBrand: any = await this.brandRepository.findById(brandId);
+    if (!existingBrand) {
+      throw new NotFoundException(`Brand with id ${brandId} not found`);
+    }
+
+    // Check if an open draft exists
+    const existingDraft: any = await this.brandDraftRepository.find({
+      brandId: new Types.ObjectId(brandId),
+      status: BrandStatus.DRAFT,
+    });
+
+    if (existingDraft) {
+      // Update the existing draft and the brand to active
+      const updatedDraft = await this.brandDraftRepository.update(existingDraft._id, {
+        name,
+        description,
+        brandCategoryId: new Types.ObjectId(brandCategoryId),
+        upload,
+        status: BrandStatus.ACTIVE, // Mark draft as active
+        registeredDate,
+      });
+
+      await this.brandRepository.update(brandId, {
+        name,
+        description,
+        brandCategoryId: new Types.ObjectId(brandCategoryId),
+        upload,
+        status: BrandStatus.ACTIVE, // Mark brand as active
+        registeredDate,
+      });
+
+      // Fetch the updated brand
+      const updatedBrand = await this.brandRepository.findById(brandId);
+
+      return { brand: updatedBrand, draft: updatedDraft };
+    }
+
+    // If no open draft exists, create a new draft and mark the brand as active
+    const newDraft = await this.brandDraftRepository.create({
+      brandId: new Types.ObjectId(brandId),
+      name,
+      description,
+      brandCategoryId: new Types.ObjectId(brandCategoryId),
+      upload,
+      status: BrandStatus.ACTIVE, // Mark draft as active
+      registeredDate,
+    });
+
+    await this.brandRepository.update(brandId, {
+      name,
+      description,
+      brandCategoryId: new Types.ObjectId(brandCategoryId),
+      upload,
+      status: BrandStatus.ACTIVE, // Mark brand as active
+      registeredDate,
+    });
+
+    // Fetch the updated brand
+    const updatedBrand = await this.brandRepository.findById(brandId);
+
+    return { brand: updatedBrand, draft: newDraft };
   }
 }
