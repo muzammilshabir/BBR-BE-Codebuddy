@@ -6,6 +6,9 @@ export class Brand extends Document {
   @Prop({ required: true })
   name: string;
 
+  @Prop({ required: false })
+  description: string;
+
   @Prop({ required: true, type: Types.ObjectId, ref: 'BrandCategory' })
   brandCategoryId: Types.ObjectId;
 
@@ -22,6 +25,18 @@ export class Brand extends Document {
     ImageId: Types.ObjectId;
     type: string;
   }[];
+
+  registeredDate: Date;
+
+  @Prop({
+    type: String,
+    enum: ['active', 'pending', 'draft', 'flagged', 'rejected', 'archived'],
+    default: 'draft',
+  })
+  status: string;
+
+  @Prop({ type: Boolean, default: false })
+  isDeleted: boolean;
 
   createdAt: Date;
   updatedAt: Date;

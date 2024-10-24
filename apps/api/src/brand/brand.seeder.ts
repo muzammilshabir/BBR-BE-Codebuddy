@@ -31,7 +31,11 @@ export class BrandSeeder extends AbstractSeeder {
         name: BrandCategoryEnum.FASHION_AND_LIFESTYLE,
       });
 
-      if (!luxuryHotelCategory || !automotiveCategory || !fashionCategory) {
+      const otherCategory = await this.brandCategoryRepository.find({
+        name: BrandCategoryEnum.OTHER,
+      });
+
+      if (!luxuryHotelCategory || !automotiveCategory || !fashionCategory || !otherCategory) {
         throw new Error('One or more BrandCategory documents not found');
       }
 

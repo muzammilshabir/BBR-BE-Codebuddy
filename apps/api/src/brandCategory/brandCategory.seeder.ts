@@ -18,6 +18,7 @@ export class BrandCategorySeeder extends AbstractSeeder {
         { name: BrandCategoryEnum.AUTOMOTIVE },
         { name: BrandCategoryEnum.FASHION_AND_LIFESTYLE },
         { name: BrandCategoryEnum.LUXURY_HOTEL_AND_RESORT },
+        { name: BrandCategoryEnum.OTHER },
       ];
 
       for (const category of brandCategories) {
