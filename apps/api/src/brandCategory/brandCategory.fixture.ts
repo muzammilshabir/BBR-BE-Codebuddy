@@ -20,7 +20,7 @@ export class BrandCategoryFixture extends AbstractFixture {
 
   async load(): Promise<void> {
     const luxuryHotelAndResort = await this.brandCategoryModel.create({
-      name: BrandCategoryEnum.LUXURY_HOTEL_AND_RESORT,
+      name: BrandCategoryEnum.LUXURY_HOTEL_RESORT,
     });
     const automotive = await this.brandCategoryModel.create({
       name: BrandCategoryEnum.AUTOMOTIVE,
