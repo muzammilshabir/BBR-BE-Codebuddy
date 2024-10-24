@@ -706,4 +706,8 @@ export class AuthService {
   async me(userFromToken: JwtPayloadType) {
     return await this.userService.me(userFromToken);
   }
+
+  async getBuyerById(id: string): Promise<User> {
+    return await this.userService.getBuyerById(id);
+  }
 }

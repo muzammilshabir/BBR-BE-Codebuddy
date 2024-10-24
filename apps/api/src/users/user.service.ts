@@ -540,4 +540,8 @@ export class UserService {
 
     return updatedUser;
   }
+
+  async getBuyerById(id: string): Promise<User> {
+    return await this.userRepository.getBuyerById(id);
+  }
 }
