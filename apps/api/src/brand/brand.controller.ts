@@ -16,6 +16,7 @@ import {
 } from './dto/createBrandDraft.dto';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { PermissionLevel } from '../modulePolicy/enum/permission-enum';
+import { GetBrandByIdDto, getBrandByIdSchema } from './dto/getBrand.dto';
 
 @ApiTags('Brand')
 @Controller('brand')
@@ -70,6 +71,18 @@ export class BrandController {
     return {
       message: 'Brand saved and applied successfully',
       data: result,
+    };
+  }
+
+  @Get(':brandId')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get a Brand by ID' })
+  @UsePipes(new JoiValidationPipe(getBrandByIdSchema, 'param'))
+  async getBrandDraftById(@Param() params: GetBrandByIdDto) {
+    const brandDraft = await this.brandService.getBrandById(params.brandId);
+    return {
+      message: 'Brand draft retrieved successfully',
+      data: brandDraft,
     };
   }
 }

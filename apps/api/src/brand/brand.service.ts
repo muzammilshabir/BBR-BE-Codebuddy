@@ -208,4 +208,8 @@ export class BrandService {
 
     return { brand: updatedBrand, draft: newDraft };
   }
+
+  async getBrandById(brandDraftId: string) {
+    return await this.brandRepository.getBrandById(brandDraftId);
+  }
 }
