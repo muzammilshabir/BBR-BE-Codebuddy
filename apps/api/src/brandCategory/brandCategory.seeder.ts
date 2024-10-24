@@ -17,7 +17,7 @@ export class BrandCategorySeeder extends AbstractSeeder {
       const brandCategories = [
         { name: BrandCategoryEnum.AUTOMOTIVE },
         { name: BrandCategoryEnum.FASHION_AND_LIFESTYLE },
-        { name: BrandCategoryEnum.LUXURY_HOTEL_AND_RESORT },
+        { name: BrandCategoryEnum.LUXURY_HOTEL_RESORT },
         { name: BrandCategoryEnum.OTHER },
       ];
 

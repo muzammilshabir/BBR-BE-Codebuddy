@@ -20,7 +20,7 @@ export class BrandSeeder extends AbstractSeeder {
   async seed() {
     try {
       const luxuryHotelCategory = await this.brandCategoryRepository.find({
-        name: BrandCategoryEnum.LUXURY_HOTEL_AND_RESORT,
+        name: BrandCategoryEnum.LUXURY_HOTEL_RESORT,
       });
 
       const automotiveCategory = await this.brandCategoryRepository.find({
