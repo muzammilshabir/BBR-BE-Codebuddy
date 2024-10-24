@@ -161,4 +161,12 @@ export class ListResidenceWithDraftDto extends ListPropsDto {
     type: String,
   })
   developerId?: string;
+
+  @ApiProperty({
+    description: 'Filter by brand ID',
+    example: '60b6c0f53b5a5c1f88d25a1b',
+    required: false,
+    type: String,
+  })
+  brandId?: string;
 }
