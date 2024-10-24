@@ -488,7 +488,14 @@ export class UserService {
     const options = PaginationService.prepareOptions(listUserDto);
 
     const { data, count } = await this.userRepository.findAll(filter, options, [
-      { path: 'roleId', model: 'Role' },
+      {
+        path: 'roleId',
+        model: 'Role',
+        populate: {
+          path: 'modulePermissions.moduleId',
+          model: 'ModulePolicy',
+        },
+      },
       { path: 'avatarImage', select: 'originalFileKey fileKey url mimeType', model: 'Upload' },
     ]);
 
