@@ -8,7 +8,12 @@ import { ListBrandDto, listBrandSchema } from './dto/listBrand.dto';
 import { UserRole } from '../users/enum/user.enum';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UpdateBrandDto, updateBrandSchema } from './dto/updateBrand.dto';
-import { CreateBrandDraftDto, createBrandDraftSchema } from './dto/createBrandDraft.dto';
+import {
+  CreateBrandApplyDto,
+  createBrandApplySchema,
+  CreateBrandDraftDto,
+  createBrandDraftSchema,
+} from './dto/createBrandDraft.dto';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { PermissionLevel } from '../modulePolicy/enum/permission-enum';
 
@@ -42,7 +47,7 @@ export class BrandController {
 
   @Post('save-as-draft')
   @ApiBearerAuth()
-  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @Roles(UserRole.ADMIN)
   @Permissions('brands', PermissionLevel.EDIT)
   @ApiOperation({ summary: 'Save Brand as draft' })
   @UsePipes(new JoiValidationPipe(createBrandDraftSchema, 'body'))
@@ -51,6 +56,20 @@ export class BrandController {
     return {
       message: 'Brand draft saved successfully',
       data: brandDraft,
+    };
+  }
+
+  @Post('save-and-apply')
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @Permissions('brands', PermissionLevel.EDIT)
+  @ApiOperation({ summary: 'Save and Apply a new brand' })
+  @UsePipes(new JoiValidationPipe(createBrandApplySchema, 'body'))
+  async saveAndApplyBrand(@Body() createBrandApplyDto: CreateBrandApplyDto) {
+    const result = await this.brandService.saveAndApplyBrand(createBrandApplyDto);
+    return {
+      message: 'Brand saved and applied successfully',
+      data: result,
     };
   }
 }
