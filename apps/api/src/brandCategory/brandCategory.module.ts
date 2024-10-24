@@ -4,11 +4,18 @@ import { BrandCategory, BrandCategorySchema } from './schema/brandCategory.schem
 import { BrandCategoryRepository } from './brandCategoryRepository.repository';
 import { BrandCategorySeeder } from './brandCategory.seeder';
 import { BrandCategoryFixture } from './brandCategory.fixture';
+import { BrandController } from './brandCategory.controller';
+import { BrandCategoryService } from './brandCategory.service';
 
 @Module({
   imports: [MongooseModule.forFeature([{ name: BrandCategory.name, schema: BrandCategorySchema }])],
-  providers: [BrandCategoryRepository, BrandCategorySeeder, BrandCategoryFixture],
-  exports: [BrandCategorySeeder, BrandCategoryFixture],
-  controllers: [],
+  providers: [
+    BrandCategoryRepository,
+    BrandCategorySeeder,
+    BrandCategoryFixture,
+    BrandCategoryService,
+  ],
+  exports: [BrandCategorySeeder, BrandCategoryFixture, BrandCategoryService],
+  controllers: [BrandController],
 })
 export class BrandCategoryModule {}
