@@ -356,7 +356,7 @@ export class UnitService {
             : undefined,
           floor: item.Floor ? Number(item.Floor) : undefined,
         },
-        unitPrice: item.unitPrice ? Number(item.unitPrice) : undefined,
+        unitPrice: item['Unit Price'] ? Number(item['Unit Price']) : undefined,
         exclusiveOffer: {
           exclusiveUnitPrice: item['Exclusive Unit Price']
             ? Number(item['Exclusive Unit Price'])
@@ -368,6 +368,7 @@ export class UnitService {
             ? new Date(item['Exclusive Offer End Date'])
             : undefined,
         },
+        isExclusiveOffer: item.ExclusiveOffer === 'TRUE' ? true : false,
         rooms: roomDetails.length ? roomDetails : undefined,
         briefOverview: {
           subTitle: item['Brief Overview SubTitle'],
