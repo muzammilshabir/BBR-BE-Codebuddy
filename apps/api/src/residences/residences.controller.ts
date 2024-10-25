@@ -213,6 +213,19 @@ export class ResidenceController {
     return ResponseService.buildResponse(result, 'Residence retrieved successfully');
   }
 
+  @Get('/with-draft/count')
+  @ApiOperation({
+    summary: 'Get Residence Total Count',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @Permissions('residence', PermissionLevel.READ)
+  async getResidencesTotalCount(@Query() query: ListResidenceWithDraftDto) {
+    const result = await this.residenceService.getResidencesTotalCount(query);
+
+    return ResponseService.buildResponse(result, 'Residence total count retrieved successfully');
+  }
+
   @Get('/similar-residence')
   @ApiOperation({
     summary: 'List Similar Residence',
