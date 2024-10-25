@@ -86,6 +86,7 @@ export class ResidencesFixture extends AbstractFixture {
         ],
       },
       subscriptionId: '60d5f485f7c6a4b2b8e8b623',
+      planId: '60d5f485f7c6a4b2b8e8b623',
       paymentMethodId: 'r23r23r32rwewe',
       status: 'draft',
       unitIds: [],

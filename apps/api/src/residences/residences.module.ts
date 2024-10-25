@@ -63,7 +63,7 @@ import { UnitRepository } from '../unit/unit.repository';
     UnitRepository,
     UnitDraftRepository,
   ],
-  exports: [ResidenceSeeder, ResidencesFixture, ResidenceService],
+  exports: [ResidenceSeeder, ResidencesFixture, ResidenceService, ResidenceRepository],
   controllers: [ResidenceController],
 })
 export class ResidenceModule {}
