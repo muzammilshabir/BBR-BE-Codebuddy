@@ -115,6 +115,18 @@ export class RankingRequestService {
         `Residence with id:${createRankingRequestDto.residenceId} is not active`
       );
     }
+
+    const isRankingRequestExist = await this.rankingRequestRepository.find({
+      rankingCategoryId: new Types.ObjectId(createRankingRequestDto.rankingCategoryId),
+      residenceId: new Types.ObjectId(createRankingRequestDto.residenceId),
+    });
+
+    if (isRankingRequestExist) {
+      throw new BadRequestException(
+        `Ranking category with rankingCategoryId:${createRankingRequestDto.rankingCategoryId} and 
+         residenceId:${createRankingRequestDto.residenceId} is already exist`
+      );
+    }
     const transformedDto: any = {
       ...createRankingRequestDto,
       rankingCategoryId: new Types.ObjectId(createRankingRequestDto.rankingCategoryId),
@@ -247,6 +259,19 @@ export class RankingRequestService {
       delete plainUpdatedDrafRequest.rankingRequestId;
       delete plainUpdatedDrafRequest._id;
 
+      const residence = await this.residenceRepository.findById(
+        plainUpdatedDrafRequest.residenceId
+      );
+
+      if (
+        !residence?.highestBbrScore ||
+        residence.highestBbrScore < plainUpdatedDrafRequest.bbrScore
+      ) {
+        await this.residenceRepository.update(residence.id, {
+          highestBbrScore: plainUpdatedDrafRequest.bbrScore,
+          highestRankingCategoryId: new Types.ObjectId(plainUpdatedDrafRequest.rankingCategoryId),
+        });
+      }
       await this.rankingRequestRepository.update(rankingRequestId, {
         ...plainUpdatedDrafRequest,
         paymentStatus: PaymentStatus.PAID,
@@ -673,10 +698,25 @@ export class RankingRequestService {
       totalIncreaseNewBbrSCore = newTotalIncreaseNewBbrSCore;
     }
 
-    return await this.rankingRequestRepository.update(rankingRequest.id, {
+    const updatedRankingRequest = await this.rankingRequestRepository.update(rankingRequest.id, {
       criteriaScores,
       bbrScore: newBbrSCore,
     });
+
+    const residence = await this.residenceRepository.findById(
+      updatedRankingRequest.residenceId._id.toString()
+    );
+    if (
+      residence.highestRankingCategoryId.toString() ===
+        rankingRequest.rankingCategoryId.toString() ||
+      residence.highestBbrScore < newBbrSCore
+    ) {
+      await this.residenceRepository.update(residence.id, {
+        highestBbrScore: newBbrSCore,
+        highestRankingCategoryId: rankingRequest.rankingCategoryId,
+      });
+    }
+    return updatedRankingRequest;
   }
 
   private adjustRankingScore(

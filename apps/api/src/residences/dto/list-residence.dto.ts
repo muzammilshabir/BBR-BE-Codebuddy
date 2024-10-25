@@ -170,3 +170,26 @@ export class ListResidenceWithDraftDto extends ListPropsDto {
   })
   brandId?: string;
 }
+
+export class ListTopResidencesDto extends ListPropsDto {
+  @ApiProperty({
+    default: 'highestBbrScore',
+    required: false,
+    enum: ['highestBbrScore'],
+    type: String,
+  })
+  sortBy: 'highestBbrScore';
+
+  @ApiProperty({
+    default: 'desc',
+    required: false,
+    enum: ['desc'],
+    type: String,
+  })
+  sortOrder: 'desc';
+}
+
+export const listTopResidencesSchema = PaginationSchema.append({
+  sortOrder: Joi.string().valid('desc').default('desc'),
+  sortBy: Joi.string().valid('highestBbrScore').default('highestBbrScore'),
+});

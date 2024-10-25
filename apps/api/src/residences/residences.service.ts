@@ -37,6 +37,8 @@ import { AmenityRepository } from '../amenities/amenities.repository';
 import { LifeStyleRepository } from '../lifestyles/lifeStyle.repository';
 import { UnitDraftRepository } from '../unitDraft/unitDraft.repository';
 import { UnitRepository } from '../unit/unit.repository';
+import { GetSimilarResidenceDto } from './dto/get-similar-residence';
+import { ListPropsDto } from '../../../../packages/api-core/modules/dto/listProps.dto';
 
 @Injectable()
 export class ResidenceService {
@@ -454,6 +456,7 @@ export class ResidenceService {
       },
       { path: 'createdById', select: 'fullName email role', model: 'User' },
       { path: 'developerId', select: 'fullName email role', model: 'User' },
+      { path: 'highestRankingCategoryId', model: 'RankingCategory', select: 'title' },
     ]);
 
     const updatedData = data.map((residence) => {
@@ -880,5 +883,89 @@ export class ResidenceService {
     );
 
     return { pagination, residences: data };
+  }
+
+  async getSimilarResidences(getSimilarResidenceDto: GetSimilarResidenceDto) {
+    const result = await this.residenceRepository.getSimilarResidences(getSimilarResidenceDto);
+    const count = result[0]?.totalCount || 0;
+    const data = result[0]?.data || [];
+
+    const { pagination } = PaginationService.paginate(
+      { rows: data, count },
+      getSimilarResidenceDto
+    );
+
+    return { pagination, residences: data };
+  }
+
+  async getTopResidences(listPropsDto: ListPropsDto) {
+    const filter: any = {
+      isDeleted: false,
+      status: ResidenceStatus.ACTIVE,
+      highestBbrScore: { $exists: true },
+    };
+    const options = PaginationService.prepareOptions({
+      limit: listPropsDto.limit,
+      page: listPropsDto.page,
+      sortBy: 'highestBbrScore',
+      sortOrder: 'desc',
+    });
+
+    const { data, count } = await this.residenceRepository.findAll(filter, options, [
+      {
+        path: 'residenceTypeIds',
+        select: 'type',
+        model: 'ResidenceType',
+      },
+      { path: 'cityId', select: 'name countryId upload' },
+      { path: 'countryId', select: 'name geographicalAreasId upload' },
+      { path: 'associatedBrandId', select: 'name' },
+      {
+        path: 'visuals.mainPhotos',
+        select: 'originalFileKey fileKey url mimeType',
+        model: 'Upload',
+      },
+      {
+        path: 'visuals.mainGalleryPhotos',
+        select: 'originalFileKey fileKey url mimeType',
+        model: 'Upload',
+      },
+      {
+        path: 'visuals.secondGalleryPhotos',
+        select: 'originalFileKey fileKey url mimeType',
+        model: 'Upload',
+      },
+      {
+        path: 'visuals.videoTour',
+        select: 'originalFileKey fileKey url mimeType',
+        model: 'Upload',
+      },
+      { path: 'nearbyAmenities.amenitiesList', select: 'name', model: 'Amenity' },
+      { path: 'nearbyAmenities.highlightedAmenities.amenityId', select: 'name', model: 'Amenity' },
+      {
+        path: 'nearbyAmenities.highlightedAmenities.imageId',
+        select: 'originalFileKey fileKey url mimeType',
+        model: 'Upload',
+      },
+      { path: 'createdById', select: 'fullName email role', model: 'User' },
+      { path: 'developerId', select: 'fullName email role', model: 'User' },
+      { path: 'highestRankingCategoryId', model: 'RankingCategory', select: 'title' },
+    ]);
+
+    const updatedData = data.map((residence) => {
+      const cleanResidence = residence.toObject();
+
+      return {
+        ...cleanResidence,
+        views: 0,
+        saves: 0,
+        inquiries: 0,
+      };
+    });
+    const transformedResidence = await this.transformResidences(updatedData);
+
+    const { pagination } = PaginationService.paginate({ rows: data, count }, listPropsDto);
+
+    return { pagination, residences: transformedResidence };
   }
 }
