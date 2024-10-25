@@ -16,7 +16,6 @@ import {
   ListResidenceByFiltersDto,
   ListResidenceByFiltersQueryPropsDto,
   ListResidenceDto,
-  ListResidenceWithDraftCountDto,
   ListResidenceWithDraftDto,
   ListTopResidencesDto,
 } from './dto/list-residence.dto';
