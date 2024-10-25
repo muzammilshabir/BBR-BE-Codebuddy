@@ -2,6 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import * as Joi from 'joi';
 import { Types } from 'mongoose';
 import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
+import { BrandStatus } from '../enum/brand-enum';
 
 export class UpdateBrandDto {
   @ApiProperty({
@@ -45,4 +46,25 @@ export const updateBrandSchema = Joi.object({
       })
     )
     .optional(),
+});
+
+export class UpdateBrandStatusDto {
+  @ApiProperty({
+    description: 'New status of the brand',
+    enum: BrandStatus,
+    example: BrandStatus.ACTIVE,
+  })
+  status: BrandStatus;
+}
+
+export const updateBrandStatusSchema = Joi.object({
+  status: Joi.string()
+    .valid(
+      BrandStatus.PENDING,
+      BrandStatus.INACTIVE,
+      BrandStatus.ARCHIVED,
+      BrandStatus.DELETED,
+      BrandStatus.ACTIVE
+    )
+    .required(),
 });
