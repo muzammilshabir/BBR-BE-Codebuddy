@@ -169,7 +169,7 @@ export class RankingCategoryService {
       throw new ForbiddenException('You do not have permission to delete this RankingCategory');
     }
     return {
-      ...rankingCategory,
+      ...rankingCategory.toJSON(),
       engagementScore: this.calculateEngagementScore(
         this.getMatrixWeight(),
         this.generateRandomMetrics()
