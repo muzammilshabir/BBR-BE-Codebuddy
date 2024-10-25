@@ -976,4 +976,32 @@ export class ResidenceService {
 
     return { pagination, residences: transformedResidence };
   }
+
+  async getResidencesTotalCount(listResidenceWithDraftDto: ListResidenceWithDraftDto) {
+    // Call repository for each status type and aggregate the counts
+    const activeCount = await this.residenceRepository.getResidencesTotalCount({
+      ...listResidenceWithDraftDto,
+      status: ResidenceStatus.ACTIVE,
+    });
+    const draftCount = await this.residenceRepository.getResidencesTotalCount({
+      ...listResidenceWithDraftDto,
+      status: ResidenceStatus.DRAFT,
+    });
+    const pendingCount = await this.residenceRepository.getResidencesTotalCount({
+      ...listResidenceWithDraftDto,
+      status: ResidenceStatus.PENDING,
+    });
+    const archivedCount = await this.residenceRepository.getResidencesTotalCount({
+      ...listResidenceWithDraftDto,
+      status: ResidenceStatus.ARCHIVED,
+    });
+
+    // Return a consolidated response with counts for each status
+    return {
+      active: activeCount[0]?.totalCount || 0,
+      draft: draftCount[0]?.totalCount || 0,
+      pending: pendingCount[0]?.totalCount || 0,
+      archived: archivedCount[0]?.totalCount || 0,
+    };
+  }
 }

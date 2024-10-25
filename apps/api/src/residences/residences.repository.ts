@@ -732,4 +732,166 @@ export class ResidenceRepository extends BaseRepository<Residence> {
       throw new Error(`Error while fetching residence draft list: ${error}`);
     }
   }
+
+  async getResidencesTotalCount(
+    listResidenceWithDraftDto: ListResidenceWithDraftDto
+  ): Promise<any[]> {
+    try {
+      const { status, developerId, search, brandId } = listResidenceWithDraftDto;
+
+      const paginationOptions = PaginationService.prepareOptions(listResidenceWithDraftDto);
+      const sortObject = paginationOptions.sort.reduce((acc, [field, order]) => {
+        acc[field] = order;
+        return acc;
+      }, {});
+
+      const pipeline: PipelineStage[] = [
+        //  Match residences based on filters like developerId
+        {
+          $match: {
+            ...(developerId ? { developerId: new Types.ObjectId(developerId) } : {}),
+            ...(brandId ? { associatedBrandId: new Types.ObjectId(brandId) } : {}),
+          },
+        },
+
+        // Lookup for all drafts from residencedrafts collection
+        {
+          $lookup: {
+            from: 'residencedrafts',
+            localField: '_id',
+            foreignField: 'residenceId',
+            as: 'drafts',
+          },
+        },
+        {
+          $unwind: {
+            path: '$drafts',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+
+        // Sort drafts by createdAt in descending order (latest draft first)
+        {
+          $sort: {
+            'drafts.createdAt': -1, // Descending order
+          },
+        },
+
+        // Group by residenceId and keep only the latest draft
+        {
+          $group: {
+            _id: '$_id', // Group by residenceId (current residence)
+            latestDraft: { $first: '$drafts' }, // Keep only the first (latest) draft
+            developerData: { $first: '$developerData' }, // Retain developer data
+            residenceData: { $first: '$$ROOT' }, // Store residence data
+          },
+        },
+
+        //  Lookup for the developer data from users collection
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'latestDraft.developerId',
+            foreignField: '_id',
+            as: 'developerData',
+          },
+        },
+        {
+          $unwind: {
+            path: '$developerData',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+
+        // Lookup for the residence status from residence collection
+        {
+          $lookup: {
+            from: 'residences',
+            localField: '_id',
+            foreignField: '_id',
+            as: 'residence',
+          },
+        },
+        {
+          $unwind: {
+            path: '$residence',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+
+        // Handle search criteria (if provided)
+        {
+          $match: {
+            ...(search
+              ? {
+                  $or: [
+                    { 'latestDraft.name': { $regex: search, $options: 'i' } },
+                    { 'latestDraft.address.city': { $regex: search, $options: 'i' } },
+                    { 'latestDraft.address.country': { $regex: search, $options: 'i' } },
+                    { 'developerData.fullName': { $regex: search, $options: 'i' } }, // Search in developerData
+                  ],
+                }
+              : {}),
+          },
+        },
+        {
+          // Lookup for multiple residence types based on an array of residenceTypeIds
+          $lookup: {
+            from: 'residencetypes',
+            localField: 'latestDraft.residenceTypeIds', // Assuming the field is now residenceTypeIds (array)
+            foreignField: '_id',
+            as: 'residenceTypes',
+          },
+        },
+        {
+          $unwind: {
+            path: '$residenceTypes',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+
+        // Project only relevant fields
+        {
+          $project: {
+            status: {
+              $cond: {
+                if: { $eq: ['$latestDraft.status', 'active'] },
+                then: '$residence.status',
+                else: '$latestDraft.status',
+              },
+            },
+          },
+        },
+
+        // Apply status filter
+        {
+          $match: {
+            ...(status ? { status: status } : {}),
+          },
+        },
+
+        // Pagination and total count
+        {
+          $facet: {
+            data: [
+              { $sort: sortObject },
+              { $skip: paginationOptions.offset },
+              { $limit: Number(paginationOptions.limit) },
+            ],
+            totalCount: [{ $count: 'count' }],
+          },
+        },
+        {
+          $project: {
+            data: 1,
+            totalCount: { $arrayElemAt: ['$totalCount.count', 0] },
+          },
+        },
+      ];
+
+      return await this.residenceModel.aggregate(pipeline).exec();
+    } catch (error) {
+      throw new Error(`Error while fetching residence draft list: ${error}`);
+    }
+  }
 }
