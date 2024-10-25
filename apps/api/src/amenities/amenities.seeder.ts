@@ -18,12 +18,18 @@ export class AmenitySeeder extends AbstractSeeder {
         { name: 'Private Beach access' },
         { name: 'Gym/Fitness center' },
         { name: 'Golf course access' },
+        { name: 'Security Staff' },
+        { name: 'Marina / Yacht Club' },
+        { name: 'On-site Restaurant / Cafe' },
+        { name: 'Spa / Wellness Center' },
+        { name: 'Concierge Service' },
+        { name: 'Parking space / Garage' },
+        { name: 'Gated Community' },
       ];
 
       for (const amenity of amenities) {
         await this.amenityRepository.upsert({ name: amenity.name }, amenity);
       }
-
     } catch (error) {
       this.logger.error('Error seeding Amenities', error);
     }
