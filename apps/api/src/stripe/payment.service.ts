@@ -237,6 +237,12 @@ export class PaymentService {
       createSubscriptionDto.invoiceId.toString()
     );
 
+    const invoiceItems = await this.invoiceItemRepository.findByInvoiceId(
+      createSubscriptionDto.invoiceId.toString()
+    );
+    
+    const planItem = invoiceItems.find((item) => item.plan !== null);
+
     if (!invoice) {
       throw new Error('Invoice not found');
     }
@@ -247,17 +253,20 @@ export class PaymentService {
     const subscriptions = await this.subscriptionRepository.findByResidenceId(
       transformedDto.residenceId.toString()
     );
-    for (const subscription of subscriptions) {
-      await this.subscriptionRepository.update(subscription.id, {
-        status: SubscriptionStatus.CANCELED,
-      });
-    }
     const newSubscription = await this.subscriptionRepository.create(transformedDto);
 
-    this.residenceService.upgradeResidence(
-      createSubscriptionDto.residenceId.toString(),
-      newSubscription.id
-    );
+    if (planItem !== undefined) {
+      for (const subscription of subscriptions) {
+        await this.subscriptionRepository.update(subscription.id, {
+          status: SubscriptionStatus.CANCELED,
+        });
+      }
+      await this.residenceService.upgradeResidence(
+        createSubscriptionDto.residenceId.toString(),
+        newSubscription.id,
+        planItem.plan.toString(),
+      );
+    }
 
     return newSubscription;
   }

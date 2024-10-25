@@ -6,17 +6,17 @@ import { UpdateFeatureDto } from './dto/update-feature.dto';
 import { CreatePlanDto } from './dto/create-plan.dto';
 import { UpdatePlanDto } from './dto/update-plan.dto';
 import { Types } from 'mongoose';
-import { ResidenceService } from 'src/residences/residences.service';
 import { ListPropsDto } from '@bbr/api-core/modules/dto/listProps.dto';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
 import { SubscriptionRepository } from 'src/stripe/subscription.repository';
+import { ResidenceRepository } from 'src/residences/residences.repository';
 
 @Injectable()
 export class SubscriptionPlanService {
   constructor(
     private readonly planRepository: PlanRepository,
     private readonly featureRepository: FeatureRepository,
-    private readonly residenceService: ResidenceService,
+    private readonly residenceRepository: ResidenceRepository,
     private readonly subscriptionRepository: SubscriptionRepository,
   ) {}
 
@@ -54,13 +54,16 @@ export class SubscriptionPlanService {
     }
     const transformedPlan = {
       ...plan,
-      features: plan.features.map((feature) => {
+    };
+    if("features" in plan && plan.features.length > 0) {
+      const newFeatures = plan.features.map((feature) => {
         feature.feature = new Types.ObjectId(feature.feature);
         return feature;
-      }),
-    };
-    const mergedFeatures = [...existingPlan.features, ...transformedPlan.features];
-    transformedPlan.features = [...new Set(mergedFeatures.flat())];
+      });
+      const mergedFeatures = [...existingPlan.features, ...newFeatures];
+      transformedPlan.features = [...new Set(mergedFeatures.flat())];
+    }
+
     return this.planRepository.update(planId, transformedPlan);
   }
 
@@ -73,13 +76,15 @@ export class SubscriptionPlanService {
 
   async getPlansAdmin() {
     const plans = await this.planRepository.findAllExpanded({});
-    const planResidenceCounts = await this.subscriptionRepository.getResidenceCountForPlans();
-    if(planResidenceCounts.length === 0) {
-      return plans;
-    };
-    for(const plan of plans) {
-      const planResidenceCount = planResidenceCounts.find(planResidenceCount => planResidenceCount.plan.toString() === plan._id.toString());
-      plan.residenceCount = planResidenceCount ? planResidenceCount.residenceCount : 0;
+    const residenceCounts = await this.residenceRepository.aggregate([
+      { $match: { planId: { $ne: null } } },
+      { $group: { _id: '$planId', residenceCount: { $sum: 1 } } }
+    ]);
+    const residenceCountMap = new Map(
+      residenceCounts.map(item => [item._id.toString(), item.residenceCount])
+    );
+    for (const plan of plans) {
+      plan.residenceCount = residenceCountMap.get(plan._id.toString()) || 0;
     }
     return plans;
   }
@@ -90,10 +95,9 @@ export class SubscriptionPlanService {
 
   async getPlanResidences(id: string, listResidencesDto: ListPropsDto) {
     const options = PaginationService.prepareOptions(listResidencesDto);
+    const { data, count } = await this.residenceRepository.findAll({ planId: id }, options);
 
-    const data = await this.subscriptionRepository.getSubscriptionResidencesByPlan(id, options);
-
-    const { pagination } = PaginationService.paginate({ rows: data, count: data.length }, listResidencesDto);
+    const { pagination } = PaginationService.paginate({ rows: data, count: count }, listResidencesDto);
 
     return { pagination, residences: data };
   }
