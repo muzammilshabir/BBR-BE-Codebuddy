@@ -326,14 +326,10 @@ export class PaymentService {
     await this.paymentMethodRepository.deleteByPaymentMethodId(methodId);
     return this.stripeService.deletePaymentMethod(customerId, methodId);
   }
-
   async setDefaultResidencePaymentMethod(methodId: string, residenceId: string, userId?: string) {
     if (userId) {
-      const residence = await this.residenceService.getResidenceByUserIdAndResidenceId(
-        userId,
-        residenceId
-      );
-      if (!residence) {
+      const residence = await this.residenceService.getResidenceById(residenceId);
+      if (!residence || residence.developerId._id != userId) {
         throw new Error('Residence not found');
       }
     }
@@ -342,11 +338,8 @@ export class PaymentService {
 
   async unsetDefaultResidencePaymentMethod(residenceId: string, userId?: string) {
     if (userId) {
-      const residence = await this.residenceService.getResidenceByUserIdAndResidenceId(
-        userId,
-        residenceId
-      );
-      if (!residence) {
+      const residence = await this.residenceService.getResidenceById(residenceId);
+      if (!residence || residence.developerId._id != userId) {
         throw new Error('Residence not found');
       }
     }
