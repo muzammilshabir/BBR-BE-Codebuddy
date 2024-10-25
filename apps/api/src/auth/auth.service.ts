@@ -522,6 +522,9 @@ export class AuthService {
 
   async forgotPassword(forgetPasswordDto: ForgotPasswordDto): Promise<void> {
     const user = await this.userService.findByEmail(forgetPasswordDto.email);
+    if (!user) {
+      throw new BadRequestException('No account is associated with the provided email address');
+    }
 
     if (user) {
       const resetToken = this.tokenService.generateVerificationToken();
@@ -705,5 +708,9 @@ export class AuthService {
 
   async me(userFromToken: JwtPayloadType) {
     return await this.userService.me(userFromToken);
+  }
+
+  async getBuyerById(id: string): Promise<User> {
+    return await this.userService.getBuyerById(id);
   }
 }

@@ -22,6 +22,11 @@ export class UserRepository extends BaseRepository<User> {
           model: 'Upload',
         },
         {
+          path: 'companyLogo',
+          select: 'originalFileKey fileKey url mimeType',
+          model: 'Upload',
+        },
+        {
           path: 'preferences.residenceTypeIds',
           select: 'type upload',
           model: 'ResidenceType',
@@ -98,5 +103,43 @@ export class UserRepository extends BaseRepository<User> {
 
     delete user.password;
     return user;
+  }
+
+  async getBuyerById(id: string): Promise<any> {
+    const developer: any = await this.userModel
+      .findOne({ _id: id, role: UserRole.BUYER })
+      .populate([
+        {
+          path: 'avatarImage',
+          select: 'originalFileKey fileKey url mimeType',
+          model: 'Upload',
+        },
+        {
+          path: 'preferences.residenceTypeIds',
+          select: 'type upload',
+          model: 'ResidenceType',
+        },
+        {
+          path: 'preferences.cityIds',
+          select: 'name countryId upload',
+          model: 'City',
+        },
+        {
+          path: 'preferences.countryIds',
+          select: 'name geographicalAreasId upload',
+          model: 'Country',
+        },
+        {
+          path: 'preferences.lifeStyleIds',
+          select: 'name upload ',
+          model: 'LifeStyle',
+        },
+      ]);
+
+    if (!developer) {
+      throw new NotFoundException(`buyer with ID ${id}`);
+    }
+
+    return developer;
   }
 }

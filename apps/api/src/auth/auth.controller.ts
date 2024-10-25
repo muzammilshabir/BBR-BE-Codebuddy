@@ -87,6 +87,17 @@ export class AuthController {
     return ResponseService.buildResponse({ user });
   }
 
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Get buyer by ID',
+  })
+  @Get('buyer/:id')
+  @UsePipes(new JoiValidationPipe(getUserByIdSchema, 'param'))
+  async getBuyerById(@Param() params: GetUserByIdDto) {
+    const buyer = await this.authService.getBuyerById(params.id);
+    return ResponseService.buildResponse(buyer, 'Buyer retrieved successfully');
+  }
+
   @ApiOperation({
     summary: 'Buyer Login',
   })
