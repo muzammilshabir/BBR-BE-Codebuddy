@@ -31,7 +31,7 @@ export class BrandController {
 
   @Get()
   @ApiOperation({
-    summary: 'List all residenceType',
+    summary: 'List all brand',
   })
   @Public()
   @UsePipes(new JoiValidationPipe(listBrandSchema, 'query'))
