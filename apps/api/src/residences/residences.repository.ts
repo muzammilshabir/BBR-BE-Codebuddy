@@ -88,7 +88,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
   ): Promise<any[]> {
     //TODO: Add search by property name
     try {
-      const { status, developerId, search } = listResidenceWithDraftDto;
+      const { status, developerId, search, brandId } = listResidenceWithDraftDto;
 
       const paginationOptions = PaginationService.prepareOptions(listResidenceWithDraftDto);
       const sortObject = paginationOptions.sort.reduce((acc, [field, order]) => {
@@ -101,6 +101,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
         {
           $match: {
             ...(developerId ? { developerId: new Types.ObjectId(developerId) } : {}),
+            ...(brandId ? { associatedBrandId: new Types.ObjectId(brandId) } : {}),
           },
         },
 
@@ -229,7 +230,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
         },
         {
           $lookup: {
-            from: 'associatedbrands',
+            from: 'brands',
             localField: 'latestDraft.associatedBrandId',
             foreignField: '_id',
             as: 'associatedBrand',

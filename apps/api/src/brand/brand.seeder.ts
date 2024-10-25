@@ -20,7 +20,7 @@ export class BrandSeeder extends AbstractSeeder {
   async seed() {
     try {
       const luxuryHotelCategory = await this.brandCategoryRepository.find({
-        name: BrandCategoryEnum.LUXURY_HOTEL_AND_RESORT,
+        name: BrandCategoryEnum.LUXURY_HOTEL_RESORT,
       });
 
       const automotiveCategory = await this.brandCategoryRepository.find({
@@ -31,7 +31,11 @@ export class BrandSeeder extends AbstractSeeder {
         name: BrandCategoryEnum.FASHION_AND_LIFESTYLE,
       });
 
-      if (!luxuryHotelCategory || !automotiveCategory || !fashionCategory) {
+      const otherCategory = await this.brandCategoryRepository.find({
+        name: BrandCategoryEnum.OTHER,
+      });
+
+      if (!luxuryHotelCategory || !automotiveCategory || !fashionCategory || !otherCategory) {
         throw new Error('One or more BrandCategory documents not found');
       }
 

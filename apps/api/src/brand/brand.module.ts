@@ -8,13 +8,23 @@ import { BrandSeeder } from './brand.seeder';
 import { BrandFixture } from './brand.fixture';
 import { BrandCategoryRepository } from '../brandCategory/brandCategoryRepository.repository';
 import { BrandCategory, BrandCategorySchema } from '../brandCategory/schema/brandCategory.schema';
+import { BrandDraft, BrandDraftSchema } from '../brandDraft/schema/brandDraft.schema';
+import { BrandDraftRepository } from '../brandDraft/brandDraft.repository';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: Brand.name, schema: BrandSchema }]),
     MongooseModule.forFeature([{ name: BrandCategory.name, schema: BrandCategorySchema }]),
+    MongooseModule.forFeature([{ name: BrandDraft.name, schema: BrandDraftSchema }]),
   ],
-  providers: [BrandService, BrandRepository, BrandSeeder, BrandFixture, BrandCategoryRepository],
+  providers: [
+    BrandService,
+    BrandRepository,
+    BrandSeeder,
+    BrandFixture,
+    BrandCategoryRepository,
+    BrandDraftRepository,
+  ],
   exports: [BrandSeeder, BrandFixture],
   controllers: [BrandController],
 })
