@@ -7,6 +7,8 @@ import { NotFoundException } from '@bbr/api-core/modules/exceptions';
 import { PipelineStage } from 'mongoose';
 import { ListResidenceWithDraftDto } from './dto/list-residence.dto';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
+import { GetSimilarResidenceDto } from './dto/get-similar-residence';
+import { ResidenceStatus } from './enum/residence-enum';
 
 @Injectable()
 export class ResidenceRepository extends BaseRepository<Residence> {
@@ -50,6 +52,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
       },
       { path: 'createdById', model: 'User', select: 'fullName email role' },
       { path: 'developerId', model: 'User', select: 'fullName email role' },
+      { path: 'highestRankingCategoryId', model: 'RankingCategory', select: 'title' },
     ]);
 
     if (!residence) {
@@ -371,6 +374,333 @@ export class ResidenceRepository extends BaseRepository<Residence> {
         {
           $match: {
             ...(status ? { status: status } : {}),
+          },
+        },
+
+        // Pagination and total count
+        {
+          $facet: {
+            data: [
+              { $sort: sortObject },
+              { $skip: paginationOptions.offset },
+              { $limit: Number(paginationOptions.limit) },
+            ],
+            totalCount: [{ $count: 'count' }],
+          },
+        },
+        {
+          $project: {
+            data: 1,
+            totalCount: { $arrayElemAt: ['$totalCount.count', 0] },
+          },
+        },
+      ];
+
+      return await this.residenceModel
+        .aggregate(pipeline, {
+          collation: { locale: 'en', strength: 1 }, // Case-insensitive collation
+        })
+        .exec();
+    } catch (error) {
+      throw new Error(`Error while fetching residence draft list: ${error}`);
+    }
+  }
+
+  async getSimilarResidences(getSimilarResidenceDto: GetSimilarResidenceDto) {
+    try {
+      const selectedResidence = await this.residenceModel
+        .findById(getSimilarResidenceDto.residenceId)
+        .exec();
+
+      if (!selectedResidence) {
+        throw new NotFoundException('Residence not found');
+      }
+
+      const paginationOptions = PaginationService.prepareOptions(getSimilarResidenceDto);
+      const sortObject = paginationOptions.sort.reduce((acc, [field, order]) => {
+        acc[field] = order;
+        return acc;
+      }, {});
+
+      const pipeline: PipelineStage[] = [
+        {
+          $match: {
+            _id: { $ne: selectedResidence._id },
+          },
+        },
+
+        {
+          $lookup: {
+            from: 'rankingrequests',
+            localField: '_id',
+            foreignField: 'residenceId',
+            as: 'rankingRequests',
+          },
+        },
+        { $unwind: { path: '$rankingRequests', preserveNullAndEmptyArrays: true } },
+
+        {
+          $match: {
+            status: { $eq: ResidenceStatus.ACTIVE },
+            $or: [
+              ...(getSimilarResidenceDto.rankingCategoryId
+                ? [
+                    {
+                      'rankingRequests.rankingCategoryId': new Types.ObjectId(
+                        getSimilarResidenceDto.rankingCategoryId
+                      ),
+                    },
+                  ]
+                : []),
+              {
+                $and: [{ cityId: { $exists: true } }, { cityId: selectedResidence.cityId }],
+              },
+              {
+                $and: [
+                  { countryId: { $exists: true } },
+                  { countryId: selectedResidence.countryId },
+                ],
+              },
+              {
+                $and: [
+                  { highestBbrScore: { $exists: true } },
+                  {
+                    highestBbrScore: {
+                      $gte: selectedResidence.highestBbrScore - 1,
+                      $lte: selectedResidence.highestBbrScore + 1,
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        },
+        {
+          $group: {
+            _id: '$_id',
+            name: { $first: '$name' },
+            residenceTypeIds: { $first: '$residenceTypeIds' },
+            locationId: { $first: '$locationId' },
+            websiteLink: { $first: '$websiteLink' },
+            highestRankingCategoryId: { $first: '$highestRankingCategoryId' },
+            highestBbrScore: { $first: '$highestBbrScore' },
+            associatedBrandId: { $first: '$associatedBrandId' },
+            briefOverview: { $first: '$briefOverview' },
+            comprehensiveOverview: { $first: '$comprehensiveOverview' },
+            budgetLimitationsRange: { $first: '$budgetLimitationsRange' },
+            residenceKeyFeatures: { $first: '$residenceKeyFeatures' },
+            visuals: { $first: '$visuals' },
+            nearbyAmenities: { $first: '$nearbyAmenities' },
+            status: { $first: '$status' },
+            rejectionReason: { $first: '$rejectionReason' },
+            paymentMethodId: { $first: '$paymentMethodId' },
+            subscriptionId: { $first: '$subscriptionId' },
+            cityId: { $first: '$cityId' },
+            countryId: { $first: '$countryId' },
+            lifeStyleId: { $first: '$lifeStyleId' },
+            createdById: { $first: '$createdById' },
+            developerId: { $first: '$developerId' },
+            createdAt: { $first: '$createdAt' },
+            updatedById: { $first: '$updatedById' },
+            updatedAt: { $first: '$updatedAt' },
+            submissionDate: { $first: '$submissionDate' },
+            address: { $first: '$address' },
+            isDeleted: { $first: '$isDeleted' },
+            rankingRequests: { $first: '$rankingRequests' },
+          },
+        },
+
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'developerId',
+            foreignField: '_id',
+            as: 'developerData',
+          },
+        },
+        {
+          $unwind: {
+            path: '$developerData',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+
+        {
+          $lookup: {
+            from: 'residencetypes',
+            localField: 'residenceTypeIds', // Assuming the field is now residenceTypeIds (array)
+            foreignField: '_id',
+            as: 'residenceTypes',
+          },
+        },
+        {
+          $unwind: {
+            path: '$residenceTypes',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $lookup: {
+            from: 'cities',
+            localField: 'cityId',
+            foreignField: '_id',
+            as: 'city',
+          },
+        },
+        {
+          $unwind: {
+            path: '$city',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $lookup: {
+            from: 'countries',
+            localField: 'countryId',
+            foreignField: '_id',
+            as: 'country',
+          },
+        },
+        {
+          $unwind: {
+            path: '$country',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $lookup: {
+            from: 'associatedbrands',
+            localField: 'associatedBrandId',
+            foreignField: '_id',
+            as: 'associatedBrand',
+          },
+        },
+        {
+          $unwind: {
+            path: '$associatedBrand',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $lookup: {
+            from: 'residencefeatures',
+            localField: 'residenceKeyFeatures.featureIds',
+            foreignField: '_id',
+            as: 'residenceFeatures',
+          },
+        },
+        {
+          $lookup: {
+            from: 'uploads',
+            localField: 'visuals.mainPhotos',
+            foreignField: '_id',
+            as: 'mainPhotos',
+          },
+        },
+        {
+          $lookup: {
+            from: 'uploads',
+            localField: 'visuals.mainGalleryPhotos',
+            foreignField: '_id',
+            as: 'mainGalleryPhotos',
+          },
+        },
+        {
+          $lookup: {
+            from: 'uploads',
+            localField: 'visuals.secondGalleryPhotos',
+            foreignField: '_id',
+            as: 'secondGalleryPhotos',
+          },
+        },
+        {
+          $lookup: {
+            from: 'uploads',
+            localField: 'visuals.videoTour',
+            foreignField: '_id',
+            as: 'videoTour',
+          },
+        },
+        {
+          $lookup: {
+            from: 'amenities',
+            localField: 'nearbyAmenities.amenitiesList',
+            foreignField: '_id',
+            as: 'amenitiesList',
+          },
+        },
+        {
+          $lookup: {
+            from: 'amenities',
+            localField: 'nearbyAmenities.highlightedAmenities.amenityId',
+            foreignField: '_id',
+            as: 'highlightedAmenities',
+          },
+        },
+        {
+          $lookup: {
+            from: 'uploads',
+            localField: 'nearbyAmenities.highlightedAmenities.imageId',
+            foreignField: '_id',
+            as: 'highlightedAmenitiesImage',
+          },
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'createdById',
+            foreignField: '_id',
+            as: 'createdBy',
+          },
+        },
+
+        // Project only relevant fields
+        {
+          $project: {
+            _id: 1,
+            name: 1,
+            residenceTypeIds: 1,
+            websiteLink: 1,
+            associatedBrand: '$associatedBrand.name',
+            briefOverview: 1,
+            comprehensiveOverview: 1,
+            budgetLimitationsRange: 1,
+            highestBbrScore: 1,
+            residenceKeyFeatures: 1,
+            visuals: {
+              mainPhotos: { $ifNull: ['$mainPhotos', []] },
+              mainGalleryPhotos: { $ifNull: ['$mainGalleryPhotos', []] },
+              secondGalleryPhotos: { $ifNull: ['$secondGalleryPhotos', []] },
+              videoTour: { $ifNull: [{ $arrayElemAt: ['$videoTour', 0] }, null] },
+            },
+            nearbyAmenities: {
+              amenitiesList: '$amenitiesList',
+              highlightedAmenities: {
+                amenityId: '$highlightedAmenities',
+                imageId: '$highlightedAmenitiesImage',
+              },
+            },
+            rejectionReason: 1,
+            city: { name: '$city.name', type: '$city.type', countryId: '$city.countryId' },
+            country: { name: '$country.name', type: '$country.type' },
+            lifeStyleId: 1,
+            rankingRequests: 1,
+            createdById: {
+              fullName: { $arrayElemAt: ['$createdBy.fullName', 0] },
+              email: { $arrayElemAt: ['$createdBy.email', 0] },
+              role: { $arrayElemAt: ['$createdBy.role', 0] },
+            },
+            developerId: {
+              fullName: '$developerData.fullName',
+              email: '$developerData.email',
+              role: '$developerData.role',
+            },
+            createdAt: 1,
+            updatedById: '$updatedById',
+            updatedAt: 1,
+            submissionDate: 1,
+            address: '$address',
+            status: 1,
           },
         },
 
