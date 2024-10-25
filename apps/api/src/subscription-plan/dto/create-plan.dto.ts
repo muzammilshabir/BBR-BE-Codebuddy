@@ -3,10 +3,11 @@ import { Interval } from '../enum/interval.enum';
 import * as Joi from 'joi';
 import { Types } from 'mongoose';
 import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
-class Feature {
+class PlanFeature {
   @ApiProperty({
     type: String,
     required: true,
+    example: "66acda8b857c576159b74d21",
     description: 'Id of the feature',
   })
   feature: Types.ObjectId;
@@ -55,10 +56,10 @@ export class CreatePlanDto {
 
   @ApiProperty({
     description: 'The IDs of active features for this plan',
-    type: Feature,
+    type: PlanFeature,
     isArray: true,
   })
-  features: Feature[];
+  features: PlanFeature[];
 
   @ApiProperty({
     example: false,
@@ -77,7 +78,7 @@ export const createPlanDtoSchema = Joi.object({
   features: Joi.array()
     .items(
       Joi.object({
-        id: Joi.string().custom(joiObjectIdValidator('id')),
+        feature: Joi.string().custom(joiObjectIdValidator('id')),
         active: Joi.boolean(),
         order: Joi.number().min(0),
       })
