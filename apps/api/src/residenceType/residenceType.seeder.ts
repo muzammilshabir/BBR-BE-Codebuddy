@@ -7,9 +7,7 @@ export class ResidenceTypeSeeder extends AbstractSeeder {
   public name = ResidenceTypeSeeder.name;
   private readonly logger = new Logger(ResidenceTypeSeeder.name);
 
-  constructor(
-    private readonly residenceTypeRepository: ResidenceTypeRepository,
-  ) {
+  constructor(private readonly residenceTypeRepository: ResidenceTypeRepository) {
     super();
   }
 
@@ -19,12 +17,13 @@ export class ResidenceTypeSeeder extends AbstractSeeder {
         { type: 'Condo' },
         { type: 'Villa' },
         { type: 'Penthouse' },
+        { type: 'Townhouse' },
+        { type: 'Estate Home' },
       ];
 
       for (const type of residenceTypes) {
-        await this.residenceTypeRepository.upsert({type:type.type},type);
+        await this.residenceTypeRepository.upsert({ type: type.type }, type);
       }
-
     } catch (error) {
       this.logger.error('Error while seeding residence types:', error);
     }
