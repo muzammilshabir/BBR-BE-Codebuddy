@@ -45,6 +45,14 @@ export class AddUnitDto {
   };
 
   @ApiProperty({
+    description: 'Set to true if ExclusiveOffer',
+    example: false,
+    required: false,
+    default: false,
+  })
+  isExclusiveOffer?: boolean;
+
+  @ApiProperty({
     example: [
       {
         roomTypeId: '66acda8b857c576159b74da4',
@@ -100,6 +108,7 @@ export const addUnitSchema = Joi.object({
     subTitle: Joi.string().required(),
     description: Joi.string().required(),
   }).required(),
+  isExclusiveOffer: Joi.boolean().optional(),
 });
 
 export class FileUploadDto {

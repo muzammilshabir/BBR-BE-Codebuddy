@@ -40,6 +40,9 @@ export class Unit extends Document {
     OfferEndDate: Date;
   };
 
+  @Prop({ type: Boolean, default: false })
+  isExclusiveOffer?: boolean;
+
   @Prop([
     {
       type: {
