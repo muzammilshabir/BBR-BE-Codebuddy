@@ -55,13 +55,20 @@ export class SubscriptionPlanService {
     const transformedPlan = {
       ...plan,
     };
-    if("features" in plan && plan.features.length > 0) {
+
+    if ("features" in plan && plan.features.length > 0) {
       const newFeatures = plan.features.map((feature) => {
         feature.feature = new Types.ObjectId(feature.feature);
         return feature;
       });
-      const mergedFeatures = [...existingPlan.features, ...newFeatures];
-      transformedPlan.features = [...new Set(mergedFeatures.flat())];
+      const mergedFeatures = [...newFeatures, ...existingPlan.features];
+      const uniqueFeatures = Array.from(
+        new Map(
+          mergedFeatures.map(feature => [feature.feature.toString(), feature])
+        ).values()
+      );
+      
+      transformedPlan.features = uniqueFeatures;
     }
 
     return this.planRepository.update(planId, transformedPlan);
