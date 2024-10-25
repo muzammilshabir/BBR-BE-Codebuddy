@@ -2,12 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { BrandRepository } from './brand.repository';
 import { ListBrandDto } from './dto/listBrand.dto';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
-import { UpdateBrandDto } from './dto/updateBrand.dto';
-import { NotFoundException } from '@bbr/api-core/modules/exceptions';
+import { UpdateBrandDto, UpdateBrandStatusDto } from './dto/updateBrand.dto';
+import { BadRequestException, NotFoundException } from '@bbr/api-core/modules/exceptions';
 import { CreateBrandApplyDto, CreateBrandDraftDto } from './dto/createBrandDraft.dto';
 import { BrandDraftRepository } from '../brandDraft/brandDraft.repository';
 import { BrandStatus } from './enum/brand-enum';
 import { Types } from 'mongoose';
+import { Brand } from './schema/brand.schema';
+import { DeletionStatus } from '../unit/enum/unit-enum';
 
 @Injectable()
 export class BrandService {
@@ -209,7 +211,40 @@ export class BrandService {
     return { brand: updatedBrand, draft: newDraft };
   }
 
-  async getBrandById(brandDraftId: string) {
-    return await this.brandRepository.getBrandById(brandDraftId);
+  async getBrandById(brandId: string) {
+    return await this.brandRepository.getBrandById(brandId);
+  }
+
+  async updateBrandStatus(
+    brandId: string,
+    userId: string,
+    updateBrandStatusDto: UpdateBrandStatusDto
+  ): Promise<Brand> {
+    const brand = await this.getBrandById(brandId);
+
+    if (!brand) {
+      throw new NotFoundException(`Brand with ID ${brandId} not found`);
+    }
+
+    if (brand.isDeleted === true) {
+      throw new BadRequestException(`Deleted brand can not be updated`);
+    }
+    if ([BrandStatus.DRAFT].includes(updateBrandStatusDto.status)) {
+      throw new BadRequestException(
+        `Cannot update brand with status: ${updateBrandStatusDto.status}`
+      );
+    }
+    const updatePayload: any = {
+      status: updateBrandStatusDto.status,
+      updatedById: new Types.ObjectId(userId),
+    };
+
+    if (updateBrandStatusDto.status === BrandStatus.DELETED) {
+      updatePayload.isDeleted = DeletionStatus.DELETED;
+    }
+
+    const updatedResidence = await this.brandRepository.update(brandId, updatePayload);
+
+    return updatedResidence;
   }
 }

@@ -7,7 +7,12 @@ import { BrandService } from './brand.service';
 import { ListBrandDto, listBrandSchema } from './dto/listBrand.dto';
 import { UserRole } from '../users/enum/user.enum';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { UpdateBrandDto, updateBrandSchema } from './dto/updateBrand.dto';
+import {
+  UpdateBrandDto,
+  updateBrandSchema,
+  UpdateBrandStatusDto,
+  updateBrandStatusSchema,
+} from './dto/updateBrand.dto';
 import {
   CreateBrandApplyDto,
   createBrandApplySchema,
@@ -17,6 +22,7 @@ import {
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { PermissionLevel } from '../modulePolicy/enum/permission-enum';
 import { GetBrandByIdDto, getBrandByIdSchema } from './dto/getBrand.dto';
+import { GetCurrentUserId } from '../auth/decorators/getCurrentUserId.decorator';
 
 @ApiTags('Brand')
 @Controller('brand')
@@ -84,5 +90,27 @@ export class BrandController {
       message: 'Brand draft retrieved successfully',
       data: brandDraft,
     };
+  }
+
+  @Patch('/:brandId/update-status')
+  @ApiOperation({
+    summary: 'Update Brand Status',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @Permissions('brands', PermissionLevel.EDIT)
+  @UsePipes(new JoiValidationPipe(getBrandByIdSchema, 'param'))
+  @UsePipes(new JoiValidationPipe(updateBrandStatusSchema, 'body'))
+  async updateResidenceStatus(
+    @GetCurrentUserId() userId: string,
+    @Param() params: GetBrandByIdDto,
+    @Body() updateBrandStatusDto: UpdateBrandStatusDto
+  ) {
+    const brand = await this.brandService.updateBrandStatus(
+      params.brandId,
+      userId,
+      updateBrandStatusDto
+    );
+    return ResponseService.buildResponse({ brand }, 'Brand status updated successfully');
   }
 }
