@@ -737,27 +737,9 @@ export class ResidenceRepository extends BaseRepository<Residence> {
     }
   }
 
-  async getResidencesTotalCount(
-    listResidenceWithDraftDto: ListResidenceWithDraftDto
-  ): Promise<any[]> {
+  async getResidencesTotalCount(status: string): Promise<any[]> {
     try {
-      const { status, developerId, search, brandId } = listResidenceWithDraftDto;
-
-      const paginationOptions = PaginationService.prepareOptions(listResidenceWithDraftDto);
-      const sortObject = paginationOptions.sort.reduce((acc, [field, order]) => {
-        acc[field] = order;
-        return acc;
-      }, {});
-
       const pipeline: PipelineStage[] = [
-        //  Match residences based on filters like developerId
-        {
-          $match: {
-            ...(developerId ? { developerId: new Types.ObjectId(developerId) } : {}),
-            ...(brandId ? { associatedBrandId: new Types.ObjectId(brandId) } : {}),
-          },
-        },
-
         // Lookup for all drafts from residencedrafts collection
         {
           $lookup: {
@@ -823,21 +805,6 @@ export class ResidenceRepository extends BaseRepository<Residence> {
           },
         },
 
-        // Handle search criteria (if provided)
-        {
-          $match: {
-            ...(search
-              ? {
-                  $or: [
-                    { 'latestDraft.name': { $regex: search, $options: 'i' } },
-                    { 'latestDraft.address.city': { $regex: search, $options: 'i' } },
-                    { 'latestDraft.address.country': { $regex: search, $options: 'i' } },
-                    { 'developerData.fullName': { $regex: search, $options: 'i' } }, // Search in developerData
-                  ],
-                }
-              : {}),
-          },
-        },
         {
           // Lookup for multiple residence types based on an array of residenceTypeIds
           $lookup: {
@@ -877,11 +844,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
         // Pagination and total count
         {
           $facet: {
-            data: [
-              { $sort: sortObject },
-              { $skip: paginationOptions.offset },
-              { $limit: Number(paginationOptions.limit) },
-            ],
+            data: [{ $skip: 0 }, { $limit: 1 }],
             totalCount: [{ $count: 'count' }],
           },
         },

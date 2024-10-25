@@ -16,6 +16,7 @@ import {
   ListResidenceByFiltersDto,
   ListResidenceByFiltersQueryPropsDto,
   ListResidenceDto,
+  ListResidenceWithDraftCountDto,
   ListResidenceWithDraftDto,
   ListTopResidencesDto,
 } from './dto/list-residence.dto';
@@ -970,24 +971,20 @@ export class ResidenceService {
     return { pagination, residences: transformedResidence };
   }
 
-  async getResidencesTotalCount(listResidenceWithDraftDto: ListResidenceWithDraftDto) {
+  async getResidencesTotalCount() {
     // Call repository for each status type and aggregate the counts
-    const activeCount = await this.residenceRepository.getResidencesTotalCount({
-      ...listResidenceWithDraftDto,
-      status: ResidenceStatus.ACTIVE,
-    });
-    const draftCount = await this.residenceRepository.getResidencesTotalCount({
-      ...listResidenceWithDraftDto,
-      status: ResidenceStatus.DRAFT,
-    });
-    const pendingCount = await this.residenceRepository.getResidencesTotalCount({
-      ...listResidenceWithDraftDto,
-      status: ResidenceStatus.PENDING,
-    });
-    const archivedCount = await this.residenceRepository.getResidencesTotalCount({
-      ...listResidenceWithDraftDto,
-      status: ResidenceStatus.ARCHIVED,
-    });
+    const activeCount = await this.residenceRepository.getResidencesTotalCount(
+      ResidenceStatus.ACTIVE
+    );
+    const draftCount = await this.residenceRepository.getResidencesTotalCount(
+      ResidenceStatus.DRAFT
+    );
+    const pendingCount = await this.residenceRepository.getResidencesTotalCount(
+      ResidenceStatus.PENDING
+    );
+    const archivedCount = await this.residenceRepository.getResidencesTotalCount(
+      ResidenceStatus.ARCHIVED
+    );
 
     // Return a consolidated response with counts for each status
     return {

@@ -193,3 +193,13 @@ export const listTopResidencesSchema = PaginationSchema.append({
   sortOrder: Joi.string().valid('desc').default('desc'),
   sortBy: Joi.string().valid('highestBbrScore').default('highestBbrScore'),
 });
+
+export class ListResidenceWithDraftCountDto extends ListPropsDto {
+  @ApiProperty({
+    example: ResidenceStatus.ACTIVE,
+    enum: ResidenceStatus,
+    description: 'The status of the residence',
+    required: false,
+  })
+  status?: ResidenceStatus;
+}

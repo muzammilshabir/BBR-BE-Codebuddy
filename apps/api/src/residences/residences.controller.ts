@@ -220,8 +220,8 @@ export class ResidenceController {
   @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
   @Permissions('residence', PermissionLevel.READ)
-  async getResidencesTotalCount(@Query() query: ListResidenceWithDraftDto) {
-    const result = await this.residenceService.getResidencesTotalCount(query);
+  async getResidencesTotalCount() {
+    const result = await this.residenceService.getResidencesTotalCount();
 
     return ResponseService.buildResponse(result, 'Residence total count retrieved successfully');
   }
