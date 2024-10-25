@@ -26,6 +26,8 @@ import {
   ListResidenceDto,
   listResidenceSchema,
   ListResidenceWithDraftDto,
+  ListTopResidencesDto,
+  listTopResidencesSchema,
 } from './dto/list-residence.dto';
 import { AddKeyFeaturesDto, addKeyFeaturesSchema } from './dto/residenceKeyFeatures.dto';
 import {
@@ -47,6 +49,7 @@ import { JwtPayloadType } from '../auth/type/jwt-payload.type';
 import { Public } from '../auth/decorators/public.decorator';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { PermissionLevel } from '../modulePolicy/enum/permission-enum';
+import { GetSimilarResidenceDto, getSimilarResidenceSchema } from './dto/get-similar-residence';
 
 @ApiTags('Residence')
 @Controller('residence')
@@ -208,6 +211,34 @@ export class ResidenceController {
     const result = await this.residenceService.listResidencesWithDraft(query);
 
     return ResponseService.buildResponse(result, 'Residence retrieved successfully');
+  }
+
+  @Get('/similar-residence')
+  @ApiOperation({
+    summary: 'List Similar Residence',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER, UserRole.ADMIN, UserRole.BUYER)
+  @Permissions('residence', PermissionLevel.READ)
+  @UsePipes(new JoiValidationPipe(getSimilarResidenceSchema, 'query'))
+  async getSimilarResidences(@Query() query: GetSimilarResidenceDto) {
+    const result = await this.residenceService.getSimilarResidences(query);
+
+    return ResponseService.buildResponse(result, 'Similar Residence retrieved successfully');
+  }
+
+  @Get('/top-residences')
+  @ApiOperation({
+    summary: 'List Top Residence',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER, UserRole.BUYER, UserRole.ADMIN)
+  @Permissions('residence', PermissionLevel.READ)
+  @UsePipes(new JoiValidationPipe(listTopResidencesSchema, 'query'))
+  async getTopResidences(@Query() query: ListTopResidencesDto) {
+    const result = await this.residenceService.getTopResidences(query);
+
+    return ResponseService.buildResponse(result, 'Top Residence retrieved successfully');
   }
 
   @Get(':id')

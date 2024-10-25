@@ -15,6 +15,12 @@ export class Residence extends Document {
   @Prop({ required: false })
   websiteLink?: string;
 
+  @Prop({ required: false, type: Types.ObjectId, ref: 'RankingCategory' })
+  highestRankingCategoryId?: string;
+
+  @Prop({ required: false })
+  highestBbrScore?: number;
+
   @Prop({ required: false, type: Types.ObjectId, ref: 'Brand' })
   associatedBrandId?: Types.ObjectId;
 
