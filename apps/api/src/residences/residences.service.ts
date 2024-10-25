@@ -17,6 +17,7 @@ import {
   ListResidenceByFiltersQueryPropsDto,
   ListResidenceDto,
   ListResidenceWithDraftDto,
+  ListTopResidencesDto,
 } from './dto/list-residence.dto';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
 import * as XLSX from 'xlsx';
@@ -38,7 +39,6 @@ import { LifeStyleRepository } from '../lifestyles/lifeStyle.repository';
 import { UnitDraftRepository } from '../unitDraft/unitDraft.repository';
 import { UnitRepository } from '../unit/unit.repository';
 import { GetSimilarResidenceDto } from './dto/get-similar-residence';
-import { ListPropsDto } from '../../../../packages/api-core/modules/dto/listProps.dto';
 
 @Injectable()
 export class ResidenceService {
@@ -898,15 +898,15 @@ export class ResidenceService {
     return { pagination, residences: data };
   }
 
-  async getTopResidences(listPropsDto: ListPropsDto) {
+  async getTopResidences(listTopResidencesDto: ListTopResidencesDto) {
     const filter: any = {
       isDeleted: false,
       status: ResidenceStatus.ACTIVE,
       highestBbrScore: { $exists: true },
     };
     const options = PaginationService.prepareOptions({
-      limit: listPropsDto.limit,
-      page: listPropsDto.page,
+      limit: listTopResidencesDto.limit,
+      page: listTopResidencesDto.page,
       sortBy: 'highestBbrScore',
       sortOrder: 'desc',
     });
@@ -964,7 +964,7 @@ export class ResidenceService {
     });
     const transformedResidence = await this.transformResidences(updatedData);
 
-    const { pagination } = PaginationService.paginate({ rows: data, count }, listPropsDto);
+    const { pagination } = PaginationService.paginate({ rows: data, count }, listTopResidencesDto);
 
     return { pagination, residences: transformedResidence };
   }
