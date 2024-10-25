@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Residence } from './schema/residences.schema';
@@ -81,6 +81,10 @@ export class ResidenceRepository extends BaseRepository<Residence> {
 
     residence.units = units.length > 0 ? units[0].units : [];
     return residence;
+  }
+
+  async aggregate(pipeline) {
+    return await this.residenceModel.aggregate(pipeline);
   }
 
   async listResidencesWithDraft(

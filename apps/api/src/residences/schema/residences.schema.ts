@@ -162,6 +162,13 @@ export class Residence extends Document {
   })
   subscriptionId?: Types.ObjectId;
 
+  @Prop({
+    type: Types.ObjectId,
+    ref: 'Plan',
+    required: false,
+  })
+  planId?: Types.ObjectId;
+
   @Prop({ type: Types.ObjectId, ref: 'City' })
   cityId: Types.ObjectId;
 
