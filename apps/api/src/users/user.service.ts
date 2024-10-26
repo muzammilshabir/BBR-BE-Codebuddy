@@ -16,7 +16,7 @@ import { SignupMethod, UserRole, UserStatus } from './enum/user.enum';
 import { User } from './schema/user.schema';
 import { UserRepository } from './user.repository';
 import {
-  ResetStaffMemberPasswordDto,
+  ResetPasswordByIdDto,
   UpdateSellerByIdDto,
   UpdateSellerProfileDto,
   UpdateUserStatusDto,
@@ -506,23 +506,23 @@ export class UserService {
   }
 
   async resetStaffMemberPassword(
-    resetStaffMemberPasswordDto: ResetStaffMemberPasswordDto,
-    userId: string
+    resetPasswordByIdDto: ResetPasswordByIdDto,
+    loginUserId: string
   ): Promise<User> {
-    const { staffMemberId, password } = resetStaffMemberPasswordDto;
-    const staffMember = await this.userRepository.findById(staffMemberId.toString());
+    const { userId, password } = resetPasswordByIdDto;
+    const staffMember = await this.userRepository.findById(userId.toString());
     if (!staffMember) {
-      throw new NotFoundException(`Staff member with ID ${staffMemberId} not found`);
+      throw new NotFoundException(`User with ID ${userId} not found`);
     }
     if (!staffMember.isVerified) {
       throw new BadRequestException('User email is not verified');
     }
 
     const hashedPassword = await argon.hash(password);
-    // Update staff member's password
-    const updatedUser = await this.userRepository.update(staffMemberId.toString(), {
+    // Update user password
+    const updatedUser = await this.userRepository.update(userId.toString(), {
       password: hashedPassword,
-      updatedById: new Types.ObjectId(userId),
+      updatedById: new Types.ObjectId(loginUserId),
     });
 
     return updatedUser;

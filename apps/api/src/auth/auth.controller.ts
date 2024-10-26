@@ -52,10 +52,10 @@ import {
   updateSellerProfileSchema,
   UpdateStaffMemberDto,
   updateStaffMemberSchema,
-  ResetStaffMemberPasswordDto,
-  resetStaffMemberPasswordSchema,
   UpdateSellerByIdDto,
   updateSellerByIdSchema,
+  ResetPasswordByIdDto,
+  resetPasswordByIdSchema,
 } from './dto/updateProfile';
 import { VerifyUserDto, verifyUserSchema } from './dto/verifyUser.dto';
 import { AtGuard } from './guards/at.guard';
@@ -490,21 +490,18 @@ export class AuthController {
     return ResponseService.buildResponse(admins, 'admins retrieved successfully');
   }
 
-  @Patch('admin/staff-member/reset-password')
+  @Patch('/reset-password')
   @ApiOperation({
-    summary: 'Reject Residence by ID',
+    summary: 'Reset password by id',
   })
   @ApiBearerAuth()
   @Roles(UserRole.ADMIN)
-  @UsePipes(new JoiValidationPipe(resetStaffMemberPasswordSchema, 'body'))
+  @UsePipes(new JoiValidationPipe(resetPasswordByIdSchema, 'body'))
   async rejectResidence2(
     @GetCurrentUserId() userId: string,
-    @Body() resetStaffMemberPasswordDto: ResetStaffMemberPasswordDto
+    @Body() resetPasswordByIdDto: ResetPasswordByIdDto
   ) {
-    const user = await this.authService.resetStaffMemberPassword(
-      resetStaffMemberPasswordDto,
-      userId
-    );
-    return ResponseService.buildResponse({ user }, 'Staff member password reset successfully');
+    const user = await this.authService.resetStaffMemberPassword(resetPasswordByIdDto, userId);
+    return ResponseService.buildResponse({ user }, 'Password reset successfully');
   }
 }

@@ -97,13 +97,13 @@ export const updateStaffMemberSchema = Joi.object({
   roleId: Joi.string().optional().custom(joiObjectIdValidator('roleId')),
 });
 
-export class ResetStaffMemberPasswordDto {
+export class ResetPasswordByIdDto {
   @ApiProperty({
     example: '64b1b5f4e05c12a1f5d8e7c2',
     description: 'ID of the Residence',
     required: true,
   })
-  staffMemberId: string;
+  userId: string;
 
   @ApiProperty({
     example: 'Pass@123',
@@ -112,8 +112,8 @@ export class ResetStaffMemberPasswordDto {
   password: string;
 }
 
-export const resetStaffMemberPasswordSchema = Joi.object({
-  staffMemberId: Joi.string().custom(joiObjectIdValidator('staffMemberId')).required(),
+export const resetPasswordByIdSchema = Joi.object({
+  userId: Joi.string().custom(joiObjectIdValidator('userId')).required(),
   password: Joi.string()
     .trim()
     .min(8)
