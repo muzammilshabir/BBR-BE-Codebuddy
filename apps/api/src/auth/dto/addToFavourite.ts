@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import * as Joi from 'joi';
 import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
-import { ListPropsDto } from '@bbr/api-core/modules/dto/listProps.dto';
+import { ListPropsDto, PaginationSchema } from '@bbr/api-core/modules/dto/listProps.dto';
 
 export enum PropertyType {
   UNIT = 'unit',
@@ -48,7 +48,7 @@ export class ListFavouritesDto extends ListPropsDto {
   search?: string;
 }
 
-export const getFavouritesSchema = Joi.object({
+export const getFavouritesSchema = PaginationSchema.append({
   propertyType: Joi.string().valid('unit', 'residence').required(),
   search: Joi.string().optional(),
 });
