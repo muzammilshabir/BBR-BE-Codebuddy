@@ -216,6 +216,7 @@ export class AuthController {
   }
 
   @ApiBearerAuth()
+  @Roles(UserRole.BUYER)
   @Patch('buyer/favourites/add')
   @UsePipes(new JoiValidationPipe(addFavouritesSchema, 'body'))
   @ApiOperation({ summary: 'Add favourites (unit/residence)' })
@@ -228,7 +229,8 @@ export class AuthController {
   }
 
   @ApiBearerAuth()
-  @Get('buyer/favourites')
+  @Get('favourites')
+  @Roles(UserRole.BUYER)
   @UsePipes(new JoiValidationPipe(getFavouritesSchema, 'param'))
   @ApiOperation({ summary: 'Get favourite residences or units' })
   async getFavourites(@GetCurrentUserId() userId: string, @Query() query: ListFavouritesDto) {
