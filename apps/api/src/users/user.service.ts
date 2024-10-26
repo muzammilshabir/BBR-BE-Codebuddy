@@ -17,6 +17,7 @@ import { User } from './schema/user.schema';
 import { UserRepository } from './user.repository';
 import {
   ResetStaffMemberPasswordDto,
+  UpdateSellerByIdDto,
   UpdateSellerProfileDto,
   UpdateUserStatusDto,
 } from '../auth/dto/updateProfile';
@@ -550,5 +551,44 @@ export class UserService {
 
   async getBuyerById(id: string): Promise<User> {
     return await this.userRepository.getBuyerById(id);
+  }
+
+  async updateSellerById(
+    sellerId: string,
+    updateSellerByIdDto: UpdateSellerByIdDto
+  ): Promise<User | { errorCode: ExceptionCodes; message: string }> {
+    const user = await this.userModel.findById(sellerId).exec();
+
+    if (!user) {
+      throw new NotFoundException('Seller not found');
+    }
+
+    const transformedDto = {
+      ...updateSellerByIdDto,
+      associatedBrandId: updateSellerByIdDto.associatedBrandId
+        ? updateSellerByIdDto.associatedBrandId.map((brandId) => new Types.ObjectId(brandId))
+        : undefined,
+
+      avatarImage: updateSellerByIdDto.avatarImage
+        ? new Types.ObjectId(updateSellerByIdDto.avatarImage)
+        : undefined,
+      companyLogo: updateSellerByIdDto.companyLogo
+        ? new Types.ObjectId(updateSellerByIdDto.companyLogo)
+        : undefined,
+    };
+
+    if (updateSellerByIdDto.corporateEmail) {
+      const existingUser = await this.findByEmail(updateSellerByIdDto.corporateEmail);
+      if (existingUser && existingUser._id.toString() !== sellerId) {
+        throw new ConflictException('Email is already in use by another user');
+      }
+    }
+
+    const updatedUser = await this.userRepository.update(sellerId, transformedDto);
+    if (!updatedUser) {
+      throw new NotFoundException(`User with ID ${sellerId} not found`);
+    }
+
+    return updatedUser;
   }
 }

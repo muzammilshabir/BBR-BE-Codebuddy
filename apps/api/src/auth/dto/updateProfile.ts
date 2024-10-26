@@ -5,6 +5,11 @@ import { UserStatus } from '../../users/enum/user.enum';
 import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
 import { AddStaffMemberDto } from './signup.dto';
 import { Types } from 'mongoose';
+import {
+  UserCompanyInfo,
+  UserContactPersonInfo,
+  UserNotificationPreferences,
+} from '../../users/types/user.type';
 
 const omittedForBuyer = [
   'companyInfo',
@@ -118,4 +123,113 @@ export const resetStaffMemberPasswordSchema = Joi.object({
       'string.pattern.base':
         'password must be contain at least 1 uppercase letter, 1 lowercase letter, 1 digit and 1 special character',
     }),
+});
+
+export class UpdateSellerByIdDto {
+  @ApiProperty({ example: 'John Doe', required: false })
+  fullName?: string;
+
+  @ApiProperty({ example: 'corporate@example.com', required: false })
+  corporateEmail?: string;
+
+  @ApiProperty({ example: 'Example Corp', required: false })
+  companyName?: string;
+
+  @ApiProperty({ description: 'Company information', type: UserCompanyInfo, required: false })
+  companyInfo?: UserCompanyInfo;
+
+  @ApiProperty({
+    description: 'Contact person information',
+    type: UserContactPersonInfo,
+    required: false,
+  })
+  contactPersonInfo?: UserContactPersonInfo;
+
+  @ApiProperty({
+    description: 'Notification preferences',
+    type: UserNotificationPreferences,
+    required: false,
+  })
+  notificationPreferences?: UserNotificationPreferences;
+
+  @ApiProperty({
+    description: 'Profile Avatar',
+    example: '66acda8b857c576159b74da4',
+    required: false,
+  })
+  avatarImage?: Types.ObjectId;
+
+  @ApiProperty({
+    description: 'Company Logo',
+    example: '66acda8b857c576159b74da4',
+    required: false,
+  })
+  companyLogo?: Types.ObjectId;
+
+  @ApiProperty({ description: 'Year established', example: '2002', required: false })
+  yearEstablished?: string;
+
+  @ApiProperty({ example: 'Brief description about the company', required: false })
+  briefCompanyDescription?: string;
+
+  @ApiProperty({
+    example: ['66ab4bd5161117eabe919e57', '66ab4bd5161117eabe919e61'],
+    required: true,
+  })
+  associatedBrandId?: Types.ObjectId[];
+
+  @ApiProperty({
+    example: UserStatus.ACTIVE,
+    enum: UserStatus,
+    description: 'The status of the user',
+    required: false,
+  })
+  status?: UserStatus;
+}
+
+export const updateSellerByIdSchema = Joi.object({
+  fullName: Joi.string().optional(),
+  corporateEmail: Joi.string().email().optional(),
+  companyName: Joi.string().optional(),
+
+  companyInfo: Joi.object({
+    address: Joi.string().optional(),
+    corporatePhone: Joi.object({
+      countryCode: Joi.string().optional(),
+      number: Joi.string().optional(),
+    }).optional(),
+    website: Joi.string().uri().optional(),
+  }).optional(),
+
+  contactPersonInfo: Joi.object({
+    fullName: Joi.string().optional(),
+    jobTitle: Joi.string().optional(),
+    email: Joi.string().email().optional(),
+    phone: Joi.object({
+      countryCode: Joi.string().optional(),
+      number: Joi.string().optional(),
+    }).optional(),
+  }).optional(),
+
+  notificationPreferences: Joi.object({
+    latestNews: Joi.boolean().optional(),
+    marketTrends: Joi.boolean().optional(),
+    blogs: Joi.boolean().optional(),
+    pushNotifications: Joi.boolean().optional(),
+    emailNotifications: Joi.boolean().optional(),
+  }).optional(),
+
+  avatarImage: Joi.string().optional().custom(joiObjectIdValidator('avatarImage')),
+  companyLogo: Joi.string().optional().custom(joiObjectIdValidator('companyLogo')),
+
+  yearEstablished: Joi.string().optional(),
+  briefCompanyDescription: Joi.string().optional(),
+
+  associatedBrandId: Joi.array()
+    .items(Joi.string().custom(joiObjectIdValidator('associatedBrandId')))
+    .optional(),
+
+  status: Joi.string()
+    .valid(...Object.values(UserStatus))
+    .optional(),
 });

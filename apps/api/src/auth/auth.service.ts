@@ -30,6 +30,7 @@ import {
   UpdateSellerProfileDto,
   UpdateStaffMemberDto,
   ResetStaffMemberPasswordDto,
+  UpdateSellerByIdDto,
 } from './dto/updateProfile';
 import { VerifyUserDto } from './dto/verifyUser.dto';
 import { JwtPayloadType } from './type/jwt-payload.type';
@@ -712,5 +713,9 @@ export class AuthService {
 
   async getBuyerById(id: string): Promise<User> {
     return await this.userService.getBuyerById(id);
+  }
+
+  async updateSellerById(sellerId: string, updateSellerByIdDto: UpdateSellerByIdDto) {
+    return await this.userService.updateSellerById(sellerId, updateSellerByIdDto);
   }
 }

@@ -54,6 +54,8 @@ import {
   updateStaffMemberSchema,
   ResetStaffMemberPasswordDto,
   resetStaffMemberPasswordSchema,
+  UpdateSellerByIdDto,
+  updateSellerByIdSchema,
 } from './dto/updateProfile';
 import { VerifyUserDto, verifyUserSchema } from './dto/verifyUser.dto';
 import { AtGuard } from './guards/at.guard';
@@ -359,6 +361,18 @@ export class AuthController {
   ) {
     const user = await this.authService.updateSeller(userFromToken, updateSellerProfileDto);
     return ResponseService.buildResponse(user, 'Seller updated successfully');
+  }
+
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update Seller by ID' })
+  @Patch('seller/:id')
+  @UsePipes(new JoiValidationPipe(updateSellerByIdSchema, 'body'))
+  async updateSellerById(
+    @Param('id') sellerId: string,
+    @Body() updateSellerByIdDto: UpdateSellerByIdDto
+  ) {
+    const updatedSeller = await this.authService.updateSellerById(sellerId, updateSellerByIdDto);
+    return ResponseService.buildResponse(updatedSeller, 'Seller updated successfully');
   }
 
   @ApiBearerAuth()
