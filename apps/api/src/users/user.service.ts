@@ -289,7 +289,21 @@ export class UserService {
     if (propertyType === PropertyType.UNIT) {
       filter._id = { $in: user.favouritesUnitIds };
 
-      const { data, count } = await this.unitRepository.findAll(filter, options);
+      const { data, count } = await this.unitRepository.findAll(filter, options, [
+        { path: 'residenceId' },
+        { path: 'visuals.mainPhotos', model: 'Upload' },
+        { path: 'visuals.mainGalleryPhotos', model: 'Upload' },
+        { path: 'visuals.secondGalleryPhotos', model: 'Upload' },
+        { path: 'visuals.videoTour', model: 'Upload' },
+        { path: 'rooms.roomTypeId', model: 'RoomType', select: 'type' },
+        {
+          path: 'unitKeyFeatures.residenceServices.serviceTypeId',
+          model: 'ResidenceService',
+          select: 'type',
+        },
+        { path: 'createdById', model: 'User', select: 'fullName email role' },
+        { path: 'updatedById', model: 'User', select: 'fullName email role' },
+      ]);
 
       const { pagination } = PaginationService.paginate({ rows: data, count }, listFavouritesDto);
 
@@ -297,7 +311,50 @@ export class UserService {
     } else if (propertyType === PropertyType.RESIDENCE) {
       filter._id = { $in: user.favouriteResidenceIds };
 
-      const { data, count } = await this.residenceRepository.findAll(filter, options);
+      const { data, count } = await this.residenceRepository.findAll(filter, options, [
+        {
+          path: 'residenceTypeIds',
+          select: 'type',
+          model: 'ResidenceType',
+        },
+        { path: 'cityId', select: 'name countryId upload' },
+        { path: 'countryId', select: 'name geographicalAreasId upload' },
+        { path: 'associatedBrandId', select: 'name' },
+        {
+          path: 'visuals.mainPhotos',
+          select: 'originalFileKey fileKey url mimeType',
+          model: 'Upload',
+        },
+        {
+          path: 'visuals.mainGalleryPhotos',
+          select: 'originalFileKey fileKey url mimeType',
+          model: 'Upload',
+        },
+        {
+          path: 'visuals.secondGalleryPhotos',
+          select: 'originalFileKey fileKey url mimeType',
+          model: 'Upload',
+        },
+        {
+          path: 'visuals.videoTour',
+          select: 'originalFileKey fileKey url mimeType',
+          model: 'Upload',
+        },
+        { path: 'nearbyAmenities.amenitiesList', select: 'name', model: 'Amenity' },
+        {
+          path: 'nearbyAmenities.highlightedAmenities.amenityId',
+          select: 'name',
+          model: 'Amenity',
+        },
+        {
+          path: 'nearbyAmenities.highlightedAmenities.imageId',
+          select: 'originalFileKey fileKey url mimeType',
+          model: 'Upload',
+        },
+        { path: 'createdById', select: 'fullName email role', model: 'User' },
+        { path: 'developerId', select: 'fullName email role', model: 'User' },
+        { path: 'highestRankingCategoryId', model: 'RankingCategory', select: 'title' },
+      ]);
 
       const { pagination } = PaginationService.paginate({ rows: data, count }, listFavouritesDto);
 
