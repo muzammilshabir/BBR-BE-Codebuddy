@@ -29,7 +29,8 @@ import {
   UpdateUserStatusDto,
   UpdateSellerProfileDto,
   UpdateStaffMemberDto,
-  ResetStaffMemberPasswordDto,
+  UpdateSellerByIdDto,
+  ResetPasswordByIdDto,
 } from './dto/updateProfile';
 import { VerifyUserDto } from './dto/verifyUser.dto';
 import { JwtPayloadType } from './type/jwt-payload.type';
@@ -699,11 +700,8 @@ export class AuthService {
     return await this.userService.listAdmins(listUserDto);
   }
 
-  async resetStaffMemberPassword(
-    resetStaffMemberPasswordDto: ResetStaffMemberPasswordDto,
-    userId: string
-  ) {
-    return await this.userService.resetStaffMemberPassword(resetStaffMemberPasswordDto, userId);
+  async resetStaffMemberPassword(resetPasswordByIdDto: ResetPasswordByIdDto, userId: string) {
+    return await this.userService.resetStaffMemberPassword(resetPasswordByIdDto, userId);
   }
 
   async me(userFromToken: JwtPayloadType) {
@@ -712,5 +710,9 @@ export class AuthService {
 
   async getBuyerById(id: string): Promise<User> {
     return await this.userService.getBuyerById(id);
+  }
+
+  async updateSellerById(sellerId: string, updateSellerByIdDto: UpdateSellerByIdDto) {
+    return await this.userService.updateSellerById(sellerId, updateSellerByIdDto);
   }
 }
