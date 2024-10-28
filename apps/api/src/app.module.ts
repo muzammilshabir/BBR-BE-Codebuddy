@@ -49,6 +49,7 @@ import { RankingRequestModule } from './rankingRequest/rankingRequest.module';
 import { PermissionsGuard } from './auth/guards/permissions.guard';
 import { SubscriptionPlanModule } from './subscription-plan/subscription-plan.module';
 import { BrandDraftModule } from './brandDraft/brandDraft.module';
+import { LoginAttemptModule } from './loginAttempt/loginAttempt.module';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -97,6 +98,7 @@ import { BrandDraftModule } from './brandDraft/brandDraft.module';
     RoleModule,
     SubscriptionPlanModule,
     BrandDraftModule,
+    LoginAttemptModule,
   ],
   controllers: [AppController],
   providers: [
