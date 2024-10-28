@@ -128,6 +128,38 @@ export class User extends Document {
 
   @Prop({ type: Types.ObjectId, ref: 'User' })
   updatedById: Types.ObjectId;
+
+  @Prop({
+    type: {
+      country: { type: String, required: false },
+      state: { type: String, required: false },
+      city: { type: String, required: true },
+      userInput: { type: String, required: true },
+      location: {
+        lat: { type: Number, required: false },
+        lng: { type: Number, required: false },
+      },
+      placeId: { type: String, required: false },
+    },
+    _id: false,
+  })
+  loginAddress: {
+    country?: string;
+    state?: string;
+    city: string;
+    userInput: string;
+    location?: {
+      lat?: number;
+      lng?: number;
+    };
+    placeId?: string;
+  };
+
+  @Prop({ required: false })
+  ip: string;
+
+  @Prop({ type: Date })
+  loginTime: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
