@@ -98,6 +98,11 @@ export class UserRepository extends BaseRepository<User> {
         select: 'originalFileKey fileKey url mimeType',
         model: 'Upload',
       },
+      {
+        path: 'companyLogo',
+        select: 'originalFileKey fileKey url mimeType',
+        model: 'Upload',
+      },
     ]);
     if (!user) throw new UnauthorizedException('Invalid token');
 
