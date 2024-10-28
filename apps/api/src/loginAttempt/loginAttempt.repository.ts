@@ -21,4 +21,18 @@ export class LoginAttemptRepository extends BaseRepository<LoginAttempt> {
     });
     return data;
   }
+
+  async getLatestLoginAttempt(userId: string) {
+    const latestLoginAttempt = await this.loginAttemptModel.aggregate([
+      {
+        $match: {
+          loggedInUserId: userId,
+        },
+      },
+      { $sort: { createdAt: -1 } }, // Sort by the most recent attempt
+      { $limit: 1 }, // Limit to the latest attempt
+    ]);
+
+    return latestLoginAttempt[0] || null; // Return the latest attempt or null if not found
+  }
 }

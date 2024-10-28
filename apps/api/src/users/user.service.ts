@@ -30,16 +30,20 @@ import { AddStaffMemberDto } from '../auth/dto/signup.dto';
 import { RoleRepository } from '../role/role.repository';
 import * as argon from 'argon2';
 import { JwtPayloadType } from '../auth/type/jwt-payload.type';
+import { LoginAttempt } from '../loginAttempt/schema/loginAttempt.schema';
+import { LoginAttemptRepository } from '../loginAttempt/loginAttempt.repository';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectModel(User.name) private readonly userModel: Model<User>,
+    @InjectModel(User.name) private readonly loginAttemptModel: Model<LoginAttempt>,
     private readonly tokenService: TokenService,
     private readonly userRepository: UserRepository,
     private readonly residenceRepository: ResidenceRepository,
     private readonly unitRepository: UnitRepository,
-    private readonly roleRepository: RoleRepository
+    private readonly roleRepository: RoleRepository,
+    private readonly loginAttemptRepository: LoginAttemptRepository
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
@@ -671,6 +675,27 @@ export class UserService {
       role: UserRole.ADMIN,
     });
 
-    return admins;
+    const adminsWithLoginAttempts = await Promise.all(
+      admins.data.map(async (admin) => {
+        const latestLoginAttempt = await this.loginAttemptRepository.getLatestLoginAttempt(
+          admin.id
+        );
+        // Combine admin details with the latest login attempt
+        return {
+          ...admin.toJSON(),
+          loginAttempt: latestLoginAttempt || null, // Handle case if no attempts found
+        };
+      })
+    );
+
+    // Filter admins with successful login attempts
+    const onlineAdminsCount = adminsWithLoginAttempts.filter(
+      (admin) => admin.loginAttempt && admin.loginAttempt.status === 'success'
+    ).length;
+
+    return {
+      admins: adminsWithLoginAttempts,
+      onlineAdminsCount, // Include count of online admins
+    };
   }
 }
