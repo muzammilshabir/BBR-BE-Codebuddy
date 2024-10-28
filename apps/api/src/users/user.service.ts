@@ -648,4 +648,17 @@ export class UserService {
 
     return updatedUser;
   }
+
+  async updateUser(
+    id: string,
+    updateUserDto: any
+  ): Promise<User | { errorCode: ExceptionCodes; message: string }> {
+    const user = await this.userModel.findById(id).exec();
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return await this.userRepository.update(id, updateUserDto);
+  }
 }
