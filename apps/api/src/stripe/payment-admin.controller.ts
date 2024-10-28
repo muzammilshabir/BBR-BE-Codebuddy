@@ -16,6 +16,7 @@ import { CreateInvoiceDto, createInvoiceDtoSchema } from './dto/create-invoice.d
 import { UpdateSubscriptionDto, updateSubscriptionDtoSchema } from './dto/update-subscription.dto';
 import { RefundStatus } from './enum/refund-status.enum';
 import { ListTransactionsDto, listTransactionsDtoSchema } from './dto/list-transactions.dto';
+import { ListRefundRequestsDto, listRefundRequestsDtoSchema } from './dto/list-refund-requests.dto';
 
 @ApiTags('Payment/admin')
 @Controller('payment/admin')
@@ -239,6 +240,48 @@ export class PaymentAdminController {
   }
 
 
+  @Post('/refund/:invoiceId')
+  @ApiOperation({
+    summary: 'Refund Customer Invoice',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(refundPaymentDtoSchema, 'body'))
+  async refundCustomerInvoice(
+    @Param('invoiceId') invoiceId: string,
+    @Body() refundPaymentDto: RefundPaymentDto,
+  ) {
+    const refund = await this.paymentService.refundUserInvoice(invoiceId, refundPaymentDto);
+    return ResponseService.buildResponse({ refund }, 'Invoice refunded successfully');
+  }
+
+  @Get('/refunds')
+  @ApiOperation({
+    summary: 'List Refunds/Requests',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(listRefundRequestsDtoSchema, 'query'))
+  async refundRequestList(
+    @Query() query: ListRefundRequestsDto,
+  ) {
+    const data = await this.paymentService.listRefundRequests(query);
+    return ResponseService.buildResponse(data, 'Refunds/Requests retrieved successfully');
+  }
+
+  @Get('/refund/:refundId')
+  @ApiOperation({
+    summary: 'Get Refund/Request',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  async getRefundRequest(
+    @Param('refundId') refundId: string,
+  ) {
+    const data = await this.paymentService.getRefundRequest(refundId);
+    return ResponseService.buildResponse(data, 'Refund/Request retrieved successfully');
+  }
+
   @Post('/refund-request/:refundId/accept')
   @ApiOperation({
     summary: 'Accept Customer Invoice Refund Request',
@@ -263,21 +306,6 @@ export class PaymentAdminController {
   ) {
     const refund = await this.paymentService.acceptRejectInvoiceRefund(refundId, RefundStatus.REJECTED);
     return ResponseService.buildResponse({ refund }, 'Invoice refund rejected successfully');
-  }
-
-  @Post('/refund/:invoiceId')
-  @ApiOperation({
-    summary: 'Refund Customer Invoice',
-  })
-  @ApiBearerAuth()
-  @Roles(UserRole.ADMIN)
-  @UsePipes(new JoiValidationPipe(refundPaymentDtoSchema, 'body'))
-  async refundCustomerInvoice(
-    @Param('invoiceId') invoiceId: string,
-    @Body() refundPaymentDto: RefundPaymentDto,
-  ) {
-    const refund = await this.paymentService.refundUserInvoice(invoiceId, refundPaymentDto);
-    return ResponseService.buildResponse({ refund }, 'Invoice refunded successfully');
   }
   
   @Get('/customer/payment-methods/:userId')

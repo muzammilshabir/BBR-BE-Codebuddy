@@ -2,8 +2,17 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { InvoiceStatus } from '../enum/invoice-status.enum';
 import { User } from 'src/users/schema/user.schema';
+import { PaymentMethod } from './payment-method.schema';
 
-@Schema({ timestamps: true })
+@Schema({
+  timestamps: true,
+  toJSON: {
+    virtuals: true,
+  },
+  toObject: {
+    virtuals: true,
+  },
+ })
 export class Invoice extends Document {
   @Prop({ required: true, type: Types.ObjectId, ref: 'Residence' })
   residenceId: Types.ObjectId;
@@ -20,6 +29,8 @@ export class Invoice extends Document {
   })
   paymentMethodId: string;
 
+  paymentMethod?: PaymentMethod;
+
   @Prop({
     type: Number,
     example: 5000,
@@ -28,9 +39,16 @@ export class Invoice extends Document {
 
   @Prop({
     type: Number,
-    example: 5000,
+    example: 5,
   })
   tax: number;
+
+  @Prop({
+    type: Number,
+    example: 500000,
+    default: 0,
+  })
+  subTotal: number;
 
   @Prop({
     type: String,
@@ -77,4 +95,13 @@ export class Invoice extends Document {
   isDeleted: boolean;
 }
 
-export const InvoiceSchema = SchemaFactory.createForClass(Invoice);
+const InvoiceSchema = SchemaFactory.createForClass(Invoice);
+
+InvoiceSchema.virtual('paymentMethod', {
+  ref: 'PaymentMethod',
+  localField: 'paymentMethodId',
+  foreignField: 'paymentMethodId',
+  justOne: true
+});
+
+export { InvoiceSchema };

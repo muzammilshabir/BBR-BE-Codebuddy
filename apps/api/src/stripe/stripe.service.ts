@@ -143,8 +143,12 @@ export class StripeService {
     return this.mapPaymentMethodToType(paymentMethod);
   }
 
-  async getStripeProduct(productId: string) {
-    return this.stripe.products.retrieve(productId);
+  async getPrice(priceId: string): Promise<Stripe.Price> {
+    return this.stripe.prices.retrieve(priceId);
+  }
+
+  async getProduct(id: string): Promise<Stripe.Product> {
+    return this.stripe.products.retrieve(id);
   }
 
   async getCustomerInvoices(customerId: string) {
@@ -332,10 +336,6 @@ export class StripeService {
     }
 
     return products;
-  }
-
-  async getProduct(id: string): Promise<Stripe.Product> {
-    return this.stripe.products.retrieve(id);
   }
 
   async updateProduct(id: string, updateProduct: UpdateInvoiceItemDto) {
