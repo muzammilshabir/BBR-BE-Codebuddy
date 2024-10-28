@@ -20,6 +20,8 @@ import { RedisModule } from '../redis/redis.module';
 import { StripeModule } from 'src/stripe/stripe.module';
 import { RoleModule } from '../role/role.module';
 import { HttpModule } from '@nestjs/axios';
+import { LoginAttempt, LoginAttemptSchema } from '../loginAttempt/schema/loginAttempt.schema';
+import { LoginAttemptRepository } from '../loginAttempt/loginAttempt.repository';
 
 @Module({
   imports: [
@@ -31,6 +33,7 @@ import { HttpModule } from '@nestjs/axios';
     StripeModule,
     RoleModule,
     HttpModule,
+    MongooseModule.forFeature([{ name: LoginAttempt.name, schema: LoginAttemptSchema }]),
   ],
   providers: [
     ClaimRequestService,
@@ -44,6 +47,7 @@ import { HttpModule } from '@nestjs/axios';
     JwtService,
     RedisService,
     AuthService,
+    LoginAttemptRepository,
   ],
   exports: [],
   controllers: [ClaimRequestController],

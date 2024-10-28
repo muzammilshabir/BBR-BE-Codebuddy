@@ -42,6 +42,8 @@ import { ListAdminsDto, ListUserDto } from './dto/listUsers';
 import { HttpService } from '@nestjs/axios';
 import { catchError, firstValueFrom } from 'rxjs';
 import { AxiosError } from 'axios';
+import { LoginAttemptRepository } from '../loginAttempt/loginAttempt.repository';
+import { LoginStatus } from '../loginAttempt/schema/loginAttempt.schema';
 
 @Injectable()
 export class AuthService {
@@ -53,7 +55,8 @@ export class AuthService {
     private readonly redisService: RedisService,
     private readonly tokenService: TokenService,
     private readonly stripeService: StripeService,
-    private readonly httpService: HttpService
+    private readonly httpService: HttpService,
+    private readonly loginAttemptRepository: LoginAttemptRepository
   ) {}
 
   static generateVerificationLink(email: string, verifyToken: string) {
@@ -141,11 +144,18 @@ export class AuthService {
         value: String(Number(failedCount) + 1),
       });
 
+      // Use the helper function to create a failed login attempt
+      await this.loginAttemptRepository.createLoginAttempt(undefined, LoginStatus.FAILED);
+
       throw new NotFoundException('Invalid credentials');
     }
 
     if (!user.isVerified) {
       await this.resendVerificationEmail({ email: user.email });
+
+      // Log the failed login attempt
+      await this.loginAttemptRepository.createLoginAttempt(user.id, LoginStatus.FAILED);
+
       return {
         errorCode: ExceptionCodes.UnverifiedUser,
         message: 'Please verify your account first',
@@ -161,18 +171,27 @@ export class AuthService {
         value: String(Number(failedCount) + 1),
       });
 
+      // Log the failed login attempt
+      await this.loginAttemptRepository.createLoginAttempt(user.id, LoginStatus.FAILED);
+
       throw new ForbiddenException('Invalid credentials');
     }
 
     await this.redisService.delete({ prefix: CaptchaEnum.PREFIX, key: ip });
 
     if (user.role === UserRole.SELLER && user.acceptBBRCommitment !== true) {
+      // Log successful login attempt
+      await this.loginAttemptRepository.createLoginAttempt(user.id, LoginStatus.SUCCESS);
+
       return {
         tokens: await this.generateJwtToken(user),
         errorCode: ExceptionCodes.AcceptBBRCommitment,
         message: 'Please accept BBR commitment',
       };
     }
+
+    // Log successful login attempt
+    await this.loginAttemptRepository.createLoginAttempt(user.id, LoginStatus.SUCCESS);
 
     const loginDetails: any = { ip, loginTime: new Date() };
     if (loginDto?.address) {
@@ -720,5 +739,9 @@ export class AuthService {
 
   async updateSellerById(sellerId: string, updateSellerByIdDto: UpdateSellerByIdDto) {
     return await this.userService.updateSellerById(sellerId, updateSellerByIdDto);
+  }
+
+  async getUsersLoggedInLast24Hours() {
+    return await this.userService.findUsersLoggedInLast24HoursWithAdminCount();
   }
 }
