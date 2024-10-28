@@ -122,8 +122,8 @@ export class AuthService {
     }
   }
 
-  async loginWithEmailPassword(loginDto: LoginDto, role: UserRole, ip: string) {
-    const user = await this.userService.findByEmailAndRole(loginDto.email, role);
+  async loginWithEmailPassword(loginDto: LoginDto, ip: string) {
+    const user = await this.userService.findByEmail(loginDto.email);
 
     let failedCount = await this.redisService.get({
       prefix: CaptchaEnum.PREFIX,
@@ -166,13 +166,19 @@ export class AuthService {
 
     await this.redisService.delete({ prefix: CaptchaEnum.PREFIX, key: ip });
 
-    if (role === UserRole.SELLER && user.acceptBBRCommitment !== true) {
+    if (user.role === UserRole.SELLER && user.acceptBBRCommitment !== true) {
       return {
         tokens: await this.generateJwtToken(user),
         errorCode: ExceptionCodes.AcceptBBRCommitment,
         message: 'Please accept BBR commitment',
       };
     }
+
+    const loginDetails: any = { ip, loginTime: new Date() };
+    if (loginDto?.address) {
+      loginDetails.loginAddress = loginDto.address;
+    }
+    await this.userService.updateUser(user.id, loginDetails);
 
     return { tokens: await this.generateJwtToken(user) };
   }
