@@ -52,23 +52,29 @@ export class SubscriptionPlanService {
     if (!existingPlan) {
       throw new Error('Plan not found');
     }
-    const transformedPlan = {
-      ...plan,
-    };
-
+  
+    const transformedPlan = { ...plan };
+  
     if ("features" in plan && plan.features.length > 0) {
-      const newFeatures = plan.features.map((feature) => {
-        feature.feature = new Types.ObjectId(feature.feature);
-        return feature;
-      });
-      const mergedFeatures = [...newFeatures, ...existingPlan.features];
-      const uniqueFeatures = Array.from(
-        new Map(
-          mergedFeatures.map(feature => [feature.feature.toString(), feature])
-        ).values()
-      );
-      
-      transformedPlan.features = uniqueFeatures;
+      const updatedFeatures = existingPlan.features.slice();
+  
+      for (const newFeature of plan.features) {
+        const featureId = new Types.ObjectId(newFeature.feature);
+        const existingFeatureIndex = updatedFeatures.findIndex(f => 
+          f.feature.toString() === featureId.toString()
+        );
+        if (existingFeatureIndex !== -1) {
+          updatedFeatures[existingFeatureIndex].feature = featureId;
+          updatedFeatures[existingFeatureIndex].active = newFeature.active;
+          updatedFeatures[existingFeatureIndex].order = newFeature.order;
+        } else {
+          updatedFeatures.push({
+            ...newFeature,
+            feature: featureId
+          });
+        }
+      }
+      transformedPlan.features = updatedFeatures;
     }
 
     return this.planRepository.update(planId, transformedPlan);
