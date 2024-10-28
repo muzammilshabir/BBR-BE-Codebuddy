@@ -12,6 +12,7 @@ export const loginSchema = Joi.object({
     state: Joi.string().optional(),
     city: Joi.string().optional(),
     userInput: Joi.string().optional(),
+    ip: Joi.string().optional(),
     location: Joi.object({
       lat: Joi.number().optional(),
       lng: Joi.number().optional(),

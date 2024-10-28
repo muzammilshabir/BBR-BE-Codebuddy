@@ -15,6 +15,9 @@ import { AtStrategy } from './strategies/at.strategy';
 import { RtStrategy } from './strategies/rt.strategy';
 import { RoleModule } from '../role/role.module';
 import { StripeModule } from 'src/stripe/stripe.module';
+import { MongooseModule } from '@nestjs/mongoose';
+import { LoginAttempt, LoginAttemptSchema } from '../loginAttempt/schema/loginAttempt.schema';
+import { LoginAttemptRepository } from '../loginAttempt/loginAttempt.repository';
 
 @Module({
   imports: [
@@ -25,8 +28,17 @@ import { StripeModule } from 'src/stripe/stripe.module';
     HttpModule,
     StripeModule,
     RoleModule,
+    MongooseModule.forFeature([{ name: LoginAttempt.name, schema: LoginAttemptSchema }]),
   ],
-  providers: [AuthService, AtStrategy, RtStrategy, ServiceConfig, CaptchaGuard, TokenService],
+  providers: [
+    AuthService,
+    AtStrategy,
+    RtStrategy,
+    ServiceConfig,
+    CaptchaGuard,
+    TokenService,
+    LoginAttemptRepository,
+  ],
   controllers: [AuthController],
   exports: [TokenService, AuthService],
 })

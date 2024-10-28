@@ -69,6 +69,9 @@ export class Address {
   @ApiProperty({ example: 'User provided address details', required: true })
   userInput: string;
 
+  @ApiProperty({ example: '::ffff:10.2.3.54', required: false })
+  ip?: string;
+
   @ApiProperty({
     type: 'object',
     example: { lat: 34.0522, lng: -118.2437 },
@@ -146,6 +149,7 @@ export const createResidenceSchema = Joi.object({
     state: Joi.string().optional(),
     city: Joi.string().required(),
     userInput: Joi.string().required(),
+    ip: Joi.string().optional(),
     location: Joi.object({
       lat: Joi.number().optional(),
       lng: Joi.number().optional(),
