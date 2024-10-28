@@ -661,4 +661,16 @@ export class UserService {
 
     return await this.userRepository.update(id, updateUserDto);
   }
+
+  async findUsersLoggedInLast24HoursWithAdminCount() {
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24 hours ago timestamp
+
+    // Find all users logged in within the last 24 hours
+    const admins = await this.userRepository.findAll({
+      loginTime: { $gte: twentyFourHoursAgo },
+      role: UserRole.ADMIN,
+    });
+
+    return admins;
+  }
 }

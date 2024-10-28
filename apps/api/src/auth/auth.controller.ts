@@ -118,6 +118,17 @@ export class AuthController {
   }
 
   @ApiOperation({
+    summary: 'Get all admins login in last 24 hours',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @Get('logged-in-last-24-hours')
+  async getUsersLoggedInLast24Hours() {
+    const admins = await this.authService.getUsersLoggedInLast24Hours();
+    return ResponseService.buildResponse(admins, 'admins fetched successfully');
+  }
+
+  @ApiOperation({
     summary: 'Buyer Signup',
   })
   @Public()

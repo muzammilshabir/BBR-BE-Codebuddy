@@ -721,4 +721,8 @@ export class AuthService {
   async updateSellerById(sellerId: string, updateSellerByIdDto: UpdateSellerByIdDto) {
     return await this.userService.updateSellerById(sellerId, updateSellerByIdDto);
   }
+
+  async getUsersLoggedInLast24Hours() {
+    return await this.userService.findUsersLoggedInLast24HoursWithAdminCount();
+  }
 }
