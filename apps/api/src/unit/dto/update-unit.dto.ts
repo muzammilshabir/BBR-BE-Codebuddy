@@ -73,6 +73,14 @@ export class UpdateUnitDto {
     subTitle?: string;
     description?: string;
   };
+
+  @ApiProperty({
+    description: 'Set to true if ExclusiveOffer',
+    example: false,
+    required: false,
+    default: false,
+  })
+  isExclusiveOffer?: boolean;
 }
 
 export const updateUnitSchema = Joi.object({
@@ -100,4 +108,5 @@ export const updateUnitSchema = Joi.object({
     subTitle: Joi.string().optional(),
     description: Joi.string().optional(),
   }).optional(),
+  isExclusiveOffer: Joi.boolean().optional(),
 });

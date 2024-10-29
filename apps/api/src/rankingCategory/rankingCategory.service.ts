@@ -29,7 +29,7 @@ export class RankingCategoryService {
   ) {}
 
   async findAll(rankingCategoryDto: RankingCategoryListDto, user: JwtPayloadType) {
-    const { search, status, createdById } = rankingCategoryDto;
+    const { search, status, createdById, categoryType } = rankingCategoryDto;
 
     const query: any = {
       isDeleted: { $ne: DeletionStatus.DELETED },
@@ -46,16 +46,25 @@ export class RankingCategoryService {
       query.status = status;
     }
 
+    if (categoryType) {
+      query.categoryType = categoryType;
+    }
+
     if (createdById) {
-      query.createdById = createdById;
+      query.createdById = new Types.ObjectId(createdById);
     }
     const options = PaginationService.prepareOptions(rankingCategoryDto);
 
-    const { data } = await this.rankingCategoryRepository.findAll(query, options, [
+    const { data, count } = await this.rankingCategoryRepository.findAll(query, options, [
       {
         path: 'createdById',
-        select: 'name email',
+        select: 'fullName email role',
         model: 'User',
+      },
+      {
+        path: 'upload.ImageId',
+        select: 'originalFileKey fileKey url mimeType',
+        model: 'Upload',
       },
     ]);
 
@@ -72,7 +81,10 @@ export class RankingCategoryService {
         ),
       };
     });
-    return updatedData;
+
+    const { pagination } = PaginationService.paginate({ rows: data, count }, rankingCategoryDto);
+
+    return { pagination, rankingCategories: updatedData };
   }
 
   async create(

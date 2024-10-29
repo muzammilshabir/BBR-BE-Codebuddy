@@ -905,12 +905,7 @@ export class ResidenceService {
       status: ResidenceStatus.ACTIVE,
       highestBbrScore: { $exists: true },
     };
-    const options = PaginationService.prepareOptions({
-      limit: listTopResidencesDto.limit,
-      page: listTopResidencesDto.page,
-      sortBy: 'highestBbrScore',
-      sortOrder: 'desc',
-    });
+    const options = PaginationService.prepareOptions(listTopResidencesDto);
 
     const { data, count } = await this.residenceRepository.findAll(filter, options, [
       {

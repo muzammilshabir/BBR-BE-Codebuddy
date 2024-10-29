@@ -25,11 +25,26 @@ import { GetCurrentUserId } from '../auth/decorators/getCurrentUserId.decorator'
 import { UpdateUnitDto, updateUnitSchema } from './dto/update-unit.dto';
 import { PermissionLevel } from '../modulePolicy/enum/permission-enum';
 import { Permissions } from '../auth/decorators/permissions.decorator';
+import { ListExclusiveOfferDto, listExclusiveOfferDtoSchema } from './dto/list-exclusive-offer.dto';
+import { ListPropsDto, PaginationSchema } from '@bbr/api-core/modules/dto/listProps.dto';
 
 @ApiTags('Unit')
 @Controller('unit')
 export class UnitController {
   constructor(private readonly unitService: UnitService) {}
+
+  @Post('/exclusive-offer')
+  @ApiOperation({
+    summary: 'List Units with exclusive offer',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER, UserRole.ADMIN, UserRole.BUYER)
+  @Permissions('residence', PermissionLevel.READ)
+  @UsePipes(new JoiValidationPipe(listExclusiveOfferDtoSchema, 'body'))
+  async listExclusiveOffers(@Body() query: ListExclusiveOfferDto) {
+    const units = await this.unitService.listExclusiveOffers(query);
+    return ResponseService.buildResponse(units, 'Units retrieved successfully');
+  }
 
   @Post(':residenceId')
   @ApiOperation({
@@ -119,6 +134,19 @@ export class UnitController {
   @UsePipes(new JoiValidationPipe(listUnitSchema, 'query'))
   async listUnits(@Query() query: ListUnitDto) {
     const units = await this.unitService.listUnits(query);
+    return ResponseService.buildResponse(units, 'Units retrieved successfully');
+  }
+
+  @Get('/exclusive-offer/best-branded-residence')
+  @ApiOperation({
+    summary: 'List Units with exclusive offer for best branded residence',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER, UserRole.ADMIN, UserRole.BUYER)
+  @Permissions('residence', PermissionLevel.READ)
+  @UsePipes(new JoiValidationPipe(PaginationSchema, 'query'))
+  async getExclusiveOffersForTopBrandedResidences(@Query() query: ListPropsDto) {
+    const units = await this.unitService.getExclusiveOffersForTopBrandedResidences(query);
     return ResponseService.buildResponse(units, 'Units retrieved successfully');
   }
 
