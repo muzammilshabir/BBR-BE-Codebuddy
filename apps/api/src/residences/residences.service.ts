@@ -901,7 +901,7 @@ export class ResidenceService {
 
   async getTopResidences(listTopResidencesDto: ListTopResidencesDto) {
     const filter: any = {
-      isDeleted: false,
+      isDeleted: { $ne: DeletionStatus.DELETED },
       status: ResidenceStatus.ACTIVE,
       highestBbrScore: { $exists: true },
       ...(listTopResidencesDto.countryId

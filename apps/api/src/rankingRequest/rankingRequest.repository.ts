@@ -395,13 +395,7 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
       return acc;
     }, {});
     // Build the aggregation pipeline
-    const pipeline: any[] = [
-      {
-        $match: {
-          isDeleted: { $ne: DeletionStatus.DELETED },
-        },
-      },
-    ];
+    const pipeline: any[] = [];
 
     if (developerId) {
       pipeline.push({

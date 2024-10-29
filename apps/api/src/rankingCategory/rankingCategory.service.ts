@@ -31,9 +31,7 @@ export class RankingCategoryService {
   async findAll(rankingCategoryDto: RankingCategoryListDto, user: JwtPayloadType) {
     const { search, status, createdById, categoryType } = rankingCategoryDto;
 
-    const query: any = {
-      isDeleted: { $ne: DeletionStatus.DELETED },
-    };
+    const query: any = {};
 
     if (search) {
       query.$or = [
