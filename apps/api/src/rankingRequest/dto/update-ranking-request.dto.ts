@@ -97,7 +97,8 @@ export const updateRankingRequestStatusSchema = Joi.object({
     .valid(
       RankingRequestStatus.INACTIVE,
       RankingRequestStatus.ARCHIVED,
-      RankingRequestStatus.DELETED
+      RankingRequestStatus.DELETED,
+      RankingRequestStatus.FLAGGED
     )
     .required(),
 });

@@ -21,6 +21,8 @@ import { UnitDraftRepository } from '../unitDraft/unitDraft.repository';
 import { ResidenceStatus } from '../residences/enum/residence-enum';
 import { UnitDraft } from '../unitDraft/schema/unitDraft.schema';
 import { UpdateUnitDto } from './dto/update-unit.dto';
+import { ListExclusiveOfferDto } from './dto/list-exclusive-offer.dto';
+import { ListPropsDto } from '@bbr/api-core/modules/dto/listProps.dto';
 
 @Injectable()
 export class UnitService {
@@ -483,6 +485,44 @@ export class UnitService {
     const data = result[0]?.data || [];
 
     const { pagination } = PaginationService.paginate({ rows: data, count }, listUnitDto);
+
+    return { pagination, unit: data };
+  }
+
+  async listExclusiveOffers(listExclusiveOfferDto: ListExclusiveOfferDto) {
+    const result = await this.unitRepository.listExclusiveOffers(listExclusiveOfferDto);
+    const count = result[0]?.totalCount || 0;
+    const data = result[0]?.data || [];
+
+    const { pagination } = PaginationService.paginate({ rows: data, count }, listExclusiveOfferDto);
+
+    return { pagination, unit: data };
+  }
+
+  async getExclusiveOffersForTopBrandedResidences(listPropsDto: ListPropsDto) {
+    const residencesResponse = await this.residenceService.getTopResidences({
+      limit: 50,
+      page: 1,
+      sortBy: 'highestBbrScore',
+      sortOrder: 'desc',
+    });
+
+    const residences = residencesResponse?.residences;
+    if (!residences || !Array.isArray(residences)) {
+      throw new Error('No residences found or invalid response structure');
+    }
+
+    // Extract residence IDs
+    const residenceIds = residences.map((residence) => residence._id.toString());
+
+    const result = await this.unitRepository.getExclusiveOffersForTopBrandedResidences(
+      listPropsDto,
+      residenceIds
+    );
+    const count = result[0]?.totalCount || 0;
+    const data = result[0]?.data || [];
+
+    const { pagination } = PaginationService.paginate({ rows: data, count }, listPropsDto);
 
     return { pagination, unit: data };
   }

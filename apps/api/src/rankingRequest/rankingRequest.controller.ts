@@ -82,7 +82,7 @@ export class RankingRequestController {
   async findAll(@Query() listRankingRequestDto: ListRankingRequestDto) {
     const rankingRequests = await this.rankingRequestService.findAll(listRankingRequestDto);
     return ResponseService.buildResponse(
-      { rankingRequests: rankingRequests },
+      rankingRequests,
       'All ranking requests retrieved successfully'
     );
   }
