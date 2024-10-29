@@ -1,17 +1,18 @@
 export enum LeadSource {
   WEBSITE_FORM = 'website form',
+  EVENT = 'event',
+  EMAIL_MARKETING = 'email marketing',
+  SOCIAL_MEDIA = 'social media',
   REFERRAL = 'referral',
   MARKETING_CAMPAIGN = 'marketing campaign',
+  DIRECT_CONTACT = 'direct contact',
 }
 
 export enum LeadStatus {
-  NEW = 'New',
-  CONTACTED = 'Contacted',
-  QUALIFIED = 'Qualified',
-  PROPOSAL_SENT = 'Proposal Sent',
-  NEGOTIATION = 'Negotiation',
-  WON = 'Won',
-  LOST = 'Lost',
+  NEW = 'new',
+  CONTACTED = 'contacted',
+  WON = 'won',
+  LOST = 'lost'
 }
 
 export enum Interval {
