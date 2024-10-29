@@ -18,7 +18,7 @@ export class RankingCategoryRepository extends BaseRepository<RankingCategory> {
   async findById(id: string): Promise<RankingCategory> {
     return this.rankingCategoryModel
       .findOne({ _id: id, isDeleted: { $ne: DeletionStatus.DELETED } })
-      .populate('createdById', 'name email')
+      .populate('createdById', 'fullName email role')
       .populate({
         path: 'upload.ImageId',
         select: 'originalFileKey fileKey url mimeType',

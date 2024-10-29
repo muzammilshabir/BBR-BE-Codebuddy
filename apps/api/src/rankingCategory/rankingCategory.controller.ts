@@ -79,11 +79,8 @@ export class RankingCategoryController {
     @Query() rankingCategoryDto: RankingCategoryListDto,
     @GetCurrentUser() user: JwtPayloadType
   ) {
-    const rankingCategories = await this.rankingCategoryService.findAll(rankingCategoryDto, user);
-    return ResponseService.buildResponse(
-      { rankingCategories },
-      'All ranking categories retrieved successfully'
-    );
+    const result = await this.rankingCategoryService.findAll(rankingCategoryDto, user);
+    return ResponseService.buildResponse(result, 'All ranking categories retrieved successfully');
   }
 
   @Post()
