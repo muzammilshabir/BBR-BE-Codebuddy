@@ -6,14 +6,25 @@ import { LeadController } from './lead.controller';
 import { LeadRepository } from './lead.repository';
 import { ResidenceRepository } from '../residences/residences.repository';
 import { Residence, ResidenceSchema } from '../residences/schema/residences.schema';
+import { Unit, UnitSchema } from 'src/unit/schema/unit.schema';
+import { UnitRepository } from 'src/unit/unit.repository';
+import { LeadSeeder } from './lead.seeder';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: Lead.name, schema: LeadSchema }]),
     MongooseModule.forFeature([{ name: Residence.name, schema: ResidenceSchema }]),
+    MongooseModule.forFeature([{ name: Unit.name, schema: UnitSchema }]),
   ],
-  providers: [LeadService, LeadRepository, ResidenceRepository],
-  exports: [],
+  providers: [
+    LeadService,
+    LeadRepository,
+    ResidenceRepository,
+    UnitRepository,
+    LeadSeeder,
+
+  ],
+  exports: [LeadSeeder],
   controllers: [LeadController],
 })
 export class LeadModule {}

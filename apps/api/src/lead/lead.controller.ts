@@ -2,15 +2,15 @@ import { Public } from '@bbr/api-core/modules/decorators';
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
 import { Body, Controller, Get, Param, Patch, Post, Query, UsePipes } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { LeadService } from './lead.service';
-import { CreateLeadDto, createLeadSchema } from './dto/lead.dto';
-import { ListLeadDto, listListSchema, UpdateLeadDto, updateLeadSchema } from './dto/list-lead.dto';
+import { CreateLeadDto, createLeadSchema } from './dto/create-lead.dto';
+import { ListLeadDto, listListSchema } from './dto/list-lead.dto';
 import { UserRole } from '../users/enum/user.enum';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtPayloadType } from '../auth/type/jwt-payload.type';
 import { GetCurrentUser } from '../auth/decorators/getCurrentUser.decorator';
-import { ListIntervalDto, listIntervalSchema } from './dto/lead-stat.dto';
+import { UpdateLeadDto, updateLeadSchema } from './dto/update-lead.dto';
 
 @ApiTags('Lead')
 @Controller('lead')
@@ -30,26 +30,34 @@ export class LeadController {
 
   @Get('/')
   @ApiOperation({
-    summary: 'List lead with optional residenceId filter',
+    summary: 'List lead filters',
   })
   @ApiBearerAuth()
-  @Roles(UserRole.SELLER)
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
   @UsePipes(new JoiValidationPipe(listListSchema, 'query'))
   async listLeads(@Query() query: ListLeadDto, @GetCurrentUser() user: JwtPayloadType) {
-    const leads = await this.leadService.listLeads(query, user.sub);
-    return ResponseService.buildResponse({ leads }, 'leads retrieved successfully');
+    const leads = user.role === UserRole.SELLER ?
+    await this.leadService.getLeads(query, user.sub) :
+    await this.leadService.getLeads(query);
+    return ResponseService.buildResponse({ leads }, 'Leads retrieved successfully');
   }
 
-  @Patch('/:id/update-status')
+  @Patch('/:id')
   @ApiOperation({
-    summary: 'Update Lead Status',
+    summary: 'Update Lead',
   })
   @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
   @UsePipes(new JoiValidationPipe(updateLeadSchema, 'body'))
-  async updateLeadStatus(@Param('id') leadId: string, @Body() updateLeadDto: UpdateLeadDto) {
-    const lead = await this.leadService.updateLeadStatus(leadId, updateLeadDto.status);
-    return ResponseService.buildResponse({ lead }, 'leads updated successfully');
+  async updateLead(
+    @GetCurrentUser() user: JwtPayloadType,
+    @Param('id') leadId: string,
+    @Body() updateLeadDto: UpdateLeadDto,
+  ) {
+    const lead = user.role === UserRole.SELLER ?
+    await this.leadService.updateLead(leadId, updateLeadDto, user.sub) :
+    await this.leadService.updateLead(leadId, updateLeadDto);
+    return ResponseService.buildResponse({ lead }, 'lead updated successfully');
   }
 
   @Get('/:id')
@@ -58,36 +66,73 @@ export class LeadController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
-  async getLeadById(@Param('id') leadId: string) {
-    const lead = await this.leadService.getLeadById(leadId);
+  async getLeadById(
+    @GetCurrentUser() user: JwtPayloadType,
+    @Param('id') leadId: string,
+  ) {
+    const lead = user.role === UserRole.SELLER ?
+    await this.leadService.getLead(leadId, user.sub) :
+    await this.leadService.getLead(leadId);
     return ResponseService.buildResponse({ lead }, 'lead retrieved successfully');
   }
 
-  @Get('/statistics/count')
-  @ApiOperation({
-    summary: 'Get total lead count and last 24-hour lead count',
-  })
-  @ApiBearerAuth()
-  @Roles(UserRole.SELLER)
-  async getLeadCounts(@GetCurrentUser() user: JwtPayloadType) {
-    const leadCounts = await this.leadService.getLeadCounts(user.sub);
-    return ResponseService.buildResponse(leadCounts, 'Lead counts retrieved successfully');
+  @Get('admin/statistics')
+  @ApiOperation({ summary: 'Get lead statistics' })
+  @Roles(UserRole.ADMIN)
+  async getLeadStatisticsAdmin() {
+    const statistics = await this.leadService.getLeadStatisticsAdmin();
+    console.log(statistics);
+    return ResponseService.buildResponse(statistics, 'Lead statistics retrieved successfully');
   }
 
-  @Get('/statistics/conversion-rate')
-  @ApiOperation({
-    summary: 'Get lead conversion rate based on weekly, monthly, or yearly intervals',
-  })
-  @ApiBearerAuth()
+  @Get('admin/counts-by-source')
+  @ApiOperation({ summary: 'Get lead counts by source' })
+  @Roles(UserRole.ADMIN)
+  async getLeadCountsBySourceAdmin() {
+    const counts = await this.leadService.getLeadCountsBySourceAdmin();
+    return ResponseService.buildResponse(counts, 'Lead counts by source retrieved successfully');
+  }
+
+  @Get('admin/counts-by-week')
+  @ApiOperation({ summary: 'Get lead counts by week for last 4 weeks' })
+  @Roles(UserRole.ADMIN)
+  async getLeadCountsByWeekAdmin() {
+    const counts = await this.leadService.getLeadCountsByWeekAdmin();
+    return ResponseService.buildResponse(counts, 'Lead counts by week retrieved successfully');
+  }
+
+  @Get('seller/statistics')
+  @ApiOperation({ summary: 'Get lead statistics' })
   @Roles(UserRole.SELLER)
-  @UsePipes(new JoiValidationPipe(listIntervalSchema, 'param'))
-  async getLeadConversionRate(@Query() listIntervalDto: ListIntervalDto) {
-    const conversionRateData = await this.leadService.getLeadConversionRate(
-      listIntervalDto.interval
-    );
-    return ResponseService.buildResponse(
-      conversionRateData,
-      'Conversion rate retrieved successfully'
-    );
+  async getLeadStatistics(@GetCurrentUser() user: JwtPayloadType) {
+    const statistics = await this.leadService.getLeadStatistics(user.sub);
+    return ResponseService.buildResponse(statistics, 'Lead statistics retrieved successfully');
+  }
+
+  @Get('seller/counts')
+  @ApiOperation({ summary: 'Get lead counts by source, status, or country' })
+  @ApiQuery({ name: 'period', enum: ['week', 'month', 'year'], required: true })
+  @ApiQuery({ name: 'countBy', enum: ['source', 'status', 'country'], required: true })
+  @Roles(UserRole.SELLER)
+  async getLeadCounts(
+    @Query('period') period: 'week' | 'month' | 'year',
+    @Query('countBy') countBy: 'source' | 'status' | 'country',
+    @GetCurrentUser() user: JwtPayloadType
+  ) {
+    const counts = await this.leadService.getLeadCounts(user.sub, period, countBy);
+    return ResponseService.buildResponse(counts, `Lead counts by ${countBy} retrieved successfully`);
+  }
+  
+
+  @Get('seller/conversion-by-time')
+  @ApiOperation({ summary: 'Get lead conversion by time period' })
+  @ApiQuery({ name: 'period', enum: ['weeks', 'months', 'years'], required: true })
+  @Roles(UserRole.SELLER)
+  async getLeadConversionByTime(
+    @Query('period') period: 'weeks' | 'months' | 'years',
+    @GetCurrentUser() user: JwtPayloadType
+  ) {
+    const counts = await this.leadService.getLeadConversionByTime(user.sub, period);
+    return ResponseService.buildResponse(counts, 'Lead conversion by time period retrieved successfully');
   }
 }

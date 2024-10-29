@@ -28,6 +28,7 @@ import { TransactionStatus } from './enum/transaction-status.enum';
 import { ListTransactionsDto } from './dto/list-transactions.dto';
 import { PaymentAttemptRepository } from './payment-attempt.repository';
 import { SubscriptionStatus } from './enum/subscription-status.enum';
+import { ListRefundRequestsDto } from './dto/list-refund-requests.dto';
 
 @Injectable()
 export class PaymentService {
@@ -48,9 +49,9 @@ export class PaymentService {
   private convertPaymentItemsToLineItems(
     residenceId: string,
     items: { name: string; price: number; metadata: Record<string, string> }[]
-  ): PaymentLineItemDto[] {
+  ): {lineItems: PaymentLineItemDto[], totalPrice: number} {
     const lineItems: PaymentLineItemDto[] = [];
-
+    let totalPrice = 0;
     for (const item of items) {
       lineItems.push({
         price_data: {
@@ -66,9 +67,10 @@ export class PaymentService {
           unit_amount: item.price,
         },
       });
+      totalPrice += item.price;
     }
 
-    return lineItems;
+    return { lineItems, totalPrice};
   }
 
   async createInvoice(userId: string, createInvoiceDto: CreateInvoiceDto, asAdmin: boolean) {
@@ -172,11 +174,11 @@ export class PaymentService {
       throw new Error('You are not the developer of this residence');
     }
 
-    const lineItems = this.convertPaymentItemsToLineItems(
+    const data = this.convertPaymentItemsToLineItems(
       invoice.residenceId.toString(),
       await this.processInvoiceItems(createInvoiceItemsDto.invoiceItems)
     );
-    const products = await this.stripeService.createProducts(lineItems);
+    const products = await this.stripeService.createProducts(data.lineItems);
     const invoiceItems = [];
     for (const product of products) {
       const invoiceItem = {
@@ -188,6 +190,8 @@ export class PaymentService {
       this.invoiceItemRepository.create(invoiceItem);
       invoiceItems.push(invoiceItem);
     }
+    invoice.subTotal += data.totalPrice;
+    await this.invoiceRepository.update(invoice.id, {subsTotal: invoice.subTotal});
     return invoiceItems;
   }
 
@@ -201,9 +205,14 @@ export class PaymentService {
       developerId: userId,
       _id: invoiceItem.invoiceId,
     });
-    if (invoice) {
+    if (!invoice) {
       throw new Error('Invoice not found');
     }
+    const stripeProduct = await this.stripeService.getProduct(invoiceItem.stripeProductId);
+    const stripeProductPrice = await this.stripeService.getPrice(stripeProduct.default_price.toString());
+    invoice.subTotal -= stripeProductPrice.unit_amount;
+    invoice.subTotal += updateInvoiceItemDto.price;
+    await this.invoiceRepository.update(invoice.id, { subTotal: invoice.subTotal });
     return {
       invoiceItem,
       product: this.stripeService.updateProduct(invoiceItem.stripeProductId, updateInvoiceItemDto),
@@ -216,6 +225,11 @@ export class PaymentService {
     if (invoice) {
       throw new Error('Invoice not found');
     }
+    const stripeProduct = await this.stripeService.getProduct(invoiceItem.stripeProductId);
+    const stripeProductPrice = await this.stripeService.getPrice(stripeProduct.default_price.toString());
+    invoice.subTotal -= stripeProductPrice.unit_amount;
+    invoice.subTotal += updateInvoiceItemDto.price;
+    await this.invoiceRepository.update(invoice.id, { subTotal: invoice.subTotal });
     return {
       invoiceItem,
       product: this.stripeService.updateProduct(invoiceItem.stripeProductId, updateInvoiceItemDto),
@@ -364,6 +378,10 @@ export class PaymentService {
       filter.$or = [
         { 'note': { $regex: listInvoicesDto.search, $options: 'i' } },
         { 'membershipType': { $regex: listInvoicesDto.search, $options: 'i' } },
+        { 'residenceId.name': { $regex: listInvoicesDto.search, $options: 'i' } },
+        { 'developerId.fullName': { $regex: listInvoicesDto.search, $options: 'i' } },
+        { 'developerId.email': { $regex: listInvoicesDto.search, $options: 'i' } },
+        { 'paymentMethodId': { $regex: listInvoicesDto.search, $options: 'i' } },
         { 'tax': { $regex: listInvoicesDto.search, $options: 'i' } },
         { 'status': { $regex: listInvoicesDto.search, $options: 'i' } },
       ];
@@ -371,7 +389,14 @@ export class PaymentService {
 
     const options = PaginationService.prepareOptions(listInvoicesDto);
 
-    const { data, count } = await this.invoiceRepository.findAll(filter, options);
+    const { data, count } = await this.invoiceRepository.findAll(
+      filter,
+      options,
+      [
+        { path: 'residenceId', select: 'name', model: 'Residence' },
+        'paymentMethod',
+      ],
+    );
 
     const { pagination } = PaginationService.paginate({ rows: data, count }, listInvoicesDto);
 
@@ -388,6 +413,10 @@ export class PaymentService {
       filter.$or = [
         { 'note': { $regex: listInvoicesDto.search, $options: 'i' } },
         { 'membershipType': { $regex: listInvoicesDto.search, $options: 'i' } },
+        { 'residenceId.name': { $regex: listInvoicesDto.search, $options: 'i' } },
+        { 'developerId.fullName': { $regex: listInvoicesDto.search, $options: 'i' } },
+        { 'developerId.email': { $regex: listInvoicesDto.search, $options: 'i' } },
+        { 'paymentMethodId': { $regex: listInvoicesDto.search, $options: 'i' } },
         { 'tax': { $regex: listInvoicesDto.search, $options: 'i' } },
         { 'status': { $regex: listInvoicesDto.search, $options: 'i' } },
       ];
@@ -395,7 +424,14 @@ export class PaymentService {
 
     const options = PaginationService.prepareOptions(listInvoicesDto);
 
-    const { data, count } = await this.invoiceRepository.findAll(filter, options);
+    const { data, count } = await this.invoiceRepository.findAll(
+      filter,
+      options,
+      [
+        { path: 'residenceId', select: 'name', model: 'Residence' },
+        'paymentMethod',
+      ],
+    );
 
     const { pagination } = PaginationService.paginate({ rows: data, count }, listInvoicesDto);
 
@@ -541,6 +577,49 @@ export class PaymentService {
     };
     await this.createTransaction(transaction);
     return this.refundRepository.create(transformedDto);
+  }
+
+  async getRefundRequest(refundId: string) {
+    return this.refundRepository.findOneExpanded(refundId);
+  }
+
+  async listRefundRequests(listRefundRequestsDto: ListRefundRequestsDto) {
+    const filter: any = {
+    };
+
+    if (listRefundRequestsDto.search) {
+      filter.$or = [
+        { 'note': { $regex: listRefundRequestsDto.search, $options: 'i' } },
+        { 'status': { $regex: listRefundRequestsDto.search, $options: 'i' } },
+        { 'reason': { $regex: listRefundRequestsDto.search, $options: 'i' } },
+        { 'amount': { $regex: listRefundRequestsDto.search, $options: 'i' } },
+        { 'invoiceId.residenceId.name': { $regex: listRefundRequestsDto.search, $options: 'i' } },
+        { 'invoiceId.developerId.fullName': { $regex: listRefundRequestsDto.search, $options: 'i' } },
+        { 'invoiceId.note': { $regex: listRefundRequestsDto.search, $options: 'i' } },
+      ];
+    }
+
+    const options = PaginationService.prepareOptions(listRefundRequestsDto);
+
+    const { data, count } = await this.refundRepository.findAll(
+      filter,
+      options,
+      [
+        {
+          path: 'invoiceId',
+          model: 'Invoice',
+          populate: [
+            { path: 'residenceId', select: 'name', model: 'Residence' },
+            { path: 'developerId', select: 'fullName', model: 'User' },
+            'paymentMethod',
+          ]
+        },
+      ],
+    );
+
+    const { pagination } = PaginationService.paginate({ rows: data, count }, listRefundRequestsDto);
+
+    return { pagination, refundRequests: data };
   }
 
   async acceptRejectInvoiceRefund(refundId: string, action: RefundStatus) {

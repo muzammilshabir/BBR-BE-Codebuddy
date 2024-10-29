@@ -1,197 +1,472 @@
 import { Injectable } from '@nestjs/common';
 import { LeadRepository } from './lead.repository';
-import { CreateLeadDto } from './dto/lead.dto';
+import { CreateLeadDto } from './dto/create-lead.dto';
 import { Lead } from './schema/lead.schema';
 import { Types } from 'mongoose';
 import { ListLeadDto } from './dto/list-lead.dto';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
 import { ResidenceRepository } from '../residences/residences.repository';
 import { NotFoundException } from '@bbr/api-core/modules/exceptions';
-import * as moment from 'moment';
-import { Interval } from './enum/lead-enum';
+import { UpdateLeadDto } from './dto/update-lead.dto';
+import { UnitRepository } from 'src/unit/unit.repository';
+import { DeletionStatus } from 'src/unit/enum/unit-enum';
+import { LeadStatus } from './enum/lead-enum';
 
 @Injectable()
 export class LeadService {
   constructor(
     private readonly leadRepository: LeadRepository,
-    private readonly residenceRepository: ResidenceRepository
+    private readonly residenceRepository: ResidenceRepository,
+    private readonly unitRepository: UnitRepository
   ) {}
-
+  async getDeveloperId(createLeadDto: CreateLeadDto) {
+    if (createLeadDto.developerId) {
+      return new Types.ObjectId(createLeadDto.developerId);
+    }
+    if (createLeadDto.residenceId) {
+      return (await this.residenceRepository.findById(createLeadDto.residenceId.toString()))
+        .developerId;
+    }
+    if (createLeadDto.unitId) {
+      const residenceId = (await this.unitRepository.findById(createLeadDto.unitId.toString()))
+        .residenceId;
+      return (await this.residenceRepository.findById(residenceId.toString())).developerId;
+    }
+    return null;
+  }
   async create(createLeadDto: CreateLeadDto): Promise<Lead> {
     const transformedDto = {
       ...createLeadDto,
-      residenceId: new Types.ObjectId(createLeadDto.residenceId)
+      residenceId: createLeadDto.residenceId
         ? new Types.ObjectId(createLeadDto.residenceId)
         : undefined,
-      unitId: new Types.ObjectId(createLeadDto.unitId)
-        ? new Types.ObjectId(createLeadDto.unitId)
-        : undefined,
+      unitId: createLeadDto.unitId ? new Types.ObjectId(createLeadDto.unitId) : undefined,
+      developerId: await this.getDeveloperId(createLeadDto),
     };
     return await this.leadRepository.create(transformedDto);
   }
 
-  async listLeads(listLeadDto: ListLeadDto, sellerId: string) {
-    const filter: any = {};
+  async getLeads(filterDto: ListLeadDto, developerId?: string) {
+    const { status, source, startDate, endDate, search } = filterDto;
 
-    // Get all residence IDs associated with the seller (developerId)
-    const sellerResidences = await this.residenceRepository.findAll({
-      developerId: new Types.ObjectId(sellerId),
-    });
-    const sellerResidenceIds = sellerResidences.data.map((residence) => residence._id);
+    const query: any = {
+      isDeleted: DeletionStatus.ACTIVE,
+    };
 
-    if (sellerResidenceIds.length === 0) {
-      return {
-        pagination: {
-          limit: 10,
-          currentPage: 1,
-          totalDocs: 0,
-          totalPages: 1,
-          hasNextPage: false,
-          hasPrevPage: false,
-        },
-        leads: [],
-      };
+    if (developerId) {
+      query.developerId = developerId;
     }
 
-    filter.residenceId = { $in: sellerResidenceIds };
-
-    if (listLeadDto.status) {
-      filter.status = listLeadDto.status;
+    if (status) {
+      query.status = status;
     }
 
-    if (listLeadDto.source) {
-      filter.source = listLeadDto.source;
+    if (source) {
+      query.source = source;
     }
 
-    if (listLeadDto.search && listLeadDto.search.trim()) {
-      const searchRegex = new RegExp(listLeadDto.search, 'i');
-      const orConditions: any = [
-        { name: { $regex: searchRegex } },
-        { country: { $regex: searchRegex } },
+    if (startDate && endDate) {
+      query.createdAt = { $gte: startDate, $lte: endDate };
+    }
+
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { unitId: { $regex: search, $options: 'i' } },
+        { residenceId: { $regex: search, $options: 'i' } },
+        { country: { $regex: search, $options: 'i' } },
       ];
-
-      // Find matching residences based on residence name search within seller's residences
-      const matchingResidences = await this.residenceRepository.findAll({
-        name: { $regex: searchRegex },
-        developerId: new Types.ObjectId(sellerId),
-      });
-
-      const matchingResidenceIds = matchingResidences.data.map((residence) => residence._id);
-      if (matchingResidenceIds.length > 0) {
-        orConditions.push({ residenceId: { $in: matchingResidenceIds } });
-      }
-
-      filter.$or = orConditions;
     }
 
-    const options = PaginationService.prepareOptions(listLeadDto);
-    const { data, count } = await this.leadRepository.findAll(filter, options);
-    const { pagination } = PaginationService.paginate({ rows: data, count }, listLeadDto);
+    const options = PaginationService.prepareOptions(filterDto);
+
+    const { data, count } = await this.leadRepository.findAll(query, options, [
+      { path: 'residenceId' },
+      { path: 'unitId' },
+      { path: 'developerId', select: 'fullName email role' },
+      'user',
+    ]);
+
+    const { pagination } = PaginationService.paginate({ rows: data, count }, filterDto);
 
     return { pagination, leads: data };
   }
 
-  async updateLeadStatus(leadId: string, status: string): Promise<any> {
-    const existinLead = await this.leadRepository.update(leadId, { status });
-    if (!existinLead) {
+  async updateLead(leadId: string, updateLeadDto: UpdateLeadDto, userId?: string): Promise<any> {
+    const existingLead = userId
+      ? await this.leadRepository.find({
+          _id: leadId,
+          developerId: userId,
+        })
+      : await this.leadRepository.findById(leadId);
+    if (!existingLead) {
       throw new NotFoundException(`Lead with ID ${leadId}`);
     }
-    return existinLead;
+    return this.leadRepository.update(leadId, updateLeadDto);
   }
 
-  getLeadById(leadId: string): Promise<Lead> {
-    return this.leadRepository.findById(leadId);
+  getLead(leadId: string, userId?: string): Promise<Lead> {
+    return userId
+      ? this.leadRepository.find({
+          _id: leadId,
+          developerId: userId,
+        })
+      : this.leadRepository.findById(leadId);
   }
 
-  async getLeadCounts(sellerId: string) {
-    const filter: any = {};
+  async getLeadStatisticsAdmin() {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    // Get all residence IDs associated with the seller (developerId)
-    const sellerResidences = await this.residenceRepository.findAll({
-      developerId: new Types.ObjectId(sellerId),
-    });
-    const sellerResidenceIds = sellerResidences.data.map((residence) => residence._id);
+    const [newLeads, contactedLeads, wonLeads, lostLeads] = await Promise.all([
+      this.leadRepository.countDocuments({
+        status: LeadStatus.NEW,
+        createdAt: { $gte: thirtyDaysAgo },
+        isDeleted: false,
+      }),
+      this.leadRepository.countDocuments({ status: LeadStatus.CONTACTED, isDeleted: false }),
+      this.leadRepository.countDocuments({ status: LeadStatus.WON, isDeleted: false }),
+      this.leadRepository.countDocuments({ status: LeadStatus.LOST, isDeleted: false }),
+    ]);
 
-    if (sellerResidenceIds.length === 0) {
-      return { totalLeadCount: 0, last24HourLeadCount: 0 };
-    }
-
-    filter.residenceId = { $in: sellerResidenceIds };
-
-    // Total leads count
-    const totalLeadCount = await this.leadRepository.count(filter);
-
-    // Last 24 hours leads count
-    const last24Hours = moment().subtract(24, 'hours').toDate();
-    const last24HourLeadCount = await this.leadRepository.count({
-      ...filter,
-      createdAt: { $gte: last24Hours },
-    });
-
-    return { totalLeadCount, last24HourLeadCount };
+    return { newLeads, contactedLeads, wonLeads, lostLeads };
   }
 
-  async getLeadConversionRate(interval: Interval) {
+  async getLeadCountsBySourceAdmin() {
+    return this.leadRepository.aggregate([
+      { $match: { isDeleted: false } },
+      { $group: { _id: '$source', count: { $sum: 1 } } },
+      { $project: { source: '$_id', count: 1, _id: 0 } },
+    ]);
+  }
+
+  async getLeadCountsByWeekAdmin() {
+    const fourWeeksAgo = new Date();
+    fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
+
+    return this.leadRepository.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: fourWeeksAgo },
+          isDeleted: false,
+        },
+      },
+      {
+        $group: {
+          _id: {
+            $floor: {
+              $divide: [{ $subtract: [new Date(), '$createdAt'] }, 1000 * 60 * 60 * 24 * 7],
+            },
+          },
+          count: { $sum: 1 },
+        },
+      },
+      {
+        $project: {
+          week: { $subtract: [4, '$_id'] },
+          count: 1,
+          _id: 0,
+        },
+      },
+      { $sort: { week: 1 } },
+      {
+        $group: {
+          _id: null,
+          weeks: { $push: '$$ROOT' },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          weeks: {
+            $map: {
+              input: { $range: [1, 5] },
+              as: 'weekNum',
+              in: {
+                $let: {
+                  vars: {
+                    weekData: {
+                      $arrayElemAt: [
+                        {
+                          $filter: {
+                            input: '$weeks',
+                            cond: { $eq: ['$$this.week', '$$weekNum'] },
+                          },
+                        },
+                        0,
+                      ],
+                    },
+                  },
+                  in: {
+                    week: '$$weekNum',
+                    count: { $ifNull: ['$$weekData.count', 0] },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      { $unwind: '$weeks' },
+      { $replaceRoot: { newRoot: '$weeks' } },
+    ]);
+  }
+
+  async getLeadStatistics(developerId: string) {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const [newLeads, totalLeads] = await Promise.all([
+      this.leadRepository.countDocuments({
+        developerId,
+        status: LeadStatus.NEW,
+        createdAt: { $gte: thirtyDaysAgo },
+        isDeleted: false,
+      }),
+      this.leadRepository.countDocuments({ developerId, isDeleted: false }),
+    ]);
+
+    return { newLeads, totalLeads };
+  }
+
+  async getLeadCounts(
+    developerId: string,
+    period: 'week' | 'month' | 'year',
+    countBy: 'source' | 'status' | 'country'
+  ) {
     let startDate: Date;
+    let groupBy: any;
+    let limit: number;
+    let dateField: string;
 
-    switch (interval) {
-      case Interval.WEEKLY:
-        startDate = moment().startOf('week').toDate();
+    switch (period) {
+      case 'week':
+        startDate = new Date();
+        startDate.setDate(startDate.getDate() - 28);
+        groupBy = {
+          $floor: {
+            $divide: [{ $subtract: [new Date(), '$createdAt'] }, 1000 * 60 * 60 * 24 * 7],
+          },
+        };
+        limit = 4;
+        dateField = 'week';
         break;
-      case Interval.MONTHLY:
-        startDate = moment().startOf('month').toDate();
+      case 'month':
+        startDate = new Date();
+        startDate.setMonth(startDate.getMonth() - 12);
+        groupBy = {
+          $subtract: [{ $month: new Date() }, { $month: '$createdAt' }],
+        };
+        limit = 12;
+        dateField = 'month';
         break;
-      case Interval.YEARLY:
-        startDate = moment().startOf('year').toDate();
+      case 'year':
+        startDate = new Date();
+        startDate.setFullYear(startDate.getFullYear() - 5);
+        groupBy = {
+          $subtract: [{ $year: new Date() }, { $year: '$createdAt' }],
+        };
+        limit = 5;
+        dateField = 'year';
         break;
-      default:
-        throw new Error('Invalid interval');
     }
 
-    const leadsCreated = await this.leadRepository.countLeadsCreated(startDate, interval);
-    const leadsConverted = await this.leadRepository.countleadsConverted(startDate, interval);
-
-    const conversionRateData = this.calculateConversionRate(leadsCreated, leadsConverted, interval);
-
-    return conversionRateData;
+    return this.leadRepository.aggregate([
+      {
+        $match: {
+          developerId,
+          createdAt: { $gte: startDate },
+          isDeleted: false,
+        },
+      },
+      {
+        $group: {
+          _id: {
+            timePeriod: groupBy,
+            key: `$${countBy}`,
+          },
+          count: { $sum: 1 },
+        },
+      },
+      {
+        $group: {
+          _id: '$_id.timePeriod',
+          data: {
+            $push: {
+              key: '$_id.key',
+              count: '$count',
+            },
+          },
+          totalCount: { $sum: '$count' },
+        },
+      },
+      {
+        $project: {
+          timePeriod: { $subtract: [limit, '$_id'] },
+          data: 1,
+          totalCount: 1,
+          _id: 0,
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          periods: { $push: '$$ROOT' },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          periods: {
+            $map: {
+              input: { $range: [1, limit + 1] },
+              as: 'num',
+              in: {
+                $let: {
+                  vars: {
+                    periodData: {
+                      $arrayElemAt: [
+                        {
+                          $filter: {
+                            input: '$periods',
+                            cond: { $eq: ['$$this.timePeriod', '$$num'] },
+                          },
+                        },
+                        0,
+                      ],
+                    },
+                  },
+                  in: {
+                    [dateField]: '$$num',
+                    data: { $ifNull: ['$$periodData.data', []] },
+                    totalCount: { $ifNull: ['$$periodData.totalCount', 0] },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      { $unwind: '$periods' },
+      { $replaceRoot: { newRoot: '$periods' } },
+      { $sort: { [dateField]: 1 } },
+    ]);
   }
 
-  calculateConversionRate(leadsCreated, leadsConverted, interval: Interval) {
-    const conversionRates = [];
+  async getLeadConversionByTime(developerId: string, period: 'weeks' | 'months' | 'years') {
+    let startDate: Date;
+    let groupBy: any;
+    let limit: number;
+    let dateField: string;
 
-    // Create an object to map the lead counts by group
-    const createdMap = leadsCreated.reduce((acc, curr) => {
-      acc[curr._id] = curr.count;
-      return acc;
-    }, {});
+    switch (period) {
+      case 'weeks':
+        startDate = new Date();
+        startDate.setDate(startDate.getDate() - 28);
+        groupBy = {
+          $floor: {
+            $divide: [{ $subtract: [new Date(), '$createdAt'] }, 1000 * 60 * 60 * 24 * 7],
+          },
+        };
+        limit = 4;
+        dateField = 'week';
+        break;
+      case 'months':
+        startDate = new Date();
+        startDate.setMonth(startDate.getMonth() - 12);
+        groupBy = {
+          $subtract: [{ $month: new Date() }, { $month: '$createdAt' }],
+        };
+        limit = 12;
+        dateField = 'month';
+        break;
+      case 'years':
+        startDate = new Date();
+        startDate.setFullYear(startDate.getFullYear() - 5);
+        groupBy = {
+          $subtract: [{ $year: new Date() }, { $year: '$createdAt' }],
+        };
+        limit = 5;
+        dateField = 'year';
+        break;
+    }
 
-    const convertedMap = leadsConverted.reduce((acc, curr) => {
-      acc[curr._id] = curr.count;
-      return acc;
-    }, {});
-
-    // Generate conversion rate data based on the interval
-    const periods =
-      interval === Interval.YEARLY
-        ? [...Array(12).keys()].map((i) => moment().month(i).format('MMMM'))
-        : interval === Interval.MONTHLY
-          ? [...Array(4).keys()].map((i) => `Week ${i + 1}`)
-          : [...Array(7).keys()].map((i) => moment().day(i).format('dddd'));
-
-    periods.forEach((period, index) => {
-      const created = createdMap[index + 1] || 0; // Handle 1-based index
-      const converted = convertedMap[index + 1] || 0;
-
-      const conversionRate = created > 0 ? (converted / created) * 100 : 0;
-
-      conversionRates.push({
-        period,
-        created,
-        converted,
-        conversionRate: conversionRate.toFixed(2),
-      });
-    });
-
-    return conversionRates;
+    return this.leadRepository.aggregate([
+      {
+        $match: {
+          developerId,
+          createdAt: { $gte: startDate },
+          isDeleted: false,
+        },
+      },
+      {
+        $group: {
+          _id: groupBy,
+          totalLeads: { $sum: 1 },
+          wonLeads: {
+            $sum: {
+              $cond: [{ $eq: ['$status', LeadStatus.WON] }, 1, 0],
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          timePeriod: { $subtract: [limit, '$_id'] },
+          conversionRate: {
+            $cond: [
+              { $eq: ['$totalLeads', 0] },
+              0,
+              {
+                $multiply: [{ $divide: ['$wonLeads', '$totalLeads'] }, 100],
+              },
+            ],
+          },
+          _id: 0,
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          periods: { $push: '$$ROOT' },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          periods: {
+            $map: {
+              input: { $range: [1, limit + 1] },
+              as: 'num',
+              in: {
+                $let: {
+                  vars: {
+                    periodData: {
+                      $arrayElemAt: [
+                        {
+                          $filter: {
+                            input: '$periods',
+                            cond: { $eq: ['$$this.timePeriod', '$$num'] },
+                          },
+                        },
+                        0,
+                      ],
+                    },
+                  },
+                  in: {
+                    [dateField]: '$$num',
+                    conversionRate: { $ifNull: ['$$periodData.conversionRate', 0] },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      { $unwind: '$periods' },
+      { $replaceRoot: { newRoot: '$periods' } },
+      { $sort: { [dateField]: 1 } },
+    ]);
   }
 }
