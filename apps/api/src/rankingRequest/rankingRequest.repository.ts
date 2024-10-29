@@ -388,7 +388,12 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
   async findAllRankingRequest(listRankingRequestDto: ListRankingRequestDto) {
     const { search, status, developerId, rankingCategoryId, paymentStatus, categoryType } =
       listRankingRequestDto;
+    const paginationOptions = PaginationService.prepareOptions(listRankingRequestDto);
 
+    const sortObject = paginationOptions.sort.reduce((acc, [field, order]) => {
+      acc[field] = order;
+      return acc;
+    }, {});
     // Build the aggregation pipeline
     const pipeline: any[] = [
       {
@@ -590,9 +595,13 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
       }
     );
 
+    pipeline.push({
+      $sort: sortObject,
+    });
+
     // Pagination
     const options = PaginationService.prepareOptions(listRankingRequestDto);
-    pipeline.push({ $skip: options.offset }, { $limit: options.limit });
+    pipeline.push({ $skip: paginationOptions.offset }, { $limit: paginationOptions.limit });
 
     // Count total documents
     pipeline.push(
