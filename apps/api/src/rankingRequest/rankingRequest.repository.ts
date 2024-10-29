@@ -296,6 +296,65 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
         },
         {
           $lookup: {
+            from: 'uploads',
+            localField: 'residence.visuals.mainPhotos',
+            foreignField: '_id',
+            as: 'residence.visuals.mainPhotos',
+          },
+        },
+        {
+          $lookup: {
+            from: 'uploads',
+            localField: 'residence.visuals.mainGalleryPhotos',
+            foreignField: '_id',
+            as: 'residence.visuals.mainGalleryPhotos',
+          },
+        },
+        {
+          $lookup: {
+            from: 'uploads',
+            localField: 'residence.visuals.secondGalleryPhotos',
+            foreignField: '_id',
+            as: 'residence.visuals.secondGalleryPhotos',
+          },
+        },
+        {
+          $lookup: {
+            from: 'uploads',
+            localField: 'residence.visuals.videoTour',
+            foreignField: '_id',
+            as: 'residence.visuals.videoTour',
+          },
+        },
+        {
+          $lookup: {
+            from: 'residencefeatures',
+            localField: 'residence.residenceKeyFeatures.featureIds',
+            foreignField: '_id',
+            as: 'residence.residenceKeyFeatures.residenceFeatures',
+          },
+        },
+        {
+          $lookup: {
+            from: 'countries',
+            localField: 'residence.countryId',
+            foreignField: '_id',
+            as: 'residence.country',
+          },
+        },
+        { $unwind: { path: '$residence.country', preserveNullAndEmptyArrays: true } },
+        {
+          $lookup: {
+            from: 'cities',
+            localField: 'residence.cityId',
+            foreignField: '_id',
+            as: 'residence.city',
+          },
+        },
+        { $unwind: { path: '$residence.city', preserveNullAndEmptyArrays: true } },
+
+        {
+          $lookup: {
             from: 'users',
             let: { createdById: '$residence.createdById' },
             pipeline: [
