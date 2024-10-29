@@ -1,0 +1,193 @@
+import { Injectable, Logger } from '@nestjs/common';
+import { AbstractSeeder } from '@bbr/api-core/modules/seeder/abstractSeeder.service';
+import { Types } from 'mongoose';
+import { LeadRepository } from './lead.repository';
+import { LeadSource, LeadStatus } from './enum/lead-enum';
+
+@Injectable()
+export class LeadSeeder extends AbstractSeeder {
+  public name = LeadSeeder.name;
+  private readonly logger = new Logger(LeadSeeder.name);
+
+  constructor(private readonly leadRepository: LeadRepository) {
+    super();
+  }
+
+  async seed() {
+    try {
+      const leads = [
+        {
+          name: 'John Doe',
+          phoneNumber: '+1234567890',
+          email: 'john.doe@example.com',
+          residenceId: new Types.ObjectId(),
+          unitId: new Types.ObjectId(),
+          developerId: new Types.ObjectId(),
+          pageUrl: 'https://example.com/property1',
+          country: 'USA',
+          budget: '500,000 - 750,000',
+          note: 'Interested in beachfront properties',
+          source: LeadSource.WEBSITE_FORM,
+          convertedAt: new Date('2023-05-15'),
+          contactedAt: new Date('2023-05-10'),
+          lastContactedAt: new Date('2023-05-20'),
+          expectedCloseDate: new Date('2023-08-01'),
+          status: LeadStatus.CONTACTED,
+          createdAt: new Date('2023-05-01'),
+          updatedAt: new Date('2023-05-20'),
+          isDeleted: false,
+        },
+        {
+          name: 'Jane Smith',
+          phoneNumber: '+1987654321',
+          email: 'jane.smith@example.com',
+          developerId: new Types.ObjectId(),
+          country: 'Canada',
+          budget: '1,000,000+',
+          source: LeadSource.REFERRAL,
+          status: LeadStatus.NEW,
+          createdAt: new Date('2023-05-05'),
+          updatedAt: new Date('2023-05-05'),
+          isDeleted: false,
+        },
+        {
+          name: 'Bob Johnson',
+          phoneNumber: '+1122334455',
+          email: 'bob.johnson@example.com',
+          residenceId: new Types.ObjectId(),
+          developerId: new Types.ObjectId(),
+          pageUrl: 'https://example.com/property2',
+          budget: '300,000 - 500,000',
+          note: 'Looking for a vacation home',
+          source: LeadSource.SOCIAL_MEDIA,
+          contactedAt: new Date('2023-05-18'),
+          lastContactedAt: new Date('2023-05-22'),
+          status: LeadStatus.CONTACTED,
+          createdAt: new Date('2023-05-15'),
+          updatedAt: new Date('2023-05-22'),
+          isDeleted: false,
+        },
+        {
+          name: 'Alice Brown',
+          phoneNumber: '+1555666777',
+          email: 'alice.brown@example.com',
+          unitId: new Types.ObjectId(),
+          developerId: new Types.ObjectId(),
+          country: 'UK',
+          budget: '750,000 - 1,000,000',
+          source: LeadSource.EMAIL_MARKETING,
+          convertedAt: new Date('2023-05-25'),
+          contactedAt: new Date('2023-05-20'),
+          lastContactedAt: new Date('2023-05-25'),
+          expectedCloseDate: new Date('2023-07-15'),
+          status: LeadStatus.WON,
+          createdAt: new Date('2023-05-10'),
+          updatedAt: new Date('2023-05-25'),
+          isDeleted: false,
+        },
+        {
+          name: 'Charlie Wilson',
+          phoneNumber: '+1999888777',
+          email: 'charlie.wilson@example.com',
+          developerId: new Types.ObjectId(),
+          pageUrl: 'https://example.com/property3',
+          country: 'Australia',
+          budget: '400,000 - 600,000',
+          note: 'Interested in investment properties',
+          source: LeadSource.WEBSITE_FORM,
+          status: LeadStatus.NEW,
+          createdAt: new Date('2023-05-18'),
+          updatedAt: new Date('2023-05-18'),
+          isDeleted: false,
+        },
+        {
+          name: 'Eva Garcia',
+          phoneNumber: '+1777888999',
+          email: 'eva.garcia@example.com',
+          residenceId: new Types.ObjectId(),
+          developerId: new Types.ObjectId(),
+          country: 'Spain',
+          budget: '200,000 - 400,000',
+          source: LeadSource.REFERRAL,
+          contactedAt: new Date('2023-05-28'),
+          lastContactedAt: new Date('2023-05-28'),
+          status: LeadStatus.CONTACTED,
+          createdAt: new Date('2023-05-25'),
+          updatedAt: new Date('2023-05-28'),
+          isDeleted: false,
+        },
+        {
+          name: 'David Lee',
+          phoneNumber: '+1333444555',
+          email: 'david.lee@example.com',
+          unitId: new Types.ObjectId(),
+          developerId: new Types.ObjectId(),
+          pageUrl: 'https://example.com/property4',
+          country: 'Singapore',
+          budget: '1,500,000+',
+          note: 'Looking for luxury condos',
+          source: LeadSource.SOCIAL_MEDIA,
+          status: LeadStatus.NEW,
+          createdAt: new Date('2023-05-27'),
+          updatedAt: new Date('2023-05-27'),
+          isDeleted: false,
+        },
+        {
+          name: 'Sophia Chen',
+          phoneNumber: '+1444333222',
+          email: 'sophia.chen@example.com',
+          residenceId: new Types.ObjectId(),
+          developerId: new Types.ObjectId(),
+          country: 'China',
+          budget: '500,000 - 800,000',
+          source: LeadSource.EVENT,
+          convertedAt: new Date('2023-06-05'),
+          contactedAt: new Date('2023-05-30'),
+          lastContactedAt: new Date('2023-06-05'),
+          expectedCloseDate: new Date('2023-08-15'),
+          status: LeadStatus.WON,
+          createdAt: new Date('2023-05-28'),
+          updatedAt: new Date('2023-06-05'),
+          isDeleted: false,
+        },
+        {
+          name: 'Michael Taylor',
+          phoneNumber: '+1666555444',
+          email: 'michael.taylor@example.com',
+          developerId: new Types.ObjectId(),
+          pageUrl: 'https://example.com/property5',
+          country: 'USA',
+          budget: '300,000 - 500,000',
+          note: 'First-time homebuyer',
+          source: LeadSource.WEBSITE_FORM,
+          contactedAt: new Date('2023-06-02'),
+          lastContactedAt: new Date('2023-06-07'),
+          status: LeadStatus.LOST,
+          createdAt: new Date('2023-05-30'),
+          updatedAt: new Date('2023-06-07'),
+          isDeleted: false,
+        },
+        {
+          name: 'Emma Watson',
+          phoneNumber: '+1222333444',
+          email: 'emma.watson@example.com',
+          residenceId: new Types.ObjectId(),
+          unitId: new Types.ObjectId(),
+          developerId: new Types.ObjectId(),
+          country: 'France',
+          budget: '600,000 - 900,000',
+          source: LeadSource.REFERRAL,
+          status: LeadStatus.NEW,
+          createdAt: new Date('2023-06-01'),
+          updatedAt: new Date('2023-06-01'),
+          isDeleted: false,
+        },
+      ];
+      for (const lead of leads) {
+        await this.leadRepository.upsert({ name: lead.name, budget: lead.budget }, lead);
+      }
+    } catch (error) {
+      this.logger.error('Error seeding leads', error);
+    }
+  }
+}
