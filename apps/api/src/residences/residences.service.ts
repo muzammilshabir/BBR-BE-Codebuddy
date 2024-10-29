@@ -904,6 +904,9 @@ export class ResidenceService {
       isDeleted: false,
       status: ResidenceStatus.ACTIVE,
       highestBbrScore: { $exists: true },
+      ...(listTopResidencesDto.countryId
+        ? { countryId: new Types.ObjectId(listTopResidencesDto.countryId) }
+        : {}),
     };
     const options = PaginationService.prepareOptions(listTopResidencesDto);
 
