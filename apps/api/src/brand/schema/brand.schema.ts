@@ -26,6 +26,7 @@ export class Brand extends Document {
     type: string;
   }[];
 
+  @Prop({ type: Date })
   registeredDate: Date;
 
   @Prop({
