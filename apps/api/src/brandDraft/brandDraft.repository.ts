@@ -107,6 +107,48 @@ export class BrandDraftRepository extends BaseRepository<BrandDraft> {
           },
         },
         {
+          $lookup: {
+            from: 'uploads',
+            localField: 'latestDraft.upload.ImageId',
+            foreignField: '_id',
+            as: 'uploadDetails',
+          },
+        },
+        {
+          $unwind: {
+            path: '$latestDraft.upload',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $lookup: {
+            from: 'uploads',
+            localField: 'latestDraft.upload.ImageId',
+            foreignField: '_id',
+            as: 'uploadInfo',
+          },
+        },
+        {
+          $unwind: {
+            path: '$uploadInfo',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $group: {
+            _id: '$_id',
+            latestDraft: { $first: '$latestDraft' },
+            brandData: { $first: '$brandData' },
+            uploadTypeDetails: {
+              $push: {
+                ImageId: '$latestDraft.upload.ImageId',
+                upload: '$uploadInfo', // Use single type per roomTypeId
+                type: '$latestDraft.upload.type',
+              },
+            },
+          },
+        },
+        {
           $match: {
             ...(search
               ? {
@@ -124,7 +166,7 @@ export class BrandDraftRepository extends BaseRepository<BrandDraft> {
             name: '$latestDraft.name',
             description: '$latestDraft.description',
             brandCategoryId: '$latestDraft.brandCategoryId',
-            upload: '$latestDraft.upload',
+            upload: '$uploadTypeDetails',
             isDeleted: '$latestDraft.isDeleted',
             createdAt: '$latestDraft.createdAt',
             updatedAt: '$latestDraft.updatedAt',
