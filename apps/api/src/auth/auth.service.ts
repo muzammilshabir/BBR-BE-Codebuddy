@@ -44,6 +44,7 @@ import { catchError, firstValueFrom } from 'rxjs';
 import { AxiosError } from 'axios';
 import { LoginAttemptRepository } from '../loginAttempt/loginAttempt.repository';
 import { LoginStatus } from '../loginAttempt/schema/loginAttempt.schema';
+import * as CryptoJS from 'crypto-js';
 
 @Injectable()
 export class AuthService {
@@ -83,8 +84,18 @@ export class AuthService {
     return user;
   }
 
+  async decrypt(cipherText: string): Promise<string> {
+    const secretKey = process.env.ENCRYPTION_SECRET_KEY;
+    return new Promise((resolve) => {
+      const bytes = CryptoJS.AES.decrypt(cipherText, secretKey);
+      const decryptedText = bytes.toString(CryptoJS.enc.Utf8);
+      resolve(decryptedText);
+    });
+  }
+
   async verifyUser(verifyUserDto: VerifyUserDto, role: UserRole) {
-    const { email, token } = verifyUserDto;
+    const { token } = verifyUserDto;
+    const email = await this.decrypt(verifyUserDto.email);
 
     const user = await this.userService.findByEmail(email);
 
@@ -460,13 +471,22 @@ export class AuthService {
     };
   }
 
+  async encrypt(text: string): Promise<string> {
+    const secretKey = process.env.ENCRYPTION_SECRET_KEY;
+    return new Promise((resolve) => {
+      const cipherText = CryptoJS.AES.encrypt(text, secretKey).toString();
+      resolve(cipherText);
+    });
+  }
+
   private async sendVerificationEmail(email: string, verifyToken: string) {
+    const encryptedEmail = await this.encrypt(email);
     this.eventEmitter.emit(
       SendEmailEvent.event,
       new SendEmailEvent({
         context: {
           email,
-          deeplink: AuthService.generateVerificationLink(email, verifyToken),
+          deeplink: AuthService.generateVerificationLink(encryptedEmail, verifyToken),
         },
         template: 'verify-user',
         subject: 'Verify Your Email Address',
@@ -571,12 +591,16 @@ export class AuthService {
       prefix: TokenEnum.PREFIX,
       key: resetPasswordDto.token,
     });
+    // TODO: intentionally added log will remove later
+    console.log('email :>> ', email);
 
     if (!email) {
       throw new NotFoundException('Invalid credentials');
     }
+    const decryptedEmail = await this.decrypt(email);
+    console.log('decryptedEmail :>> ', decryptedEmail);
 
-    const user = await this.userService.findByEmail(email);
+    const user = await this.userService.findByEmail(decryptedEmail);
 
     if (!user) {
       throw new NotFoundException('Invalid credentials');
@@ -598,12 +622,13 @@ export class AuthService {
   }
 
   async sendResetPasswordLink(email: string, token: string): Promise<void> {
+    const encryptedEmail = await this.encrypt(email);
     this.eventEmitter.emit(
       SendEmailEvent.event,
       new SendEmailEvent({
         context: {
           email,
-          deeplink: AuthService.generateResetPasswordLink(email, token),
+          deeplink: AuthService.generateResetPasswordLink(encryptedEmail, token),
         },
         template: 'forgot-password',
         subject: 'Reset Your Password',

@@ -41,15 +41,12 @@ export class UnitRepository extends BaseRepository<Unit> {
       }, {});
 
       const pipeline: PipelineStage[] = [
-        //  Match residences based on filters like residenceId
         {
           $match: {
             ...(residenceId ? { residenceId: new Types.ObjectId(residenceId) } : {}),
             isDeleted: false,
           },
         },
-
-        // Lookup for all drafts from unitdraft collection
         {
           $lookup: {
             from: 'unitdrafts',
@@ -64,20 +61,17 @@ export class UnitRepository extends BaseRepository<Unit> {
             preserveNullAndEmptyArrays: true,
           },
         },
-
-        // Sort drafts by createdAt in descending order (latest draft first)
         {
           $sort: {
-            'drafts.createdAt': -1, // Descending order
+            'drafts.createdAt': -1,
           },
         },
-
         // Group by unitId and keep only the latest draft
         {
           $group: {
-            _id: '$_id', // Group by unitId (current residence)
-            latestDraft: { $first: '$drafts' }, // Keep only the first (latest) draft
-            unitData: { $first: '$$ROOT' }, // Store residence data
+            _id: '$_id',
+            latestDraft: { $first: '$drafts' }, // Group by unitId (current residence)
+            unitData: { $first: '$$ROOT' },
           },
         },
 
@@ -96,8 +90,6 @@ export class UnitRepository extends BaseRepository<Unit> {
             preserveNullAndEmptyArrays: true,
           },
         },
-
-        // Handle search criteria (if provided)
         {
           $match: {
             ...(search
@@ -113,7 +105,6 @@ export class UnitRepository extends BaseRepository<Unit> {
         {
           $sort: sortObject,
         },
-
         {
           $lookup: {
             from: 'uploads',
@@ -146,7 +137,6 @@ export class UnitRepository extends BaseRepository<Unit> {
             as: 'videoTour',
           },
         },
-
         {
           $lookup: {
             from: 'users',
@@ -155,8 +145,53 @@ export class UnitRepository extends BaseRepository<Unit> {
             as: 'createdBy',
           },
         },
-
-        // Project only relevant fields
+        {
+          $lookup: {
+            from: 'roomtypes',
+            localField: 'latestDraft.rooms.roomTypeId',
+            foreignField: '_id',
+            as: 'roomDetails',
+          },
+        },
+        {
+          $unwind: {
+            path: '$latestDraft.rooms',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $lookup: {
+            from: 'roomtypes',
+            localField: 'latestDraft.rooms.roomTypeId',
+            foreignField: '_id',
+            as: 'roomTypeInfo',
+          },
+        },
+        {
+          $unwind: {
+            path: '$roomTypeInfo',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $group: {
+            _id: '$_id',
+            latestDraft: { $first: '$latestDraft' },
+            unitData: { $first: '$unitData' },
+            roomTypeDetails: {
+              $push: {
+                roomTypeId: '$latestDraft.rooms.roomTypeId',
+                type: '$roomTypeInfo.type', // Use single type per roomTypeId
+                unit: '$latestDraft.rooms.unit',
+              },
+            },
+            mainPhotos: { $first: '$mainPhotos' },
+            mainGalleryPhotos: { $first: '$mainGalleryPhotos' },
+            secondGalleryPhotos: { $first: '$secondGalleryPhotos' },
+            videoTour: { $first: '$videoTour' },
+            createdBy: { $first: '$createdBy' },
+          },
+        },
         {
           $project: {
             _id: 1,
@@ -166,7 +201,7 @@ export class UnitRepository extends BaseRepository<Unit> {
             specs: '$latestDraft.specs',
             unitPrice: '$latestDraft.unitPrice',
             exclusiveOffer: '$latestDraft.exclusiveOffer',
-            rooms: '$latestDraft.rooms',
+            rooms: '$roomTypeDetails', // Updated room array
             briefOverview: '$latestDraft.briefOverview',
             unitKeyFeatures: '$latestDraft.unitKeyFeatures',
             visuals: {
@@ -193,15 +228,11 @@ export class UnitRepository extends BaseRepository<Unit> {
             updatedAt: '$latestDraft.updatedAt',
           },
         },
-
-        // Apply status filter
         {
           $match: {
             ...(status ? { status: status } : {}),
           },
         },
-
-        // Pagination and total count
         {
           $facet: {
             data: [
