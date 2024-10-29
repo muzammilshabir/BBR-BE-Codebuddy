@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import * as Joi from 'joi';
 
 export const verifyUserSchema = Joi.object({
-  email: Joi.string().email().required(),
+  email: Joi.string().required(),
   token: Joi.string().required(),
 });
 
