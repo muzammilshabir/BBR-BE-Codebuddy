@@ -591,14 +591,11 @@ export class AuthService {
       prefix: TokenEnum.PREFIX,
       key: resetPasswordDto.token,
     });
-    // TODO: intentionally added log will remove later
-    console.log('email :>> ', email);
 
     if (!email) {
       throw new NotFoundException('Invalid credentials');
     }
     const decryptedEmail = await this.decrypt(resetPasswordDto.email);
-    console.log('decryptedEmail :>> ', decryptedEmail);
 
     const user = await this.userService.findByEmail(decryptedEmail);
 
