@@ -6,10 +6,10 @@ import { UpdateFeatureDto } from './dto/update-feature.dto';
 import { CreatePlanDto } from './dto/create-plan.dto';
 import { UpdatePlanDto } from './dto/update-plan.dto';
 import { Types } from 'mongoose';
-import { ListPropsDto } from '@bbr/api-core/modules/dto/listProps.dto';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
 import { SubscriptionRepository } from 'src/stripe/subscription.repository';
 import { ResidenceRepository } from 'src/residences/residences.repository';
+import { ListPlanResidencesDto } from './dto/list-plan-residences.dto';
 
 @Injectable()
 export class SubscriptionPlanService {
@@ -17,7 +17,7 @@ export class SubscriptionPlanService {
     private readonly planRepository: PlanRepository,
     private readonly featureRepository: FeatureRepository,
     private readonly residenceRepository: ResidenceRepository,
-    private readonly subscriptionRepository: SubscriptionRepository,
+    private readonly subscriptionRepository: SubscriptionRepository
   ) {}
 
   async createFeature(feature: CreateFeatureDto) {
@@ -52,16 +52,16 @@ export class SubscriptionPlanService {
     if (!existingPlan) {
       throw new Error('Plan not found');
     }
-  
+
     const transformedPlan = { ...plan };
-  
-    if ("features" in plan && plan.features.length > 0) {
+
+    if ('features' in plan && plan.features.length > 0) {
       const updatedFeatures = existingPlan.features.slice();
-  
+
       for (const newFeature of plan.features) {
         const featureId = new Types.ObjectId(newFeature.feature);
-        const existingFeatureIndex = updatedFeatures.findIndex(f => 
-          f.feature.toString() === featureId.toString()
+        const existingFeatureIndex = updatedFeatures.findIndex(
+          (f) => f.feature.toString() === featureId.toString()
         );
         if (existingFeatureIndex !== -1) {
           updatedFeatures[existingFeatureIndex].feature = featureId;
@@ -70,7 +70,7 @@ export class SubscriptionPlanService {
         } else {
           updatedFeatures.push({
             ...newFeature,
-            feature: featureId
+            feature: featureId,
           });
         }
       }
@@ -91,10 +91,10 @@ export class SubscriptionPlanService {
     const plans = await this.planRepository.findAllExpanded({});
     const residenceCounts = await this.residenceRepository.aggregate([
       { $match: { planId: { $ne: null } } },
-      { $group: { _id: '$planId', residenceCount: { $sum: 1 } } }
+      { $group: { _id: '$planId', residenceCount: { $sum: 1 } } },
     ]);
     const residenceCountMap = new Map(
-      residenceCounts.map(item => [item._id.toString(), item.residenceCount])
+      residenceCounts.map((item) => [item._id.toString(), item.residenceCount])
     );
     for (const plan of plans) {
       plan.residenceCount = residenceCountMap.get(plan._id.toString()) || 0;
@@ -106,11 +106,27 @@ export class SubscriptionPlanService {
     return this.planRepository.findByIdExpanded(id);
   }
 
-  async getPlanResidences(id: string, listResidencesDto: ListPropsDto) {
+  async getPlanResidences(id: string, listResidencesDto: ListPlanResidencesDto) {
+    const { status, search } = listResidencesDto;
+    const query: any = {
+      planId: id,
+      isDeleted: false,
+    };
+    if (status) {
+      query.status = status;
+    }
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+      ];
+    }
     const options = PaginationService.prepareOptions(listResidencesDto);
-    const { data, count } = await this.residenceRepository.findAll({ planId: id }, options);
+    const { data, count } = await this.residenceRepository.findAll(query, options);
 
-    const { pagination } = PaginationService.paginate({ rows: data, count: count }, listResidencesDto);
+    const { pagination } = PaginationService.paginate(
+      { rows: data, count: count },
+      listResidencesDto
+    );
 
     return { pagination, residences: data };
   }

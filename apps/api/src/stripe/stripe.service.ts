@@ -8,7 +8,7 @@ import { RefundPaymentDto } from './dto/refund-payment.dto';
 import { UpdateInvoiceItemDto } from './dto/update-invoice-item.dto';
 import { uuid } from 'short-uuid';
 import { PaymentMethodRepository } from './payment-method.repository';
-interface PaymentMethodType {
+export interface PaymentMethodType {
   id: string,
   type: string;
   brand?: string;

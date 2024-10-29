@@ -144,7 +144,7 @@ export class PaymentAdminController {
     return ResponseService.buildResponse({ invoices }, 'Customer Invoices retrieved successfully');
   }
 
-  @Get('/invoices/')
+  @Get('/invoices')
   @ApiOperation({
     summary: 'Get ALL Invoices',
   })
@@ -158,7 +158,7 @@ export class PaymentAdminController {
     return ResponseService.buildResponse({ invoices }, 'Customer Invoices retrieved successfully');
   }
 
-  @Get('/alerts/')
+  @Get('/alerts')
   @ApiOperation({
     summary: 'Get Alerts',
   })
