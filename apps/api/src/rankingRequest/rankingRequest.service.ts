@@ -43,46 +43,13 @@ export class RankingRequestService {
   ) {}
 
   async findAll(listRankingRequestDto: ListRankingRequestDto) {
-    const query: any = {
-      isDeleted: { $ne: DeletionStatus.DELETED },
-    };
-    const { search, status, developerId, rankingCategoryId, paymentStatus } = listRankingRequestDto;
+    const result = await this.rankingRequestRepository.findAllRankingRequest(listRankingRequestDto);
+    const count = result[0]?.totalCount || 0;
+    const data = result[0]?.data || [];
 
-    if (developerId) {
-      query.developerId = new Types.ObjectId(listRankingRequestDto.developerId);
-    }
+    const { pagination } = PaginationService.paginate({ rows: data, count }, listRankingRequestDto);
 
-    if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
-      ];
-    }
-
-    if (status) {
-      query.status = status;
-    }
-
-    if (paymentStatus) {
-      query.paymentStatus = paymentStatus;
-    }
-
-    if (rankingCategoryId) {
-      query.rankingCategoryId = new Types.ObjectId(rankingCategoryId);
-    }
-
-    const options = PaginationService.prepareOptions(listRankingRequestDto);
-
-    return await this.rankingRequestRepository.findAll(query, options, [
-      { path: 'residenceId' },
-      { path: 'rankingCategoryId' },
-      { path: 'developerId', model: 'User', select: 'fullName email role' },
-      {
-        path: 'upload.ImageId',
-        select: 'originalFileKey fileKey url mimeType',
-        model: 'Upload',
-      },
-    ]);
+    return { pagination, rankingRequests: data };
   }
 
   async create(

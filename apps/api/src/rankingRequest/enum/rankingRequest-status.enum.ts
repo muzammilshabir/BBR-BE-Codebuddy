@@ -6,4 +6,5 @@ export enum RankingRequestStatus {
   INACTIVE = 'inactive',
   ARCHIVED = 'archived',
   DELETED = 'deleted',
+  FLAGGED = 'flagged',
 }

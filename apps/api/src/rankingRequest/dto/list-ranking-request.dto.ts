@@ -5,6 +5,7 @@ import { RankingRequestStatus } from '../enum/rankingRequest-status.enum';
 import { PaymentStatus } from '../enum/payment-status.enum';
 import { FileType } from '../../residences/enum/residence-enum';
 import { joiObjectIdValidator } from '../../../../../packages/api-core/modules/custome-validations/custome-validations';
+import { CategoryType } from '../../rankingCategory/enum/category-type.enum';
 
 export class ListRankingRequestDto extends ListPropsDto {
   @ApiProperty({
@@ -38,6 +39,14 @@ export class ListRankingRequestDto extends ListPropsDto {
     type: String,
   })
   developerId?: string;
+
+  @ApiProperty({
+    example: CategoryType.CITY,
+    enum: CategoryType,
+    description: 'Ranking category type',
+    required: false,
+  })
+  categoryType?: CategoryType;
 
   @ApiProperty({
     description: 'Set to true if you want to download the data',
@@ -74,6 +83,9 @@ export const listRankingRequestSchema = PaginationSchema.append({
     .optional(),
   developerId: Joi.string().custom(joiObjectIdValidator('developerId')).optional(),
   rankingCategoryId: Joi.string().custom(joiObjectIdValidator('rankingCategoryId')).optional(),
+  categoryType: Joi.string()
+    .valid(...Object.values(CategoryType))
+    .optional(),
   isDownload: Joi.boolean().default(false).optional(),
   fileType: Joi.string()
     .valid(...Object.values(FileType))
