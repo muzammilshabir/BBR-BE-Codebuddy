@@ -597,7 +597,7 @@ export class AuthService {
     if (!email) {
       throw new NotFoundException('Invalid credentials');
     }
-    const decryptedEmail = await this.decrypt(email);
+    const decryptedEmail = await this.decrypt(resetPasswordDto.email);
     console.log('decryptedEmail :>> ', decryptedEmail);
 
     const user = await this.userService.findByEmail(decryptedEmail);
