@@ -32,7 +32,7 @@ export class BrandDraftController {
     summary: 'List all brand draft with residence count',
   })
   @ApiBearerAuth()
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.BUYER, UserRole.SELLER)
   @Permissions('brands', PermissionLevel.EDIT)
   @UsePipes(new JoiValidationPipe(listBrandSchema, 'query'))
   async list(@Query() listBrandDto: ListBrandDto) {
