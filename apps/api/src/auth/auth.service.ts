@@ -78,7 +78,7 @@ export class AuthService {
         return `${path}/buyer`;
       case UserRole.SELLER:
         if (isClaim) {
-          params.set('claim', 'false');
+          params.set('claim', 'true');
           return `${path}/developer?${params.toString()}`;
         }
         return `${path}/developer`;
@@ -850,7 +850,7 @@ export class AuthService {
     const user = await this.userService.handleClaimSeller(claimSellerDto);
     if (user) {
       try {
-        await this.sendVerificationEmail(user.email, user.verificationToken, UserRole.SELLER);
+        await this.sendVerificationEmail(user.email, user.verificationToken, UserRole.SELLER, true);
         return user;
       } catch (error) {
         throw new BadRequestException('Failed to send verification email');
