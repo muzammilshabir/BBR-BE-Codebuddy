@@ -25,6 +25,13 @@ export class Invoice extends Document {
 
   @Prop({
     type: String,
+    example: 'INV24-M10-0034',
+    unique: true,
+  })
+  invoiceNumber: string;
+
+  @Prop({
+    type: String,
     example: '324sfsdr32r',
   })
   paymentMethodId: string;
@@ -102,6 +109,31 @@ InvoiceSchema.virtual('paymentMethod', {
   localField: 'paymentMethodId',
   foreignField: 'paymentMethodId',
   justOne: true
+});
+
+InvoiceSchema.statics.generateInvoiceNumber = async function() {
+  const currentDate = new Date();
+  const year = currentDate.getFullYear().toString().slice(-2);
+  const month = (currentDate.getMonth() + 1).toString().padStart(2, '0');
+  
+  const lastInvoice = await this.findOne({
+    invoiceNumber: new RegExp(`^INV${year}-M${month}-`)
+  }).sort({ invoiceNumber: -1 });
+
+  let sequence = 1;
+  if (lastInvoice) {
+    const lastSequence = parseInt(lastInvoice.invoiceNumber.slice(-4));
+    sequence = lastSequence + 1;
+  }
+
+  return `INV${year}-M${month}-${sequence.toString().padStart(4, '0')}`;
+};
+
+InvoiceSchema.pre('save', async function(next) {
+  if (this.isNew) {
+    this.invoiceNumber = await (this.constructor as any).generateInvoiceNumber();
+  }
+  next();
 });
 
 export { InvoiceSchema };

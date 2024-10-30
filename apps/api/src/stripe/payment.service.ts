@@ -13,7 +13,6 @@ import { CreateInvoiceItemsDto, InvoiceItem } from './dto/create-invoice-items.d
 import { InvoiceItemRepository } from './invoice-item.repository';
 import { SubscriptionRepository } from './subscription.repository';
 import { ListInvoicesDto } from './dto/list-invoices.dto';
-import { DeletionStatus } from 'src/unit/enum/unit-enum';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { UpdateInvoiceItemDto } from './dto/update-invoice-item.dto';
@@ -49,7 +48,7 @@ export class PaymentService {
   private convertPaymentItemsToLineItems(
     residenceId: string,
     items: { name: string; price: number; metadata: Record<string, string> }[]
-  ): {lineItems: PaymentLineItemDto[], totalPrice: number} {
+  ): { lineItems: PaymentLineItemDto[]; totalPrice: number } {
     const lineItems: PaymentLineItemDto[] = [];
     let totalPrice = 0;
     for (const item of items) {
@@ -70,7 +69,7 @@ export class PaymentService {
       totalPrice += item.price;
     }
 
-    return { lineItems, totalPrice};
+    return { lineItems, totalPrice };
   }
 
   async createInvoice(userId: string, createInvoiceDto: CreateInvoiceDto, asAdmin: boolean) {
@@ -191,7 +190,7 @@ export class PaymentService {
       invoiceItems.push(invoiceItem);
     }
     invoice.subTotal += data.totalPrice;
-    await this.invoiceRepository.update(invoice.id, {subsTotal: invoice.subTotal});
+    await this.invoiceRepository.update(invoice.id, { subsTotal: invoice.subTotal });
     return invoiceItems;
   }
 
@@ -209,7 +208,9 @@ export class PaymentService {
       throw new Error('Invoice not found');
     }
     const stripeProduct = await this.stripeService.getProduct(invoiceItem.stripeProductId);
-    const stripeProductPrice = await this.stripeService.getPrice(stripeProduct.default_price.toString());
+    const stripeProductPrice = await this.stripeService.getPrice(
+      stripeProduct.default_price.toString()
+    );
     invoice.subTotal -= stripeProductPrice.unit_amount;
     invoice.subTotal += updateInvoiceItemDto.price;
     await this.invoiceRepository.update(invoice.id, { subTotal: invoice.subTotal });
@@ -226,7 +227,9 @@ export class PaymentService {
       throw new Error('Invoice not found');
     }
     const stripeProduct = await this.stripeService.getProduct(invoiceItem.stripeProductId);
-    const stripeProductPrice = await this.stripeService.getPrice(stripeProduct.default_price.toString());
+    const stripeProductPrice = await this.stripeService.getPrice(
+      stripeProduct.default_price.toString()
+    );
     invoice.subTotal -= stripeProductPrice.unit_amount;
     invoice.subTotal += updateInvoiceItemDto.price;
     await this.invoiceRepository.update(invoice.id, { subTotal: invoice.subTotal });
@@ -254,7 +257,7 @@ export class PaymentService {
     const invoiceItems = await this.invoiceItemRepository.findByInvoiceId(
       createSubscriptionDto.invoiceId.toString()
     );
-    
+
     const planItem = invoiceItems.find((item) => item.plan !== null);
 
     if (!invoice) {
@@ -278,7 +281,7 @@ export class PaymentService {
       await this.residenceService.upgradeResidence(
         createSubscriptionDto.residenceId.toString(),
         newSubscription.id,
-        planItem.plan.toString(),
+        planItem.plan.toString()
       );
     }
 
@@ -327,9 +330,9 @@ export class PaymentService {
     const user = await this.userService.findById(userId);
     const customerId = user.stripeCustomerId;
     const paymentMethods = await this.stripeService.getCustomerPaymentMethods(customerId);
-    for(const method of paymentMethods) {
+    for (const method of paymentMethods) {
       const residences = await this.residenceService.getResidencesByPaymentMethodId(method.id);
-      method['residences'] = residences.map(residence => ({
+      method['residences'] = residences.map((residence) => ({
         id: residence.id,
         name: residence.name,
       }));
@@ -370,72 +373,242 @@ export class PaymentService {
   }
 
   async getAllInvoices(listInvoicesDto: ListInvoicesDto) {
-    const filter: any = {
-      isDeleted: DeletionStatus.ACTIVE,
+    const { status, search } = listInvoicesDto;
+    const matchStage: any = {
+      isDeleted: false,
     };
 
-    if (listInvoicesDto.search) {
-      filter.$or = [
-        { 'note': { $regex: listInvoicesDto.search, $options: 'i' } },
-        { 'membershipType': { $regex: listInvoicesDto.search, $options: 'i' } },
-        { 'residenceId.name': { $regex: listInvoicesDto.search, $options: 'i' } },
-        { 'developerId.fullName': { $regex: listInvoicesDto.search, $options: 'i' } },
-        { 'developerId.email': { $regex: listInvoicesDto.search, $options: 'i' } },
-        { 'paymentMethodId': { $regex: listInvoicesDto.search, $options: 'i' } },
-        { 'tax': { $regex: listInvoicesDto.search, $options: 'i' } },
-        { 'status': { $regex: listInvoicesDto.search, $options: 'i' } },
-      ];
+    if (status) {
+      matchStage.status = status;
     }
 
-    const options = PaginationService.prepareOptions(listInvoicesDto);
+    const pipeline = [
+      {
+        $lookup: {
+          from: 'residences',
+          localField: 'residenceId',
+          foreignField: '_id',
+          as: 'residence',
+        },
+      },
+      {
+        $unwind: {
+          path: '$residence',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'developerId',
+          foreignField: '_id',
+          as: 'developer',
+        },
+      },
+      {
+        $unwind: {
+          path: '$developer',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: 'paymentmethods',
+          localField: 'paymentMethodId',
+          foreignField: '_id',
+          as: 'paymentMethod',
+        },
+      },
+      {
+        $unwind: {
+          path: '$paymentMethod',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $match: matchStage,
+      },
+    ];
 
-    const { data, count } = await this.invoiceRepository.findAll(
-      filter,
-      options,
-      [
-        { path: 'residenceId', select: 'name', model: 'Residence' },
-        'paymentMethod',
-      ],
-    );
+    if (search) {
+      pipeline.push({
+        $match: {
+          $or: [
+            { note: { $regex: search, $options: 'i' } },
+            { membershipType: { $regex: search, $options: 'i' } },
+            { 'residence.name': { $regex: search, $options: 'i' } },
+            { 'developer.fullName': { $regex: search, $options: 'i' } },
+            { 'developer.email': { $regex: search, $options: 'i' } },
+            { paymentMethodId: { $regex: search, $options: 'i' } },
+          ],
+        },
+      });
+    }
 
+    const countPipeline = [...pipeline, { $count: 'total' }];
+    const dataPipeline = [
+      ...pipeline,
+      { $skip: (listInvoicesDto.page - 1) * listInvoicesDto.limit },
+      { $limit: listInvoicesDto.limit },
+    ];
+
+    const [countResult, data] = await Promise.all([
+      this.invoiceRepository.aggregate(countPipeline),
+      this.invoiceRepository.aggregate(dataPipeline),
+    ]);
+
+    const count = countResult[0]?.total || 0;
     const { pagination } = PaginationService.paginate({ rows: data, count }, listInvoicesDto);
 
-    return { pagination, invoices: data };
+    const records = await Promise.all(
+      data.map(async (invoice) => {
+        const record = { ...invoice };
+        if (invoice.stripeInvoiceId) {
+          try {
+            record.stripeInvoice = await this.stripeService.getInvoice(invoice.stripeInvoiceId);
+          } catch (error) {
+            record.stripeInvoice = { web: null, pdf: null };
+          }
+        } else {
+          record.stripeInvoice = { web: null, pdf: null };
+        }
+        if (invoice.paymentMethodId && invoice.developer?.stripeCustomerId) {
+          try {
+            record.stripePaymentMethod = await this.stripeService.retrieveCustomerPaymentMethod(
+              invoice.developer.stripeCustomerId,
+              invoice.paymentMethodId
+            );
+          } catch (error) {
+            record.stripePaymentMethod = { id: null, type: null };
+          }
+        } else {
+          record.stripePaymentMethod = { id: null, type: null };
+        }
+        return record;
+      })
+    );
+
+    return { pagination, invoices: records };
   }
 
   async getUserInvoices(userId: string, listInvoicesDto: ListInvoicesDto) {
-    const filter: any = {
-      isDeleted: DeletionStatus.ACTIVE,
+    const { status, search } = listInvoicesDto;
+    const matchStage: any = {
+      isDeleted: false,
       developerId: new Types.ObjectId(userId),
     };
 
-    if (listInvoicesDto.search) {
-      filter.$or = [
-        { 'note': { $regex: listInvoicesDto.search, $options: 'i' } },
-        { 'membershipType': { $regex: listInvoicesDto.search, $options: 'i' } },
-        { 'residenceId.name': { $regex: listInvoicesDto.search, $options: 'i' } },
-        { 'developerId.fullName': { $regex: listInvoicesDto.search, $options: 'i' } },
-        { 'developerId.email': { $regex: listInvoicesDto.search, $options: 'i' } },
-        { 'paymentMethodId': { $regex: listInvoicesDto.search, $options: 'i' } },
-        { 'tax': { $regex: listInvoicesDto.search, $options: 'i' } },
-        { 'status': { $regex: listInvoicesDto.search, $options: 'i' } },
-      ];
+    if (status) {
+      matchStage.status = status;
     }
 
-    const options = PaginationService.prepareOptions(listInvoicesDto);
+    const pipeline = [
+      {
+        $match: matchStage,
+      },
+      {
+        $lookup: {
+          from: 'residences',
+          localField: 'residenceId',
+          foreignField: '_id',
+          as: 'residence',
+        },
+      },
+      {
+        $unwind: {
+          path: '$residence',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'developerId',
+          foreignField: '_id',
+          as: 'developer',
+        },
+      },
+      {
+        $unwind: {
+          path: '$developer',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: 'paymentmethods',
+          localField: 'paymentMethodId',
+          foreignField: '_id',
+          as: 'paymentMethod',
+        },
+      },
+      {
+        $unwind: {
+          path: '$paymentMethod',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+    ];
 
-    const { data, count } = await this.invoiceRepository.findAll(
-      filter,
-      options,
-      [
-        { path: 'residenceId', select: 'name', model: 'Residence' },
-        'paymentMethod',
-      ],
-    );
+    if (search) {
+      pipeline.push({
+        $match: {
+          $or: [
+            { note: { $regex: search, $options: 'i' } },
+            { membershipType: { $regex: search, $options: 'i' } },
+            { 'residence.name': { $regex: search, $options: 'i' } },
+            { 'developer.fullName': { $regex: search, $options: 'i' } },
+            { 'developer.email': { $regex: search, $options: 'i' } },
+            { paymentMethodId: { $regex: search, $options: 'i' } },
+          ],
+        },
+      });
+    }
 
+    const countPipeline = [...pipeline, { $count: 'total' }];
+    const dataPipeline = [
+      ...pipeline,
+      { $skip: (listInvoicesDto.page - 1) * listInvoicesDto.limit },
+      { $limit: listInvoicesDto.limit },
+    ];
+
+    const [countResult, data] = await Promise.all([
+      this.invoiceRepository.aggregate(countPipeline),
+      this.invoiceRepository.aggregate(dataPipeline),
+    ]);
+
+    const count = countResult[0]?.total || 0;
     const { pagination } = PaginationService.paginate({ rows: data, count }, listInvoicesDto);
 
-    return { pagination, invoices: data };
+    const records = await Promise.all(
+      data.map(async (invoice) => {
+        const record = { ...invoice };
+        if (invoice.stripeInvoiceId) {
+          try {
+            record.stripeInvoice = await this.stripeService.getInvoice(invoice.stripeInvoiceId);
+          } catch (error) {
+            record.stripeInvoice = { web: null, pdf: null };
+          }
+        } else {
+          record.stripeInvoice = { web: null, pdf: null };
+        }
+        if (invoice.paymentMethodId && invoice.developer?.stripeCustomerId) {
+          try {
+            record.stripePaymentMethod = await this.stripeService.retrieveCustomerPaymentMethod(
+              invoice.developer.stripeCustomerId,
+              invoice.paymentMethodId
+            );
+          } catch (error) {
+            record.stripePaymentMethod = { id: null, type: null };
+          }
+        } else {
+          record.stripePaymentMethod = { id: null, type: null };
+        }
+        return record;
+      })
+    );
+
+    return { pagination, invoices: records };
   }
 
   async getUserInvoice(userId: string, invoiceId: string) {
@@ -443,16 +616,28 @@ export class PaymentService {
       developerId: new Types.ObjectId(userId),
       _id: new Types.ObjectId(invoiceId),
     });
+    const developer = await this.userService.findById(userId);
     const invoiceItems = await this.invoiceItemRepository.findByInvoiceId(invoiceId);
     for (const item of invoiceItems) {
       const product = await this.stripeService.getProduct(item.stripeProductId);
       item['product'] = product;
     }
     const subscriptions = await this.subscriptionRepository.findByInvoiceId(invoiceId);
+
+    const result: any = { invoice, invoiceItems, subscriptions };
+
     if (invoice.stripeInvoiceId) {
-      invoice['stripeInvoice'] = await this.stripeService.getInvoice(invoice.stripeInvoiceId);
+      result.stripeInvoice = await this.stripeService.getInvoice(invoice.stripeInvoiceId);
+    } else {
+      result.stripeInvoice = { web: null, pdf: null };
     }
-    return { invoice, invoiceItems, subscriptions };
+    if (invoice.paymentMethodId && developer.stripeCustomerId) {
+      result.stripePaymentMethod = (await this.stripeService.retrieveCustomerPaymentMethod(
+        developer.stripeCustomerId,
+        invoice.paymentMethodId
+      )) || { id: null, type: null };
+    }
+    return result;
   }
 
   async getUserInvoiceAdmin(invoiceId: string) {
@@ -462,12 +647,23 @@ export class PaymentService {
       const product = await this.stripeService.getProduct(item.stripeProductId);
       item['product'] = product;
     }
+    const developer = await this.userService.findById(invoice.developerId.toString());
     const subscriptions = await this.subscriptionRepository.findByInvoiceId(invoiceId);
-    if (invoice.stripeInvoiceId) {
-      invoice['stripeInvoice'] = await this.stripeService.getInvoice(invoice.stripeInvoiceId);
-    }
 
-    return { invoice, invoiceItems, subscriptions };
+    const result: any = { invoice, invoiceItems, subscriptions };
+
+    if (invoice.stripeInvoiceId) {
+      result.stripeInvoice = await this.stripeService.getInvoice(invoice.stripeInvoiceId);
+    } else {
+      result.stripeInvoice = { web: null, pdf: null };
+    }
+    if (invoice.paymentMethodId && developer.stripeCustomerId) {
+      result.stripePaymentMethod = (await this.stripeService.retrieveCustomerPaymentMethod(
+        developer.stripeCustomerId,
+        invoice.paymentMethodId
+      )) || { id: null, type: null };
+    }
+    return result;
   }
 
   async createTransaction(createTransactionDto: CreateTransactionDto) {
@@ -477,7 +673,7 @@ export class PaymentService {
   async getTransactions(userId: string, listTransactionsDto: ListTransactionsDto) {
     const filter: any = {
       developerId: userId,
-      isDeleted: DeletionStatus.ACTIVE,
+      isDeleted: false,
     };
 
     if (listTransactionsDto.search) {
@@ -506,7 +702,7 @@ export class PaymentService {
   ) {
     const filter: any = {
       residenceId,
-      isDeleted: DeletionStatus.ACTIVE,
+      isDeleted: false,
     };
     if (userId) {
       filter.developerId = userId;
@@ -541,7 +737,7 @@ export class PaymentService {
   }
 
   async getAlerts() {
-    return this.paymentAttemptRepository.findAll({ managed: false });
+    return this.paymentAttemptRepository.findAll({ managed: false }, null, [{ path: 'invoiceId' }]);
   }
 
   async manageAlert(alertId: string) {
@@ -584,39 +780,88 @@ export class PaymentService {
   }
 
   async listRefundRequests(listRefundRequestsDto: ListRefundRequestsDto) {
-    const filter: any = {
-    };
+    const { status, search } = listRefundRequestsDto;
+    const matchStage: any = {};
 
-    if (listRefundRequestsDto.search) {
-      filter.$or = [
-        { 'note': { $regex: listRefundRequestsDto.search, $options: 'i' } },
-        { 'status': { $regex: listRefundRequestsDto.search, $options: 'i' } },
-        { 'reason': { $regex: listRefundRequestsDto.search, $options: 'i' } },
-        { 'amount': { $regex: listRefundRequestsDto.search, $options: 'i' } },
-        { 'invoiceId.residenceId.name': { $regex: listRefundRequestsDto.search, $options: 'i' } },
-        { 'invoiceId.developerId.fullName': { $regex: listRefundRequestsDto.search, $options: 'i' } },
-        { 'invoiceId.note': { $regex: listRefundRequestsDto.search, $options: 'i' } },
-      ];
+    if (status) {
+      matchStage.status = status;
     }
 
-    const options = PaginationService.prepareOptions(listRefundRequestsDto);
-
-    const { data, count } = await this.refundRepository.findAll(
-      filter,
-      options,
-      [
-        {
-          path: 'invoiceId',
-          model: 'Invoice',
-          populate: [
-            { path: 'residenceId', select: 'name', model: 'Residence' },
-            { path: 'developerId', select: 'fullName', model: 'User' },
-            'paymentMethod',
-          ]
+    const pipeline = [
+      {
+        $lookup: {
+          from: 'invoices',
+          localField: 'invoiceId',
+          foreignField: '_id',
+          as: 'invoice',
         },
-      ],
-    );
+      },
+      {
+        $unwind: {
+          path: '$invoice',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: 'residences',
+          localField: 'invoice.residenceId',
+          foreignField: '_id',
+          as: 'residence',
+        },
+      },
+      {
+        $unwind: {
+          path: '$residence',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'invoice.developerId',
+          foreignField: '_id',
+          as: 'developer',
+        },
+      },
+      {
+        $unwind: {
+          path: '$developer',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $match: matchStage,
+      },
+    ];
 
+    if (search) {
+      pipeline.push({
+        $match: {
+          $or: [
+            { note: { $regex: search, $options: 'i' } },
+            { status: { $regex: search, $options: 'i' } },
+            { reason: { $regex: search, $options: 'i' } },
+            { 'residence.name': { $regex: search, $options: 'i' } },
+            { 'developer.fullName': { $regex: search, $options: 'i' } },
+            { 'invoice.note': { $regex: search, $options: 'i' } },
+          ],
+        },
+      });
+    }
+
+    const countPipeline = [...pipeline, { $count: 'total' }];
+    const dataPipeline = [
+      ...pipeline,
+      { $skip: (listRefundRequestsDto.page - 1) * listRefundRequestsDto.limit },
+      { $limit: listRefundRequestsDto.limit },
+    ];
+    const [countResult, data] = await Promise.all([
+      this.refundRepository.aggregate(countPipeline),
+      this.refundRepository.aggregate(dataPipeline),
+    ]);
+
+    const count = countResult[0]?.total || 0;
     const { pagination } = PaginationService.paginate({ rows: data, count }, listRefundRequestsDto);
 
     return { pagination, refundRequests: data };

@@ -7,11 +7,15 @@
     "assets": [
       {
         "include": "**/*.hbs",
-        "outDir": "dist/src",
         "watchAssets": true
       },
       {
         "include": "**/assets/*",
+        "outDir": "dist/src",
+        "watchAssets": true
+      },
+      {
+        "include": "common/mail/templates/**/*",
         "outDir": "dist/src",
         "watchAssets": true
       }

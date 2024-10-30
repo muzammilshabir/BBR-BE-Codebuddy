@@ -13,13 +13,13 @@ const emailConfig = (configService: ConfigService) => {
       },
     },
     template: {
-      dir: path.join(__dirname, '..', '..', '..', '..', 'src', 'mailer', 'templates'),
+      dir: path.join(__dirname, '..', '..', '..', '..', 'mailer', 'templates'),
       adapter: new HandlebarsAdapter(),
     },
     options: {
       strict: true,
       partials: {
-        dir: path.join(__dirname, '..', '..', '..', '..', 'src', 'mailer', 'templates', 'partials'),
+        dir: path.join(__dirname, '..', '..', '..', '..', 'mailer', 'templates', 'partials'),
         options: {
           strict: true,
         },
