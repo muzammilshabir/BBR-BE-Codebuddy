@@ -26,12 +26,14 @@ import { ResidenceRepository } from '../residences/residences.repository';
 import { UnitRepository } from '../unit/unit.repository';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
 import { ListAdminsDto, ListUserDto } from '../auth/dto/listUsers';
-import { AddStaffMemberDto } from '../auth/dto/signup.dto';
+import { AddStaffMemberDto, ClaimSellerDto } from '../auth/dto/signup.dto';
 import { RoleRepository } from '../role/role.repository';
 import * as argon from 'argon2';
 import { JwtPayloadType } from '../auth/type/jwt-payload.type';
 import { LoginAttempt } from '../loginAttempt/schema/loginAttempt.schema';
 import { LoginAttemptRepository } from '../loginAttempt/loginAttempt.repository';
+import { ClaimRequestRepository } from '../claimRequest/claimRequest.repository';
+import { ClaimRequestStatus } from '../claimRequest/enum/claimReques-enum';
 
 @Injectable()
 export class UserService {
@@ -43,7 +45,8 @@ export class UserService {
     private readonly residenceRepository: ResidenceRepository,
     private readonly unitRepository: UnitRepository,
     private readonly roleRepository: RoleRepository,
-    private readonly loginAttemptRepository: LoginAttemptRepository
+    private readonly loginAttemptRepository: LoginAttemptRepository,
+    private readonly claimRequestRepository: ClaimRequestRepository
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
@@ -697,5 +700,56 @@ export class UserService {
       admins: adminsWithLoginAttempts,
       onlineAdminsCount, // Include count of online admins
     };
+  }
+
+  async handleClaimSeller(dto: ClaimSellerDto) {
+    const {
+      residenceId,
+      corporateEmail,
+      fullName,
+      companyName,
+      password,
+      receiveLuxuryInsights,
+      acceptBBRCommitment,
+    } = dto;
+
+    // Verify residence existence
+    const residence = await this.residenceRepository.findById(residenceId);
+    if (!residence) {
+      throw new NotFoundException('Residence does not exist');
+    }
+
+    // Check if the residence is already claimed
+    const claimed = await this.claimRequestRepository.find({
+      residenceId,
+      status: ClaimRequestStatus.Approved,
+    });
+    if (claimed) {
+      throw new BadRequestException('Residence already claimed');
+    }
+
+    // Check if the user already exists
+    const user = await this.userRepository.find({ corporateEmail });
+    if (!user) {
+      throw new NotFoundException('No user found with the provided email');
+    }
+
+    // Update user if not verified, else return message
+    if (!user?.isVerified) {
+      user.fullName = fullName;
+      user.companyName = companyName;
+      (user.password = await argon.hash(password)),
+        (user.receiveLuxuryInsights = receiveLuxuryInsights ?? user.receiveLuxuryInsights);
+      user.acceptBBRCommitment = acceptBBRCommitment ?? user.acceptBBRCommitment;
+      await user.save();
+
+      return await this.userRepository.find({ corporateEmail });
+    }
+
+    if (user?.isVerified) {
+      throw new BadRequestException(
+        'User is already registered and verified. Please log in or reset your password if needed.'
+      );
+    }
   }
 }

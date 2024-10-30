@@ -38,6 +38,8 @@ import {
   addStaffMemberSchema,
   BuyerSignupDto,
   buyerSignupSchema,
+  ClaimSellerDto,
+  claimSellerSchema,
   SellerSignupDto,
   sellerSignupSchema,
 } from './dto/signup.dto';
@@ -516,5 +518,16 @@ export class AuthController {
   ) {
     const user = await this.authService.resetStaffMemberPassword(resetPasswordByIdDto, userId);
     return ResponseService.buildResponse({ user }, 'Password reset successfully');
+  }
+
+  @Post('/claim-seller')
+  @Public()
+  @UsePipes(new JoiValidationPipe(claimSellerSchema, 'body'))
+  async claimSeller(@Body() claimSellerDto: ClaimSellerDto) {
+    const user = await this.authService.handleClaimSeller(claimSellerDto);
+    return ResponseService.buildResponse(
+      { user },
+      'User details updated successfully, verification email sent'
+    );
   }
 }
