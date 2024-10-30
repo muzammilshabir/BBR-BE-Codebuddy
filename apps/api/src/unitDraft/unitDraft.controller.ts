@@ -10,6 +10,7 @@ import { GetUnitDraftByIdDto, getUnitDraftByIdSchema } from './dto/get-unitDraft
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { PermissionLevel } from '../modulePolicy/enum/permission-enum';
 import { GetCurrentUserId } from '../auth/decorators/getCurrentUserId.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('UnitDraft')
 @Controller('unit-draft')
@@ -20,9 +21,7 @@ export class UnitDraftController {
   @ApiOperation({
     summary: 'Get Unit draft request by ID',
   })
-  @ApiBearerAuth()
-  @Roles(UserRole.SELLER, UserRole.ADMIN)
-  @Permissions('residence', PermissionLevel.READ)
+  @Public()
   @UsePipes(new JoiValidationPipe(getUnitDraftByIdSchema, 'param'))
   async getUnitDraftById(@Param() params: GetUnitDraftByIdDto) {
     const unitDraft = await this.unitDraftService.getUnitDraftById(params.unitDraftId);
@@ -36,9 +35,7 @@ export class UnitDraftController {
   @ApiOperation({
     summary: 'List of Units draft request',
   })
-  @ApiBearerAuth()
-  @Roles(UserRole.SELLER, UserRole.ADMIN)
-  @Permissions('residence', PermissionLevel.READ)
+  @Public()
   @UsePipes(new JoiValidationPipe(listUnitDraftSchema, 'query'))
   async listDraftUnits(@Query() listUnitDraftDto: ListUnitDraftDto) {
     const unitDraft = await this.unitDraftService.listDraftUnits(listUnitDraftDto);

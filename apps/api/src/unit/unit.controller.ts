@@ -27,6 +27,7 @@ import { PermissionLevel } from '../modulePolicy/enum/permission-enum';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { ListExclusiveOfferDto, listExclusiveOfferDtoSchema } from './dto/list-exclusive-offer.dto';
 import { ListPropsDto, PaginationSchema } from '@bbr/api-core/modules/dto/listProps.dto';
+import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('Unit')
 @Controller('unit')
@@ -128,8 +129,7 @@ export class UnitController {
   @ApiOperation({
     summary: 'List Units with optional residenceId filter',
   })
-  @ApiBearerAuth()
-  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @Public()
   @Permissions('residence', PermissionLevel.READ)
   @UsePipes(new JoiValidationPipe(listUnitSchema, 'query'))
   async listUnits(@Query() query: ListUnitDto) {
@@ -154,8 +154,7 @@ export class UnitController {
   @ApiOperation({
     summary: 'List Units with draft optional residenceId filter',
   })
-  @ApiBearerAuth()
-  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @Public()
   @Permissions('residence', PermissionLevel.READ)
   @UsePipes(new JoiValidationPipe(listUnitSchema, 'query'))
   async listUnitsWithDraft(@Query() query: ListUnitDto) {
@@ -167,8 +166,7 @@ export class UnitController {
   @ApiOperation({
     summary: 'Get Unit by ID',
   })
-  @ApiBearerAuth()
-  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @Public()
   @Permissions('residence', PermissionLevel.READ)
   @UsePipes(new JoiValidationPipe(getUnitByIdSchema, 'param'))
   async getUnitById(@Param() params: GetUnitByIdDto) {
