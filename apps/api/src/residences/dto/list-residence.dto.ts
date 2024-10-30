@@ -187,11 +187,20 @@ export class ListTopResidencesDto extends ListPropsDto {
     type: String,
   })
   sortOrder: 'desc';
+
+  @ApiProperty({
+    description: 'Filter by country ID',
+    example: '60b6c0f53b5a5c1f88d25a1b',
+    required: false,
+    type: String,
+  })
+  countryId?: string;
 }
 
 export const listTopResidencesSchema = PaginationSchema.append({
   sortOrder: Joi.string().valid('desc').default('desc'),
   sortBy: Joi.string().valid('highestBbrScore').default('highestBbrScore'),
+  countryId: Joi.string().custom(joiObjectIdValidator('countryId')).optional(),
 });
 
 export class ListResidenceWithDraftCountDto extends ListPropsDto {
