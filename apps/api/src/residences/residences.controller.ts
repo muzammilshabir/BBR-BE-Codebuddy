@@ -315,7 +315,7 @@ export class ResidenceController {
     summary: 'Update Residence Status',
   })
   @ApiBearerAuth()
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.SELLER)
   @Permissions('residence', PermissionLevel.EDIT)
   @UsePipes(new JoiValidationPipe(getResidenceByIdSchema, 'param'))
   @UsePipes(new JoiValidationPipe(updateResidenceStatusSchema, 'body'))
