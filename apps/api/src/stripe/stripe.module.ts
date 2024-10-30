@@ -27,6 +27,7 @@ import { Refund, RefundSchema } from './schema/refund.schema';
 import { RefundRepository } from './refund.repository';
 import { SubscriptionPlanModule } from 'src/subscription-plan/subscription-plan.module';
 import { PaymentAttemptSeeder } from './payment-attempt.seeder';
+import { RefundSeeder } from './refund.seeder';
 
 @Module({
   imports: [
@@ -61,6 +62,7 @@ import { PaymentAttemptSeeder } from './payment-attempt.seeder';
     PaymentMethodRepository,
     RefundRepository,
     PaymentAttemptSeeder,
+    RefundSeeder,
   ],
   exports: [
     StripeService,
@@ -68,6 +70,7 @@ import { PaymentAttemptSeeder } from './payment-attempt.seeder';
     ProcessPaymentService,
     StripeWebhookService,
     PaymentAttemptSeeder,
+    RefundSeeder,
   ],
 })
 export class StripeModule {}

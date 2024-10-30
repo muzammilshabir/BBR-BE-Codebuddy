@@ -10,7 +10,7 @@ import { Public } from '@bbr/api-core/modules/decorators';
 import { UpdatePlanDto, updatePlanDtoSchema } from './dto/update-plan.dto';
 import { UpdateFeatureDto, updateFeatureDtoSchema } from './dto/update-feature.dto';
 import { CreateFeatureDto, createFeatureDtoSchema } from './dto/create-feature.dto';
-import { ListPropsDto, PaginationSchema } from '@bbr/api-core/modules/dto/listProps.dto';
+import { ListPlanResidencesDto, listPlanResidencesDtoSchema } from './dto/list-plan-residences.dto';
 
 @ApiTags('SubscriptionPlans')
 @Controller('subscription-plan')
@@ -76,10 +76,10 @@ export class SubscriptionPlanController {
 })
   @ApiBearerAuth()
   @Roles(UserRole.ADMIN)
-  @UsePipes(new JoiValidationPipe(PaginationSchema, 'query'))
+  @UsePipes(new JoiValidationPipe(listPlanResidencesDtoSchema, 'query'))
   async getPlanResidences(
     @Param('id') id: string,
-    @Query() query: ListPropsDto,
+    @Query() query: ListPlanResidencesDto,
   ) {
     const data = await this.planService.getPlanResidences(id, query);
     return ResponseService.buildResponse({ data }, 'Plan Residences retrieved successfully');
