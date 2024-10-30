@@ -60,12 +60,37 @@ export class AuthService {
     private readonly loginAttemptRepository: LoginAttemptRepository
   ) {}
 
-  static generateVerificationLink(email: string, verifyToken: string) {
-    return `${process.env.SERVICE_URL}/api/verify-email?token=${verifyToken}&email=${email}`;
+  private static getBaseUrl(userRole: UserRole): string {
+    return userRole === UserRole.ADMIN ? process.env.ADMIN_FRONTEND_URL : process.env.FRONTEND_URL;
   }
 
-  static generateResetPasswordLink(email: string, verifyToken: string) {
-    return `${process.env.SERVICE_URL}/api/reset-password?token=${verifyToken}&email=${email}`;
+  private static getRolePathForVerification(userRole: UserRole): string {
+    let path = '/auth/verify-email';
+    const params = new URLSearchParams();
+
+    switch (userRole) {
+      case UserRole.BUYER:
+        return `${path}/buyer`;
+      case UserRole.SELLER:
+        params.set('claim', 'false');
+        return `${path}/developer?${params.toString()}`;
+      case UserRole.ADMIN:
+        return path;
+      default:
+        throw new Error('Invalid user role');
+    }
+  }
+
+  static generateVerificationLink(email: string, verifyToken: string, userRole: UserRole): string {
+    const baseUrl = this.getBaseUrl(userRole);
+    const path = this.getRolePathForVerification(userRole);
+    return `${baseUrl}${path}?token=${verifyToken}&email=${email}`;
+  }
+
+  static generateResetPasswordLink(email: string, verifyToken: string, userRole: UserRole): string {
+    const baseUrl = this.getBaseUrl(userRole);
+    const path = '/auth/reset-password';
+    return `${baseUrl}${path}?token=${verifyToken}&email=${email}`;
   }
 
   async signupBuyer(buyerSignupDto: BuyerSignupDto) {
@@ -79,7 +104,7 @@ export class AuthService {
       receiveLuxuryInsights: buyerSignupDto.receiveLuxuryInsights,
     });
 
-    this.sendVerificationEmail(user.email, user.verificationToken);
+    this.sendVerificationEmail(user.email, user.verificationToken, user.role);
 
     return user;
   }
@@ -132,7 +157,7 @@ export class AuthService {
     const user = await this.userService.assignVerificationToken(resendVerificationEmailDo.email);
 
     if (user && !user.isVerified) {
-      this.sendVerificationEmail(user.email, user.verificationToken);
+      this.sendVerificationEmail(user.email, user.verificationToken, user.role);
     }
   }
 
@@ -479,14 +504,14 @@ export class AuthService {
     });
   }
 
-  private async sendVerificationEmail(email: string, verifyToken: string) {
+  private async sendVerificationEmail(email: string, verifyToken: string, userRole: UserRole) {
     const encryptedEmail = await this.encrypt(email);
     this.eventEmitter.emit(
       SendEmailEvent.event,
       new SendEmailEvent({
         context: {
           email,
-          deeplink: AuthService.generateVerificationLink(encryptedEmail, verifyToken),
+          deeplink: AuthService.generateVerificationLink(encryptedEmail, verifyToken, userRole),
         },
         template: 'verify-user',
         subject: 'Verify Your Email Address',
@@ -554,7 +579,7 @@ export class AuthService {
       acceptBBRCommitment: false,
     });
 
-    this.sendVerificationEmail(user.email, user.verificationToken);
+    this.sendVerificationEmail(user.email, user.verificationToken, user.role);
 
     return user;
   }
@@ -582,7 +607,7 @@ export class AuthService {
         expiry: 900, // 15 minutes
       });
 
-      await this.sendResetPasswordLink(forgetPasswordDto.email, resetToken);
+      await this.sendResetPasswordLink(forgetPasswordDto.email, resetToken, user.role);
     }
   }
 
@@ -618,14 +643,14 @@ export class AuthService {
     await this.userService.updatePassword(user.id, await argon.hash(resetPasswordDto.password));
   }
 
-  async sendResetPasswordLink(email: string, token: string): Promise<void> {
+  async sendResetPasswordLink(email: string, token: string, userRole: UserRole): Promise<void> {
     const encryptedEmail = await this.encrypt(email);
     this.eventEmitter.emit(
       SendEmailEvent.event,
       new SendEmailEvent({
         context: {
           email,
-          deeplink: AuthService.generateResetPasswordLink(encryptedEmail, token),
+          deeplink: AuthService.generateResetPasswordLink(encryptedEmail, token, userRole),
         },
         template: 'forgot-password',
         subject: 'Reset Your Password',
@@ -671,7 +696,7 @@ export class AuthService {
   async createDummyDeveloper(userDetails: CreateDummyUserDto) {
     const user = await this.userService.createDummyDeveloper(userDetails);
 
-    this.sendVerificationEmail(user.email, user.verificationToken);
+    this.sendVerificationEmail(user.email, user.verificationToken, user.role);
 
     return user;
   }
@@ -700,7 +725,7 @@ export class AuthService {
 
   async addSeller(addSellerDto: AddSellerDto) {
     const seller = await this.userService.addSeller(addSellerDto);
-    await this.sendVerificationEmail(seller.email, seller.verificationToken);
+    await this.sendVerificationEmail(seller.email, seller.verificationToken, seller.role);
     return seller;
   }
 
@@ -718,7 +743,7 @@ export class AuthService {
       userId
     );
 
-    this.sendVerificationEmail(user.email, user.verificationToken);
+    this.sendVerificationEmail(user.email, user.verificationToken, user.role);
 
     return user;
   }
