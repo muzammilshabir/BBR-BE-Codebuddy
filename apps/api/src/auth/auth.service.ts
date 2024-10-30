@@ -75,15 +75,15 @@ export class AuthService {
 
     switch (userRole) {
       case UserRole.BUYER:
-        return `${path}/buyer`;
+        return `${path}/buyer?`;
       case UserRole.SELLER:
         if (isClaim) {
           params.set('claim', 'true');
-          return `${path}/developer?${params.toString()}`;
+          return `${path}/developer?${params.toString()}&`;
         }
-        return `${path}/developer`;
+        return `${path}/developer?`;
       case UserRole.ADMIN:
-        return path;
+        return `${path}?`;
       default:
         throw new Error('Invalid user role');
     }
@@ -97,7 +97,7 @@ export class AuthService {
   ): string {
     const baseUrl = this.getBaseUrl(userRole);
     const path = this.getRolePathForVerification(userRole, isClaim);
-    return `${baseUrl}${path}?token=${verifyToken}&email=${email}`;
+    return `${baseUrl}${path}token=${verifyToken}&email=${email}`;
   }
 
   static generateResetPasswordLink(email: string, verifyToken: string, userRole: UserRole): string {
