@@ -59,3 +59,12 @@ export const listClaimRequestSchema = PaginationSchema.append({
     .valid(...Object.values(ClaimRequestStatus))
     .optional(),
 });
+
+export class GetOpenRequestsDto {
+  @ApiProperty({ example: '60d9c6a0a11c3c6c6a9a1a2a', required: true })
+  residenceId: string;
+}
+
+export const getOpenRequestsSchema = Joi.object({
+  residenceId: Joi.string().custom(joiObjectIdValidator('residenceId')).required(),
+});
