@@ -22,7 +22,12 @@ import { UserService } from '../users/user.service';
 import { LoginDto, ThirdPartyLoginDto } from './dto/login.dto';
 import { ChangePasswordDto, ForgotPasswordDto, ResetPasswordDto } from './dto/passwordReset.dto';
 import { ResendVerificationEmailDto } from './dto/resendVerificationEmail';
-import { AddStaffMemberDto, BuyerSignupDto, SellerSignupDto } from './dto/signup.dto';
+import {
+  AddStaffMemberDto,
+  BuyerSignupDto,
+  ClaimSellerDto,
+  SellerSignupDto,
+} from './dto/signup.dto';
 import {
   AcceptBBRCommitment,
   UpdateBuyerProfileDto,
@@ -65,7 +70,7 @@ export class AuthService {
   }
 
   private static getRolePathForVerification(userRole: UserRole, isClaim: boolean): string {
-    let path = '/auth/verify-email';
+    const path = '/auth/verify-email';
     const params = new URLSearchParams();
 
     switch (userRole) {
@@ -73,7 +78,7 @@ export class AuthService {
         return `${path}/buyer`;
       case UserRole.SELLER:
         if (isClaim) {
-          params.set('claim', 'false');
+          params.set('claim', 'true');
           return `${path}/developer?${params.toString()}`;
         }
         return `${path}/developer`;
@@ -839,5 +844,17 @@ export class AuthService {
 
   async getUsersLoggedInLast24Hours() {
     return await this.userService.findUsersLoggedInLast24HoursWithAdminCount();
+  }
+
+  async handleClaimSeller(claimSellerDto: ClaimSellerDto) {
+    const user = await this.userService.handleClaimSeller(claimSellerDto);
+    if (user) {
+      try {
+        await this.sendVerificationEmail(user.email, user.verificationToken, UserRole.SELLER, true);
+        return user;
+      } catch (error) {
+        throw new BadRequestException('Failed to send verification email');
+      }
+    }
   }
 }

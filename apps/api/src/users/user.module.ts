@@ -23,6 +23,8 @@ import { ModulePolicy, ModulePolicySchema } from '../modulePolicy/schema/moduleP
 import { RoleService } from '../role/role.service';
 import { LoginAttempt, LoginAttemptSchema } from '../loginAttempt/schema/loginAttempt.schema';
 import { LoginAttemptRepository } from '../loginAttempt/loginAttempt.repository';
+import { ClaimRequest, ClaimRequestSchema } from '../claimRequest/schema/claimRequest.schema';
+import { ClaimRequestRepository } from '../claimRequest/claimRequest.repository';
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
@@ -35,6 +37,7 @@ import { LoginAttemptRepository } from '../loginAttempt/loginAttempt.repository'
     TokenGenerationModule,
     MailerCoreModule,
     MongooseModule.forFeature([{ name: LoginAttempt.name, schema: LoginAttemptSchema }]),
+    MongooseModule.forFeature([{ name: ClaimRequest.name, schema: ClaimRequestSchema }]),
   ],
   controllers: [UserController],
   providers: [
@@ -49,6 +52,7 @@ import { LoginAttemptRepository } from '../loginAttempt/loginAttempt.repository'
     SuperAdminSeeder,
     RoleService,
     LoginAttemptRepository,
+    ClaimRequestRepository,
   ],
   exports: [UserService, UserFixture, SuperAdminSeeder],
 })
