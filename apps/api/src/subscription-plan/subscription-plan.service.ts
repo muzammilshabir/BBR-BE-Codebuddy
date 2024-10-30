@@ -109,7 +109,7 @@ export class SubscriptionPlanService {
   async getPlanResidences(id: string, listResidencesDto: ListPlanResidencesDto) {
     const { status, search } = listResidencesDto;
     const query: any = {
-      planId: id,
+      planId: new Types.ObjectId(id),
       isDeleted: false,
     };
     if (status) {
