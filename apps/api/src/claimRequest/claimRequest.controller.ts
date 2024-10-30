@@ -16,6 +16,8 @@ import { Public } from '@bbr/api-core/modules/decorators';
 import {
   GetClaimRequestByIdDto,
   getClaimRequestIdSchema,
+  GetOpenRequestsDto,
+  getOpenRequestsSchema,
   ListClaimRequestDto,
   listClaimRequestSchema,
 } from './dto/getClaimRequest.dto';
@@ -165,5 +167,17 @@ export class ClaimRequestController {
   async getClaimRequests(@Query() listClaimRequestDto: ListClaimRequestDto) {
     const claimRequest = await this.claimRequestService.getClaimRequests(listClaimRequestDto);
     return ResponseService.buildResponse({ claimRequest }, 'Claim request fetched successfully');
+  }
+
+  @Get(':residenceId/open-requests')
+  @ApiOperation({
+    summary: 'Check for open claim requests for a given residence',
+  })
+  @Public()
+  @UsePipes(new JoiValidationPipe(getOpenRequestsSchema, 'param'))
+  async getOpenRequests(@Param() params: GetOpenRequestsDto) {
+    const { residenceId } = params;
+    const response = await this.claimRequestService.getOpenRequests(residenceId);
+    return response;
   }
 }

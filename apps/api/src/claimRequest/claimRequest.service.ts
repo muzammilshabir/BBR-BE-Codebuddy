@@ -396,4 +396,24 @@ export class ClaimRequestService {
 
     return { pagination, claimRequests: data };
   }
+
+  async getOpenRequests(residenceId: string): Promise<{ 'open-requests': number }> {
+    // Fetch the residence by ID
+    const residence = await this.residenceRepository.find({
+      _id: new Types.ObjectId(residenceId),
+    });
+
+    if (!residence) {
+      throw new NotFoundException('Residence not found');
+    }
+
+    // Count open claim requests for the residence
+    const openRequestsCount = await this.claimRequestRepository.count({
+      residenceId: new Types.ObjectId(residenceId),
+      status: ClaimRequestStatus.Pending,
+    });
+
+    // Return the response with open requests count (defaults to 0)
+    return { 'open-requests': openRequestsCount.count || 0 };
+  }
 }
