@@ -225,6 +225,16 @@ export class AuthService {
     );
 
     const googleUser = googleUserData.data;
+    if (!thirdPartyLoginDto?.role) {
+      const user = await this.userService.findByEmail(googleUser?.email);
+      if (!user) {
+        throw new NotFoundException(
+          'No user found with this email. Please sign up to create an account.'
+        );
+      }
+
+      return { tokens: await this.generateJwtToken(user) };
+    }
 
     const user = await this.userService.findByEmail(googleUser?.email);
 
@@ -241,7 +251,7 @@ export class AuthService {
           message: 'Please verify your account first',
         };
       }
-      if (thirdPartyLoginDto.role === UserRole.SELLER && user.acceptBBRCommitment !== true) {
+      if (thirdPartyLoginDto?.role === UserRole.SELLER && user.acceptBBRCommitment !== true) {
         return {
           tokens: await this.generateJwtToken(user),
           errorCode: ExceptionCodes.AcceptBBRCommitment,
@@ -252,7 +262,7 @@ export class AuthService {
       return { tokens: await this.generateJwtToken(user) };
     }
 
-    if (thirdPartyLoginDto.role === UserRole.BUYER) {
+    if (thirdPartyLoginDto?.role === UserRole.BUYER) {
       const newUser = await this.userService.create({
         fullName: googleUser.given_name + ' ' + googleUser.family_name,
         email: googleUser.email,
@@ -297,6 +307,16 @@ export class AuthService {
     if (fbUserData.status >= 400) throw new ForbiddenException('Access Denied');
 
     const fbUser = fbUserData.data;
+    if (!thirdPartyLoginDto?.role) {
+      const user = await this.userService.findByEmail(fbUser?.email);
+      if (!user) {
+        throw new NotFoundException(
+          'No user found with this email. Please sign up to create an account.'
+        );
+      }
+
+      return { tokens: await this.generateJwtToken(user) };
+    }
 
     const user = await this.userService.findByEmail(fbUser?.email);
 
@@ -354,6 +374,17 @@ export class AuthService {
   async handleLinkedInAuth(thirdPartyLoginDto: ThirdPartyLoginDto) {
     try {
       const linkedInUser = await this.fetchLinkedInUserData(thirdPartyLoginDto.token);
+
+      if (!thirdPartyLoginDto?.role) {
+        const user = await this.userService.findByEmail(linkedInUser?.email);
+        if (!user) {
+          throw new NotFoundException(
+            'No user found with this email. Please sign up to create an account.'
+          );
+        }
+
+        return { tokens: await this.generateJwtToken(user) };
+      }
 
       const user = await this.userService.findByEmail(linkedInUser?.email);
 
