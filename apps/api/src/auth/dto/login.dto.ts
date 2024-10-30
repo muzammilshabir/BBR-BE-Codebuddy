@@ -44,7 +44,7 @@ export const thirdPartyLoginSchema = Joi.object({
   token: Joi.string().required(),
   role: Joi.string()
     .valid(...Object.values(UserRole))
-    .required(),
+    .optional(),
 });
 
 export class ThirdPartyLoginDto {
@@ -58,7 +58,7 @@ export class ThirdPartyLoginDto {
   @ApiProperty({
     example: UserRole.BUYER,
     enum: UserRole,
-    required: true,
+    required: false,
   })
   role: UserRole;
 }
