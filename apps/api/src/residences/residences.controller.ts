@@ -177,7 +177,7 @@ export class ResidenceController {
     summary: 'List Residence',
   })
   @ApiBearerAuth()
-  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @Roles(UserRole.SELLER, UserRole.ADMIN, UserRole.BUYER)
   @Permissions('residence', PermissionLevel.READ)
   @UsePipes(new JoiValidationPipe(listResidenceSchema, 'query'))
   async listResidences(@Query() query: ListResidenceDto, @Res() res: Response) {
@@ -205,7 +205,7 @@ export class ResidenceController {
     summary: 'List Residence',
   })
   @ApiBearerAuth()
-  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @Roles(UserRole.SELLER, UserRole.ADMIN, UserRole.BUYER)
   @Permissions('residence', PermissionLevel.READ)
   async listResidencesWithDraft(@Query() query: ListResidenceWithDraftDto) {
     const result = await this.residenceService.listResidencesWithDraft(query);
@@ -218,7 +218,7 @@ export class ResidenceController {
     summary: 'Get Residence Total Count',
   })
   @ApiBearerAuth()
-  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @Roles(UserRole.SELLER, UserRole.ADMIN, UserRole.BUYER)
   @Permissions('residence', PermissionLevel.READ)
   async getResidencesTotalCount() {
     const result = await this.residenceService.getResidencesTotalCount();
