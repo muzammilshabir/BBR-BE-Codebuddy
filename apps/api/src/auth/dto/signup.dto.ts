@@ -74,3 +74,57 @@ export const addStaffMemberSchema = Joi.object({
   avatarImage: Joi.string().optional().custom(joiObjectIdValidator('avatarImage')),
   roleId: Joi.string().optional().custom(joiObjectIdValidator('roleId')),
 });
+
+export class ClaimSellerDto {
+  @ApiProperty({ example: 'John Doe', required: true })
+  fullName: string;
+
+  @ApiProperty({ example: 'Doe Realty', required: true })
+  companyName: string;
+
+  @ApiProperty({
+    example: 'johndoe@company.com',
+    description: 'Corporate email of the user',
+    required: true,
+  })
+  corporateEmail: string;
+
+  @ApiProperty({
+    example: 'StrongP@ssw0rd!',
+    description: 'Password for the seller',
+    required: true,
+  })
+  password: string;
+
+  @ApiProperty({
+    example: '60d9c6a0a11c3c6c6a9a1a2a',
+    description: 'Residence ID (ObjectId as string)',
+    required: true,
+  })
+  residenceId: string;
+
+  @ApiProperty({ description: 'User preference to receive luxury insights', example: true })
+  receiveLuxuryInsights?: boolean;
+
+  @ApiProperty({ description: 'User acceptance of BBR commitment', example: true })
+  acceptBBRCommitment?: boolean;
+}
+
+export const claimSellerSchema = Joi.object({
+  fullName: Joi.string().required(),
+  companyName: Joi.string().required(),
+  corporateEmail: Joi.string().email().required(),
+  password: Joi.string()
+    .trim()
+    .min(8)
+    .max(32)
+    .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?])/)
+    .messages({
+      'string.pattern.base':
+        'password must be contain at least 1 uppercase letter, 1 lowercase letter, 1 digit and 1 special character',
+    })
+    .required(),
+  residenceId: Joi.string().optional().custom(joiObjectIdValidator('residenceId')),
+  receiveLuxuryInsights: Joi.boolean().optional(),
+  acceptBBRCommitment: Joi.boolean().optional(),
+});
