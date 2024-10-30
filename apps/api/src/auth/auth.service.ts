@@ -64,7 +64,7 @@ export class AuthService {
     return userRole === UserRole.ADMIN ? process.env.ADMIN_FRONTEND_URL : process.env.FRONTEND_URL;
   }
 
-  private static getRolePathForVerification(userRole: UserRole): string {
+  private static getRolePathForVerification(userRole: UserRole, isClaim: boolean): string {
     let path = '/auth/verify-email';
     const params = new URLSearchParams();
 
@@ -72,8 +72,11 @@ export class AuthService {
       case UserRole.BUYER:
         return `${path}/buyer`;
       case UserRole.SELLER:
-        params.set('claim', 'false');
-        return `${path}/developer?${params.toString()}`;
+        if (isClaim) {
+          params.set('claim', 'false');
+          return `${path}/developer?${params.toString()}`;
+        }
+        return `${path}/developer`;
       case UserRole.ADMIN:
         return path;
       default:
@@ -81,9 +84,14 @@ export class AuthService {
     }
   }
 
-  static generateVerificationLink(email: string, verifyToken: string, userRole: UserRole): string {
+  static generateVerificationLink(
+    email: string,
+    verifyToken: string,
+    userRole: UserRole,
+    isClaim: boolean
+  ): string {
     const baseUrl = this.getBaseUrl(userRole);
-    const path = this.getRolePathForVerification(userRole);
+    const path = this.getRolePathForVerification(userRole, isClaim);
     return `${baseUrl}${path}?token=${verifyToken}&email=${email}`;
   }
 
@@ -535,14 +543,24 @@ export class AuthService {
     });
   }
 
-  private async sendVerificationEmail(email: string, verifyToken: string, userRole: UserRole) {
+  private async sendVerificationEmail(
+    email: string,
+    verifyToken: string,
+    userRole: UserRole,
+    isClaim = false
+  ) {
     const encryptedEmail = await this.encrypt(email);
     this.eventEmitter.emit(
       SendEmailEvent.event,
       new SendEmailEvent({
         context: {
           email,
-          deeplink: AuthService.generateVerificationLink(encryptedEmail, verifyToken, userRole),
+          deeplink: AuthService.generateVerificationLink(
+            encryptedEmail,
+            verifyToken,
+            userRole,
+            isClaim
+          ),
         },
         template: 'verify-user',
         subject: 'Verify Your Email Address',

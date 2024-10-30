@@ -292,6 +292,14 @@ export class UnitRepository extends BaseRepository<Unit> {
 
         {
           $lookup: {
+            from: 'roomtypes',
+            localField: 'rooms.roomTypeId',
+            foreignField: '_id',
+            as: 'rooms',
+          },
+        },
+        {
+          $lookup: {
             from: 'residences',
             localField: 'residenceId',
             foreignField: '_id',
@@ -495,6 +503,14 @@ export class UnitRepository extends BaseRepository<Unit> {
           },
         },
 
+        {
+          $lookup: {
+            from: 'roomtypes',
+            localField: 'rooms.roomTypeId',
+            foreignField: '_id',
+            as: 'rooms',
+          },
+        },
         {
           $lookup: {
             from: 'residences',
