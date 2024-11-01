@@ -41,12 +41,14 @@ export class Invoice extends Document {
   @Prop({
     type: Number,
     example: 5000,
+    default: 0,
   })
   discount: number;
 
   @Prop({
     type: Number,
     example: 5,
+    default: 0,
   })
   tax: number;
 
