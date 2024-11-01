@@ -138,7 +138,7 @@ export class PaymentService {
           price: item.feature.price,
           metadata: {
             type: 'feature',
-            id: feature._id,
+            id: feature._id.toString(),
           },
         });
       }
@@ -149,7 +149,7 @@ export class PaymentService {
           price: plan.fee,
           metadata: {
             type: 'plan',
-            id: plan._id,
+            id: plan._id.toString(),
           },
         });
       }
