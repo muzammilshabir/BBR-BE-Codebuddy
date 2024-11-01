@@ -7,14 +7,15 @@ import { ResidenceService } from 'src/residences/residences.service';
 import { RefundPaymentDto } from './dto/refund-payment.dto';
 import { UpdateInvoiceItemDto } from './dto/update-invoice-item.dto';
 import { uuid } from 'short-uuid';
-import { PaymentMethodRepository } from './payment-method.repository';
 export interface PaymentMethodType {
-  id: string,
+  id: string;
   type: string;
   brand?: string;
   last4?: string;
   email?: string;
   bank_name?: string;
+  exp_month?: number;
+  exp_year?: number;
 }
 @Injectable()
 export class StripeService {
@@ -23,7 +24,6 @@ export class StripeService {
   constructor(
     private readonly configService: ServiceConfig,
     private readonly residenceService: ResidenceService,
-    private readonly paymentMethodRepository: PaymentMethodRepository,
   ) {
     this.stripe = new Stripe(configService.stripe.secretKey, {
       typescript: true,
@@ -38,6 +38,8 @@ export class StripeService {
           type: 'card',
           brand: method.card.brand,
           last4: method.card.last4,
+          exp_month: method.card.exp_month,
+          exp_year: method.card.exp_year,
         };
       case 'paypal':
         return {
@@ -241,31 +243,51 @@ export class StripeService {
     };
   }
 
-  async createInvoice(customerId: string, productIds: string[], paymentMethodId: string, discount: number, tax: number) {
-    const coupon = await this.stripe.coupons.create({
-      name: uuid(),
-      amount_off: discount,
-      currency: 'usd',
-    });
-    const taxRate = await this.stripe.taxRates.create({
-      display_name: uuid(),
-      inclusive: false,
-      percentage: tax,
-    });
-    const paymentMethod = await this.paymentMethodRepository.findByStripePaymentMethodId(paymentMethodId);
-    const mandateId = paymentMethod.mandateId;
-    const invoice = await this.stripe.invoices.create({
+  async createInvoice(
+    customerId: string,
+    productIds: string[],
+    mandateId: string,
+    discount: number,
+    tax: number
+  ) {
+    let coupon: Stripe.Coupon | null = null;
+    let taxRate: Stripe.TaxRate | null = null;
+
+    if (discount > 0) {
+      coupon = await this.stripe.coupons.create({
+        name: uuid(),
+        amount_off: discount,
+        currency: 'usd',
+      });
+    }
+
+    if (tax > 0) {
+      taxRate = await this.stripe.taxRates.create({
+        display_name: uuid(),
+        inclusive: false,
+        percentage: tax,
+      });
+    }
+
+    const invoiceParams: Stripe.InvoiceCreateParams = {
       customer: customerId,
       collection_method: 'charge_automatically',
       auto_advance: true,
-      discounts: [{
-        coupon: coupon.id, 
-      }],
-      default_tax_rates: [taxRate.id],
       payment_settings: {
         default_mandate: mandateId,
       },
-    });
+    };
+
+    if (coupon) {
+      invoiceParams.discounts = [{ coupon: coupon.id }];
+    }
+
+    if (taxRate) {
+      invoiceParams.default_tax_rates = [taxRate.id];
+    }
+
+    const invoice = await this.stripe.invoices.create(invoiceParams);
+
     for (const Id of productIds) {
       const product = await this.stripe.products.retrieve(Id);
       const price = product.default_price.toString();
@@ -276,14 +298,15 @@ export class StripeService {
         invoice: invoice.id,
       });
     }
+
     const fInvoice = await this.stripe.invoices.finalizeInvoice(invoice.id);
+
     return {
       id: fInvoice.id,
       amount: fInvoice.amount_due,
       customer: fInvoice.customer_name,
       customer_email: fInvoice.customer_email,
       items: this.parseInvoiceLineItems(invoice.lines.data),
-      client_secret: (invoice.payment_intent as Stripe.PaymentIntent).client_secret,
     };
   }
 
@@ -340,9 +363,9 @@ export class StripeService {
 
   async updateProduct(id: string, updateProduct: UpdateInvoiceItemDto) {
     const updateData: Partial<Stripe.ProductUpdateParams> = {};
-    if(updateProduct.name) updateData.name = updateProduct.name;
-    if(updateProduct.description) updateData.description = updateProduct.description;
-    if(updateProduct.price) {
+    if (updateProduct.name) updateData.name = updateProduct.name;
+    if (updateProduct.description) updateData.description = updateProduct.description;
+    if (updateProduct.price) {
       const price = await this.stripe.prices.create({
         currency: 'usd',
         unit_amount: updateProduct.price,
@@ -350,7 +373,7 @@ export class StripeService {
       });
       updateData.default_price = price.id;
     }
-    if(Object.keys(updateData).length > 0) {
+    if (Object.keys(updateData).length > 0) {
       return this.stripe.products.update(id, updateData);
     }
     return this.stripe.products.retrieve(id);

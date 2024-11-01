@@ -412,20 +412,6 @@ export class PaymentService {
         },
       },
       {
-        $lookup: {
-          from: 'paymentmethods',
-          localField: 'paymentMethodId',
-          foreignField: '_id',
-          as: 'paymentMethod',
-        },
-      },
-      {
-        $unwind: {
-          path: '$paymentMethod',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
         $match: matchStage,
       },
     ];
@@ -531,20 +517,6 @@ export class PaymentService {
       {
         $unwind: {
           path: '$developer',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $lookup: {
-          from: 'paymentmethods',
-          localField: 'paymentMethodId',
-          foreignField: '_id',
-          as: 'paymentMethod',
-        },
-      },
-      {
-        $unwind: {
-          path: '$paymentMethod',
           preserveNullAndEmptyArrays: true,
         },
       },
