@@ -82,8 +82,8 @@ export class PaymentService {
     const residence = await this.residenceService.getResidenceById(
       createInvoiceDto.residenceId.toString()
     );
-    transformedDto.developerId = residence.developerId;
-    if (!asAdmin && residence.developerId != userId) {
+    transformedDto.developerId = residence.developerId._id;
+    if (!asAdmin && residence.developerId._id != userId) {
       throw new Error('You are not the developer of this residence');
     }
     return this.invoiceRepository.create(transformedDto);
