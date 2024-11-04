@@ -20,19 +20,41 @@ import { RankingCategoryListDto } from './dto/list-ranking-category.dto';
 import { RejectRankingCategoryDto } from './dto/reject-ranking-category.dto';
 import { RankingCategoryDraftRepository } from '../rankingCategoryDraft/rankingCategoryDraft.repository';
 import { PaginationService } from '../../../../packages/api-core/modules/pagination/pagination.service';
+import { LifeStyleRepository } from '../lifestyles/lifeStyle.repository';
+import { CityRepository } from '../city/city.repository';
+import { CountryRepository } from '../country/country.repository';
+import { LocationRepository } from '../location/location.repository';
+import { PropertyTypeRepository } from '../propertyType/propertyType.repository';
+import { RankingRequestStatus } from '../rankingRequest/enum/rankingRequest-status.enum';
 
 @Injectable()
 export class RankingCategoryService {
   constructor(
     private readonly rankingCategoryRepository: RankingCategoryRepository,
-    private readonly rankingCategoryDraftRepository: RankingCategoryDraftRepository
+    private readonly rankingCategoryDraftRepository: RankingCategoryDraftRepository,
+    private readonly lifeStyleRepository: LifeStyleRepository,
+    private readonly cityRepository: CityRepository,
+    private readonly countryRepository: CountryRepository,
+    private readonly locationRepository: LocationRepository,
+    private readonly propertyTypeRepository: PropertyTypeRepository
   ) {}
 
   async findAll(rankingCategoryDto: RankingCategoryListDto, user: JwtPayloadType) {
-    const { search, status, createdById, categoryType } = rankingCategoryDto;
+    const {
+      search,
+      status,
+      createdById,
+      categoryType,
+      countryId,
+      cityId,
+      locationId,
+      propertyTypeId,
+      lifeStyleId,
+    } = rankingCategoryDto;
 
     const query: any = {};
 
+    // Text search for name or description fields
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: 'i' } },
@@ -40,17 +62,42 @@ export class RankingCategoryService {
       ];
     }
 
+    // Filter by status
     if (status) {
       query.status = status;
     }
 
+    // Filter by category type
     if (categoryType) {
       query.categoryType = categoryType;
     }
 
+    // Filter by createdById
     if (createdById) {
       query.createdById = new Types.ObjectId(createdById);
     }
+
+    // Additional filters based on IDs
+    if (countryId) {
+      query.countryId = new Types.ObjectId(countryId);
+    }
+
+    if (cityId) {
+      query.cityId = new Types.ObjectId(cityId);
+    }
+
+    if (locationId) {
+      query.locationId = new Types.ObjectId(locationId);
+    }
+
+    if (propertyTypeId) {
+      query.propertyTypeId = new Types.ObjectId(propertyTypeId);
+    }
+
+    if (lifeStyleId) {
+      query.lifeStyleId = new Types.ObjectId(lifeStyleId);
+    }
+
     const options = PaginationService.prepareOptions(rankingCategoryDto);
 
     const { data, count } = await this.rankingCategoryRepository.findAll(query, options, [
@@ -64,21 +111,52 @@ export class RankingCategoryService {
         select: 'originalFileKey fileKey url mimeType',
         model: 'Upload',
       },
+      {
+        path: 'countryId',
+        select: 'name code',
+        model: 'Country',
+      },
+      {
+        path: 'cityId',
+        select: 'name state',
+        model: 'City',
+      },
+      {
+        path: 'locationId',
+        select: 'name coordinates',
+        model: 'Location',
+      },
+      {
+        path: 'propertyTypeId',
+        select: 'type description',
+        model: 'PropertyType',
+      },
+      {
+        path: 'lifeStyleId',
+        select: 'name category',
+        model: 'LifeStyle',
+      },
+      {
+        path: 'rankingRequests',
+        match: { status: RankingRequestStatus.ACTIVE },
+        options: { sort: { bbrScore: -1 } },
+      },
     ]);
 
-    const updatedData = data.map((rankingCategory) => {
+    const updatedData = [];
+    for (const rankingCategory of data) {
       const cleanRankingCategory = rankingCategory.toObject();
 
-      return {
+      updatedData.push({
         ...cleanRankingCategory,
-        // This is sample analytics  function to calculate engagement score
-        // Once analytics module finish need to change here
+        // This is a sample analytics function to calculate engagement score
+        // Once the analytics module is complete, this logic may be updated
         engagementScore: this.calculateEngagementScore(
           this.getMatrixWeight(),
           this.generateRandomMetrics()
         ),
-      };
-    });
+      });
+    }
 
     const { pagination } = PaginationService.paginate({ rows: data, count }, rankingCategoryDto);
 
@@ -98,6 +176,71 @@ export class RankingCategoryService {
       })),
       status: RankingCategoryStatus.DRAFT,
     };
+
+    if (createRankingCategoryDto?.cityId) {
+      const city = await this.cityRepository.find({
+        _id: new Types.ObjectId(createRankingCategoryDto.cityId),
+        isDeleted: { $ne: DeletionStatus.DELETED },
+      });
+      if (!city) {
+        throw new BadRequestException(
+          `City with ID ${createRankingCategoryDto.cityId} does not exist or is deleted`
+        );
+      }
+      transformedDto.cityId = new Types.ObjectId(createRankingCategoryDto.cityId);
+    }
+
+    if (createRankingCategoryDto?.lifeStyleId) {
+      const lifeStyle = await this.lifeStyleRepository.find({
+        _id: createRankingCategoryDto.lifeStyleId,
+        isDeleted: { $ne: DeletionStatus.DELETED },
+      });
+      if (!lifeStyle) {
+        throw new BadRequestException(
+          `lifeStyle with ID ${createRankingCategoryDto.lifeStyleId} does not exist or is deleted`
+        );
+      }
+      transformedDto.lifeStyleId = new Types.ObjectId(createRankingCategoryDto.lifeStyleId);
+    }
+
+    if (createRankingCategoryDto?.countryId) {
+      const country = await this.countryRepository.find({
+        _id: new Types.ObjectId(createRankingCategoryDto.countryId),
+        isDeleted: { $ne: DeletionStatus.DELETED },
+      });
+      if (!country) {
+        throw new BadRequestException(
+          `Country with ID ${createRankingCategoryDto.countryId} does not exist or is deleted`
+        );
+      }
+      transformedDto.countryId = new Types.ObjectId(createRankingCategoryDto.countryId);
+    }
+
+    if (createRankingCategoryDto?.locationId) {
+      const location = await this.locationRepository.find({
+        _id: new Types.ObjectId(createRankingCategoryDto.locationId),
+        isDeleted: { $ne: DeletionStatus.DELETED },
+      });
+      if (!location) {
+        throw new BadRequestException(
+          `Location with ID ${createRankingCategoryDto.locationId} does not exist or is deleted`
+        );
+      }
+      transformedDto.locationId = new Types.ObjectId(createRankingCategoryDto.locationId);
+    }
+
+    if (createRankingCategoryDto?.propertyTypeId) {
+      const propertyType = await this.propertyTypeRepository.find({
+        _id: new Types.ObjectId(createRankingCategoryDto.propertyTypeId),
+        isDeleted: { $ne: DeletionStatus.DELETED },
+      });
+      if (!propertyType) {
+        throw new BadRequestException(
+          `Property Type with ID ${createRankingCategoryDto.propertyTypeId} does not exist or is deleted`
+        );
+      }
+      transformedDto.propertyTypeId = new Types.ObjectId(createRankingCategoryDto.propertyTypeId);
+    }
 
     const rankingCategory = await this.rankingCategoryRepository.create(transformedDto);
 
@@ -132,7 +275,7 @@ export class RankingCategoryService {
       throw new ForbiddenException('You do not have permission to update this RankingCategory');
     }
 
-    const transformedDto = {
+    const transformedDto: any = {
       ...updateRankingCategoryDto,
       upload: updateRankingCategoryDto.upload?.map((upload) => ({
         ImageId: new Types.ObjectId(upload.ImageId),
@@ -140,6 +283,71 @@ export class RankingCategoryService {
       })),
       updatedById: new Types.ObjectId(user.sub),
     };
+
+    if (updateRankingCategoryDto?.cityId) {
+      const city = await this.cityRepository.find({
+        _id: new Types.ObjectId(updateRankingCategoryDto.cityId),
+        isDeleted: { $ne: DeletionStatus.DELETED },
+      });
+      if (!city) {
+        throw new BadRequestException(
+          `City with ID ${updateRankingCategoryDto.cityId} does not exist or is deleted`
+        );
+      }
+      transformedDto.cityId = new Types.ObjectId(updateRankingCategoryDto.cityId);
+    }
+
+    if (updateRankingCategoryDto?.lifeStyleId) {
+      const lifeStyle = await this.lifeStyleRepository.find({
+        _id: updateRankingCategoryDto.lifeStyleId,
+        isDeleted: { $ne: DeletionStatus.DELETED },
+      });
+      if (!lifeStyle) {
+        throw new BadRequestException(
+          `lifeStyle with ID ${updateRankingCategoryDto.lifeStyleId} does not exist or is deleted`
+        );
+      }
+      transformedDto.lifeStyleId = new Types.ObjectId(updateRankingCategoryDto.lifeStyleId);
+    }
+
+    if (updateRankingCategoryDto?.countryId) {
+      const country = await this.countryRepository.find({
+        _id: new Types.ObjectId(updateRankingCategoryDto.countryId),
+        isDeleted: { $ne: DeletionStatus.DELETED },
+      });
+      if (!country) {
+        throw new BadRequestException(
+          `Country with ID ${updateRankingCategoryDto.countryId} does not exist or is deleted`
+        );
+      }
+      transformedDto.countryId = new Types.ObjectId(updateRankingCategoryDto.countryId);
+    }
+
+    if (updateRankingCategoryDto?.locationId) {
+      const location = await this.locationRepository.find({
+        _id: new Types.ObjectId(updateRankingCategoryDto.locationId),
+        isDeleted: { $ne: DeletionStatus.DELETED },
+      });
+      if (!location) {
+        throw new BadRequestException(
+          `Location with ID ${updateRankingCategoryDto.locationId} does not exist or is deleted`
+        );
+      }
+      transformedDto.locationId = new Types.ObjectId(updateRankingCategoryDto.locationId);
+    }
+
+    if (updateRankingCategoryDto?.propertyTypeId) {
+      const propertyType = await this.propertyTypeRepository.find({
+        _id: new Types.ObjectId(updateRankingCategoryDto.propertyTypeId),
+        isDeleted: { $ne: DeletionStatus.DELETED },
+      });
+      if (!propertyType) {
+        throw new BadRequestException(
+          `Property Type with ID ${updateRankingCategoryDto.propertyTypeId} does not exist or is deleted`
+        );
+      }
+      transformedDto.propertyTypeId = new Types.ObjectId(updateRankingCategoryDto.propertyTypeId);
+    }
 
     const rankingCategoryDraft = await this.checkRankingCategoryDraft(rankingCategoryId);
     if (rankingCategoryDraft) {
@@ -175,7 +383,10 @@ export class RankingCategoryService {
     if (!rankingCategory) {
       throw new NotFoundException(`Residence with ID ${id}`);
     }
-    if (rankingCategory.createdById._id.toString() !== user.sub) {
+    if (
+      rankingCategory.createdById?._id &&
+      rankingCategory.createdById?._id.toString() !== user.sub
+    ) {
       throw new ForbiddenException('You do not have permission to delete this RankingCategory');
     }
     return {

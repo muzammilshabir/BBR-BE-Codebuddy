@@ -23,6 +23,8 @@ import {
   ListRankingRequestWithDraftDto,
   listTop10RankedResidenceDto,
   ListRankingRequestDto,
+  ListRankingRequestForUserDto,
+  listRankingRequestForUserSchema,
 } from './dto/list-ranking-request.dto';
 import {
   CreateRankingRequestDto,
@@ -39,6 +41,7 @@ import {
   improveRankingRequestSchema,
 } from './dto/improve-ranking-request.dto ';
 import { ChangeRankingScoreDto, changeRankingScoreSchema } from './dto/change-ranking-score.dto';
+import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('RankingRequest')
 @Controller('rankingRequest')
@@ -81,6 +84,25 @@ export class RankingRequestController {
   @UsePipes(new JoiValidationPipe(listRankingRequestSchema, 'query'))
   async findAll(@Query() listRankingRequestDto: ListRankingRequestDto) {
     const rankingRequests = await this.rankingRequestService.findAll(listRankingRequestDto);
+    return ResponseService.buildResponse(
+      rankingRequests,
+      'All ranking requests retrieved successfully'
+    );
+  }
+
+  @Post('user/search')
+  @ApiOperation({
+    summary: 'Get all ranking requests with filters and pagination for users',
+  })
+  @ApiBearerAuth()
+  @Public()
+  @UsePipes(new JoiValidationPipe(listRankingRequestForUserSchema, 'body'))
+  async findAllRankingRequestForUser(
+    @Body() listRankingRequestForUserDto: ListRankingRequestForUserDto
+  ) {
+    const rankingRequests = await this.rankingRequestService.findAllRankingRequestForUser(
+      listRankingRequestForUserDto
+    );
     return ResponseService.buildResponse(
       rankingRequests,
       'All ranking requests retrieved successfully'

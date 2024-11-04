@@ -142,3 +142,75 @@ export const listTop10RankedResidenceDto = Joi.object({
     .valid(...Object.values(FileType))
     .optional(),
 });
+
+export class ListRankingRequestForUserDto extends ListPropsDto {
+  @ApiProperty({
+    description: 'Search by ranking request name',
+    example: 'test',
+    required: false,
+    type: String,
+  })
+  search?: string;
+
+  @ApiProperty({
+    example: CategoryType.CITY,
+    enum: CategoryType,
+    description: 'Ranking category type',
+    required: false,
+  })
+  categoryType?: CategoryType;
+
+  @ApiProperty({
+    description: 'Filter by ranking category ID',
+    example: '60b6c0f53b5a5c1f88d25a1b',
+    required: false,
+    type: String,
+  })
+  rankingCategoryId?: string;
+
+  @ApiProperty({
+    description: 'Filter by ranking residence types',
+    example: ['60b6c0f53b5a5c1f88d25a1b'],
+    required: false,
+    type: [String],
+  })
+  residenceTypeIds?: string[];
+
+  @ApiProperty({
+    description: 'Filter by ranking lifeStyles',
+    example: ['60b6c0f53b5a5c1f88d25a1b'],
+    required: false,
+    type: [String],
+  })
+  lifeStyleIds?: string[];
+
+  @ApiProperty({
+    description: 'Filter by ranking brands',
+    example: ['60b6c0f53b5a5c1f88d25a1b'],
+    required: false,
+    type: [String],
+  })
+  brandIds?: string[];
+}
+
+export const listRankingRequestForUserSchema = PaginationSchema.append({
+  search: Joi.string().optional(),
+
+  categoryType: Joi.string()
+    .valid(...Object.values(CategoryType))
+    .optional(),
+
+  rankingCategoryId: Joi.string().custom(joiObjectIdValidator('rankingCategoryId')).optional(),
+
+  residenceTypeIds: Joi.array()
+    .items(Joi.string().custom(joiObjectIdValidator('residenceTypeId')))
+    .optional(),
+
+  lifeStyleIds: Joi.array()
+    .items(Joi.string().custom(joiObjectIdValidator('lifeStyleId')))
+    .optional(),
+
+  brandIds: Joi.array()
+    .items(Joi.string().custom(joiObjectIdValidator('brandId')))
+    .optional(),
+});
