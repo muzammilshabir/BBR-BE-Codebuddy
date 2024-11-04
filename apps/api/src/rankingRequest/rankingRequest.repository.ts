@@ -6,9 +6,11 @@ import { RankingRequest } from './schema/rankingRequest.schema';
 import { DeletionStatus } from '../unit/enum/unit-enum';
 import {
   ListRankingRequestDto,
+  ListRankingRequestForUserDto,
   ListRankingRequestWithDraftDto,
 } from './dto/list-ranking-request.dto';
 import { PaginationService } from '../../../../packages/api-core/modules/pagination/pagination.service';
+import { RankingCategoryStatus } from '../rankingCategory/enum/rankingCategory-status.enum';
 
 @Injectable()
 export class RankingRequestRepository extends BaseRepository<RankingRequest> {
@@ -654,6 +656,250 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
 
     // Pagination
     const options = PaginationService.prepareOptions(listRankingRequestDto);
+    pipeline.push({ $skip: paginationOptions.offset }, { $limit: paginationOptions.limit });
+
+    // Count total documents
+    pipeline.push(
+      {
+        $facet: {
+          data: [{ $limit: options.limit }],
+          totalCount: [{ $count: 'count' }],
+        },
+      },
+      {
+        $project: {
+          data: 1,
+          totalCount: { $arrayElemAt: ['$totalCount.count', 0] },
+        },
+      }
+    );
+
+    return await this.rankingRequestModel.aggregate(pipeline).exec();
+  }
+
+  async findAllRankingRequestForUser(listRankingRequestForUserDto: ListRankingRequestForUserDto) {
+    const { search, rankingCategoryId, categoryType, lifeStyleIds, brandIds, residenceTypeIds } =
+      listRankingRequestForUserDto;
+    const paginationOptions = PaginationService.prepareOptions(listRankingRequestForUserDto);
+
+    const sortObject = paginationOptions.sort.reduce((acc, [field, order]) => {
+      acc[field] = order;
+      return acc;
+    }, {});
+    // Build the aggregation pipeline
+    const pipeline: any[] = [
+      {
+        $match: { status: RankingCategoryStatus.ACTIVE },
+      },
+    ];
+
+    if (rankingCategoryId) {
+      pipeline.push({
+        $match: {
+          rankingCategoryId: new Types.ObjectId(rankingCategoryId),
+        },
+      });
+    }
+
+    // Lookup and unwind stages for related documents
+    pipeline.push(
+      {
+        $lookup: {
+          from: 'residences',
+          localField: 'residenceId',
+          foreignField: '_id',
+          as: 'residence',
+        },
+      },
+      { $unwind: { path: '$residence', preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: 'rankingcategories',
+          localField: 'rankingCategoryId',
+          foreignField: '_id',
+          as: 'rankingCategory',
+        },
+      },
+      { $unwind: { path: '$rankingCategory', preserveNullAndEmptyArrays: true } },
+
+      {
+        $lookup: {
+          from: 'uploads',
+          localField: 'residence.visuals.mainPhotos',
+          foreignField: '_id',
+          as: 'residence.visuals.mainPhotos',
+        },
+      },
+      {
+        $lookup: {
+          from: 'uploads',
+          localField: 'residence.visuals.mainGalleryPhotos',
+          foreignField: '_id',
+          as: 'residence.visuals.mainGalleryPhotos',
+        },
+      },
+      {
+        $lookup: {
+          from: 'uploads',
+          localField: 'residence.visuals.secondGalleryPhotos',
+          foreignField: '_id',
+          as: 'residence.visuals.secondGalleryPhotos',
+        },
+      },
+      {
+        $lookup: {
+          from: 'uploads',
+          localField: 'residence.visuals.videoTour',
+          foreignField: '_id',
+          as: 'residence.visuals.videoTour',
+        },
+      },
+      {
+        $lookup: {
+          from: 'residencefeatures',
+          localField: 'residence.residenceKeyFeatures.featureIds',
+          foreignField: '_id',
+          as: 'residence.residenceKeyFeatures.residenceFeatures',
+        },
+      },
+      {
+        $lookup: {
+          from: 'countries',
+          localField: 'residence.countryId',
+          foreignField: '_id',
+          as: 'residence.country',
+        },
+      },
+      { $unwind: { path: '$residence.country', preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: 'cities',
+          localField: 'residence.cityId',
+          foreignField: '_id',
+          as: 'residence.city',
+        },
+      },
+      { $unwind: { path: '$residence.city', preserveNullAndEmptyArrays: true } },
+
+      {
+        $lookup: {
+          from: 'users',
+          let: { createdById: '$residence.createdById' },
+          pipeline: [
+            { $match: { $expr: { $eq: ['$_id', '$$createdById'] } } },
+            {
+              $project: {
+                _id: 1,
+                fullName: 1,
+                email: 1,
+                role: 1,
+                loginAddress: {
+                  country: 1,
+                  state: 1,
+                  city: 1,
+                },
+              },
+            },
+          ],
+          as: 'residence.createdBy',
+        },
+      },
+      {
+        $unwind: { path: '$residence.createdBy', preserveNullAndEmptyArrays: true },
+      }
+    );
+
+    // Apply search filter if provided
+    if (search) {
+      pipeline.push({
+        $match: {
+          $or: [
+            { 'rankingCategory.title': { $regex: search, $options: 'i' } },
+            { 'residence.name': { $regex: search, $options: 'i' } },
+          ],
+        },
+      });
+    }
+
+    // Apply categoryType filter if provided
+    if (categoryType) {
+      pipeline.push({
+        $match: {
+          'rankingCategory.categoryType': categoryType,
+        },
+      });
+    }
+
+    if (lifeStyleIds && lifeStyleIds.length > 0) {
+      pipeline.push({
+        $match: {
+          'residence.lifeStyleId': {
+            $in: lifeStyleIds.map((lifeStyleId) => new Types.ObjectId(lifeStyleId)),
+          },
+        },
+      });
+    }
+
+    if (brandIds && brandIds.length > 0) {
+      pipeline.push({
+        $match: {
+          'residence.associatedBrandId': {
+            $in: brandIds.map((brandId) => new Types.ObjectId(brandId)),
+          },
+        },
+      });
+    }
+
+    if (residenceTypeIds && residenceTypeIds.length > 0) {
+      pipeline.push({
+        $match: {
+          'residence.residenceTypeIds': {
+            $in: residenceTypeIds.map((residenceTypeId) => new Types.ObjectId(residenceTypeId)),
+          },
+        },
+      });
+    }
+    pipeline.push(
+      {
+        $lookup: {
+          from: 'users',
+          let: { developerId: '$developerId' },
+          pipeline: [
+            { $match: { $expr: { $eq: ['$_id', '$$developerId'] } } },
+            {
+              $project: {
+                _id: 1,
+                fullName: 1,
+                email: 1,
+                role: 1,
+                loginAddress: {
+                  country: 1,
+                  state: 1,
+                  city: 1,
+                },
+              },
+            },
+          ],
+          as: 'developer',
+        },
+      },
+      { $unwind: { path: '$developer', preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: 'uploads',
+          localField: 'upload.ImageId',
+          foreignField: '_id',
+          as: 'images',
+        },
+      }
+    );
+
+    pipeline.push({
+      $sort: sortObject,
+    });
+
+    // Pagination
+    const options = PaginationService.prepareOptions(listRankingRequestForUserDto);
     pipeline.push({ $skip: paginationOptions.offset }, { $limit: paginationOptions.limit });
 
     // Count total documents

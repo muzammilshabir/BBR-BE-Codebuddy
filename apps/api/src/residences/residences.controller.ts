@@ -245,8 +245,7 @@ export class ResidenceController {
     summary: 'List Top Residence',
   })
   @ApiBearerAuth()
-  @Roles(UserRole.SELLER, UserRole.BUYER, UserRole.ADMIN)
-  @Permissions('residence', PermissionLevel.READ)
+  @Public()
   @UsePipes(new JoiValidationPipe(listTopResidencesSchema, 'query'))
   async getTopResidences(@Query() query: ListTopResidencesDto) {
     const result = await this.residenceService.getTopResidences(query);

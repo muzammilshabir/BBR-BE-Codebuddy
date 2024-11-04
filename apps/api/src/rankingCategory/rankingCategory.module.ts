@@ -13,12 +13,21 @@ import {
   RankingCategoryDraft,
   RankingCategoryDraftSchema,
 } from '../rankingCategoryDraft/schema/rankingCategoryDraft.schema';
+import { Location, LocationSchema } from '../location/schema/location.schema';
+import { Country, CountrySchema } from '../country/schema/country.schema';
+import { City, CitySchema } from '../city/schema/city.schema';
+import { LocationRepository } from '../location/location.repository';
+import { CountryRepository } from '../country/country.repository';
+import { CityRepository } from '../city/city.repository';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: RankingCategory.name, schema: RankingCategorySchema }]),
     MongooseModule.forFeature([{ name: LifeStyle.name, schema: LifeStyleSchema }]),
     MongooseModule.forFeature([{ name: PropertyType.name, schema: PropertyTypeSchema }]),
+    MongooseModule.forFeature([{ name: Location.name, schema: LocationSchema }]),
+    MongooseModule.forFeature([{ name: Country.name, schema: CountrySchema }]),
+    MongooseModule.forFeature([{ name: City.name, schema: CitySchema }]),
     MongooseModule.forFeature([
       { name: RankingCategoryDraft.name, schema: RankingCategoryDraftSchema },
     ]),
@@ -30,6 +39,9 @@ import {
     LifeStyleRepository,
     PropertyTypeRepository,
     RankingCategoryDraftRepository,
+    LocationRepository,
+    CountryRepository,
+    CityRepository,
   ],
 })
 export class RankingCategoryModule {}
