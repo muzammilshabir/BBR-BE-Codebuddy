@@ -13,7 +13,12 @@ export const rankingCategorySchema = PaginationSchema.append({
   categoryType: Joi.string()
     .valid(...Object.values(CategoryType))
     .optional(),
-  createdById: Joi.string().custom(joiObjectIdValidator('developerId')).optional(),
+  createdById: Joi.string().custom(joiObjectIdValidator('createdById')).optional(),
+  countryId: Joi.string().custom(joiObjectIdValidator('countryId')).optional(),
+  cityId: Joi.string().custom(joiObjectIdValidator('cityId')).optional(),
+  locationId: Joi.string().custom(joiObjectIdValidator('locationId')).optional(),
+  propertyTypeId: Joi.string().custom(joiObjectIdValidator('propertyTypeId')).optional(),
+  lifeStyleId: Joi.string().custom(joiObjectIdValidator('lifeStyleId')).optional(),
 });
 
 export class RankingCategoryListDto extends ListPropsDto {
@@ -48,4 +53,44 @@ export class RankingCategoryListDto extends ListPropsDto {
     type: String,
   })
   createdById?: string;
+
+  @ApiProperty({
+    description: 'Filter by country ID',
+    example: '60b6c0f53b5a5c1f88d25a1c',
+    required: false,
+    type: String,
+  })
+  countryId?: string;
+
+  @ApiProperty({
+    description: 'Filter by city ID',
+    example: '60b6c0f53b5a5c1f88d25a1d',
+    required: false,
+    type: String,
+  })
+  cityId?: string;
+
+  @ApiProperty({
+    description: 'Filter by location ID',
+    example: '60b6c0f53b5a5c1f88d25a1e',
+    required: false,
+    type: String,
+  })
+  locationId?: string;
+
+  @ApiProperty({
+    description: 'Filter by property type ID',
+    example: '60b6c0f53b5a5c1f88d25a1f',
+    required: false,
+    type: String,
+  })
+  propertyTypeId?: string;
+
+  @ApiProperty({
+    description: 'Filter by lifestyle ID',
+    example: '60b6c0f53b5a5c1f88d25a1g',
+    required: false,
+    type: String,
+  })
+  lifeStyleId?: string;
 }

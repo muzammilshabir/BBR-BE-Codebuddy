@@ -3,6 +3,7 @@ import * as Joi from 'joi';
 import { CategoryType } from '../enum/category-type.enum';
 import { RankingCategoryStatus } from '../enum/rankingCategory-status.enum';
 import { Types } from 'mongoose';
+import { joiObjectIdValidator } from '../../../../../packages/api-core/modules/custome-validations/custome-validations';
 
 export class RankingCriteriaDto {
   @ApiProperty({
@@ -112,6 +113,41 @@ export class CreateRankingCategoryDto {
     ImageId: Types.ObjectId;
     type?: string;
   }>;
+
+  @ApiProperty({
+    description: 'ID for Geography-based category type',
+    example: '60d7fe6f9eb1f24a04d65633',
+    required: false,
+  })
+  locationId?: Types.ObjectId;
+
+  @ApiProperty({
+    description: 'ID for Country-based category type',
+    example: '60d7fe6f9eb1f24a04d65634',
+    required: false,
+  })
+  countryId?: string;
+
+  @ApiProperty({
+    description: 'ID for City-based category type',
+    example: '60d7fe6f9eb1f24a04d65635',
+    required: false,
+  })
+  cityId?: string;
+
+  @ApiProperty({
+    description: 'ID for Lifestyle-based category type',
+    example: '60d7fe6f9eb1f24a04d65636',
+    required: false,
+  })
+  lifeStyleId?: string;
+
+  @ApiProperty({
+    description: 'ID for Property Type-based category type',
+    example: '60d7fe6f9eb1f24a04d65637',
+    required: false,
+  })
+  propertyTypeId?: string;
 }
 
 export const createRankingCategorySchema = Joi.object({
@@ -160,4 +196,24 @@ export const createRankingCategorySchema = Joi.object({
       })
     )
     .optional(),
+
+  locationId: Joi.string()
+    .custom(joiObjectIdValidator('locationId'))
+    .when('categoryType', { is: CategoryType.GEOGRAPHY, then: Joi.required() }),
+
+  countryId: Joi.string()
+    .custom(joiObjectIdValidator('countryId'))
+    .when('categoryType', { is: CategoryType.COUNTRY, then: Joi.required() }),
+
+  cityId: Joi.string()
+    .custom(joiObjectIdValidator('cityId'))
+    .when('categoryType', { is: CategoryType.CITY, then: Joi.required() }),
+
+  lifeStyleId: Joi.string()
+    .custom(joiObjectIdValidator('lifeStyleId'))
+    .when('categoryType', { is: CategoryType.LIFESTYLE, then: Joi.required() }),
+
+  propertyTypeId: Joi.string()
+    .custom(joiObjectIdValidator('propertyTypeId'))
+    .when('categoryType', { is: CategoryType.PROPERTY_TYPE, then: Joi.required() }),
 });
