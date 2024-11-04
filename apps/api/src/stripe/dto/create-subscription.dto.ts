@@ -76,6 +76,7 @@ export class CreateSubscriptionDto {
 
 export const createSubscriptionDtoSchema = Joi.object({
   invoiceId: Joi.string().custom(joiObjectIdValidator('invoiceId')).required(),
+  residenceId: Joi.string().custom(joiObjectIdValidator('residenceId')).required(),
   recurring: Joi.object({
     interval: Joi.string()
       .valid(...Object.values(Interval))

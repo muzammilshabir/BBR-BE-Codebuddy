@@ -60,6 +60,13 @@ export class UpdateInvoiceDto {
     required: false,
    })
   dueAt?: Date;
+
+  @ApiProperty({
+    description: 'Mark the invoice as deleted',
+    required: false,
+    type: Boolean,
+   })
+   isDeleted?: boolean;
 }
 
 export const updateInvoiceDtoSchema = Joi.object({
@@ -71,4 +78,5 @@ export const updateInvoiceDtoSchema = Joi.object({
   status: Joi.string().valid('pending', 'draft').optional(),
   issuedAt: Joi.date().optional(),
   dueAt: Joi.date().optional(),
+  isDeleted: Joi.boolean().optional(),
 });
