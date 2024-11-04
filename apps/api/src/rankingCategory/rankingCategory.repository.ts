@@ -6,6 +6,7 @@ import { RankingCategory } from './schema/rankingCategory.schema';
 import { DeletionStatus } from '../unit/enum/unit-enum';
 import { PaginationService } from '../../../../packages/api-core/modules/pagination/pagination.service';
 import { RankingCategoryListDto } from './dto/list-ranking-category.dto';
+import { RankingRequestStatus } from '../rankingRequest/enum/rankingRequest-status.enum';
 
 @Injectable()
 export class RankingCategoryRepository extends BaseRepository<RankingCategory> {
@@ -15,15 +16,47 @@ export class RankingCategoryRepository extends BaseRepository<RankingCategory> {
     super(rankingCategoryModel);
   }
 
-  async findById(id: string): Promise<RankingCategory> {
-    return this.rankingCategoryModel
+  async findById(id: string): Promise<RankingCategory | null> {
+    const rankingCategory = await this.rankingCategoryModel
       .findOne({ _id: id, isDeleted: { $ne: DeletionStatus.DELETED } })
       .populate('createdById', 'fullName email role')
       .populate({
         path: 'upload.ImageId',
         select: 'originalFileKey fileKey url mimeType',
         model: 'Upload',
+      })
+      .populate({
+        path: 'countryId',
+        select: 'name code',
+        model: 'Country',
+      })
+      .populate({
+        path: 'cityId',
+        select: 'name state',
+        model: 'City',
+      })
+      .populate({
+        path: 'locationId',
+        select: 'name coordinates',
+        model: 'Location',
+      })
+      .populate({
+        path: 'propertyTypeId',
+        select: 'type description',
+        model: 'PropertyType',
+      })
+      .populate({
+        path: 'lifeStyleId',
+        select: 'name category',
+        model: 'LifeStyle',
+      })
+      .populate({
+        path: 'rankingRequests',
+        match: { status: RankingRequestStatus.ACTIVE },
+        options: { sort: { bbrScore: -1 } },
       });
+
+    return rankingCategory;
   }
 
   async listRankingCategoriesWithDraft(

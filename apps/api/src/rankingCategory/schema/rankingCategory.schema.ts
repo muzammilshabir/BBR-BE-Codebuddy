@@ -13,6 +13,21 @@ export class RankingCategory extends Document {
   @Prop({ required: true, enum: CategoryType })
   categoryType: CategoryType;
 
+  @Prop({ type: Types.ObjectId, ref: 'Country', required: false })
+  countryId: User;
+
+  @Prop({ type: Types.ObjectId, ref: 'City', required: false })
+  cityId: User;
+
+  @Prop({ type: Types.ObjectId, ref: 'Location', required: false })
+  locationId: User;
+
+  @Prop({ type: Types.ObjectId, ref: 'PropertyType', required: false })
+  propertyTypeId: User;
+
+  @Prop({ type: Types.ObjectId, ref: 'LifeStyle', required: false })
+  lifeStyleId: User;
+
   @Prop({ type: [RankingCriteria], required: true })
   criteria: RankingCriteria[];
 
@@ -69,3 +84,13 @@ export class RankingCategory extends Document {
 }
 
 export const RankingCategorySchema = SchemaFactory.createForClass(RankingCategory);
+
+RankingCategorySchema.virtual('rankingRequests', {
+  ref: 'RankingRequest',
+  localField: '_id',
+  foreignField: 'rankingCategoryId',
+  justOne: false,
+});
+
+RankingCategorySchema.set('toObject', { virtuals: true });
+RankingCategorySchema.set('toJSON', { virtuals: true });

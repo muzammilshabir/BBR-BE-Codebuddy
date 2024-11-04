@@ -15,6 +15,7 @@ import {
   ListTop10RankedResidenceDto,
   ListRankingRequestWithDraftDto,
   ListRankingRequestDto,
+  ListRankingRequestForUserDto,
 } from './dto/list-ranking-request.dto';
 import { RejectRankingRequestDto } from './dto/reject-ranking-request.dto';
 import { PaginationService } from '../../../../packages/api-core/modules/pagination/pagination.service';
@@ -47,7 +48,64 @@ export class RankingRequestService {
     const count = result[0]?.totalCount || 0;
     const data = result[0]?.data || [];
 
+    const updatedData = [];
+
+    const map: Map<string, RankingRequest[]> = new Map();
+    for (let index = 0; index < data?.length; index++) {
+      const rankingRequest = data[index];
+
+      const rankingRequests = map.get(rankingRequest.rankingCategoryId.toString());
+      let position = 0;
+      if (rankingRequests && rankingRequests.length > 0) {
+        position = await this.getCurrentPosition(rankingRequests, rankingRequest?._id.toString());
+      } else {
+        const newRankingRequests = await this.rankingRequestRepository.findAll(
+          {
+            rankingCategoryId: rankingRequest?.rankingCategoryId,
+            isDeleted: { $ne: DeletionStatus.DELETED },
+            bbrScore: { $exists: true },
+            status: {
+              $in: [
+                RankingCategoryStatus.ACTIVE,
+                RankingCategoryStatus.DRAFT,
+                RankingCategoryStatus.PENDING,
+              ],
+            },
+          },
+          {
+            sort: {
+              'bbrScore': -1,
+            },
+          }
+        );
+        position = await this.getCurrentPosition(
+          newRankingRequests.data,
+          rankingRequest?._id.toString()
+        );
+
+        map.set(rankingRequest.rankingCategoryId.toString(), newRankingRequests.data);
+      }
+      updatedData.push({
+        ...rankingRequest,
+        position,
+      });
+    }
+
     const { pagination } = PaginationService.paginate({ rows: data, count }, listRankingRequestDto);
+    return { pagination, rankingRequests: updatedData };
+  }
+
+  async findAllRankingRequestForUser(listRankingRequestForUserDto: ListRankingRequestForUserDto) {
+    const result = await this.rankingRequestRepository.findAllRankingRequestForUser(
+      listRankingRequestForUserDto
+    );
+    const count = result[0]?.totalCount || 0;
+    const data = result[0]?.data || [];
+
+    const { pagination } = PaginationService.paginate(
+      { rows: data, count },
+      listRankingRequestForUserDto
+    );
 
     return { pagination, rankingRequests: data };
   }
@@ -619,10 +677,10 @@ export class RankingRequestService {
 
   private async getCurrentPosition(
     rankingRequests: RankingRequest[],
-    rankingCategoryId: string
+    rankingRequestId: string
   ): Promise<number> {
     const index = rankingRequests.findIndex(
-      (request) => request._id.toString() === rankingCategoryId
+      (request) => request._id.toString() === rankingRequestId
     );
 
     return index !== -1 ? index : -1;
