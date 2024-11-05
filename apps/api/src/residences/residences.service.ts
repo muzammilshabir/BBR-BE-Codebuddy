@@ -879,12 +879,24 @@ export class ResidenceService {
     const count = result[0]?.totalCount || 0;
     const data = result[0]?.data || [];
 
+    const updatedData = data.map((item) => ({
+      ...item,
+      city: {
+        name: item.city[0]?.name[0] || null, // Extracts the first element from name array, or null if not present
+        countryId: item.city[0]?.countryId[0] || null, // Extracts the first element from countryId array, or null if not present
+      },
+      country: {
+        name: item.country[0]?.name[0] || null, // Extracts the first element from name array, or null if not present
+      },
+      associatedBrand: item.associatedBrand[0] || null,
+    }));
+
     const { pagination } = PaginationService.paginate(
-      { rows: data, count },
+      { rows: updatedData, count },
       listResidenceWithDraftDto
     );
 
-    return { pagination, residences: data };
+    return { pagination, residences: updatedData };
   }
 
   async getSimilarResidences(getSimilarResidenceDto: GetSimilarResidenceDto) {
