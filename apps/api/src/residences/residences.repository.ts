@@ -104,7 +104,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
       }, {});
 
       const pipeline: PipelineStage[] = [
-        //  Match residences based on filters like developerId
+        // Match residences based on filters like developerId
         {
           $match: {
             ...(developerId ? { developerId: new Types.ObjectId(developerId) } : {}),
@@ -112,7 +112,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
           },
         },
 
-        // Lookup for all drafts from residencedrafts collection
+        // Lookup for drafts from the residencedrafts collection
         {
           $lookup: {
             from: 'residencedrafts',
@@ -145,7 +145,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
           },
         },
 
-        //  Lookup for the developer data from users collection
+        // Lookup for developer data from users collection
         {
           $lookup: {
             from: 'users',
@@ -186,25 +186,21 @@ export class ResidenceRepository extends BaseRepository<Residence> {
                     { 'latestDraft.name': { $regex: search, $options: 'i' } },
                     { 'latestDraft.address.city': { $regex: search, $options: 'i' } },
                     { 'latestDraft.address.country': { $regex: search, $options: 'i' } },
-                    { 'developerData.fullName': { $regex: search, $options: 'i' } }, // Search in developerData
+                    { 'developerData.fullName': { $regex: search, $options: 'i' } },
                   ],
                 }
               : {}),
           },
         },
+
+        // Various lookups for detailed data
+        // Residence types
         {
-          // Lookup for multiple residence types based on an array of residenceTypeIds
           $lookup: {
             from: 'residencetypes',
-            localField: 'latestDraft.residenceTypeIds', // Assuming the field is now residenceTypeIds (array)
+            localField: 'latestDraft.residenceTypeIds',
             foreignField: '_id',
             as: 'residenceTypes',
-          },
-        },
-        {
-          $unwind: {
-            path: '$residenceTypes',
-            preserveNullAndEmptyArrays: true,
           },
         },
         {
@@ -215,12 +211,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
             as: 'city',
           },
         },
-        {
-          $unwind: {
-            path: '$city',
-            preserveNullAndEmptyArrays: true,
-          },
-        },
+
         {
           $lookup: {
             from: 'countries',
@@ -230,23 +221,11 @@ export class ResidenceRepository extends BaseRepository<Residence> {
           },
         },
         {
-          $unwind: {
-            path: '$country',
-            preserveNullAndEmptyArrays: true,
-          },
-        },
-        {
           $lookup: {
             from: 'brands',
             localField: 'latestDraft.associatedBrandId',
             foreignField: '_id',
             as: 'associatedBrand',
-          },
-        },
-        {
-          $unwind: {
-            path: '$associatedBrand',
-            preserveNullAndEmptyArrays: true,
           },
         },
         {
@@ -825,12 +804,6 @@ export class ResidenceRepository extends BaseRepository<Residence> {
             localField: 'latestDraft.residenceTypeIds', // Assuming the field is now residenceTypeIds (array)
             foreignField: '_id',
             as: 'residenceTypes',
-          },
-        },
-        {
-          $unwind: {
-            path: '$residenceTypes',
-            preserveNullAndEmptyArrays: true,
           },
         },
 
