@@ -390,6 +390,7 @@ export class ClaimRequestService {
     const { data, count } = await this.claimRequestRepository.findAll(query, options, [
       { path: 'residenceId' },
       { path: 'developerId', select: 'fullName email role' },
+      { path: 'documents', select: 'originalFileKey fileKey url mimeType', model: 'Upload' },
     ]);
 
     const { pagination } = PaginationService.paginate({ rows: data, count }, listClaimRequestDto);
