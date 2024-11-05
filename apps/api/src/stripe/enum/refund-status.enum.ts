@@ -1,5 +1,5 @@
 export enum RefundStatus {
-  REQUESTED = 'requested',
+  REQUESTED = 'pending',
   REJECTED = 'rejected',
-  REFUNDED = 'refunded',
+  REFUNDED = 'approved',
 }

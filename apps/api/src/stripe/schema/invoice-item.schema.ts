@@ -13,10 +13,10 @@ export class InvoiceItem extends Document {
   })
   stripeProductId: string;
 
-  @Prop({ required: true, type: Types.ObjectId, ref: 'Feature' })
+  @Prop({ required: false, type: Types.ObjectId, ref: 'Feature' })
   feature?: Types.ObjectId;
 
-  @Prop({ required: true, type: Types.ObjectId, ref: 'Plan' })
+  @Prop({ required: false, type: Types.ObjectId, ref: 'Plan' })
   plan?: Types.ObjectId;
 
   @Prop({

@@ -28,10 +28,17 @@ import { RefundRepository } from './refund.repository';
 import { SubscriptionPlanModule } from 'src/subscription-plan/subscription-plan.module';
 import { PaymentAttemptSeeder } from './payment-attempt.seeder';
 import { RefundSeeder } from './refund.seeder';
+import { MailerCoreModule } from 'src/mailer/mailer.module';
+import { AllInOnePaymentSeeder } from './all-in-one-payment.seeder';
+import { User, UserSchema } from 'src/users/schema/user.schema';
+import { Feature, FeatureSchema } from 'src/subscription-plan/schema/feature.schema';
+import { Plan, PlanSchema } from 'src/subscription-plan/schema/plan.schema';
+import { Residence, ResidenceSchema } from 'src/residences/schema/residences.schema';
 
 @Module({
   imports: [
     ConfigModule.forRoot(),
+    MailerCoreModule,
     UserModule,
     ResidenceModule,
     SubscriptionPlanModule,
@@ -42,6 +49,10 @@ import { RefundSeeder } from './refund.seeder';
     MongooseModule.forFeature([{ name: PaymentAttempt.name, schema: PaymentAttemptSchema }]),
     MongooseModule.forFeature([{ name: PaymentMethod.name, schema: PaymentMethodSchema }]),
     MongooseModule.forFeature([{ name: Refund.name, schema: RefundSchema }]),
+    MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
+    MongooseModule.forFeature([{ name: Plan.name, schema: PlanSchema }]),
+    MongooseModule.forFeature([{ name: Feature.name, schema: FeatureSchema }]),
+    MongooseModule.forFeature([{ name: Residence.name, schema: ResidenceSchema }]),
   ],
   controllers: [
     StripeController,
@@ -63,6 +74,7 @@ import { RefundSeeder } from './refund.seeder';
     RefundRepository,
     PaymentAttemptSeeder,
     RefundSeeder,
+    AllInOnePaymentSeeder,
   ],
   exports: [
     StripeService,
@@ -71,6 +83,7 @@ import { RefundSeeder } from './refund.seeder';
     StripeWebhookService,
     PaymentAttemptSeeder,
     RefundSeeder,
+    AllInOnePaymentSeeder,
   ],
 })
 export class StripeModule {}

@@ -1,0 +1,52 @@
+{{> header }}
+
+<p>Hey {{customerName}},</p>
+
+<p>We hope this email finds you well. Please find below the details of your invoice:</p>
+
+<h2>Invoice Details</h2>
+<p><strong>Date:</strong> {{formatDate date}}</p>
+
+<table style="width: 100%; border-collapse: collapse;">
+  <thead>
+    <tr style="background-color: #f2f2f2;">
+      <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Item</th>
+      <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">Quantity</th>
+      <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">Price</th>
+      <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">Total</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{#each items}}
+    <tr>
+      <td style="border: 1px solid #ddd; padding: 8px;">{{name}}</td>
+      <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">{{quantity}}</td>
+      <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">{{formatCurrency price}}</td>
+      <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">{{formatCurrency (multiply quantity price)}}</td>
+    </tr>
+    {{/each}}
+  </tbody>
+</table>
+
+<table style="width: 100%; margin-top: 20px;">
+  <tr>
+    <td style="text-align: right;"><strong>Subtotal:</strong></td>
+    <td style="text-align: right; width: 100px;">{{formatCurrency subTotal}}</td>
+  </tr>
+  {{#if discount}}
+  <tr>
+    <td style="text-align: right;"><strong>Discount:</strong></td>
+    <td style="text-align: right;">{{formatCurrency discount}}</td>
+  </tr>
+  {{/if}}
+  <tr>
+    <td style="text-align: right;"><strong>Tax ({{tax}}%):</strong></td>
+    <td style="text-align: right;">{{formatCurrency taxAmount}}</td>
+  </tr>
+  <tr>
+    <td style="text-align: right;"><strong>Total:</strong></td>
+    <td style="text-align: right;"><strong>{{formatCurrency total}}</strong></td>
+  </tr>
+</table>
+
+{{> footer }}

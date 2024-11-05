@@ -28,6 +28,9 @@ import { ListTransactionsDto } from './dto/list-transactions.dto';
 import { PaymentAttemptRepository } from './payment-attempt.repository';
 import { SubscriptionStatus } from './enum/subscription-status.enum';
 import { ListRefundRequestsDto } from './dto/list-refund-requests.dto';
+import { PaymentAttemptStatus } from './enum/payment-attempt-status.enum';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { SendEmailEvent } from 'src/mailer/events/send-email.event';
 
 @Injectable()
 export class PaymentService {
@@ -42,7 +45,8 @@ export class PaymentService {
     private readonly paymentMethodRepository: PaymentMethodRepository,
     private readonly subscriptionPlanService: SubscriptionPlanService,
     private readonly transactionRepository: TransactionRepository,
-    private readonly paymentAttemptRepository: PaymentAttemptRepository
+    private readonly paymentAttemptRepository: PaymentAttemptRepository,
+    private readonly eventEmitter: EventEmitter2
   ) {}
 
   private convertPaymentItemsToLineItems(
@@ -89,12 +93,75 @@ export class PaymentService {
     return this.invoiceRepository.create(transformedDto);
   }
 
+  async createManualPaymentForInvoice(invoiceId: string, userId?: string) {
+    const invoice = userId
+      ? await this.invoiceRepository.find({ _id: invoiceId, developerId: userId })
+      : await this.invoiceRepository.findById(invoiceId);
+    if (!invoice) {
+      throw new Error('Invoice not found');
+    }
+
+    if (invoice.status !== InvoiceStatus.PENDING) {
+      throw new Error('Invoice is not in pending status');
+    }
+
+    const developer = await this.userService.findById(invoice.developerId.toString());
+    const invoiceItems = await this.invoiceItemRepository.findByInvoiceId(invoice.id.toString());
+    const invoiceSubscription = await this.subscriptionRepository.findByInvoiceId(
+      invoice.id.toString()
+    );
+    const paymentAttempts = await this.paymentAttemptRepository.findByInvoiceId(
+      invoice.id.toString()
+    );
+    const totalAttemptsMade = paymentAttempts.length;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const attemptsToday = paymentAttempts.filter(
+      (attempt) => new Date(attempt.createdAt) >= today
+    ).length;
+
+    let maxTotalAttempts = 3;
+    let maxAttemptsPerDay = 1;
+
+    if (invoiceSubscription) {
+      maxTotalAttempts = invoiceSubscription.renewalAttempts;
+      maxAttemptsPerDay = invoiceSubscription.attemptsFrequency;
+    }
+
+    try {
+      const productIds = invoiceItems.map((item) => item.stripeProductId.toString());
+
+      const stripeInvoice = await this.stripeService.createManualInvoice(
+        developer.stripeCustomerId,
+        productIds,
+        invoice.discount,
+        invoice.tax
+      );
+
+      await this.paymentAttemptRepository.create({
+        invoiceId: invoice._id,
+        paymentMethodId: invoice.paymentMethodId,
+        stripeInvoiceId: stripeInvoice.id,
+        status: PaymentAttemptStatus.PENDING,
+        attemptNumber: totalAttemptsMade + 1,
+        attemptsRemaining: maxTotalAttempts - (totalAttemptsMade + 1),
+        attemptsRemainingToday: maxAttemptsPerDay - (attemptsToday + 1),
+        createdAt: new Date(),
+      });
+
+      return { ...invoice.toObject(), stripeInvoice };
+    } catch (error) {
+      throw new Error(`Unable to create payment intent: ${error.message}`);
+    }
+  }
+
   async updateInvoice(userId: string, invoiceId: string, updateInvoiceDto: UpdateInvoiceDto) {
     const invoice = await this.invoiceRepository.find({
       developerId: userId,
       _id: invoiceId,
     });
-    if (invoice) {
+    if (!invoice) {
       throw new Error('Invoice not found');
     }
     return this.invoiceRepository.update(invoiceId, updateInvoiceDto);
@@ -102,18 +169,82 @@ export class PaymentService {
 
   async updateInvoiceAdmin(invoiceId: string, updateInvoiceDto: UpdateInvoiceDto) {
     const invoice = await this.invoiceRepository.find(invoiceId);
-    if (invoice) {
+    if (!invoice) {
       throw new Error('Invoice not found');
     }
     return this.invoiceRepository.update(invoiceId, updateInvoiceDto);
   }
 
+  private async sendInvoiceEmailEvent(
+    email: string,
+    customerName: string,
+    data: {
+      date: Date;
+      items: {
+        name: string;
+        quantity: number;
+        price: number;
+      }[];
+      subTotal: number;
+      tax: number;
+      taxAmount: number;
+      discount: number;
+      total: number;
+    }
+  ) {
+    this.eventEmitter.emit(
+      SendEmailEvent.event,
+      new SendEmailEvent({
+        context: {
+          customerName,
+          ...data,
+        },
+        template: 'invoice',
+        subject: `Invoice ${data.date}`,
+        toEmail: email,
+      })
+    );
+  }
+
   async sendInvoiceEmail(invoiceId: string) {
-    const invoice = await this.invoiceRepository.find(invoiceId);
-    if (invoice) {
+    const invoice = await this.invoiceRepository.findById(invoiceId);
+    if (!invoice) {
       throw new Error('Invoice not found');
     }
-    return 'todo';
+
+    const invoiceItems = await this.invoiceItemRepository.findByInvoiceId(invoiceId);
+    const developer = await this.userService.findById(invoice.developerId.toString());
+
+    const items = [];
+    for (const item of invoiceItems) {
+      const stripeProduct = await this.stripeService.getProduct(item.stripeProductId.toString());
+      const stripeProductPrice = await this.stripeService.getPrice(
+        stripeProduct.default_price.toString()
+      );
+      items.push({
+        name: stripeProduct.name,
+        quantity: item.quantity,
+        price: stripeProductPrice.unit_amount,
+      });
+    }
+
+    const subtotalAfterDiscount = invoice.subTotal - invoice.discount;
+    const taxAmount = subtotalAfterDiscount * (invoice.tax / 100);
+    const total = subtotalAfterDiscount + taxAmount;
+
+    const data = {
+      date: invoice.createdAt,
+      items: items,
+      subTotal: invoice.subTotal,
+      discount: invoice.discount,
+      tax: invoice.tax,
+      taxAmount: taxAmount,
+      total: total,
+    };
+
+    await this.sendInvoiceEmailEvent(developer.email, developer.fullName, data);
+
+    return 'Invoice email sent successfully';
   }
 
   async processInvoiceItems(
@@ -132,7 +263,10 @@ export class PaymentService {
         });
       }
       if (item.feature) {
-        const feature = await this.subscriptionPlanService.getFeature(item.feature.toString());
+        const feature = await this.subscriptionPlanService.getFeature(item.feature.id.toString());
+        if (!feature) {
+          throw new Error('Feature not found');
+        }
         parsedItems.push({
           name: feature.name,
           price: item.feature.price,
@@ -144,6 +278,9 @@ export class PaymentService {
       }
       if (item.plan) {
         const plan = await this.subscriptionPlanService.getPlan(item.plan.toString());
+        if (!plan) {
+          throw new Error('Plan not found');
+        }
         parsedItems.push({
           name: plan.name,
           price: plan.fee,
@@ -180,14 +317,19 @@ export class PaymentService {
     const products = await this.stripeService.createProducts(data.lineItems);
     const invoiceItems = [];
     for (const product of products) {
-      const invoiceItem = {
+      const invoiceItemData = {
         invoiceId: new Types.ObjectId(createInvoiceItemsDto.invoiceId),
         productId: product.id,
         quantity: 1,
         createdById: new Types.ObjectId(userId),
       };
-      this.invoiceItemRepository.create(invoiceItem);
-      invoiceItems.push(invoiceItem);
+      const invoiceItem = await this.invoiceItemRepository.create(invoiceItemData);
+      invoiceItems.push({
+        ...invoiceItem.toObject(),
+        name: product.name,
+        unit_amount: (product as any).unit_amount,
+        type: (product as any).type,
+      });
     }
     invoice.subTotal += data.totalPrice;
     await this.invoiceRepository.update(invoice.id, { subsTotal: invoice.subTotal });
@@ -246,13 +388,14 @@ export class PaymentService {
   ) {
     const transformedDto = {
       ...createSubscriptionDto,
-      invoiceId: new Types.ObjectId(createSubscriptionDto.invoiceId),
+      baseInvoiceId: new Types.ObjectId(createSubscriptionDto.invoiceId),
       createdById: new Types.ObjectId(userId),
     };
 
-    const invoice = await this.invoiceRepository.findById(
-      createSubscriptionDto.invoiceId.toString()
-    );
+    const invoice = await this.invoiceRepository.find({
+      _id: createSubscriptionDto.invoiceId.toString(),
+      residenceId: new Types.ObjectId(createSubscriptionDto.residenceId),
+    });
 
     const invoiceItems = await this.invoiceItemRepository.findByInvoiceId(
       createSubscriptionDto.invoiceId.toString()
@@ -270,22 +413,26 @@ export class PaymentService {
     const subscriptions = await this.subscriptionRepository.findByResidenceId(
       transformedDto.residenceId.toString()
     );
-    const newSubscription = await this.subscriptionRepository.create(transformedDto);
+    try {
+      const newSubscription = await this.subscriptionRepository.create(transformedDto);
 
-    if (planItem !== undefined) {
-      for (const subscription of subscriptions) {
-        await this.subscriptionRepository.update(subscription.id, {
-          status: SubscriptionStatus.CANCELED,
-        });
+      if (planItem !== undefined) {
+        for (const subscription of subscriptions) {
+          await this.subscriptionRepository.update(subscription.id, {
+            status: SubscriptionStatus.CANCELED,
+          });
+        }
+        await this.residenceService.upgradeResidence(
+          createSubscriptionDto.residenceId.toString(),
+          newSubscription.id,
+          planItem.plan.toString()
+        );
       }
-      await this.residenceService.upgradeResidence(
-        createSubscriptionDto.residenceId.toString(),
-        newSubscription.id,
-        planItem.plan.toString()
-      );
-    }
 
-    return newSubscription;
+      return newSubscription;
+    } catch (err) {
+      return err;
+    }
   }
 
   async updateSubscription(
@@ -298,7 +445,7 @@ export class PaymentService {
       developerId: userId,
       _id: subscription.baseInvoiceId,
     });
-    if (invoice) {
+    if (!invoice) {
       throw new Error('Invoice not found');
     }
     return this.subscriptionRepository.update(subscriptionId, updateSubscriptionDto);
@@ -310,7 +457,7 @@ export class PaymentService {
   ) {
     const subscription = await this.subscriptionRepository.findOne(subscriptionId);
     const invoice = await this.invoiceRepository.findOne(subscription.baseInvoiceId.toString());
-    if (invoice) {
+    if (!invoice) {
       throw new Error('Invoice not found');
     }
     return this.subscriptionRepository.update(subscriptionId, updateSubscriptionDto);
@@ -340,10 +487,16 @@ export class PaymentService {
     return paymentMethods;
   }
 
-  async createSetupIntent(userId: string) {
+  async createSetupIntent(userId: string, paymentMethodId: string, ip: string, userAgent: string) {
     const user = await this.userService.findById(userId);
     const customerId = user.stripeCustomerId;
-    return (await this.stripeService.createSetupIntent(customerId)).client_secret;
+    const intent = await this.stripeService.createSetupIntent(
+      customerId,
+      paymentMethodId,
+      ip,
+      userAgent
+    );
+    return { id: intent.id, client_secret: intent.client_secret };
   }
 
   async deletePaymentMethod(userId: string, methodId: string) {
@@ -644,18 +797,20 @@ export class PaymentService {
 
   async getTransactions(userId: string, listTransactionsDto: ListTransactionsDto) {
     const filter: any = {
-      developerId: userId,
+      developerId: new Types.ObjectId(userId),
       isDeleted: false,
     };
 
     if (listTransactionsDto.search) {
-      filter.$or = [
-        { 'id': { $regex: listTransactionsDto.search, $options: 'i' } },
-        { 'developerId': { $regex: listTransactionsDto.search, $options: 'i' } },
-        { 'residenceId': { $regex: listTransactionsDto.search, $options: 'i' } },
-        { 'status': { $regex: listTransactionsDto.search, $options: 'i' } },
-        { 'amount': { $regex: listTransactionsDto.search, $options: 'i' } },
-      ];
+      filter.$or = [{ status: { $regex: listTransactionsDto.search, $options: 'i' } }];
+
+      if (Types.ObjectId.isValid(listTransactionsDto.search)) {
+        filter.$or.push(
+          { _id: new Types.ObjectId(listTransactionsDto.search) },
+          { developerId: new Types.ObjectId(listTransactionsDto.search) },
+          { residenceId: new Types.ObjectId(listTransactionsDto.search) }
+        );
+      }
     }
 
     const options = PaginationService.prepareOptions(listTransactionsDto);
@@ -677,16 +832,18 @@ export class PaymentService {
       isDeleted: false,
     };
     if (userId) {
-      filter.developerId = userId;
+      filter.developerId = new Types.ObjectId(userId);
     }
+
     if (listTransactionsDto.search) {
-      filter.$or = [
-        { 'id': { $regex: listTransactionsDto.search, $options: 'i' } },
-        { 'developerId': { $regex: listTransactionsDto.search, $options: 'i' } },
-        { 'residenceId': { $regex: listTransactionsDto.search, $options: 'i' } },
-        { 'status': { $regex: listTransactionsDto.search, $options: 'i' } },
-        { 'amount': { $regex: listTransactionsDto.search, $options: 'i' } },
-      ];
+      filter.$or = [{ status: { $regex: listTransactionsDto.search, $options: 'i' } }];
+
+      if (Types.ObjectId.isValid(listTransactionsDto.search)) {
+        filter.$or.push(
+          { _id: new Types.ObjectId(listTransactionsDto.search) },
+          { developerId: new Types.ObjectId(listTransactionsDto.search) }
+        );
+      }
     }
 
     const options = PaginationService.prepareOptions(listTransactionsDto);
@@ -739,7 +896,7 @@ export class PaymentService {
     const transaction: CreateTransactionDto = {
       residenceId: invoice.residenceId,
       developerId: invoice.developerId,
-      invoiceId: invoice.id,
+      invoiceId: new Types.ObjectId(invoice.id),
       amount: refundPaymentDto.amount,
       status: TransactionStatus.REFUNDED,
     };
@@ -748,7 +905,13 @@ export class PaymentService {
   }
 
   async getRefundRequest(refundId: string) {
-    return this.refundRepository.findOneExpanded(refundId);
+    const refund = await this.refundRepository.findOneExpanded(refundId);
+    const stripePaymentMethod = await this.stripeService.retrieveCustomerPaymentMethod(
+      (refund.invoiceId as any).developerId.stripeCustomerId,
+      (refund.invoiceId as any).paymentMethodId
+    );
+
+    return { ...refund.toObject(), stripePaymentMethod };
   }
 
   async listRefundRequests(listRefundRequestsDto: ListRefundRequestsDto) {
@@ -861,11 +1024,12 @@ export class PaymentService {
       };
       await this.createTransaction(transaction);
       await this.stripeService.refundInvoice(invoice.stripeInvoiceId, refund);
+
+      await this.invoiceRepository.update(invoice.id, {
+        status: action,
+      });
     }
 
-    await this.invoiceRepository.update(invoice.id, {
-      status: action,
-    });
     return this.refundRepository.update(refund.id, {
       status: action,
     });

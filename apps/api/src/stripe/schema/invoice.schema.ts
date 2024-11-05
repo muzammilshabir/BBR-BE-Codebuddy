@@ -118,17 +118,23 @@ InvoiceSchema.statics.generateInvoiceNumber = async function() {
   const year = currentDate.getFullYear().toString().slice(-2);
   const month = (currentDate.getMonth() + 1).toString().padStart(2, '0');
   
-  const lastInvoice = await this.findOne({
-    invoiceNumber: new RegExp(`^INV${year}-M${month}-`)
-  }).sort({ invoiceNumber: -1 });
-
   let sequence = 1;
-  if (lastInvoice) {
-    const lastSequence = parseInt(lastInvoice.invoiceNumber.slice(-4));
-    sequence = lastSequence + 1;
+  let invoiceNumber;
+  let isUnique = false;
+
+  while (!isUnique) {
+    invoiceNumber = `INV${year}-M${month}-${sequence.toString().padStart(4, '0')}`;
+    
+    const existingInvoice = await this.findOne({ invoiceNumber });
+    
+    if (!existingInvoice) {
+      isUnique = true;
+    } else {
+      sequence++;
+    }
   }
 
-  return `INV${year}-M${month}-${sequence.toString().padStart(4, '0')}`;
+  return invoiceNumber;
 };
 
 InvoiceSchema.pre('save', async function(next) {

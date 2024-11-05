@@ -41,7 +41,10 @@ export class StripeWebhookService {
       const signature = request.headers['stripe-signature'];
 
       if (!signature) {
-        throw new HttpException('No Stripe signature found in the request headers', HttpStatus.BAD_REQUEST);
+        throw new HttpException(
+          'No Stripe signature found in the request headers',
+          HttpStatus.BAD_REQUEST
+        );
       }
 
       let event: Stripe.Event;
@@ -64,7 +67,9 @@ export class StripeWebhookService {
           result = await this.handleSetupIntentSucceeded(event.data.object as Stripe.SetupIntent);
           break;
         case 'payment_intent.succeeded':
-          result = await this.handlePaymentIntentSucceeded(event.data.object as Stripe.PaymentIntent);
+          result = await this.handlePaymentIntentSucceeded(
+            event.data.object as Stripe.PaymentIntent
+          );
           break;
         case 'invoice.payment_failed':
           result = await this.handleInvoiceFailed(event.data.object as Stripe.Invoice);
@@ -74,7 +79,9 @@ export class StripeWebhookService {
           break;
         default:
           this.logger.warn(`Unhandled event type ${event.type}`);
-          return response.status(HttpStatus.OK).json({ received: true, message: `Unhandled event type ${event.type}` });
+          return response
+            .status(HttpStatus.OK)
+            .json({ received: true, message: `Unhandled event type ${event.type}` });
       }
 
       return response.status(HttpStatus.OK).json({ received: true, result });
@@ -82,7 +89,7 @@ export class StripeWebhookService {
       this.logger.error(`Error processing webhook: ${error.message}`, error.stack);
       return response.status(error.status || HttpStatus.INTERNAL_SERVER_ERROR).json({
         received: false,
-        error: error.message
+        error: error.message,
       });
     }
   }
@@ -90,23 +97,32 @@ export class StripeWebhookService {
   private async handleSetupIntentSucceeded(setupIntent: Stripe.SetupIntent) {
     this.logger.log(`Processing setup_intent.succeeded for SetupIntent ${setupIntent.id}`);
     try {
-      const verifySetupIntent = await this.stripe.setupIntents.verifyMicrodeposits(
-        setupIntent.id,
-        {
-          amounts: [32, 45],
-        }
-      );
+      let intent = setupIntent;
+      if (setupIntent.status == 'requires_action') {
+        intent = await this.stripe.setupIntents.verifyMicrodeposits(
+          setupIntent.id,
+          {
+            amounts: [32, 45],
+          }
+        );
+      }
       const paymentMethod = {
-        customerId: verifySetupIntent.customer,
-        paymentMethodId: verifySetupIntent.payment_method,
-        mandateId: verifySetupIntent.mandate,
+        customerId: intent.customer,
+        paymentMethodId: intent.payment_method,
+        mandateId: intent.mandate,
       };
       await this.paymentMethodRepository.create(paymentMethod);
       this.logger.log(`SetupIntent for ${setupIntent.customer} was successful!`);
       return { success: true, customerId: setupIntent.customer };
     } catch (error) {
-      this.logger.error(`Error processing SetupIntent ${setupIntent.id}: ${error.message}`, error.stack);
-      throw new HttpException(`Error processing SetupIntent: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
+      this.logger.error(
+        `Error processing SetupIntent ${setupIntent.id}: ${error.message}`,
+        error.stack
+      );
+      throw new HttpException(
+        `Error processing SetupIntent: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
     }
   }
 
@@ -124,7 +140,9 @@ export class StripeWebhookService {
       if (!paymentAttempt) {
         throw new Error(`No payment attempt found for Stripe invoice ${stripeInvoice.id}`);
       }
-      const internalInvoice = await this.invoiceRepository.findOne(paymentAttempt.invoiceId.toString());
+      const internalInvoice = await this.invoiceRepository.findOne(
+        paymentAttempt.invoiceId.toString()
+      );
       if (!internalInvoice) {
         throw new Error(`No internal invoice found for payment attempt ${paymentAttempt.id}`);
       }
@@ -146,8 +164,14 @@ export class StripeWebhookService {
       this.logger.log(`Successfully processed paid invoice ${internalInvoice.id}`);
       return { success: true, invoiceId: internalInvoice.id, amount: stripeInvoice.total };
     } catch (error) {
-      this.logger.error(`Error processing paid invoice ${stripeInvoice.id}: ${error.message}`, error.stack);
-      throw new HttpException(`Error processing paid invoice: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
+      this.logger.error(
+        `Error processing paid invoice ${stripeInvoice.id}: ${error.message}`,
+        error.stack
+      );
+      throw new HttpException(
+        `Error processing paid invoice: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
     }
   }
 
@@ -160,7 +184,9 @@ export class StripeWebhookService {
       if (!paymentAttempt) {
         throw new Error(`No payment attempt found for Stripe invoice ${stripeInvoice.id}`);
       }
-      const internalInvoice = await this.invoiceRepository.findOne(paymentAttempt.invoiceId.toString());
+      const internalInvoice = await this.invoiceRepository.findOne(
+        paymentAttempt.invoiceId.toString()
+      );
       if (!internalInvoice) {
         throw new Error(`No internal invoice found for payment attempt ${paymentAttempt.id}`);
       }
@@ -182,8 +208,14 @@ export class StripeWebhookService {
       this.logger.log(`Successfully processed failed invoice ${internalInvoice.id}`);
       return { success: false, invoiceId: internalInvoice.id, amount: stripeInvoice.total };
     } catch (error) {
-      this.logger.error(`Error processing failed invoice ${stripeInvoice.id}: ${error.message}`, error.stack);
-      throw new HttpException(`Error processing failed invoice: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
+      this.logger.error(
+        `Error processing failed invoice ${stripeInvoice.id}: ${error.message}`,
+        error.stack
+      );
+      throw new HttpException(
+        `Error processing failed invoice: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
     }
   }
 }
