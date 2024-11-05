@@ -17,8 +17,7 @@ export class RefundRepository extends BaseRepository<Refund> {
         model: 'Invoice',
         populate: [
           { path: 'residenceId', select: 'name', model: 'Residence' },
-          { path: 'developerId', select: 'fullName', model: 'User' },
-          'paymentMethod',
+          { path: 'developerId', select: 'fullName stripeCustomerId', model: 'User' },
         ],
       },
     ]);

@@ -3,32 +3,32 @@ import { Types } from 'mongoose';
 import * as Joi from 'joi';
 import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
 
-class Custom {
+class CreateInvoiceItemCustom {
   @ApiProperty({
     example: 'XYZ Heights Residence',
-    required: false,
+    required: true,
   })
-  name?: string;
+  name: string;
 
   @ApiProperty({
     example: 30000,
-    description: "30000 = $300.00 // price is always in cents",
+    description: '30000 = $300.00 // price is always in cents',
     required: true,
   })
   price: number;
 }
 
-class Feature {
-
+class CreateInvoiceItemFeature {
   @ApiProperty({
     example: '66acda8b857c576159b74da2',
-    required: false,
+    type: String,
+    required: true,
   })
   id: Types.ObjectId;
 
   @ApiProperty({
     example: 30000,
-    description: "30000 = $300.00 // price is always in cents",
+    description: '30000 = $300.00 // price is always in cents',
     required: true,
   })
   price: number;
@@ -37,19 +37,20 @@ class Feature {
 export class InvoiceItem {
   @ApiProperty({
     description: 'Custom item name and price',
-    type: Custom,
-  })
-  custom?: Custom;
-
-  @ApiProperty({
-    description: 'Feature item name and price',
-    type: Feature,
+    type: CreateInvoiceItemCustom,
     required: false,
   })
-  feature?: Feature;
+  custom?: CreateInvoiceItemCustom;
 
   @ApiProperty({
-    description: 'Plan item name, the price will be taken from the plan',
+    description: 'Feature item id and price',
+    type: CreateInvoiceItemFeature,
+    required: false,
+  })
+  feature?: CreateInvoiceItemFeature;
+
+  @ApiProperty({
+    description: 'Plan item id, the price will be taken from the plan',
     type: String,
     example: '66acda8b857c576159b74da2',
     required: false,
@@ -70,13 +71,20 @@ export class CreateInvoiceItemsDto {
 }
 
 export const createInvoiceItemsDtoSchema = Joi.object({
-  invoiceId: Joi.string().custom(joiObjectIdValidator('residenceId')).required(),
-  invoiceItems: Joi.array().items(Joi.object({
-    custom: Joi.object({
-      name: Joi.string().required(),
-      price: Joi.number().min(0).required(),
-    }).optional(),
-    feature: Joi.string().custom(joiObjectIdValidator('feature')).optional(),
-    plan: Joi.string().custom(joiObjectIdValidator('plan')).optional(),
-  })).required(),
+  invoiceId: Joi.string().custom(joiObjectIdValidator('invoiceId')).required(),
+  invoiceItems: Joi.array()
+    .items(
+      Joi.object({
+        custom: Joi.object({
+          name: Joi.string().required(),
+          price: Joi.number().min(0).required(),
+        }).optional(),
+        feature: Joi.object({
+          id: Joi.string().custom(joiObjectIdValidator('feature')).required(),
+          price: Joi.number().min(0).required(),
+        }).optional(),
+        plan: Joi.string().custom(joiObjectIdValidator('plan')).optional(),
+      }).xor('custom', 'feature', 'plan')
+    )
+    .required(),
 });
