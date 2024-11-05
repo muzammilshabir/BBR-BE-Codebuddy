@@ -29,6 +29,7 @@ export class BrandService {
 
     const { data, count } = await this.brandRepository.findAll(filter, options, [
       { path: 'upload.ImageId', select: 'originalFileKey fileKey url mimeType', model: 'Upload' },
+      { path: 'brandCategoryId', model: 'BrandCategory' },
     ]);
 
     const { pagination } = PaginationService.paginate({ rows: data, count }, listBrandDto);
