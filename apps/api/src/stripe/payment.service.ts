@@ -82,8 +82,8 @@ export class PaymentService {
     const residence = await this.residenceService.getResidenceById(
       createInvoiceDto.residenceId.toString()
     );
-    transformedDto.developerId = residence.developerId;
-    if (!asAdmin && residence.developerId != userId) {
+    transformedDto.developerId = residence.developerId._id;
+    if (!asAdmin && residence.developerId._id != userId) {
       throw new Error('You are not the developer of this residence');
     }
     return this.invoiceRepository.create(transformedDto);
@@ -138,7 +138,7 @@ export class PaymentService {
           price: item.feature.price,
           metadata: {
             type: 'feature',
-            id: feature._id,
+            id: feature._id.toString(),
           },
         });
       }
@@ -149,7 +149,7 @@ export class PaymentService {
           price: plan.fee,
           metadata: {
             type: 'plan',
-            id: plan._id,
+            id: plan._id.toString(),
           },
         });
       }
@@ -412,20 +412,6 @@ export class PaymentService {
         },
       },
       {
-        $lookup: {
-          from: 'paymentmethods',
-          localField: 'paymentMethodId',
-          foreignField: '_id',
-          as: 'paymentMethod',
-        },
-      },
-      {
-        $unwind: {
-          path: '$paymentMethod',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
         $match: matchStage,
       },
     ];
@@ -531,20 +517,6 @@ export class PaymentService {
       {
         $unwind: {
           path: '$developer',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $lookup: {
-          from: 'paymentmethods',
-          localField: 'paymentMethodId',
-          foreignField: '_id',
-          as: 'paymentMethod',
-        },
-      },
-      {
-        $unwind: {
-          path: '$paymentMethod',
           preserveNullAndEmptyArrays: true,
         },
       },

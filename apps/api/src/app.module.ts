@@ -50,6 +50,7 @@ import { PermissionsGuard } from './auth/guards/permissions.guard';
 import { SubscriptionPlanModule } from './subscription-plan/subscription-plan.module';
 import { BrandDraftModule } from './brandDraft/brandDraft.module';
 import { LoginAttemptModule } from './loginAttempt/loginAttempt.module';
+import { ScheduleModule, SchedulerRegistry } from '@nestjs/schedule';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -99,6 +100,7 @@ import { LoginAttemptModule } from './loginAttempt/loginAttempt.module';
     SubscriptionPlanModule,
     BrandDraftModule,
     LoginAttemptModule,
+    ScheduleModule.forRoot(),
   ],
   controllers: [AppController],
   providers: [
@@ -113,4 +115,12 @@ import { LoginAttemptModule } from './loginAttempt/loginAttempt.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule {
+  constructor(private schedulerRegistry: SchedulerRegistry) {
+    // setTimeout(() => {
+    //   const job = this.schedulerRegistry.getCronJob('test');
+    // // job.stop();
+    // console.log(job.start());
+    // }, 5000);
+  }
+}
