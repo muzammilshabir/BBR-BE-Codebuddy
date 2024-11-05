@@ -19,6 +19,7 @@ export class ClaimRequestRepository extends BaseRepository<ClaimRequest> {
       .populate([
         { path: 'residenceId' },
         { path: 'developerId', model: 'User', select: 'fullName email role' },
+        { path: 'documents', select: 'originalFileKey fileKey url mimeType', model: 'Upload' },
       ]);
 
     if (!claimRequest) {
