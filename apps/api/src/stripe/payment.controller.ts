@@ -1,5 +1,5 @@
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UsePipes } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Headers, Ip, Param, Patch, Post, Query, UsePipes } from '@nestjs/common';
 import {  ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
 import { Roles } from 'src/auth/decorators/roles.decorator';
@@ -62,8 +62,22 @@ export class PaymentController {
     @GetCurrentUserId() userId: string,
     @Body() createInvoiceDto: CreateInvoiceDto,
     ) {
-    const intent = await this.paymentService.createInvoice(userId, createInvoiceDto, false);
-    return ResponseService.buildResponse({ intent }, 'Invoice created successfully');
+    const invoice = await this.paymentService.createInvoice(userId, createInvoiceDto, false);
+    return ResponseService.buildResponse({ invoice }, 'Invoice created successfully');
+  }
+
+  @Post('/invoice/:id/manual-payment')
+  @ApiOperation({
+    summary: 'Generate Payment Intent for Invoice',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
+  async manuallyPayInvoice(
+    @GetCurrentUserId() userId: string,
+    @Param('id') invoiceId: string,
+    ) {
+    const intent = await this.paymentService.createManualPaymentForInvoice(invoiceId, userId);
+    return ResponseService.buildResponse({ intent }, 'Invoice Payment Intent created successfully');
   }
 
   @Patch('/invoice/:id')
@@ -78,11 +92,11 @@ export class PaymentController {
     @Param('id') id: string,
     @Body() updateInvoiceDto: UpdateInvoiceDto,
     ) {
-    const intent = await this.paymentService.updateInvoice(userId, id, updateInvoiceDto);
-    return ResponseService.buildResponse({ intent }, 'Invoice updated successfully');
+    const invoice = await this.paymentService.updateInvoice(userId, id, updateInvoiceDto);
+    return ResponseService.buildResponse({ invoice }, 'Invoice updated successfully');
   }
 
-  @Post('/invoice-items/')
+  @Post('/invoice-items')
   @ApiOperation({
     summary: 'Create Invoice Items',
   })
@@ -93,8 +107,8 @@ export class PaymentController {
     @GetCurrentUserId() userId: string,
     @Body() createInvoiceItemsDto: CreateInvoiceItemsDto,
     ) {
-    const intent = await this.paymentService.createInvoiceItems(userId, createInvoiceItemsDto, false);
-    return ResponseService.buildResponse({ intent }, 'Invoice Items created successfully');
+    const invoiceItems = await this.paymentService.createInvoiceItems(userId, createInvoiceItemsDto, false);
+    return ResponseService.buildResponse({ invoiceItems }, 'Invoice Items created successfully');
   }
 
   @Patch('/invoice-item/:id')
@@ -109,11 +123,11 @@ export class PaymentController {
     @Param('id') id: string,
     @Body() updateInvoiceItemDto: UpdateInvoiceItemDto,
     ) {
-    const intent = await this.paymentService.updateInvoiceItem(userId, id, updateInvoiceItemDto);
-    return ResponseService.buildResponse({ intent }, 'Invoice Item updated successfully');
+    const invoiceItem = await this.paymentService.updateInvoiceItem(userId, id, updateInvoiceItemDto);
+    return ResponseService.buildResponse({ invoiceItem }, 'Invoice Item updated successfully');
   }
 
-  @Post('/invoice-subscription/')
+  @Post('/invoice-subscription')
   @ApiOperation({
     summary: 'Create Invoice Subscription',
   })
@@ -124,8 +138,8 @@ export class PaymentController {
     @GetCurrentUserId() userId: string,
     @Body() createSubscriptionDto: CreateSubscriptionDto,
     ) {
-    const intent = await this.paymentService.createSubscription(userId, createSubscriptionDto, false);
-    return ResponseService.buildResponse({ intent }, 'Invoice Subscription created successfully');
+    const subscription = await this.paymentService.createSubscription(userId, createSubscriptionDto, false);
+    return ResponseService.buildResponse({ subscription }, 'Invoice Subscription created successfully');
   }
 
   @Patch('/invoice-subscription/:id')
@@ -140,8 +154,8 @@ export class PaymentController {
     @Param('id') id: string,
     @Body() updateSubscriptionDto: UpdateSubscriptionDto,
     ) {
-    const intent = await this.paymentService.updateSubscription(userId, id, updateSubscriptionDto);
-    return ResponseService.buildResponse({ intent }, 'Invoice Subscription updated successfully');
+    const subscription = await this.paymentService.updateSubscription(userId, id, updateSubscriptionDto);
+    return ResponseService.buildResponse({ subscription }, 'Invoice Subscription updated successfully');
   }
 
   @Post('/request-refund/:invoiceId')
@@ -156,8 +170,8 @@ export class PaymentController {
     @Param('invoiceId') invoiceId: string,
     @Body() refundPaymentDto: RefundPaymentDto,
   ) {
-    const intent = await this.paymentService.requestInvoiceRefund(userId, invoiceId, refundPaymentDto);
-    return ResponseService.buildResponse({ intent }, 'Refund request created successfully');
+    const refund = await this.paymentService.requestInvoiceRefund(userId, invoiceId, refundPaymentDto);
+    return ResponseService.buildResponse({ refund }, 'Refund request created successfully');
   }
 
   @Get('/transactions/')
@@ -218,7 +232,7 @@ export class PaymentController {
     return ResponseService.buildResponse({ paymentMethods }, 'Payment Methods retrieved successfully');
   }
 
-  @Post('/payment-method/')
+  @Post('/payment-method')
   @ApiOperation({
     summary: 'Create Payment Method Setup Intent',
   })
@@ -226,8 +240,16 @@ export class PaymentController {
   @Roles(UserRole.SELLER)
   async createSetupIntent(
     @GetCurrentUserId() userId: string,
+    @Body('paymentMethodId') paymentMethodId: string,
+    @Ip() ip,
+    @Headers('user-agent') userAgent,
   ) {
-    const intent = await this.paymentService.createSetupIntent(userId);
+    const intent = await this.paymentService.createSetupIntent(
+      userId,
+      paymentMethodId,
+      ip,
+      userAgent,
+    );
     return ResponseService.buildResponse({ intent }, 'Setup intent created successfully');
   }
 

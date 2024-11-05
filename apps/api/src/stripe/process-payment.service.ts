@@ -169,7 +169,7 @@ export class ProcessPaymentService {
             this.logger.log(`Marked invoice ${invoice.id} as failed due to invalid payment method`);
             continue;
           }
-          const mandateId = paymentMethod.mandateId;
+          // const mandateId = paymentMethod.mandateId;
 
           const developer = await this.userService.findById(invoice.developerId.toString());
           const invoiceItems = await this.invoiceItemRepository.findByInvoiceId(
@@ -209,7 +209,7 @@ export class ProcessPaymentService {
               const stripeInvoice = await this.stripeService.createInvoice(
                 developer.stripeCustomerId,
                 productIds,
-                mandateId,
+                invoice.paymentMethodId,
                 invoice.discount,
                 invoice.tax
               );

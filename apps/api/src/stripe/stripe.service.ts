@@ -23,7 +23,7 @@ export class StripeService {
 
   constructor(
     private readonly configService: ServiceConfig,
-    private readonly residenceService: ResidenceService,
+    private readonly residenceService: ResidenceService
   ) {
     this.stripe = new Stripe(configService.stripe.secretKey, {
       typescript: true,
@@ -79,19 +79,6 @@ export class StripeService {
     return this.stripe.customers.create(customer);
   }
 
-  async getCustomerByEmail(email: string): Promise<Stripe.Customer | null> {
-    const parsedEmail = email.replace(/["']/g, '');
-    const searchResult = await this.stripe.customers.search({
-      query: `email:"${parsedEmail}"`,
-    });
-    return searchResult.data[0] || null;
-  }
-
-  async getCustomerByStripeId(
-    customerId: string
-  ): Promise<Stripe.Customer | Stripe.DeletedCustomer> {
-    return this.stripe.customers.retrieve(customerId);
-  }
   async listCustomers(): Promise<Stripe.Customer[]> {
     return (await this.stripe.customers.list()).data;
   }
@@ -113,11 +100,65 @@ export class StripeService {
     return parsedMethods;
   }
 
-  async createSetupIntent(customerId: string) {
-    return await this.stripe.setupIntents.create({
-      customer: customerId,
-      usage: 'off_session',
-    });
+  async createSetupIntent(
+    customerId: string,
+    paymentMethodId: string,
+    ip: string,
+    userAgent: string
+  ) {
+    try {
+      const confirmedIntent = await this.stripe.setupIntents.create({
+        customer: customerId,
+        payment_method: paymentMethodId,
+        usage: 'off_session',
+        confirm: true,
+        automatic_payment_methods: {
+          enabled: true,
+        },
+        return_url: this.configService.stripe.redirectPage,
+        mandate_data: {
+          customer_acceptance: {
+            type: 'online',
+            online: {
+              ip_address: ip,
+              user_agent: userAgent,
+            },
+          },
+        },
+      });
+
+      if (
+        confirmedIntent.status === 'requires_action' &&
+        confirmedIntent.next_action?.type === 'verify_with_microdeposits'
+      ) {
+        await this.verifyMicrodeposits(confirmedIntent.id, [32, 45]);
+      }
+      return confirmedIntent;
+    } catch (error) {
+      console.error('Error creating or confirming SetupIntent:', error);
+      throw error;
+    }
+  }
+
+  async verifyMicrodeposits(setupIntentId: string, amounts: number[]) {
+    try {
+      const verifiedIntent = await this.stripe.setupIntents.verifyMicrodeposits(setupIntentId, {
+        amounts: amounts,
+      });
+
+      if (verifiedIntent.status === 'succeeded') {
+        return {
+          success: true,
+          setupIntentId: verifiedIntent.id,
+          mandateId: verifiedIntent.mandate,
+        };
+      } else {
+        throw new Error(`Microdeposit verification failed. Status: ${verifiedIntent.status}`);
+      }
+    } catch (error) {
+      console.error('Error verifying microdeposits:', error);
+      throw error;
+    }
   }
 
   async deletePaymentMethod(customerId: string, methodId: string) {
@@ -242,11 +283,77 @@ export class StripeService {
       created: refund.created,
     };
   }
+  async createManualInvoice(
+    customerId: string,
+    productIds: string[],
+    discount: number,
+    tax: number
+  ) {
+    let coupon: Stripe.Coupon | null = null;
+    let taxRate: Stripe.TaxRate | null = null;
+
+    if (discount > 0) {
+      coupon = await this.stripe.coupons.create({
+        name: uuid(),
+        amount_off: discount,
+        currency: 'usd',
+      });
+    }
+
+    if (tax > 0) {
+      taxRate = await this.stripe.taxRates.create({
+        display_name: uuid(),
+        inclusive: false,
+        percentage: tax,
+      });
+    }
+
+    const invoiceParams: Stripe.InvoiceCreateParams = {
+      customer: customerId,
+      collection_method: 'send_invoice',
+      auto_advance: false,
+    };
+
+    if (coupon) {
+      invoiceParams.discounts = [{ coupon: coupon.id }];
+    }
+
+    if (taxRate) {
+      invoiceParams.default_tax_rates = [taxRate.id];
+    }
+
+    const invoice = await this.stripe.invoices.create(invoiceParams);
+
+    for (const Id of productIds) {
+      const product = await this.stripe.products.retrieve(Id);
+      const price = product.default_price.toString();
+      await this.stripe.invoiceItems.create({
+        customer: customerId,
+        price: price,
+        quantity: 1,
+        invoice: invoice.id,
+      });
+    }
+
+    const fInvoice = await this.stripe.invoices.finalizeInvoice(invoice.id, {
+      expand: ['payment_intent'],
+    });
+
+    return {
+      id: fInvoice.id,
+      amount: fInvoice.amount_due,
+      customer: fInvoice.customer_name,
+      customer_email: fInvoice.customer_email,
+      items: this.parseInvoiceLineItems(invoice.lines.data),
+      client_secret: (fInvoice.payment_intent as Stripe.PaymentIntent).client_secret,
+    };
+  }
 
   async createInvoice(
     customerId: string,
     productIds: string[],
-    mandateId: string,
+    // mandateId: string,
+    paymentMethodId: string,
     discount: number,
     tax: number
   ) {
@@ -273,9 +380,10 @@ export class StripeService {
       customer: customerId,
       collection_method: 'charge_automatically',
       auto_advance: true,
-      payment_settings: {
-        default_mandate: mandateId,
-      },
+      // payment_settings: {
+      //   default_mandate: mandateId,
+      // },
+      default_payment_method: paymentMethodId,
     };
 
     if (coupon) {
@@ -310,39 +418,6 @@ export class StripeService {
     };
   }
 
-  async createPaymentInvoice(
-    customerId: string,
-    residenceId: string,
-    lineItems: PaymentLineItemDto[]
-  ) {
-    const products = [];
-    const residence = await this.residenceService.getResidenceById(residenceId);
-    for (const lineItem of lineItems) {
-      const product = await this.stripe.products.create({
-        name: lineItem.price_data.product_data.name,
-        description: lineItem.price_data.product_data.description,
-        default_price_data: {
-          currency: lineItem.price_data.currency,
-          unit_amount: lineItem.price_data.unit_amount,
-        },
-        metadata: lineItem.price_data.product_data.metadata,
-      });
-      products.push(product);
-      await this.stripe.invoiceItems.create({
-        customer: customerId,
-        price_data: {
-          product: product.id,
-          currency: lineItem.price_data.currency,
-          unit_amount: lineItem.price_data.unit_amount,
-        },
-        quantity: 1,
-        subscription: residence.subscriptionId,
-      });
-    }
-
-    return { products };
-  }
-
   async createProducts(lineItems: PaymentLineItemDto[]): Promise<Stripe.Product[]> {
     const products = [];
     for (const lineItem of lineItems) {
@@ -355,7 +430,11 @@ export class StripeService {
         },
         metadata: lineItem.price_data.product_data.metadata,
       });
-      products.push(product);
+      products.push({
+        ...product,
+        unit_amount: lineItem.price_data.unit_amount,
+        type: lineItem.price_data.product_data.metadata.type,
+      });
     }
 
     return products;
