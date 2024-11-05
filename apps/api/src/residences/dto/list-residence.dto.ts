@@ -203,12 +203,12 @@ export const listTopResidencesSchema = PaginationSchema.append({
   countryId: Joi.string().custom(joiObjectIdValidator('countryId')).optional(),
 });
 
-export class ListResidenceWithDraftCountDto extends ListPropsDto {
+export class ListResidenceWithDraftCountDto {
   @ApiProperty({
-    example: ResidenceStatus.ACTIVE,
-    enum: ResidenceStatus,
-    description: 'The status of the residence',
+    description: 'Filter by Developer ID',
+    example: '60b6c0f53b5a5c1f88d25a1b',
     required: false,
+    type: String,
   })
-  status?: ResidenceStatus;
+  developerId?: string;
 }

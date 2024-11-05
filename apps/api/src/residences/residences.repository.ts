@@ -5,7 +5,10 @@ import { Residence } from './schema/residences.schema';
 import { BaseRepository } from '@bbr/api-core/modules/db/base.repository';
 import { NotFoundException } from '@bbr/api-core/modules/exceptions';
 import { PipelineStage } from 'mongoose';
-import { ListResidenceWithDraftDto } from './dto/list-residence.dto';
+import {
+  ListResidenceWithDraftCountDto,
+  ListResidenceWithDraftDto,
+} from './dto/list-residence.dto';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
 import { GetSimilarResidenceDto } from './dto/get-similar-residence';
 import { ResidenceStatus } from './enum/residence-enum';
@@ -737,10 +740,20 @@ export class ResidenceRepository extends BaseRepository<Residence> {
     }
   }
 
-  async getResidencesTotalCount(status: string): Promise<any[]> {
+  async getResidencesTotalCount(
+    status: string,
+    query: ListResidenceWithDraftCountDto
+  ): Promise<any[]> {
+    const { developerId } = query;
     try {
       const pipeline: PipelineStage[] = [
         // Lookup for all drafts from residencedrafts collection
+        //  Match residences based on filters like developerId
+        {
+          $match: {
+            ...(developerId ? { developerId: new Types.ObjectId(developerId) } : {}),
+          },
+        },
         {
           $lookup: {
             from: 'residencedrafts',

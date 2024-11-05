@@ -25,6 +25,7 @@ import {
   listResidenceByFiltersSchema,
   ListResidenceDto,
   listResidenceSchema,
+  ListResidenceWithDraftCountDto,
   ListResidenceWithDraftDto,
   ListTopResidencesDto,
   listTopResidencesSchema,
@@ -220,8 +221,8 @@ export class ResidenceController {
   @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN, UserRole.BUYER)
   @Permissions('residence', PermissionLevel.READ)
-  async getResidencesTotalCount() {
-    const result = await this.residenceService.getResidencesTotalCount();
+  async getResidencesTotalCount(@Query() query: ListResidenceWithDraftCountDto) {
+    const result = await this.residenceService.getResidencesTotalCount(query);
 
     return ResponseService.buildResponse(result, 'Residence total count retrieved successfully');
   }
@@ -314,7 +315,7 @@ export class ResidenceController {
     summary: 'Update Residence Status',
   })
   @ApiBearerAuth()
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.SELLER)
   @Permissions('residence', PermissionLevel.EDIT)
   @UsePipes(new JoiValidationPipe(getResidenceByIdSchema, 'param'))
   @UsePipes(new JoiValidationPipe(updateResidenceStatusSchema, 'body'))
