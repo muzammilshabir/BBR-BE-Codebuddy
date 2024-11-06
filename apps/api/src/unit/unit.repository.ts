@@ -295,7 +295,7 @@ export class UnitRepository extends BaseRepository<Unit> {
             from: 'roomtypes',
             localField: 'rooms.roomTypeId',
             foreignField: '_id',
-            as: 'rooms',
+            as: 'roomTypeDetails',
           },
         },
         {
@@ -430,6 +430,10 @@ export class UnitRepository extends BaseRepository<Unit> {
             briefOverview: 1,
             unitKeyFeatures: 1,
             isExclusiveOffer: 1,
+            roomTypeDetails: {
+              type: 1,
+              _id: 1,
+            },
             residence: 1,
             brand: 1,
             visuals: {
