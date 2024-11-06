@@ -19,6 +19,7 @@ export const rankingCategorySchema = PaginationSchema.append({
   locationId: Joi.string().custom(joiObjectIdValidator('locationId')).optional(),
   propertyTypeId: Joi.string().custom(joiObjectIdValidator('propertyTypeId')).optional(),
   lifeStyleId: Joi.string().custom(joiObjectIdValidator('lifeStyleId')).optional(),
+  geoGraphyId: Joi.string().custom(joiObjectIdValidator('geoGraphyId')).optional(),
 });
 
 export class RankingCategoryListDto extends ListPropsDto {
@@ -93,4 +94,12 @@ export class RankingCategoryListDto extends ListPropsDto {
     type: String,
   })
   lifeStyleId?: string;
+
+  @ApiProperty({
+    description: 'Filter by geoGraphy ID',
+    example: '60b6c0f53b5a5c1f88d25a1g',
+    required: false,
+    type: String,
+  })
+  geoGraphyId?: string;
 }
