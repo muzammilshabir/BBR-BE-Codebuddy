@@ -678,8 +678,17 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
   }
 
   async findAllRankingRequestForUser(listRankingRequestForUserDto: ListRankingRequestForUserDto) {
-    const { search, rankingCategoryId, categoryType, lifeStyleIds, brandIds, residenceTypeIds } =
-      listRankingRequestForUserDto;
+    const {
+      search,
+      rankingCategoryId,
+      categoryType,
+      lifeStyleIds,
+      brandIds,
+      residenceTypeIds,
+      cityId,
+      countryId,
+      locationId,
+    } = listRankingRequestForUserDto;
     const paginationOptions = PaginationService.prepareOptions(listRankingRequestForUserDto);
 
     const sortObject = paginationOptions.sort.reduce((acc, [field, order]) => {
@@ -859,6 +868,37 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
         },
       });
     }
+
+    if (countryId) {
+      pipeline.push({
+        $match: {
+          'residence.countryId': {
+            $eq: new Types.ObjectId(countryId),
+          },
+        },
+      });
+    }
+
+    if (cityId) {
+      pipeline.push({
+        $match: {
+          'residence.cityId': {
+            $eq: new Types.ObjectId(cityId),
+          },
+        },
+      });
+    }
+
+    if (locationId) {
+      pipeline.push({
+        $match: {
+          'residence.locationId': {
+            $eq: new Types.ObjectId(locationId),
+          },
+        },
+      });
+    }
+
     pipeline.push(
       {
         $lookup: {
