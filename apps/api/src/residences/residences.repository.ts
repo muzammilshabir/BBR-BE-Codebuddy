@@ -301,23 +301,23 @@ export class ResidenceRepository extends BaseRepository<Residence> {
           },
         },
         //TODO: Commented for future requirement
-        // {
-        //   $lookup: {
-        //     from: 'users',
-        //     localField: 'latestDraft.createdById',
-        //     foreignField: '_id',
-        //     as: 'createdBy',
-        //   },
-        // },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'latestDraft.createdById',
+            foreignField: '_id',
+            as: 'createdBy',
+          },
+        },
 
-        // {
-        //   $lookup: {
-        //     from: 'claimrequests',
-        //     localField: '_id',
-        //     foreignField: 'residenceId',
-        //     as: 'claimrequest',
-        //   },
-        // },
+        {
+          $lookup: {
+            from: 'claimrequests',
+            localField: '_id',
+            foreignField: 'residenceId',
+            as: 'claimrequest',
+          },
+        },
         // {
         //   $unwind: {
         //     path: '$claimrequest',
@@ -392,6 +392,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
                 else: '$latestDraft.status',
               },
             },
+            claimrequest: 1,
           },
         },
 

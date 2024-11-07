@@ -33,6 +33,7 @@ import {
 import { GetCurrentUserId } from '../auth/decorators/getCurrentUserId.decorator';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { PermissionLevel } from '../modulePolicy/enum/permission-enum';
+import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('RankingCategory')
 @Controller('rankingCategory')
@@ -87,20 +88,20 @@ export class RankingCategoryController {
     return ResponseService.buildResponse(result, 'All ranking categories retrieved successfully');
   }
 
-  @Get('public')
+  @Get('active/public')
   @ApiOperation({
-    summary: 'Get all ranking categories with filters and pagination',
+    summary: 'Get all active ranking categories with filters and pagination',
   })
-  @ApiBearerAuth()
-  @Roles(UserRole.ADMIN, UserRole.SELLER, UserRole.BUYER)
-  @Permissions('rankings', PermissionLevel.READ)
+  @Public()
   @UsePipes(new JoiValidationPipe(rankingCategorySchema, 'query'))
   async getAllRankingCategoriesForPublic(
-    @Query() rankingCategoryDto: PublicRankingCategoryListDto,
-    @GetCurrentUser() user: JwtPayloadType
+    @Query() rankingCategoryDto: PublicRankingCategoryListDto
   ) {
-    const result = await this.rankingCategoryService.findAllPublic(rankingCategoryDto, user);
-    return ResponseService.buildResponse(result, 'All ranking categories retrieved successfully');
+    const result = await this.rankingCategoryService.findAllPublic(rankingCategoryDto);
+    return ResponseService.buildResponse(
+      result,
+      'All active ranking categories retrieved successfully'
+    );
   }
 
   @Post()
