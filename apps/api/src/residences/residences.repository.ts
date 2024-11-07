@@ -300,43 +300,43 @@ export class ResidenceRepository extends BaseRepository<Residence> {
             as: 'highlightedAmenitiesImage',
           },
         },
-        {
-          $lookup: {
-            from: 'users',
-            localField: 'latestDraft.createdById',
-            foreignField: '_id',
-            as: 'createdBy',
-          },
-        },
+        // {
+        //   $lookup: {
+        //     from: 'users',
+        //     localField: 'latestDraft.createdById',
+        //     foreignField: '_id',
+        //     as: 'createdBy',
+        //   },
+        // },
 
-        {
-          $lookup: {
-            from: 'claimrequests',
-            localField: '_id',
-            foreignField: 'residenceId',
-            as: 'claimrequest',
-          },
-        },
-        {
-          $unwind: {
-            path: '$claimrequest',
-            preserveNullAndEmptyArrays: true,
-          },
-        },
-        {
-          $lookup: {
-            from: 'users',
-            localField: 'claimrequest.developerId',
-            foreignField: '_id',
-            as: 'claimrequest.developer',
-          },
-        },
-        {
-          $unwind: {
-            path: '$claimrequest.developer',
-            preserveNullAndEmptyArrays: true,
-          },
-        },
+        // {
+        //   $lookup: {
+        //     from: 'claimrequests',
+        //     localField: '_id',
+        //     foreignField: 'residenceId',
+        //     as: 'claimrequest',
+        //   },
+        // },
+        // {
+        //   $unwind: {
+        //     path: '$claimrequest',
+        //     preserveNullAndEmptyArrays: true,
+        //   },
+        // },
+        // {
+        //   $lookup: {
+        //     from: 'users',
+        //     localField: 'claimrequest.developerId',
+        //     foreignField: '_id',
+        //     as: 'claimrequest.developer',
+        //   },
+        // },
+        // {
+        //   $unwind: {
+        //     path: '$claimrequest.developer',
+        //     preserveNullAndEmptyArrays: true,
+        //   },
+        // },
 
         // Project only relevant fields
         {
@@ -374,6 +374,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
               role: { $arrayElemAt: ['$createdBy.role', 0] },
             },
             developerId: {
+              _id: '$developerData._id',
               fullName: '$developerData.fullName',
               email: '$developerData.email',
               role: '$developerData.role',
