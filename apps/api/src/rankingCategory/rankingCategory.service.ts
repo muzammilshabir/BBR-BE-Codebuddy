@@ -55,7 +55,9 @@ export class RankingCategoryService {
       geoGraphyId,
     } = rankingCategoryDto;
 
-    const query: any = {};
+    const query: any = {
+      isDeleted: { $ne: DeletionStatus.DELETED },
+    };
 
     // Text search for name or description fields
     if (search) {

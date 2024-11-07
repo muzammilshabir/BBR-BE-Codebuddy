@@ -22,6 +22,11 @@ import { RoleModule } from '../role/role.module';
 import { HttpModule } from '@nestjs/axios';
 import { LoginAttempt, LoginAttemptSchema } from '../loginAttempt/schema/loginAttempt.schema';
 import { LoginAttemptRepository } from '../loginAttempt/loginAttempt.repository';
+import {
+  ResidenceDraft,
+  ResidenceDraftSchema,
+} from '../residencesDraft/schema/residencesDraft.schema';
+import { ResidenceDraftRepository } from '../residencesDraft/residencesDraft.repository';
 
 @Module({
   imports: [
@@ -34,6 +39,7 @@ import { LoginAttemptRepository } from '../loginAttempt/loginAttempt.repository'
     RoleModule,
     HttpModule,
     MongooseModule.forFeature([{ name: LoginAttempt.name, schema: LoginAttemptSchema }]),
+    MongooseModule.forFeature([{ name: ResidenceDraft.name, schema: ResidenceDraftSchema }]),
   ],
   providers: [
     ClaimRequestService,
@@ -48,6 +54,7 @@ import { LoginAttemptRepository } from '../loginAttempt/loginAttempt.repository'
     RedisService,
     AuthService,
     LoginAttemptRepository,
+    ResidenceDraftRepository,
   ],
   exports: [],
   controllers: [ClaimRequestController],

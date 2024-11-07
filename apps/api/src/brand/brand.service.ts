@@ -10,20 +10,26 @@ import { BrandStatus } from './enum/brand-enum';
 import { Types } from 'mongoose';
 import { Brand } from './schema/brand.schema';
 import { DeletionStatus } from '../unit/enum/unit-enum';
+import { ResidenceService } from '../residences/residences.service';
+import { ResidenceStatus } from '../residences/enum/residence-enum';
 
 @Injectable()
 export class BrandService {
   constructor(
     private readonly brandRepository: BrandRepository,
-    private readonly brandDraftRepository: BrandDraftRepository
+    private readonly brandDraftRepository: BrandDraftRepository,
+    private readonly residenceService: ResidenceService
   ) {}
 
   async findAll(listBrandDto: ListBrandDto) {
     const filter = listBrandDto.search
       ? {
           $or: [{ name: { $regex: listBrandDto.search, $options: 'i' } }],
+          isDeleted: { $ne: DeletionStatus.DELETED },
         }
-      : {};
+      : {
+          isDeleted: { $ne: DeletionStatus.DELETED },
+        };
 
     const options = PaginationService.prepareOptions(listBrandDto);
 
@@ -242,6 +248,15 @@ export class BrandService {
 
     if (updateBrandStatusDto.status === BrandStatus.DELETED) {
       updatePayload.isDeleted = DeletionStatus.DELETED;
+      const residences = await this.residenceService.getResidencesByAssociatedBrandId(brandId, {});
+
+      await Promise.all(
+        residences.map((residence) =>
+          this.residenceService.updateResidenceStatus(residence.id, userId, {
+            status: ResidenceStatus.ARCHIVED,
+          })
+        )
+      );
     }
 
     const updatedResidence = await this.brandRepository.update(brandId, updatePayload);

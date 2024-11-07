@@ -94,6 +94,7 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
         {
           $match: {
             ...(developerId ? { developerId: new Types.ObjectId(developerId) } : {}),
+            isDeleted: { $ne: DeletionStatus.DELETED },
           },
         },
 
@@ -254,6 +255,11 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
   async getTop10ResidencesWithRankingRequests() {
     try {
       const result = await this.rankingRequestModel.aggregate([
+        {
+          $match: {
+            isDeleted: { $ne: DeletionStatus.DELETED },
+          },
+        },
         {
           $lookup: {
             from: 'residences',
@@ -456,7 +462,13 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
       return acc;
     }, {});
     // Build the aggregation pipeline
-    const pipeline: any[] = [];
+    const pipeline: any[] = [
+      {
+        $match: {
+          isDeleted: { $ne: DeletionStatus.DELETED },
+        },
+      },
+    ];
 
     if (developerId) {
       pipeline.push({
@@ -698,7 +710,10 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
     // Build the aggregation pipeline
     const pipeline: any[] = [
       {
-        $match: { status: RankingCategoryStatus.ACTIVE },
+        $match: {
+          status: RankingCategoryStatus.ACTIVE,
+          isDeleted: { $ne: DeletionStatus.DELETED },
+        },
       },
     ];
 
