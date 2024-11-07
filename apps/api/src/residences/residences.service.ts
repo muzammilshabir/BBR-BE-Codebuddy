@@ -311,6 +311,14 @@ export class ResidenceService {
     return residences;
   }
 
+  async getResidencesByAssociatedBrandId(associatedBrandId: string, options: any): Promise<any> {
+    const residences = await this.residenceRepository.findAll(
+      { associatedBrandId: new Types.ObjectId(associatedBrandId) },
+      options
+    );
+    return residences;
+  }
+
   async upgradeResidence(residenceId: string, subscriptionId: string, planId: string) {
     const residence = await this.residenceRepository.findById(residenceId);
     return this.residenceRepository.update(residence.id, {
@@ -407,7 +415,9 @@ export class ResidenceService {
   }
 
   async listResidences(listResidenceDto: ListResidenceDto) {
-    const filter: any = {};
+    const filter: any = {
+      isDeleted: { $ne: DeletionStatus.DELETED },
+    };
     if (listResidenceDto.status) {
       filter.status = listResidenceDto.status;
     }

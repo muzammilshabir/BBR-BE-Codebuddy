@@ -177,7 +177,10 @@ export class ClaimRequestController {
   @UsePipes(new JoiValidationPipe(getOpenRequestsSchema, 'param'))
   async getOpenRequests(@Param() params: GetOpenRequestsDto) {
     const { residenceId } = params;
-    const response = await this.claimRequestService.getOpenRequests(residenceId);
-    return response;
+    const openRequests = await this.claimRequestService.getOpenRequests(residenceId);
+    return ResponseService.buildResponse(
+      { openRequests },
+      'Claim open request count fetched successfully'
+    );
   }
 }
