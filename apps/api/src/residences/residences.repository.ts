@@ -300,6 +300,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
             as: 'highlightedAmenitiesImage',
           },
         },
+        //TODO: Commented for future requirement
         // {
         //   $lookup: {
         //     from: 'users',
