@@ -44,7 +44,7 @@ export class RankingCategoryService {
     private readonly geographicalAreasRepository: GeographicalAreasRepository
   ) {}
 
-  async findAll(rankingCategoryDto: RankingCategoryListDto, user: JwtPayloadType) {
+  async findAll(rankingCategoryDto: RankingCategoryListDto, user?: JwtPayloadType) {
     const {
       search,
       status,
@@ -651,11 +651,10 @@ export class RankingCategoryService {
     return engagementScore;
   }
 
-  async findAllPublic(rankingCategoryDto: PublicRankingCategoryListDto, user: JwtPayloadType) {
+  async findAllPublic(rankingCategoryDto: PublicRankingCategoryListDto) {
     // Add 'active' status directly to the DTO or query object
     const query = { ...rankingCategoryDto, status: 'active' };
-
     // Pass the query to the existing findAll method
-    return this.findAll(query as RankingCategoryListDto, user);
+    return this.findAll(query as RankingCategoryListDto);
   }
 }
