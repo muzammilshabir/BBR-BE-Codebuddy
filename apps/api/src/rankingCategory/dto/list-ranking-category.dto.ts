@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, OmitType } from '@nestjs/swagger';
 import { ListPropsDto, PaginationSchema } from '@bbr/api-core/modules/dto/listProps.dto';
 import * as Joi from 'joi';
 import { RankingCategoryStatus } from '../enum/rankingCategory-status.enum';
@@ -103,3 +103,7 @@ export class RankingCategoryListDto extends ListPropsDto {
   })
   geoGraphyId?: string;
 }
+
+export class PublicRankingCategoryListDto extends OmitType(RankingCategoryListDto, [
+  'status',
+] as const) {}

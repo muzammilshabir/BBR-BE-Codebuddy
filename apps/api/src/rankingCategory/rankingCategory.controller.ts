@@ -17,7 +17,11 @@ import {
   UpdateRankingCategoryStatusDto,
   updateRankingCategoryStatusSchema,
 } from './dto/update-ranking-category.dto';
-import { RankingCategoryListDto, rankingCategorySchema } from './dto/list-ranking-category.dto';
+import {
+  PublicRankingCategoryListDto,
+  RankingCategoryListDto,
+  rankingCategorySchema,
+} from './dto/list-ranking-category.dto';
 import {
   RejectRankingCategoryDto,
   rejectRankingCategorySchema,
@@ -80,6 +84,22 @@ export class RankingCategoryController {
     @GetCurrentUser() user: JwtPayloadType
   ) {
     const result = await this.rankingCategoryService.findAll(rankingCategoryDto, user);
+    return ResponseService.buildResponse(result, 'All ranking categories retrieved successfully');
+  }
+
+  @Get('public')
+  @ApiOperation({
+    summary: 'Get all ranking categories with filters and pagination',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN, UserRole.SELLER, UserRole.BUYER)
+  @Permissions('rankings', PermissionLevel.READ)
+  @UsePipes(new JoiValidationPipe(rankingCategorySchema, 'query'))
+  async getAllRankingCategoriesForPublic(
+    @Query() rankingCategoryDto: PublicRankingCategoryListDto,
+    @GetCurrentUser() user: JwtPayloadType
+  ) {
+    const result = await this.rankingCategoryService.findAllPublic(rankingCategoryDto, user);
     return ResponseService.buildResponse(result, 'All ranking categories retrieved successfully');
   }
 
