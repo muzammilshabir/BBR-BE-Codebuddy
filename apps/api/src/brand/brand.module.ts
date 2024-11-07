@@ -10,12 +10,14 @@ import { BrandCategoryRepository } from '../brandCategory/brandCategoryRepositor
 import { BrandCategory, BrandCategorySchema } from '../brandCategory/schema/brandCategory.schema';
 import { BrandDraft, BrandDraftSchema } from '../brandDraft/schema/brandDraft.schema';
 import { BrandDraftRepository } from '../brandDraft/brandDraft.repository';
+import { ResidenceModule } from '../residences/residences.module';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: Brand.name, schema: BrandSchema }]),
     MongooseModule.forFeature([{ name: BrandCategory.name, schema: BrandCategorySchema }]),
     MongooseModule.forFeature([{ name: BrandDraft.name, schema: BrandDraftSchema }]),
+    ResidenceModule,
   ],
   providers: [
     BrandService,

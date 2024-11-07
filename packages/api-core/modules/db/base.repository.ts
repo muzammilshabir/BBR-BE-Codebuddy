@@ -70,4 +70,8 @@ export class BaseRepository<T extends Document> {
   async find(filter: any): Promise<T> {
     return await this.model.findOne(filter);
   }
+
+  async findLatest(filter: any): Promise<any> {
+    return await this.model.findOne(filter).sort({ createdAt: -1 });
+  }
 }

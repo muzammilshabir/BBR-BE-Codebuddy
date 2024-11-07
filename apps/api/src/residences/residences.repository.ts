@@ -12,6 +12,7 @@ import {
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
 import { GetSimilarResidenceDto } from './dto/get-similar-residence';
 import { ResidenceStatus } from './enum/residence-enum';
+import { DeletionStatus } from '../unit/enum/unit-enum';
 
 @Injectable()
 export class ResidenceRepository extends BaseRepository<Residence> {
@@ -20,43 +21,49 @@ export class ResidenceRepository extends BaseRepository<Residence> {
   }
 
   async findByIdInDetail(residenceId: string): Promise<any> {
-    let residence: any = await this.residenceModel.findById(residenceId).populate([
-      { path: 'residenceTypeIds', select: 'type', model: 'ResidenceType' },
-      { path: 'cityId', select: 'name type countryId' },
-      { path: 'countryId', select: 'name type' },
-      { path: 'associatedBrandId', select: 'name' },
-      { path: 'residenceKeyFeatures.featureIds', select: 'name', model: 'ResidenceFeature' },
-      {
-        path: 'visuals.mainPhotos',
-        select: 'originalFileKey fileKey url mimeType',
-        model: 'Upload',
-      },
-      {
-        path: 'visuals.mainGalleryPhotos',
-        select: 'originalFileKey fileKey url mimeType',
-        model: 'Upload',
-      },
-      {
-        path: 'visuals.secondGalleryPhotos',
-        select: 'originalFileKey fileKey url mimeType',
-        model: 'Upload',
-      },
-      {
-        path: 'visuals.videoTour',
-        select: 'originalFileKey fileKey url mimeType',
-        model: 'Upload',
-      },
-      { path: 'nearbyAmenities.amenitiesList', select: 'name', model: 'Amenity' },
-      { path: 'nearbyAmenities.highlightedAmenities.amenityId', select: 'name', model: 'Amenity' },
-      {
-        path: 'nearbyAmenities.highlightedAmenities.imageId',
-        select: 'originalFileKey fileKey url mimeType',
-        model: 'Upload',
-      },
-      { path: 'createdById', model: 'User', select: 'fullName email role' },
-      { path: 'developerId', model: 'User', select: 'fullName email role' },
-      { path: 'highestRankingCategoryId', model: 'RankingCategory', select: 'title' },
-    ]);
+    let residence: any = await this.residenceModel
+      .findOne({ _id: new Types.ObjectId(residenceId), isDeleted: { $ne: DeletionStatus.DELETED } })
+      .populate([
+        { path: 'residenceTypeIds', select: 'type', model: 'ResidenceType' },
+        { path: 'cityId', select: 'name type countryId' },
+        { path: 'countryId', select: 'name type' },
+        { path: 'associatedBrandId', select: 'name' },
+        { path: 'residenceKeyFeatures.featureIds', select: 'name', model: 'ResidenceFeature' },
+        {
+          path: 'visuals.mainPhotos',
+          select: 'originalFileKey fileKey url mimeType',
+          model: 'Upload',
+        },
+        {
+          path: 'visuals.mainGalleryPhotos',
+          select: 'originalFileKey fileKey url mimeType',
+          model: 'Upload',
+        },
+        {
+          path: 'visuals.secondGalleryPhotos',
+          select: 'originalFileKey fileKey url mimeType',
+          model: 'Upload',
+        },
+        {
+          path: 'visuals.videoTour',
+          select: 'originalFileKey fileKey url mimeType',
+          model: 'Upload',
+        },
+        { path: 'nearbyAmenities.amenitiesList', select: 'name', model: 'Amenity' },
+        {
+          path: 'nearbyAmenities.highlightedAmenities.amenityId',
+          select: 'name',
+          model: 'Amenity',
+        },
+        {
+          path: 'nearbyAmenities.highlightedAmenities.imageId',
+          select: 'originalFileKey fileKey url mimeType',
+          model: 'Upload',
+        },
+        { path: 'createdById', model: 'User', select: 'fullName email role' },
+        { path: 'developerId', model: 'User', select: 'fullName email role' },
+        { path: 'highestRankingCategoryId', model: 'RankingCategory', select: 'title' },
+      ]);
 
     if (!residence) {
       throw new NotFoundException(`Residence with ID ${residenceId}`);
@@ -109,6 +116,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
           $match: {
             ...(developerId ? { developerId: new Types.ObjectId(developerId) } : {}),
             ...(brandId ? { associatedBrandId: new Types.ObjectId(brandId) } : {}),
+            isDeleted: { $ne: DeletionStatus.DELETED },
           },
         },
 
@@ -292,14 +300,44 @@ export class ResidenceRepository extends BaseRepository<Residence> {
             as: 'highlightedAmenitiesImage',
           },
         },
-        {
-          $lookup: {
-            from: 'users',
-            localField: 'latestDraft.createdById',
-            foreignField: '_id',
-            as: 'createdBy',
-          },
-        },
+        //TODO: Commented for future requirement
+        // {
+        //   $lookup: {
+        //     from: 'users',
+        //     localField: 'latestDraft.createdById',
+        //     foreignField: '_id',
+        //     as: 'createdBy',
+        //   },
+        // },
+
+        // {
+        //   $lookup: {
+        //     from: 'claimrequests',
+        //     localField: '_id',
+        //     foreignField: 'residenceId',
+        //     as: 'claimrequest',
+        //   },
+        // },
+        // {
+        //   $unwind: {
+        //     path: '$claimrequest',
+        //     preserveNullAndEmptyArrays: true,
+        //   },
+        // },
+        // {
+        //   $lookup: {
+        //     from: 'users',
+        //     localField: 'claimrequest.developerId',
+        //     foreignField: '_id',
+        //     as: 'claimrequest.developer',
+        //   },
+        // },
+        // {
+        //   $unwind: {
+        //     path: '$claimrequest.developer',
+        //     preserveNullAndEmptyArrays: true,
+        //   },
+        // },
 
         // Project only relevant fields
         {
@@ -337,6 +375,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
               role: { $arrayElemAt: ['$createdBy.role', 0] },
             },
             developerId: {
+              _id: '$developerData._id',
               fullName: '$developerData.fullName',
               email: '$developerData.email',
               role: '$developerData.role',
@@ -395,9 +434,11 @@ export class ResidenceRepository extends BaseRepository<Residence> {
   async getSimilarResidences(getSimilarResidenceDto: GetSimilarResidenceDto) {
     try {
       const selectedResidence = await this.residenceModel
-        .findById(getSimilarResidenceDto.residenceId)
+        .findOne({
+          _id: new Types.ObjectId(getSimilarResidenceDto.residenceId),
+          isDeleted: { $ne: DeletionStatus.DELETED },
+        })
         .exec();
-
       if (!selectedResidence) {
         throw new NotFoundException('Residence not found');
       }
@@ -412,6 +453,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
         {
           $match: {
             _id: { $ne: selectedResidence._id },
+            isDeleted: { $ne: DeletionStatus.DELETED },
           },
         },
 
@@ -731,6 +773,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
         {
           $match: {
             ...(developerId ? { developerId: new Types.ObjectId(developerId) } : {}),
+            isDeleted: { $ne: DeletionStatus.DELETED },
           },
         },
         {

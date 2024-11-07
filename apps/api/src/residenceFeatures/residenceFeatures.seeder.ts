@@ -18,6 +18,12 @@ export class ResidenceFeatureSeeder extends AbstractSeeder {
         { name: 'Garden/Yard' },
         { name: 'Fireplace' },
         { name: 'Elevator' },
+        { name: 'Smart Home Tech' },
+        { name: 'Home Office' },
+        { name: 'Wine Cellar' },
+        { name: 'Game room' },
+        { name: 'Home Theater' },
+        { name: 'Guest House' },
       ];
 
       for (const feature of features) {

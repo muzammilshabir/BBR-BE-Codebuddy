@@ -19,6 +19,11 @@ import { City, CitySchema } from '../city/schema/city.schema';
 import { LocationRepository } from '../location/location.repository';
 import { CountryRepository } from '../country/country.repository';
 import { CityRepository } from '../city/city.repository';
+import {
+  GeographicalAreas,
+  GeographicalAreasSchema,
+} from '../geographicalAreas/schema/geographicalAreas.schema';
+import { GeographicalAreasRepository } from '../geographicalAreas/geographicalAreas.repository';
 
 @Module({
   imports: [
@@ -28,6 +33,8 @@ import { CityRepository } from '../city/city.repository';
     MongooseModule.forFeature([{ name: Location.name, schema: LocationSchema }]),
     MongooseModule.forFeature([{ name: Country.name, schema: CountrySchema }]),
     MongooseModule.forFeature([{ name: City.name, schema: CitySchema }]),
+    MongooseModule.forFeature([{ name: GeographicalAreas.name, schema: GeographicalAreasSchema }]),
+
     MongooseModule.forFeature([
       { name: RankingCategoryDraft.name, schema: RankingCategoryDraftSchema },
     ]),
@@ -42,6 +49,7 @@ import { CityRepository } from '../city/city.repository';
     LocationRepository,
     CountryRepository,
     CityRepository,
+    GeographicalAreasRepository,
   ],
 })
 export class RankingCategoryModule {}

@@ -94,6 +94,7 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
         {
           $match: {
             ...(developerId ? { developerId: new Types.ObjectId(developerId) } : {}),
+            isDeleted: { $ne: DeletionStatus.DELETED },
           },
         },
 
@@ -254,6 +255,11 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
   async getTop10ResidencesWithRankingRequests() {
     try {
       const result = await this.rankingRequestModel.aggregate([
+        {
+          $match: {
+            isDeleted: { $ne: DeletionStatus.DELETED },
+          },
+        },
         {
           $lookup: {
             from: 'residences',
@@ -456,7 +462,13 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
       return acc;
     }, {});
     // Build the aggregation pipeline
-    const pipeline: any[] = [];
+    const pipeline: any[] = [
+      {
+        $match: {
+          isDeleted: { $ne: DeletionStatus.DELETED },
+        },
+      },
+    ];
 
     if (developerId) {
       pipeline.push({
@@ -678,8 +690,17 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
   }
 
   async findAllRankingRequestForUser(listRankingRequestForUserDto: ListRankingRequestForUserDto) {
-    const { search, rankingCategoryId, categoryType, lifeStyleIds, brandIds, residenceTypeIds } =
-      listRankingRequestForUserDto;
+    const {
+      search,
+      rankingCategoryId,
+      categoryType,
+      lifeStyleIds,
+      brandIds,
+      residenceTypeIds,
+      cityId,
+      countryId,
+      locationId,
+    } = listRankingRequestForUserDto;
     const paginationOptions = PaginationService.prepareOptions(listRankingRequestForUserDto);
 
     const sortObject = paginationOptions.sort.reduce((acc, [field, order]) => {
@@ -689,7 +710,10 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
     // Build the aggregation pipeline
     const pipeline: any[] = [
       {
-        $match: { status: RankingCategoryStatus.ACTIVE },
+        $match: {
+          status: RankingCategoryStatus.ACTIVE,
+          isDeleted: { $ne: DeletionStatus.DELETED },
+        },
       },
     ];
 
@@ -859,6 +883,37 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
         },
       });
     }
+
+    if (countryId) {
+      pipeline.push({
+        $match: {
+          'residence.countryId': {
+            $eq: new Types.ObjectId(countryId),
+          },
+        },
+      });
+    }
+
+    if (cityId) {
+      pipeline.push({
+        $match: {
+          'residence.cityId': {
+            $eq: new Types.ObjectId(cityId),
+          },
+        },
+      });
+    }
+
+    if (locationId) {
+      pipeline.push({
+        $match: {
+          'residence.locationId': {
+            $eq: new Types.ObjectId(locationId),
+          },
+        },
+      });
+    }
+
     pipeline.push(
       {
         $lookup: {

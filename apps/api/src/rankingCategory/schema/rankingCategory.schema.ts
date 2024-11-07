@@ -14,19 +14,22 @@ export class RankingCategory extends Document {
   categoryType: CategoryType;
 
   @Prop({ type: Types.ObjectId, ref: 'Country', required: false })
-  countryId: User;
+  countryId: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'City', required: false })
-  cityId: User;
+  cityId: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'Location', required: false })
-  locationId: User;
+  locationId: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'PropertyType', required: false })
-  propertyTypeId: User;
+  propertyTypeId: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'GeographicalAreas', required: false })
+  geoGraphyId: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'LifeStyle', required: false })
-  lifeStyleId: User;
+  lifeStyleId: Types.ObjectId;
 
   @Prop({ type: [RankingCriteria], required: true })
   criteria: RankingCriteria[];
@@ -53,7 +56,7 @@ export class RankingCategory extends Document {
   status: RankingCategoryStatus;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: false })
-  createdById: User;
+  createdById: Types.ObjectId;
 
   @Prop({ type: Boolean, default: false })
   isDeleted: boolean;

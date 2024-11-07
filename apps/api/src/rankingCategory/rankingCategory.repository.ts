@@ -51,6 +51,11 @@ export class RankingCategoryRepository extends BaseRepository<RankingCategory> {
         model: 'LifeStyle',
       })
       .populate({
+        path: 'geoGraphyId',
+        select: 'type upload name',
+        model: 'GeographicalAreas',
+      })
+      .populate({
         path: 'rankingRequests',
         match: { status: RankingRequestStatus.ACTIVE },
         options: { sort: { bbrScore: -1 } },
@@ -74,7 +79,7 @@ export class RankingCategoryRepository extends BaseRepository<RankingCategory> {
       const pipeline: PipelineStage[] = [
         {
           $match: {
-            isDeleted: false,
+            isDeleted: { $ne: DeletionStatus.DELETED },
           },
         },
 

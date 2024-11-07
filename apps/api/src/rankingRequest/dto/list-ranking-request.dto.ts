@@ -191,6 +191,30 @@ export class ListRankingRequestForUserDto extends ListPropsDto {
     type: [String],
   })
   brandIds?: string[];
+
+  @ApiProperty({
+    description: 'Filter by country ID',
+    example: '60b6c0f53b5a5c1f88d25a1c',
+    required: false,
+    type: String,
+  })
+  countryId?: string;
+
+  @ApiProperty({
+    description: 'Filter by city ID',
+    example: '60b6c0f53b5a5c1f88d25a1d',
+    required: false,
+    type: String,
+  })
+  cityId?: string;
+
+  @ApiProperty({
+    description: 'Filter by location ID',
+    example: '60b6c0f53b5a5c1f88d25a1e',
+    required: false,
+    type: String,
+  })
+  locationId?: string;
 }
 
 export const listRankingRequestForUserSchema = PaginationSchema.append({
@@ -213,4 +237,8 @@ export const listRankingRequestForUserSchema = PaginationSchema.append({
   brandIds: Joi.array()
     .items(Joi.string().custom(joiObjectIdValidator('brandId')))
     .optional(),
+
+  countryId: Joi.string().custom(joiObjectIdValidator('countryId')).optional(),
+  cityId: Joi.string().custom(joiObjectIdValidator('cityId')).optional(),
+  locationId: Joi.string().custom(joiObjectIdValidator('locationId')).optional(),
 });

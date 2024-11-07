@@ -16,6 +16,8 @@ import { AuthService } from '../auth/auth.service';
 import { GetClaimRequestByIdDto, ListClaimRequestDto } from './dto/getClaimRequest.dto';
 import { RejectClaimRequestDto } from './dto/rejectClaimRequest.dto';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
+import { ResidenceDraftRepository } from '../residencesDraft/residencesDraft.repository';
+import { ResidenceStatus } from '../residences/enum/residence-enum';
 
 @Injectable()
 export class ClaimRequestService {
@@ -24,7 +26,8 @@ export class ClaimRequestService {
     private readonly userRepository: UserRepository,
     private readonly residenceRepository: ResidenceRepository,
     private readonly unitRepository: UnitRepository,
-    private readonly authService: AuthService
+    private readonly authService: AuthService,
+    private readonly residenceDraftRepository: ResidenceDraftRepository
   ) {}
 
   async createClaimResidence(
@@ -133,7 +136,26 @@ export class ClaimRequestService {
       status: ClaimRequestStatus.Approved,
     };
 
-    return await this.claimRequestRepository.create(transformedDto);
+    const claimRequest = await this.claimRequestRepository.create(transformedDto);
+
+    await this.residenceRepository.update(claimRequest.residenceId.toString(), {
+      developerId: new Types.ObjectId(claimRequest.developerId),
+    });
+
+    // Fetch the latest active residenceDraftRequest
+    const latestActiveDraftRequest = await this.residenceDraftRepository.findLatest({
+      residenceId: claimRequest.residenceId,
+      status: ResidenceStatus.ACTIVE, // assuming 'Active' is the status representing active drafts
+    });
+
+    if (latestActiveDraftRequest) {
+      // Update the developerId in the latest active draft
+      await this.residenceDraftRepository.update(latestActiveDraftRequest._id, {
+        developerId: new Types.ObjectId(claimRequest.developerId),
+      });
+    }
+
+    return claimRequest;
   }
 
   private extractDomain(input: string, type: 'url' | 'email'): string {
@@ -328,6 +350,18 @@ export class ClaimRequestService {
       developerId: new Types.ObjectId(claimRequest.developerId),
     });
 
+    // Fetch the latest active residenceDraftRequest
+    const latestActiveDraftRequest = await this.residenceDraftRepository.findLatest({
+      residenceId: claimRequest.residenceId,
+      status: ResidenceStatus.ACTIVE, // assuming 'Active' is the status representing active drafts
+    });
+
+    if (latestActiveDraftRequest) {
+      // Update the developerId in the latest active draft
+      await this.residenceDraftRepository.update(latestActiveDraftRequest._id, {
+        developerId: new Types.ObjectId(claimRequest.developerId),
+      });
+    }
     return approvedClaimRequest;
   }
 

@@ -26,6 +26,7 @@ import { CountryRepository } from '../country/country.repository';
 import { LocationRepository } from '../location/location.repository';
 import { PropertyTypeRepository } from '../propertyType/propertyType.repository';
 import { RankingRequestStatus } from '../rankingRequest/enum/rankingRequest-status.enum';
+import { GeographicalAreasRepository } from '../geographicalAreas/geographicalAreas.repository';
 
 @Injectable()
 export class RankingCategoryService {
@@ -36,7 +37,8 @@ export class RankingCategoryService {
     private readonly cityRepository: CityRepository,
     private readonly countryRepository: CountryRepository,
     private readonly locationRepository: LocationRepository,
-    private readonly propertyTypeRepository: PropertyTypeRepository
+    private readonly propertyTypeRepository: PropertyTypeRepository,
+    private readonly geographicalAreasRepository: GeographicalAreasRepository
   ) {}
 
   async findAll(rankingCategoryDto: RankingCategoryListDto, user: JwtPayloadType) {
@@ -50,9 +52,12 @@ export class RankingCategoryService {
       locationId,
       propertyTypeId,
       lifeStyleId,
+      geoGraphyId,
     } = rankingCategoryDto;
 
-    const query: any = {};
+    const query: any = {
+      isDeleted: { $ne: DeletionStatus.DELETED },
+    };
 
     // Text search for name or description fields
     if (search) {
@@ -98,6 +103,10 @@ export class RankingCategoryService {
       query.lifeStyleId = new Types.ObjectId(lifeStyleId);
     }
 
+    if (geoGraphyId) {
+      query.geoGraphyId = new Types.ObjectId(geoGraphyId);
+    }
+
     const options = PaginationService.prepareOptions(rankingCategoryDto);
 
     const { data, count } = await this.rankingCategoryRepository.findAll(query, options, [
@@ -130,6 +139,11 @@ export class RankingCategoryService {
         path: 'propertyTypeId',
         select: 'type description',
         model: 'PropertyType',
+      },
+      {
+        path: 'geoGraphyId',
+        select: 'type upload name',
+        model: 'GeographicalAreas',
       },
       {
         path: 'lifeStyleId',
@@ -242,6 +256,19 @@ export class RankingCategoryService {
       transformedDto.propertyTypeId = new Types.ObjectId(createRankingCategoryDto.propertyTypeId);
     }
 
+    if (createRankingCategoryDto?.geoGraphyId) {
+      const geographicalArea = await this.geographicalAreasRepository.find({
+        _id: new Types.ObjectId(createRankingCategoryDto.geoGraphyId),
+        isDeleted: { $ne: DeletionStatus.DELETED },
+      });
+      if (!geographicalArea) {
+        throw new BadRequestException(
+          `GeographicalArea  with ID ${createRankingCategoryDto.geoGraphyId} does not exist or is deleted`
+        );
+      }
+      transformedDto.geoGraphyId = new Types.ObjectId(createRankingCategoryDto.geoGraphyId);
+    }
+
     const rankingCategory = await this.rankingCategoryRepository.create(transformedDto);
 
     const rankingCategoryDraft = await this.rankingCategoryDraftRepository.create({
@@ -347,6 +374,19 @@ export class RankingCategoryService {
         );
       }
       transformedDto.propertyTypeId = new Types.ObjectId(updateRankingCategoryDto.propertyTypeId);
+    }
+
+    if (updateRankingCategoryDto?.geoGraphyId) {
+      const geographicalArea = await this.geographicalAreasRepository.find({
+        _id: new Types.ObjectId(updateRankingCategoryDto.geoGraphyId),
+        isDeleted: { $ne: DeletionStatus.DELETED },
+      });
+      if (!geographicalArea) {
+        throw new BadRequestException(
+          `GeographicalArea  with ID ${updateRankingCategoryDto.geoGraphyId} does not exist or is deleted`
+        );
+      }
+      transformedDto.geoGraphyId = new Types.ObjectId(updateRankingCategoryDto.geoGraphyId);
     }
 
     const rankingCategoryDraft = await this.checkRankingCategoryDraft(rankingCategoryId);

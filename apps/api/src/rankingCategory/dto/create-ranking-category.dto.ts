@@ -148,6 +148,13 @@ export class CreateRankingCategoryDto {
     required: false,
   })
   propertyTypeId?: string;
+
+  @ApiProperty({
+    description: 'ID for Property Type-based category type',
+    example: '60d7fe6f9eb1f24a04d65637',
+    required: false,
+  })
+  geoGraphyId?: string;
 }
 
 export const createRankingCategorySchema = Joi.object({
@@ -199,7 +206,7 @@ export const createRankingCategorySchema = Joi.object({
 
   locationId: Joi.string()
     .custom(joiObjectIdValidator('locationId'))
-    .when('categoryType', { is: CategoryType.GEOGRAPHY, then: Joi.required() }),
+    .when('categoryType', { is: CategoryType.CITY, then: Joi.required() }),
 
   countryId: Joi.string()
     .custom(joiObjectIdValidator('countryId'))
@@ -216,4 +223,8 @@ export const createRankingCategorySchema = Joi.object({
   propertyTypeId: Joi.string()
     .custom(joiObjectIdValidator('propertyTypeId'))
     .when('categoryType', { is: CategoryType.PROPERTY_TYPE, then: Joi.required() }),
+
+  geoGraphyId: Joi.string()
+    .custom(joiObjectIdValidator('propertyTypeId'))
+    .when('categoryType', { is: CategoryType.GEOGRAPHY, then: Joi.required() }),
 });
