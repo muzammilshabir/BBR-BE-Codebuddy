@@ -116,7 +116,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
           $match: {
             ...(developerId ? { developerId: new Types.ObjectId(developerId) } : {}),
             ...(brandId ? { associatedBrandId: new Types.ObjectId(brandId) } : {}),
-            isDeleted: { $ne: DeletionStatus.DELETED },
+            isDeleted: { $ne: true },
           },
         },
 
