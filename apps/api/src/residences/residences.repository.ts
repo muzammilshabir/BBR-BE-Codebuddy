@@ -393,6 +393,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
               },
             },
             claimrequest: 1,
+            isDeleted: '$residence.isDeleted',
           },
         },
 
