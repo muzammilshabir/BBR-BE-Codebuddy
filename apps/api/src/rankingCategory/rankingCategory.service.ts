@@ -16,7 +16,10 @@ import {
   UpdateRankingCategoryStatusDto,
 } from './dto/update-ranking-category.dto';
 import { DeletionStatus } from '../unit/enum/unit-enum';
-import { RankingCategoryListDto } from './dto/list-ranking-category.dto';
+import {
+  PublicRankingCategoryListDto,
+  RankingCategoryListDto,
+} from './dto/list-ranking-category.dto';
 import { RejectRankingCategoryDto } from './dto/reject-ranking-category.dto';
 import { RankingCategoryDraftRepository } from '../rankingCategoryDraft/rankingCategoryDraft.repository';
 import { PaginationService } from '../../../../packages/api-core/modules/pagination/pagination.service';
@@ -646,5 +649,13 @@ export class RankingCategoryService {
     // Convert the score to a 10-point scale by dividing the weighted score by 10
     const engagementScore = Math.round((weightedScore / 10) * 100) / 100;
     return engagementScore;
+  }
+
+  async findAllPublic(rankingCategoryDto: PublicRankingCategoryListDto, user: JwtPayloadType) {
+    // Add 'active' status directly to the DTO or query object
+    const query = { ...rankingCategoryDto, status: 'active' };
+
+    // Pass the query to the existing findAll method
+    return this.findAll(query as RankingCategoryListDto, user);
   }
 }
