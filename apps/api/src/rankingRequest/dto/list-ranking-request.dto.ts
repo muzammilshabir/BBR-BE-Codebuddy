@@ -215,6 +215,14 @@ export class ListRankingRequestForUserDto extends ListPropsDto {
     type: String,
   })
   locationId?: string;
+
+  @ApiProperty({
+    description: 'Filter by geoGraphy ID',
+    example: '60b6c0f53b5a5c1f88d25a1e',
+    required: false,
+    type: String,
+  })
+  geoGraphyId?: string;
 }
 
 export const listRankingRequestForUserSchema = PaginationSchema.append({
@@ -241,4 +249,5 @@ export const listRankingRequestForUserSchema = PaginationSchema.append({
   countryId: Joi.string().custom(joiObjectIdValidator('countryId')).optional(),
   cityId: Joi.string().custom(joiObjectIdValidator('cityId')).optional(),
   locationId: Joi.string().custom(joiObjectIdValidator('locationId')).optional(),
+  geoGraphyId: Joi.string().custom(joiObjectIdValidator('geoGraphyId')).optional(),
 });
