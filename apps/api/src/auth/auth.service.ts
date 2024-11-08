@@ -247,7 +247,8 @@ export class AuthService {
       }
       console.log('loginDetails :>> ', loginDetails);
 
-      await this.userService.updateUser(user.id, loginDetails);
+      const updatedUser = await this.userService.updateUser(user.id, loginDetails);
+      console.log('updatedUser :>> ', updatedUser);
     } catch (error) {
       console.log('error :>> ', error);
     }
