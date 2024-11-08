@@ -250,13 +250,19 @@ export class BrandService {
       updatePayload.isDeleted = DeletionStatus.DELETED;
       const residences = await this.residenceService.getResidencesByAssociatedBrandId(brandId, {});
 
-      await Promise.all(
-        residences.map((residence) =>
-          this.residenceService.updateResidenceStatus(residence.id, userId, {
-            status: ResidenceStatus.ARCHIVED,
+      if (residences?.data.length > 0) {
+        await Promise.all(
+          residences.data.map((residence) => {
+            if (residence?.status === ResidenceStatus.ACTIVE) {
+              return this.residenceService.updateResidenceStatus(residence.id, userId, {
+                status: ResidenceStatus.ARCHIVED,
+              });
+            }
+            // If condition is not met, return a resolved promise to maintain the array structure for Promise.all
+            return Promise.resolve();
           })
-        )
-      );
+        );
+      }
     }
 
     const updatedResidence = await this.brandRepository.update(brandId, updatePayload);
