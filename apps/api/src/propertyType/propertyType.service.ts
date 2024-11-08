@@ -36,4 +36,8 @@ export class PropertyTypeService {
 
     return await this.propertyTypeRepository.update(id, updatePropertyTypeDto);
   }
+
+  async getPropertyTypeById(geographicalAreaId: string): Promise<any> {
+    return await this.propertyTypeRepository.findByIdInDetail(geographicalAreaId);
+  }
 }

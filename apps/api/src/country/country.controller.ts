@@ -8,6 +8,7 @@ import { ListCountryDto, listCountrySchema } from './dto/listCountry.dto';
 import { UserRole } from '../users/enum/user.enum';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UpdateCountryDto, updateCountrySchema } from './dto/updateCountry.dto';
+import { GetByIdDto, getIdSchema } from '../city/dto/getById.dto';
 
 @ApiTags('Country')
 @Controller('country')
@@ -35,5 +36,16 @@ export class CountryController {
   async update(@Param('id') id: string, @Body() updateCountryDto: UpdateCountryDto) {
     const updatedCountry = await this.countryService.update(id, updateCountryDto);
     return ResponseService.buildResponse(updatedCountry);
+  }
+
+  @Get(':id')
+  @ApiOperation({
+    summary: 'Get Country by ID',
+  })
+  @Public()
+  @UsePipes(new JoiValidationPipe(getIdSchema, 'param'))
+  async getResidenceById(@Param() params: GetByIdDto) {
+    const country = await this.countryService.getCountryById(params.id);
+    return ResponseService.buildResponse({ country }, 'country retrieved successfully');
   }
 }

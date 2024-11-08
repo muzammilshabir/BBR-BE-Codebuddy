@@ -36,4 +36,8 @@ export class CityService {
 
     return await this.cityRepository.update(id, updateCityDto);
   }
+
+  async getCityById(cityId: string): Promise<any> {
+    return await this.cityRepository.findByIdInDetail(cityId);
+  }
 }

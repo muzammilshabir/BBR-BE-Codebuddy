@@ -8,6 +8,7 @@ import { PropertyTypeDto, propertyTypeSchema } from './dto/propertyType.dto';
 import { UserRole } from '../users/enum/user.enum';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UpdatePropertyTypeDto, updatePropertyTypeSchema } from './dto/updatePropertyType.dto';
+import { GetByIdDto, getIdSchema } from '../city/dto/getById.dto';
 
 @ApiTags('PropertyType')
 @Controller('property-type')
@@ -35,5 +36,16 @@ export class PropertyTypeController {
   async update(@Param('id') id: string, @Body() updatePropertyTypeDto: UpdatePropertyTypeDto) {
     const updatedPropertyType = await this.propertyTypeService.update(id, updatePropertyTypeDto);
     return ResponseService.buildResponse(updatedPropertyType);
+  }
+
+  @Get(':id')
+  @ApiOperation({
+    summary: 'Get PropertyType by ID',
+  })
+  @Public()
+  @UsePipes(new JoiValidationPipe(getIdSchema, 'param'))
+  async getResidenceById(@Param() params: GetByIdDto) {
+    const propertyType = await this.propertyTypeService.getPropertyTypeById(params.id);
+    return ResponseService.buildResponse({ propertyType }, 'propertyType retrieved successfully');
   }
 }
