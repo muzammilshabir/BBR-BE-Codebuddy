@@ -8,6 +8,7 @@ import { ListCityDto, listCitySchema } from './dto/listCity.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/enum/user.enum';
 import { UpdateCityDto, updateCitySchema } from './dto/updateCity.dto';
+import { GetByIdDto, getIdSchema } from './dto/getById.dto';
 
 @ApiTags('City')
 @Controller('city')
@@ -35,5 +36,16 @@ export class CityController {
   async update(@Param('id') id: string, @Body() updateCityDto: UpdateCityDto) {
     const updatedCity = await this.cityService.update(id, updateCityDto);
     return ResponseService.buildResponse(updatedCity);
+  }
+
+  @Get(':id')
+  @ApiOperation({
+    summary: 'Get City by ID',
+  })
+  @Public()
+  @UsePipes(new JoiValidationPipe(getIdSchema, 'param'))
+  async getResidenceById(@Param() params: GetByIdDto) {
+    const city = await this.cityService.getCityById(params.id);
+    return ResponseService.buildResponse({ city }, 'city retrieved successfully');
   }
 }
