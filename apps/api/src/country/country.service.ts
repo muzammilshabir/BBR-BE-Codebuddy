@@ -36,4 +36,8 @@ export class CountryService {
 
     return await this.countryRepository.update(id, updateCountryDto);
   }
+
+  async getCountryById(countryId: string): Promise<any> {
+    return await this.countryRepository.findByIdInDetail(countryId);
+  }
 }

@@ -26,4 +26,8 @@ export class GeographicalAreasService {
 
     return { pagination, data };
   }
+
+  async getGeographicalAreaById(geographicalAreaId: string): Promise<any> {
+    return await this.geographicalAreasRepository.findByIdInDetail(geographicalAreaId);
+  }
 }
