@@ -57,7 +57,6 @@ export class RankingCategoryController {
   @ApiOperation({
     summary: 'Get ranking category by ID',
   })
-  @ApiBearerAuth()
   @Public()
   @UsePipes(new JoiValidationPipe(getRankingCategoryByIdSchema, 'param'))
   async findRankingCategory(
@@ -75,7 +74,6 @@ export class RankingCategoryController {
   @ApiOperation({
     summary: 'Get all ranking categories with filters and pagination',
   })
-  @ApiBearerAuth()
   @Public()
   @UsePipes(new JoiValidationPipe(rankingCategorySchema, 'query'))
   async getAllRankingCategories(
