@@ -700,6 +700,7 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
       cityId,
       countryId,
       locationId,
+      geoGraphyId,
     } = listRankingRequestForUserDto;
     const paginationOptions = PaginationService.prepareOptions(listRankingRequestForUserDto);
 
@@ -909,6 +910,16 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
         $match: {
           'residence.locationId': {
             $eq: new Types.ObjectId(locationId),
+          },
+        },
+      });
+    }
+
+    if (geoGraphyId) {
+      pipeline.push({
+        $match: {
+          'rankingCategory.geoGraphyId': {
+            $eq: new Types.ObjectId(geoGraphyId),
           },
         },
       });

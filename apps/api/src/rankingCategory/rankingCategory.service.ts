@@ -44,7 +44,7 @@ export class RankingCategoryService {
     private readonly geographicalAreasRepository: GeographicalAreasRepository
   ) {}
 
-  async findAll(rankingCategoryDto: RankingCategoryListDto, user?: JwtPayloadType) {
+  async findAll(rankingCategoryDto: RankingCategoryListDto) {
     const {
       search,
       status,
@@ -421,16 +421,10 @@ export class RankingCategoryService {
     });
   }
 
-  async findRankingCategory(id: string, user: JwtPayloadType) {
+  async findRankingCategory(id: string) {
     const rankingCategory = await this.findRankingCategoryById(id);
     if (!rankingCategory) {
       throw new NotFoundException(`Residence with ID ${id}`);
-    }
-    if (
-      rankingCategory.createdById?._id &&
-      rankingCategory.createdById?._id.toString() !== user.sub
-    ) {
-      throw new ForbiddenException('You do not have permission to delete this RankingCategory');
     }
     return {
       ...rankingCategory.toJSON(),
