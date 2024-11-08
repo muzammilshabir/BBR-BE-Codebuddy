@@ -52,7 +52,7 @@ export class ResidenceDraftController {
     summary: 'Submit a request for approval of a residence by residenceId',
   })
   @ApiBearerAuth()
-  @Roles(UserRole.SELLER)
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
   @UsePipes(new JoiValidationPipe(getResidenceDraftByIdSchema, 'param'))
   async createApprovalRequest(
     @GetCurrentUserId() userId: string,
