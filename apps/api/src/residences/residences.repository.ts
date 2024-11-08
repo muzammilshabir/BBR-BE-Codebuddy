@@ -61,7 +61,11 @@ export class ResidenceRepository extends BaseRepository<Residence> {
           model: 'Upload',
         },
         { path: 'createdById', model: 'User', select: 'fullName email role' },
-        { path: 'developerId', model: 'User', select: 'fullName email role' },
+        {
+          path: 'developerId',
+          model: 'User',
+          select: '_id fullName email role loginAddress loginTime contactInfo',
+        },
         { path: 'highestRankingCategoryId', model: 'RankingCategory', select: 'title' },
       ]);
 
@@ -379,6 +383,9 @@ export class ResidenceRepository extends BaseRepository<Residence> {
               fullName: '$developerData.fullName',
               email: '$developerData.email',
               role: '$developerData.role',
+              loginAddress: '$developerData.loginAddress',
+              loginTime: '$developerData.loginTime',
+              contactInfo: '$developerData.contactInfo',
             },
             createdAt: '$latestDraft.createdAt',
             updatedById: '$latestDraft.updatedById',

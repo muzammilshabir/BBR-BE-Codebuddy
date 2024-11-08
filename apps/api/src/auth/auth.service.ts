@@ -239,14 +239,21 @@ export class AuthService {
       };
     }
 
+    try {
+      console.log('I am here 11 :>> ');
+      const loginDetails: any = { ip, loginTime: new Date() };
+      if (loginDto?.address) {
+        loginDetails.loginAddress = loginDto.address;
+      }
+      console.log('loginDetails :>> ', loginDetails);
+
+      const updatedUser = await this.userService.updateUser(user.id, loginDetails);
+      console.log('updatedUser :>> ', updatedUser);
+    } catch (error) {
+      console.log('error :>> ', error);
+    }
     // Log successful login attempt
     await this.loginAttemptRepository.createLoginAttempt(user.id, LoginStatus.SUCCESS);
-
-    const loginDetails: any = { ip, loginTime: new Date() };
-    if (loginDto?.address) {
-      loginDetails.loginAddress = loginDto.address;
-    }
-    await this.userService.updateUser(user.id, loginDetails);
 
     return { tokens: await this.generateJwtToken(user) };
   }

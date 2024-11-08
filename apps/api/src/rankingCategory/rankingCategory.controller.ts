@@ -57,9 +57,7 @@ export class RankingCategoryController {
   @ApiOperation({
     summary: 'Get ranking category by ID',
   })
-  @ApiBearerAuth()
-  @Roles(UserRole.ADMIN)
-  @Permissions('rankings', PermissionLevel.READ)
+  @Public()
   @UsePipes(new JoiValidationPipe(getRankingCategoryByIdSchema, 'param'))
   async findRankingCategory(
     @Param() params: GetRankingCategoryByIdDto,
@@ -76,9 +74,7 @@ export class RankingCategoryController {
   @ApiOperation({
     summary: 'Get all ranking categories with filters and pagination',
   })
-  @ApiBearerAuth()
-  @Roles(UserRole.ADMIN, UserRole.SELLER, UserRole.BUYER)
-  @Permissions('rankings', PermissionLevel.READ)
+  @Public()
   @UsePipes(new JoiValidationPipe(rankingCategorySchema, 'query'))
   async getAllRankingCategories(
     @Query() rankingCategoryDto: RankingCategoryListDto,
