@@ -314,6 +314,7 @@ export class RankingCategoryService {
       updatedById: new Types.ObjectId(user.sub),
     };
 
+    delete transformedDto.status;
     if (updateRankingCategoryDto?.cityId) {
       const city = await this.cityRepository.find({
         _id: new Types.ObjectId(updateRankingCategoryDto.cityId),
