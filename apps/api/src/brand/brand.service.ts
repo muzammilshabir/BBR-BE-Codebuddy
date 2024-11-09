@@ -263,6 +263,13 @@ export class BrandService {
           })
         );
       }
+
+      const updateLatestBrand = await this.brandDraftRepository.findLatest({
+        brandId: new Types.ObjectId(brandId),
+      });
+      if (updateLatestBrand) {
+        await this.brandDraftRepository.update(updateLatestBrand.id, updatePayload);
+      }
     }
 
     const updatedResidence = await this.brandRepository.update(brandId, updatePayload);
