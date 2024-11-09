@@ -1,6 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
-import { User } from 'src/users/schema/user.schema';
 import { CategoryType } from '../enum/category-type.enum';
 import { RankingCategoryStatus } from '../enum/rankingCategory-status.enum';
 import { RankingCriteria } from './rankingCriteria.schema';

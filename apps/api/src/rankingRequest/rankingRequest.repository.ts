@@ -378,6 +378,7 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
                     state: 1,
                     city: 1,
                   },
+                  contactInfo: 1,
                 },
               },
             ],
@@ -453,8 +454,15 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
   }
 
   async findAllRankingRequest(listRankingRequestDto: ListRankingRequestDto) {
-    const { search, status, developerId, rankingCategoryId, paymentStatus, categoryType, residenceId } =
-      listRankingRequestDto;
+    const {
+      search,
+      status,
+      developerId,
+      rankingCategoryId,
+      paymentStatus,
+      categoryType,
+      residenceId,
+    } = listRankingRequestDto;
     const paginationOptions = PaginationService.prepareOptions(listRankingRequestDto);
 
     const sortObject = paginationOptions.sort.reduce((acc, [field, order]) => {
@@ -603,6 +611,7 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
                   state: 1,
                   city: 1,
                 },
+                contactInfo: 1,
               },
             },
           ],
@@ -840,6 +849,7 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
                   state: 1,
                   city: 1,
                 },
+                contactInfo: 1,
               },
             },
           ],
