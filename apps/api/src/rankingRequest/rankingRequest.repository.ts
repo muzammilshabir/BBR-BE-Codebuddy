@@ -453,7 +453,7 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
   }
 
   async findAllRankingRequest(listRankingRequestDto: ListRankingRequestDto) {
-    const { search, status, developerId, rankingCategoryId, paymentStatus, categoryType } =
+    const { search, status, developerId, rankingCategoryId, paymentStatus, categoryType, residenceId } =
       listRankingRequestDto;
     const paginationOptions = PaginationService.prepareOptions(listRankingRequestDto);
 
@@ -494,6 +494,14 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
       pipeline.push({
         $match: {
           rankingCategoryId: new Types.ObjectId(rankingCategoryId),
+        },
+      });
+    }
+
+    if (residenceId) {
+      pipeline.push({
+        $match: {
+          residenceId: new Types.ObjectId(residenceId),
         },
       });
     }
@@ -701,6 +709,7 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
       countryId,
       locationId,
       geoGraphyId,
+      residenceId,
     } = listRankingRequestForUserDto;
     const paginationOptions = PaginationService.prepareOptions(listRankingRequestForUserDto);
 
@@ -722,6 +731,14 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
       pipeline.push({
         $match: {
           rankingCategoryId: new Types.ObjectId(rankingCategoryId),
+        },
+      });
+    }
+
+    if (residenceId) {
+      pipeline.push({
+        $match: {
+          residenceId: new Types.ObjectId(residenceId),
         },
       });
     }
