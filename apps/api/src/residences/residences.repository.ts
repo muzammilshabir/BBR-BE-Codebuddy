@@ -64,7 +64,8 @@ export class ResidenceRepository extends BaseRepository<Residence> {
         {
           path: 'developerId',
           model: 'User',
-          select: '_id fullName email role loginAddress loginTime contactInfo',
+          select:
+            '_id fullName email role loginAddress loginTime contactInfo contactPersonInfo companyInfo',
         },
         { path: 'highestRankingCategoryId', model: 'RankingCategory', select: 'title' },
       ]);
@@ -386,6 +387,8 @@ export class ResidenceRepository extends BaseRepository<Residence> {
               loginAddress: '$developerData.loginAddress',
               loginTime: '$developerData.loginTime',
               contactInfo: '$developerData.contactInfo',
+              companyInfo: '$developerData.companyInfo',
+              contactPersonInfo: '$developerData.contactPersonInfo',
             },
             createdAt: '$latestDraft.createdAt',
             updatedById: '$latestDraft.updatedById',
