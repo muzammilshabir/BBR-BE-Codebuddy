@@ -81,7 +81,7 @@ export class BrandController {
   }
 
   @Get(':brandId')
-  @ApiBearerAuth()
+  @Public()
   @ApiOperation({ summary: 'Get a Brand by ID' })
   @UsePipes(new JoiValidationPipe(getBrandByIdSchema, 'param'))
   async getBrandDraftById(@Param() params: GetBrandByIdDto) {
