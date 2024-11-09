@@ -65,7 +65,7 @@ export class RankingCategoryService {
     // Text search for name or description fields
     if (search) {
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
+        { title: { $regex: search, $options: 'i' } },
         { description: { $regex: search, $options: 'i' } },
       ];
     }
