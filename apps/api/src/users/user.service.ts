@@ -65,6 +65,7 @@ export class UserService {
       ...createUserDto,
       isVerified: createUserDto.isVerified ?? false,
       verificationToken: verifyToken,
+      loginTime: new Date(),
     });
 
     try {
