@@ -6,11 +6,17 @@ import { AmenitiesController } from './amenities.controller';
 import { AmenityRepository } from './amenities.repository';
 import { AmenitySeeder } from './amenities.seeder';
 import { AmenityFixture } from './amenities.fixture';
+import { Upload } from '@aws-sdk/lib-storage';
+import { UploadSchema } from '../upload/schema/upload.schema';
+import { UploadRepository } from '../upload/upload.repository';
 
 @Module({
-  imports: [MongooseModule.forFeature([{ name: Amenity.name, schema: AmenitySchema }])],
-  providers: [AmenityService, AmenityRepository, AmenitySeeder,AmenityFixture],
-  exports: [AmenitySeeder,AmenityFixture],
+  imports: [
+    MongooseModule.forFeature([{ name: Amenity.name, schema: AmenitySchema }]),
+    MongooseModule.forFeature([{ name: Upload.name, schema: UploadSchema }]),
+  ],
+  providers: [AmenityService, AmenityRepository, AmenitySeeder, AmenityFixture, UploadRepository],
+  exports: [AmenitySeeder, AmenityFixture],
   controllers: [AmenitiesController],
 })
 export class AmenitiesModule {}
