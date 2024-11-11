@@ -5,4 +5,5 @@ export enum CategoryType {
   CITY = 'city',
   LIFESTYLE = 'lifestyle',
   PROPERTY_TYPE = 'property_type',
+  BRANDS = 'brands',
 }

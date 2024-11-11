@@ -30,6 +30,7 @@ import { LocationRepository } from '../location/location.repository';
 import { PropertyTypeRepository } from '../propertyType/propertyType.repository';
 import { RankingRequestStatus } from '../rankingRequest/enum/rankingRequest-status.enum';
 import { GeographicalAreasRepository } from '../geographicalAreas/geographicalAreas.repository';
+import { BrandRepository } from '../brand/brand.repository';
 
 @Injectable()
 export class RankingCategoryService {
@@ -41,7 +42,8 @@ export class RankingCategoryService {
     private readonly countryRepository: CountryRepository,
     private readonly locationRepository: LocationRepository,
     private readonly propertyTypeRepository: PropertyTypeRepository,
-    private readonly geographicalAreasRepository: GeographicalAreasRepository
+    private readonly geographicalAreasRepository: GeographicalAreasRepository,
+    private readonly brandRepository: BrandRepository
   ) {}
 
   async findAll(rankingCategoryDto: RankingCategoryListDto) {
@@ -56,6 +58,7 @@ export class RankingCategoryService {
       propertyTypeId,
       lifeStyleId,
       geoGraphyId,
+      brandIds,
     } = rankingCategoryDto;
 
     const query: any = {
@@ -110,6 +113,12 @@ export class RankingCategoryService {
       query.geoGraphyId = new Types.ObjectId(geoGraphyId);
     }
 
+    if (brandIds && brandIds.length > 0) {
+      query.brandIds = { 
+        $in: brandIds.map(id => new Types.ObjectId(id))
+      };
+    }
+
     const options = PaginationService.prepareOptions(rankingCategoryDto);
 
     const { data, count } = await this.rankingCategoryRepository.findAll(query, options, [
@@ -157,6 +166,11 @@ export class RankingCategoryService {
         path: 'rankingRequests',
         match: { status: RankingRequestStatus.ACTIVE },
         options: { sort: { bbrScore: -1 } },
+      },
+      {
+        path: 'brandIds',
+        select: 'name logo description',
+        model: 'Brand',
       },
     ]);
 
@@ -270,6 +284,24 @@ export class RankingCategoryService {
         );
       }
       transformedDto.geoGraphyId = new Types.ObjectId(createRankingCategoryDto.geoGraphyId);
+    }
+
+    if (createRankingCategoryDto?.brandIds) {
+      const brands = await Promise.all(
+        createRankingCategoryDto.brandIds.map(async (brandId) => {
+          const brand = await this.brandRepository.find({
+            _id: new Types.ObjectId(brandId),
+            isDeleted: { $ne: DeletionStatus.DELETED },
+          });
+          if (!brand) {
+            throw new BadRequestException(
+              `Brand with ID ${brandId} does not exist or is deleted`
+            );
+          }
+          return new Types.ObjectId(brandId);
+        })
+      );
+      transformedDto.brandIds = brands;
     }
 
     const rankingCategory = await this.rankingCategoryRepository.create(transformedDto);
@@ -391,6 +423,24 @@ export class RankingCategoryService {
         );
       }
       transformedDto.geoGraphyId = new Types.ObjectId(updateRankingCategoryDto.geoGraphyId);
+    }
+
+    if (updateRankingCategoryDto?.brandIds) {
+      const brands = await Promise.all(
+        updateRankingCategoryDto.brandIds.map(async (brandId) => {
+          const brand = await this.brandRepository.find({
+            _id: new Types.ObjectId(brandId),
+            isDeleted: { $ne: DeletionStatus.DELETED },
+          });
+          if (!brand) {
+            throw new BadRequestException(
+              `Brand with ID ${brandId} does not exist or is deleted`
+            );
+          }
+          return new Types.ObjectId(brandId);
+        })
+      );
+      transformedDto.brandIds = brands;
     }
 
     const rankingCategoryDraft = await this.checkRankingCategoryDraft(rankingCategoryId);

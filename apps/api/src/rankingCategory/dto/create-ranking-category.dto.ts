@@ -1,4 +1,4 @@
-import { ApiProperty, PartialType } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 import * as Joi from 'joi';
 import { CategoryType } from '../enum/category-type.enum';
 import { RankingCategoryStatus } from '../enum/rankingCategory-status.enum';
@@ -155,6 +155,14 @@ export class CreateRankingCategoryDto {
     required: false,
   })
   geoGraphyId?: string;
+
+  @ApiProperty({
+    description: 'Array of Brand IDs for Brands-based category type',
+    example: ['60d7fe6f9eb1f24a04d65637', '60d7fe6f9eb1f24a04d65638'],
+    required: false,
+    type: [String],
+  })
+  brandIds?: string[];
 }
 
 export const createRankingCategorySchema = Joi.object({
@@ -227,4 +235,13 @@ export const createRankingCategorySchema = Joi.object({
   geoGraphyId: Joi.string()
     .custom(joiObjectIdValidator('propertyTypeId'))
     .when('categoryType', { is: CategoryType.GEOGRAPHY, then: Joi.required() }),
+
+  brandIds: Joi.array()
+    .items(
+      Joi.string().custom(joiObjectIdValidator('brandIds'))
+    )
+    .when('categoryType', { 
+      is: CategoryType.BRANDS, 
+      then: Joi.array().min(1).required(),
+    }),
 });
