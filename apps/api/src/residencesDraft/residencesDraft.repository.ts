@@ -39,7 +39,14 @@ export class ResidenceDraftRepository extends BaseRepository<ResidenceDraft> {
         select: 'originalFileKey fileKey url mimeType',
         model: 'Upload',
       },
-      { path: 'nearbyAmenities.amenitiesList', select: 'name', model: 'Amenity' },
+      {
+        path: 'nearbyAmenities.amenitiesList',
+        model: 'Amenity',
+        populate: {
+          path: 'upload.imageId',
+          model: 'Upload',
+        },
+      },
       { path: 'nearbyAmenities.highlightedAmenities.amenityId', select: 'name', model: 'Amenity' },
       {
         path: 'nearbyAmenities.highlightedAmenities.imageId',
