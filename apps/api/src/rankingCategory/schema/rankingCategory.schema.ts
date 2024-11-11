@@ -30,6 +30,9 @@ export class RankingCategory extends Document {
   @Prop({ type: Types.ObjectId, ref: 'LifeStyle', required: false })
   lifeStyleId: Types.ObjectId;
 
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'Brand' }], required: false })
+  brandIds: Types.ObjectId[];
+
   @Prop({ type: [RankingCriteria], required: true })
   criteria: RankingCriteria[];
 
