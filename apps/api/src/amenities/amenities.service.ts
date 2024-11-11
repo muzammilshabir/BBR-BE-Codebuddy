@@ -19,7 +19,7 @@ export class AmenityService {
     const options = PaginationService.prepareOptions(listAmenitiesDto);
 
     const { data, count } = await this.amenityRepository.findAll(filter, options, [
-      { path: 'upload.ImageId', select: 'originalFileKey fileKey url mimeType', model: 'Upload' },
+      { path: 'upload.imageId', select: 'originalFileKey fileKey url mimeType', model: 'Upload' },
     ]);
 
     const { pagination } = PaginationService.paginate({ rows: data, count }, listAmenitiesDto);

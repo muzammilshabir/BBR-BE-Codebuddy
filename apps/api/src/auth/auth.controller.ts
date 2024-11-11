@@ -229,7 +229,7 @@ export class AuthController {
   }
 
   @ApiBearerAuth()
-  @Roles(UserRole.BUYER)
+  @Roles(UserRole.BUYER, UserRole.SELLER)
   @Patch('buyer/favourites/add')
   @UsePipes(new JoiValidationPipe(addFavouritesSchema, 'body'))
   @ApiOperation({ summary: 'Add favourites (unit/residence)' })
