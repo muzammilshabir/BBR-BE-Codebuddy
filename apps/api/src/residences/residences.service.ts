@@ -4,6 +4,7 @@ import { CreateResidenceDto } from './dto/create-residence.dto';
 import { Residence } from './schema/residences.schema';
 import {
   RejectResidenceDto,
+  UpdateFeaturedDto,
   UpdateResidenceDto,
   UpdateResidenceStatusDto,
 } from './dto/update-residence.dto';
@@ -426,6 +427,9 @@ export class ResidenceService {
     }
     if (listResidenceDto.developerId) {
       filter.developerId = new Types.ObjectId(listResidenceDto.developerId);
+    }
+    if (listResidenceDto.featured) {
+      filter.featured = listResidenceDto.featured;
     }
 
     const options = PaginationService.prepareOptions(listResidenceDto);
@@ -1017,5 +1021,9 @@ export class ResidenceService {
       pending: pendingCount[0]?.totalCount || 0,
       archived: archivedCount[0]?.totalCount || 0,
     };
+  }
+
+  async updateFeaturedStatus(updateFeaturedDto: UpdateFeaturedDto) {
+    return await this.residenceRepository.updateFeaturedStatus(updateFeaturedDto);
   }
 }

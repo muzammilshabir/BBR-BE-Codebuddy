@@ -224,6 +224,9 @@ export class Residence extends Document {
 
   @Prop({ type: Boolean, default: false })
   isDeleted: boolean;
+
+  @Prop({ type: Boolean, default: false })
+  featured: boolean;
 }
 
 export const ResidenceSchema = SchemaFactory.createForClass(Residence);

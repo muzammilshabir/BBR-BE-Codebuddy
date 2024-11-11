@@ -13,6 +13,7 @@ import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.s
 import { GetSimilarResidenceDto } from './dto/get-similar-residence';
 import { ResidenceStatus } from './enum/residence-enum';
 import { DeletionStatus } from '../unit/enum/unit-enum';
+import { UpdateFeaturedDto } from './dto/update-residence.dto';
 
 @Injectable()
 export class ResidenceRepository extends BaseRepository<Residence> {
@@ -901,5 +902,22 @@ export class ResidenceRepository extends BaseRepository<Residence> {
     } catch (error) {
       throw new Error(`Error while fetching residence draft list: ${error}`);
     }
+  }
+
+  async updateFeaturedStatus(updateFeaturedDto: UpdateFeaturedDto) {
+    const { residenceId, featured } = updateFeaturedDto;
+
+    // Update the featured status of the residence and return the updated document
+    const updatedResidence = await this.residenceModel.findOneAndUpdate(
+      { _id: new Types.ObjectId(residenceId), isDeleted: false },
+      { $set: { featured } },
+      { new: true } // Returns the updated document
+    );
+
+    if (!updatedResidence) {
+      throw new NotFoundException('Residence not found or already deleted.');
+    }
+
+    return updatedResidence;
   }
 }

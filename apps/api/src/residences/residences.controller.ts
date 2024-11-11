@@ -38,6 +38,8 @@ import {
 import {
   RejectResidenceDto,
   rejectResidenceSchema,
+  UpdateFeaturedDto,
+  updateFeaturedSchema,
   UpdateResidenceDto,
   updateResidenceSchema,
   UpdateResidenceStatusDto,
@@ -351,6 +353,22 @@ export class ResidenceController {
     return ResponseService.buildResponse(
       { updatedResidence },
       'Residence status unarchived successfully'
+    );
+  }
+
+  @Patch('/update-featured')
+  @ApiOperation({
+    summary: 'Update Residence Featured Status',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @Permissions('residence', PermissionLevel.EDIT)
+  @UsePipes(new JoiValidationPipe(updateFeaturedSchema, 'body'))
+  async updateFeaturedStatus(@Body() updateFeaturedDto: UpdateFeaturedDto) {
+    const result = await this.residenceService.updateFeaturedStatus(updateFeaturedDto);
+    return ResponseService.buildResponse(
+      { result },
+      'Residence featured status updated successfully'
     );
   }
 }
