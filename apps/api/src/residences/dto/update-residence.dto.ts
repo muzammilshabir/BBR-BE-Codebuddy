@@ -122,3 +122,24 @@ export const updateResidenceStatusSchema = Joi.object({
     )
     .required(),
 });
+
+export class UpdateFeaturedDto {
+  @ApiProperty({
+    description: 'ID of the residence to update',
+    example: '60b6c0f53b5a5c1f88d25a1b',
+    type: String,
+  })
+  residenceId: string;
+
+  @ApiProperty({
+    description: 'Set residence as featured or not',
+    example: true,
+    type: Boolean,
+  })
+  featured: boolean;
+}
+
+export const updateFeaturedSchema = Joi.object({
+  residenceId: Joi.string().custom(joiObjectIdValidator('residenceId')).required(),
+  featured: Joi.boolean().required(),
+});

@@ -44,6 +44,13 @@ export class ListResidenceDto extends ListPropsDto {
     required: false,
   })
   fileType?: FileType;
+
+  @ApiProperty({
+    example: false,
+    required: false,
+    default: false,
+  })
+  featured?: boolean = false;
 }
 
 export const listResidenceSchema = PaginationSchema.append({
@@ -56,6 +63,8 @@ export const listResidenceSchema = PaginationSchema.append({
   fileType: Joi.string()
     .valid(...Object.values(FileType))
     .optional(),
+
+  featured: Joi.boolean().default(false).optional(),
 });
 
 export class ListResidenceByFiltersQueryPropsDto extends ListPropsDto {
