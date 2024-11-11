@@ -46,7 +46,6 @@ export class ListResidenceDto extends ListPropsDto {
   fileType?: FileType;
 
   @ApiProperty({
-    // description: 'Set to true if you want to download the data',
     example: false,
     required: false,
     default: false,
