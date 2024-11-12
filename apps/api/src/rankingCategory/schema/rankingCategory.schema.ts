@@ -6,11 +6,11 @@ import { RankingCriteria } from './rankingCriteria.schema';
 
 @Schema({ timestamps: true })
 export class RankingCategory extends Document {
-  @Prop({ required: true })
-  title: string;
+  @Prop({ required: false })
+  title?: string;
 
-  @Prop({ required: true, enum: CategoryType })
-  categoryType: CategoryType;
+  @Prop({ required: false, enum: CategoryType })
+  categoryType?: CategoryType;
 
   @Prop({ type: Types.ObjectId, ref: 'Country', required: false })
   countryId: Types.ObjectId;
@@ -30,14 +30,14 @@ export class RankingCategory extends Document {
   @Prop({ type: Types.ObjectId, ref: 'LifeStyle', required: false })
   lifeStyleId: Types.ObjectId;
 
-  @Prop({ type: [{ type: Types.ObjectId, ref: 'Brand' }], required: false })
-  brandIds: Types.ObjectId[];
+  @Prop({ type: Types.ObjectId, ref: 'Brand', required: false })
+  brandId: Types.ObjectId;
 
-  @Prop({ type: [RankingCriteria], required: true })
-  criteria: RankingCriteria[];
+  @Prop({ type: [RankingCriteria], required: false })
+  criteria?: RankingCriteria[];
 
-  @Prop({ required: true })
-  price: number;
+  @Prop({ required: false })
+  price?: number;
 
   @Prop({
     type: String,
@@ -51,8 +51,8 @@ export class RankingCategory extends Document {
   })
   description: string;
 
-  @Prop({ required: true })
-  residenceLimitation: number;
+  @Prop({ required: false })
+  residenceLimitation?: number;
 
   @Prop({ required: true, enum: RankingCategoryStatus, default: RankingCategoryStatus.DRAFT })
   status: RankingCategoryStatus;
