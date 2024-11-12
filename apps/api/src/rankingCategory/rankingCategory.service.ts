@@ -147,7 +147,7 @@ export class RankingCategoryService {
       },
       {
         path: 'propertyTypeId',
-        select: 'type description',
+        select: 'name type description',
         model: 'PropertyType',
       },
       {
