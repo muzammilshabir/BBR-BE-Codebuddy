@@ -157,12 +157,11 @@ export class CreateRankingCategoryDto {
   geoGraphyId?: string;
 
   @ApiProperty({
-    description: 'Array of Brand IDs for Brands-based category type',
-    example: ['60d7fe6f9eb1f24a04d65637', '60d7fe6f9eb1f24a04d65638'],
+    description: 'Brand ID for Brand-based category type',
+    example: '60d7fe6f9eb1f24a04d65638',
     required: false,
-    type: [String],
   })
-  brandIds?: string[];
+  brandId?: string;
 }
 
 export const createRankingCategorySchema = Joi.object({
@@ -236,12 +235,8 @@ export const createRankingCategorySchema = Joi.object({
     .custom(joiObjectIdValidator('propertyTypeId'))
     .when('categoryType', { is: CategoryType.GEOGRAPHY, then: Joi.required() }),
 
-  brandIds: Joi.array()
-    .items(
-      Joi.string().custom(joiObjectIdValidator('brandIds'))
-    )
-    .when('categoryType', { 
-      is: CategoryType.BRANDS, 
-      then: Joi.array().min(1).required(),
-    }),
+  brandId: Joi.string().custom(joiObjectIdValidator('brandId')).when('categoryType', {
+    is: CategoryType.BRAND,
+    then: Joi.required(),
+  }),
 });

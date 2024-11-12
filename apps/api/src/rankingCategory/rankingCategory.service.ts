@@ -58,7 +58,7 @@ export class RankingCategoryService {
       propertyTypeId,
       lifeStyleId,
       geoGraphyId,
-      brandIds,
+      brandId,
     } = rankingCategoryDto;
 
     const query: any = {
@@ -113,10 +113,8 @@ export class RankingCategoryService {
       query.geoGraphyId = new Types.ObjectId(geoGraphyId);
     }
 
-    if (brandIds && brandIds.length > 0) {
-      query.brandIds = { 
-        $in: brandIds.map(id => new Types.ObjectId(id))
-      };
+    if (brandId) {
+      query.brandId = new Types.ObjectId(brandId);
     }
 
     const options = PaginationService.prepareOptions(rankingCategoryDto);
@@ -168,7 +166,7 @@ export class RankingCategoryService {
         options: { sort: { bbrScore: -1 } },
       },
       {
-        path: 'brandIds',
+        path: 'brandId',
         select: 'name logo description',
         model: 'Brand',
       },
@@ -286,22 +284,17 @@ export class RankingCategoryService {
       transformedDto.geoGraphyId = new Types.ObjectId(createRankingCategoryDto.geoGraphyId);
     }
 
-    if (createRankingCategoryDto?.brandIds) {
-      const brands = await Promise.all(
-        createRankingCategoryDto.brandIds.map(async (brandId) => {
-          const brand = await this.brandRepository.find({
-            _id: new Types.ObjectId(brandId),
-            isDeleted: { $ne: DeletionStatus.DELETED },
-          });
-          if (!brand) {
-            throw new BadRequestException(
-              `Brand with ID ${brandId} does not exist or is deleted`
-            );
-          }
-          return new Types.ObjectId(brandId);
-        })
-      );
-      transformedDto.brandIds = brands;
+    if (createRankingCategoryDto?.brandId) {
+      const brand = await this.brandRepository.find({
+        _id: new Types.ObjectId(createRankingCategoryDto.brandId),
+        isDeleted: { $ne: DeletionStatus.DELETED },
+      });
+      if (!brand) {
+        throw new BadRequestException(
+          `Brand with ID ${createRankingCategoryDto.brandId} does not exist or is deleted`
+        );
+      }
+      transformedDto.brandId = new Types.ObjectId(createRankingCategoryDto.brandId);
     }
 
     const rankingCategory = await this.rankingCategoryRepository.create(transformedDto);
@@ -425,22 +418,17 @@ export class RankingCategoryService {
       transformedDto.geoGraphyId = new Types.ObjectId(updateRankingCategoryDto.geoGraphyId);
     }
 
-    if (updateRankingCategoryDto?.brandIds) {
-      const brands = await Promise.all(
-        updateRankingCategoryDto.brandIds.map(async (brandId) => {
-          const brand = await this.brandRepository.find({
-            _id: new Types.ObjectId(brandId),
-            isDeleted: { $ne: DeletionStatus.DELETED },
-          });
-          if (!brand) {
-            throw new BadRequestException(
-              `Brand with ID ${brandId} does not exist or is deleted`
-            );
-          }
-          return new Types.ObjectId(brandId);
-        })
-      );
-      transformedDto.brandIds = brands;
+    if (updateRankingCategoryDto?.brandId) {
+      const brand = await this.brandRepository.find({
+        _id: new Types.ObjectId(updateRankingCategoryDto.brandId),
+        isDeleted: { $ne: DeletionStatus.DELETED },
+      });
+      if (!brand) {
+        throw new BadRequestException(
+          `Brand with ID ${updateRankingCategoryDto.brandId} does not exist or is deleted`
+        );
+      }
+      transformedDto.brandId = new Types.ObjectId(updateRankingCategoryDto.brandId);
     }
 
     const rankingCategoryDraft = await this.checkRankingCategoryDraft(rankingCategoryId);
