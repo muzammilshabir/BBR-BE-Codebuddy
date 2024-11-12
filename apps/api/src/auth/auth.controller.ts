@@ -379,6 +379,17 @@ export class AuthController {
   }
 
   @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Add new Seller Profile',
+  })
+  @Patch('seller/add')
+  @UsePipes(new JoiValidationPipe(AddSellerSchema, 'body'))
+  async addSeller(@Body() addSellerDto: AddSellerDto) {
+    const user = await this.authService.addSeller(addSellerDto);
+    return ResponseService.buildResponse(user, 'Seller added successfully');
+  }
+
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Update Seller by ID' })
   @Patch('seller/:id')
   @UsePipes(new JoiValidationPipe(updateSellerByIdSchema, 'body'))
@@ -388,17 +399,6 @@ export class AuthController {
   ) {
     const updatedSeller = await this.authService.updateSellerById(sellerId, updateSellerByIdDto);
     return ResponseService.buildResponse(updatedSeller, 'Seller updated successfully');
-  }
-
-  @ApiBearerAuth()
-  @ApiOperation({
-    summary: 'Add new Seller Profile',
-  })
-  @Patch('seller/add')
-  @UsePipes(new JoiValidationPipe(AddSellerSchema, 'body'))
-  async addSeller(@Body() addSellerDto: AddSellerDto) {
-    const user = await this.authService.addSeller(addSellerDto);
-    return ResponseService.buildResponse(user, 'Seller added successfully');
   }
 
   @ApiOperation({ summary: 'Change password ' })

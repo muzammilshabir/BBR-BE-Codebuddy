@@ -41,6 +41,20 @@ export class UnitService {
       // Check if the residence is rejected
       await this.residenceService.checkResidenceRejectedStatus(residenceId);
 
+      // Check for duplicate unit based on residenceId and specs.unitNumber
+      if (addUnitDto.specs?.unitNumber) {
+        const existingUnit = await this.unitRepository.find({
+          residenceId: new Types.ObjectId(residenceId),
+          'specs.unitNumber': addUnitDto.specs.unitNumber,
+        });
+
+        if (existingUnit) {
+          throw new BadRequestException(
+            'Unit with the same unit number already exists in this residence.'
+          );
+        }
+      }
+
       const transformedDto = {
         ...addUnitDto,
         residenceId: new Types.ObjectId(residenceId),
@@ -60,6 +74,9 @@ export class UnitService {
 
       return unitDraft;
     } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
       throw new InternalServerErrorException('Failed to create unit draft', error);
     }
   }
@@ -182,7 +199,23 @@ export class UnitService {
     const residenceId = existingUnit.residenceId.toString();
     await this.residenceService.checkResidenceRejectedStatus(residenceId);
 
+    // Check for duplicate unit based on residenceId and specs.unitNumber
+    if (updateUnitDto.specs?.unitNumber) {
+      const duplicateUnit = await this.unitRepository.find({
+        residenceId: new Types.ObjectId(residenceId),
+        'specs.unitNumber': updateUnitDto?.specs?.unitNumber,
+        _id: { $ne: unitId }, // Exclude the current unit from the check
+      });
+
+      if (duplicateUnit) {
+        throw new BadRequestException(
+          'Another unit with the same unit number already exists in this residence.'
+        );
+      }
+    }
+
     const existingUnitDraft = await this.checkUnitDraft(unitId);
+
     if (existingUnitDraft) {
       return await this.unitDraftRepository.update(existingUnitDraft.id, {
         ...updateUnitDto,
