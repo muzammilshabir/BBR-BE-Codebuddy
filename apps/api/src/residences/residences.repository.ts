@@ -29,7 +29,16 @@ export class ResidenceRepository extends BaseRepository<Residence> {
         { path: 'cityId', select: 'name type countryId' },
         { path: 'countryId', select: 'name type' },
         { path: 'associatedBrandId', select: 'name' },
-        { path: 'residenceKeyFeatures.featureIds', select: 'name', model: 'ResidenceFeature' },
+        {
+          path: 'residenceKeyFeatures.featureIds',
+          // select: 'name',
+          model: 'ResidenceFeature',
+          populate: {
+            path: 'upload.imageId',
+            select: 'originalFileKey fileKey url mimeType',
+            model: 'Upload',
+          },
+        },
         {
           path: 'visuals.mainPhotos',
           select: 'originalFileKey fileKey url mimeType',
@@ -50,11 +59,25 @@ export class ResidenceRepository extends BaseRepository<Residence> {
           select: 'originalFileKey fileKey url mimeType',
           model: 'Upload',
         },
-        { path: 'nearbyAmenities.amenitiesList', select: 'name', model: 'Amenity' },
+        {
+          path: 'nearbyAmenities.amenitiesList',
+          // select: 'name',
+          model: 'Amenity',
+          populate: {
+            path: 'upload.imageId',
+            select: 'originalFileKey fileKey url mimeType',
+            model: 'Upload',
+          },
+        },
         {
           path: 'nearbyAmenities.highlightedAmenities.amenityId',
-          select: 'name',
+          // select: 'name',
           model: 'Amenity',
+          populate: {
+            path: 'upload.imageId',
+            select: 'originalFileKey fileKey url mimeType',
+            model: 'Upload',
+          },
         },
         {
           path: 'nearbyAmenities.highlightedAmenities.imageId',
