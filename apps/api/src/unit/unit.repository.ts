@@ -176,6 +176,14 @@ export class UnitRepository extends BaseRepository<Unit> {
           },
         },
         {
+          $lookup: {
+            from: 'uploads',
+            localField: 'roomTypeInfo.upload.ImageId',
+            foreignField: '_id',
+            as: 'roomTypeImagesData',
+          },
+        },
+        {
           $group: {
             _id: '$_id',
             latestDraft: { $first: '$latestDraft' },
@@ -185,6 +193,7 @@ export class UnitRepository extends BaseRepository<Unit> {
                 roomTypeId: '$latestDraft.rooms.roomTypeId',
                 type: '$roomTypeInfo.type', // Use single type per roomTypeId
                 unit: '$latestDraft.rooms.unit',
+                roomTypeImages: '$roomTypeImagesData',
               },
             },
             mainPhotos: { $first: '$mainPhotos' },

@@ -34,9 +34,21 @@ export class UnitDraftService {
       filter.status = listUnitDraftDto.status;
     }
 
-    const options = PaginationService.prepareOptions(listUnitDraftDto);
+    const options = {
+      ...PaginationService.prepareOptions(listUnitDraftDto),
+    };
 
-    const { data, count } = await this.unitDraftRepository.findAll(filter, options);
+    const { data, count } = await this.unitDraftRepository.findAll(filter, options, [
+      {
+        path: 'rooms.roomTypeId',
+        model: 'RoomType',
+        populate: {
+          path: 'upload.ImageId',
+          model: 'Upload',
+          select: 'originalFileKey fileKey url mimeType',
+        },
+      },
+    ]);
 
     const { pagination } = PaginationService.paginate({ rows: data, count }, listUnitDraftDto);
 
