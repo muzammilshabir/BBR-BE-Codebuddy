@@ -50,11 +50,25 @@ export class ResidenceRepository extends BaseRepository<Residence> {
           select: 'originalFileKey fileKey url mimeType',
           model: 'Upload',
         },
-        { path: 'nearbyAmenities.amenitiesList', select: 'name', model: 'Amenity' },
+        {
+          path: 'nearbyAmenities.amenitiesList',
+          // select: 'name',
+          model: 'Amenity',
+          populate: {
+            path: 'upload.imageId',
+            select: 'originalFileKey fileKey url mimeType',
+            model: 'Upload',
+          },
+        },
         {
           path: 'nearbyAmenities.highlightedAmenities.amenityId',
-          select: 'name',
+          // select: 'name',
           model: 'Amenity',
+          populate: {
+            path: 'upload.imageId',
+            select: 'originalFileKey fileKey url mimeType',
+            model: 'Upload',
+          },
         },
         {
           path: 'nearbyAmenities.highlightedAmenities.imageId',
