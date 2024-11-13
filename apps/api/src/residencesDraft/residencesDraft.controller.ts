@@ -29,7 +29,7 @@ export class ResidenceDraftController {
   @UsePipes(new JoiValidationPipe(getResidenceDraftByIdSchema, 'param'))
   async getResidenceDraftById(@Param() params: GetResidenceDraftByIdDto) {
     const residenceDraft = await this.residenceDraftService.getResidenceDraftById(params.id);
-    return ResponseService.buildResponse({ residenceDraft }, 'Residence retrieved successfully');
+    return ResponseService.buildResponse(residenceDraft, 'ResidenceDraft retrieved successfully');
   }
 
   @Get('/')
