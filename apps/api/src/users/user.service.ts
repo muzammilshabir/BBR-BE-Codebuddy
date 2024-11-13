@@ -21,7 +21,12 @@ import {
   UpdateSellerProfileDto,
   UpdateUserStatusDto,
 } from '../auth/dto/updateProfile';
-import { AddFavouritesDto, ListFavouritesDto, PropertyType } from '../auth/dto/addToFavourite';
+import {
+  AddFavouritesDto,
+  ListFavouritesDto,
+  PropertyType,
+  RemoveFavouritesDto,
+} from '../auth/dto/addToFavourite';
 import { ResidenceRepository } from '../residences/residences.repository';
 import { UnitRepository } from '../unit/unit.repository';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
@@ -752,5 +757,33 @@ export class UserService {
         'User is already registered and verified. Please log in or reset your password if needed.'
       );
     }
+  }
+
+  async removeFavourites(userId: string, removeFavouritesDto: RemoveFavouritesDto) {
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const { propertyType, favouriteId } = removeFavouritesDto;
+
+    if (propertyType === PropertyType.RESIDENCE) {
+      // Check if the residence exists in favorites
+      if (!user.favouriteResidenceIds?.some((id) => id.toString() === favouriteId)) {
+        throw new BadRequestException('Residence is not in favorites');
+      }
+      user.favouriteResidenceIds = user.favouriteResidenceIds.filter(
+        (id) => id.toString() !== favouriteId
+      );
+    } else if (propertyType === PropertyType.UNIT) {
+      // Check if the unit exists in favorites
+      if (!user.favouritesUnitIds?.some((id) => id.toString() === favouriteId)) {
+        throw new BadRequestException('Unit is not in favorites');
+      }
+      user.favouritesUnitIds = user.favouritesUnitIds.filter((id) => id.toString() !== favouriteId);
+    }
+
+    // Save and return updated user
+    return this.userModel.findByIdAndUpdate(userId, user, { new: true });
   }
 }
