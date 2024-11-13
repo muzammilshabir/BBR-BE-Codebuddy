@@ -88,21 +88,17 @@ export class ResidenceDraftService {
   }
 
   async getResidenceDraftById(residenceDraftId: string): Promise<any> {
-    try {
-      const residenceDraft = await this.residenceDraftRepository.findByIdInDetail(residenceDraftId);
-      let residence;
-      if (residenceDraft) {
-        residence = await this.residenceService.getResidenceById(
-          residenceDraft.residenceId.toString()
-        );
-      }
-      return { residenceDraft, activeResidence: residence };
-    } catch (error) {
-      throw new InternalServerErrorException(
-        'An error occurred while getting residence draft by ID',
-        error
-      );
+    const residenceDraft = await this.residenceDraftRepository.findByIdInDetail(residenceDraftId);
+
+    if (!residenceDraft) {
+      throw new NotFoundException('Residence draft not found');
     }
+
+    const activeResidence = await this.residenceService.getResidenceById(
+      residenceDraft.residenceId.toString()
+    );
+
+    return { residenceDraft, activeResidence };
   }
 
   async createApprovalRequest(residenceId: string, userId: string): Promise<any> {
