@@ -11,7 +11,7 @@ import {
 import { BadRequestException, NotFoundException } from '@bbr/api-core/modules/exceptions';
 import { AddKeyFeaturesDto } from './dto/residenceKeyFeatures.dto';
 import { AddResidenceVisualsDto } from './dto/add-visuals.dto';
-import { Types } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { UpdateNearbyAmenitiesDto } from './dto/update-nearby-amenities.dto';
 import {
   ListResidenceByFiltersDto,
@@ -41,6 +41,8 @@ import { LifeStyleRepository } from '../lifestyles/lifeStyle.repository';
 import { UnitDraftRepository } from '../unitDraft/unitDraft.repository';
 import { UnitRepository } from '../unit/unit.repository';
 import { GetSimilarResidenceDto } from './dto/get-similar-residence';
+import { Country } from '../country/schema/country.schema';
+import { InjectModel } from '@nestjs/mongoose';
 
 @Injectable()
 export class ResidenceService {
@@ -55,7 +57,9 @@ export class ResidenceService {
     private readonly userRepository: UserRepository,
     private readonly residenceFeatureRepository: ResidenceFeatureRepository,
     private readonly amenityRepository: AmenityRepository,
-    private readonly lifeStyleRepository: LifeStyleRepository
+    private readonly lifeStyleRepository: LifeStyleRepository,
+    @InjectModel(Country.name)
+    private readonly countryModel: Model<Country>
   ) {}
 
   async create(createResidenceDto: CreateResidenceDto, user: JwtPayloadType): Promise<any> {
@@ -676,11 +680,43 @@ export class ResidenceService {
     const filter: any = {};
 
     // TODO: Implement sorting by score.
-
     if (filtersDto.cities && filtersDto.cities.length > 0) {
       filter.cityId = { $in: filtersDto.cities.map((city) => new Types.ObjectId(city)) };
     }
 
+    if (filtersDto.countryId) {
+      // Handle both string and array cases
+      const countryIds = Array.isArray(filtersDto.countryId)
+        ? filtersDto.countryId
+        : [filtersDto.countryId];
+
+      filter.countryId = {
+        $in: countryIds.map((id) => new Types.ObjectId(id)),
+      };
+    }
+
+    if (filtersDto.geographicalAreasId && filtersDto.geographicalAreasId.length > 0) {
+      // Find countries that belong to any of the specified geographical areas
+      const countriesInAreas = await this.countryModel
+        .find({
+          geographicalAreasId: {
+            $in: filtersDto.geographicalAreasId.map((id) => new Types.ObjectId(id)),
+          },
+        })
+        .select('_id');
+
+      // If countryId filter already exists, intersect with geographical areas countries
+      if (filter.countryId) {
+        filter.countryId.$in = filter.countryId.$in.filter((countryId) =>
+          countriesInAreas.some((country) => country._id.toString() === countryId.toString())
+        );
+      } else {
+        // Otherwise, create new filter with geographical areas countries
+        filter.countryId = {
+          $in: countriesInAreas.map((country) => country._id),
+        };
+      }
+    }
     if (filtersDto.lifestyles && filtersDto.lifestyles.length > 0) {
       filter.lifeStyleId = {
         $in: filtersDto.lifestyles.map((lifestyles) => new Types.ObjectId(lifestyles)),
