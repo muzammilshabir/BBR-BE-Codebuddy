@@ -52,7 +52,6 @@ export class ResidenceRepository extends BaseRepository<Residence> {
         },
         {
           path: 'nearbyAmenities.amenitiesList',
-          // select: 'name',
           model: 'Amenity',
           populate: {
             path: 'upload.imageId',
@@ -62,7 +61,6 @@ export class ResidenceRepository extends BaseRepository<Residence> {
         },
         {
           path: 'nearbyAmenities.highlightedAmenities.amenityId',
-          // select: 'name',
           model: 'Amenity',
           populate: {
             path: 'upload.imageId',
