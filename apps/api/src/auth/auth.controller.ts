@@ -68,6 +68,8 @@ import {
   addFavouritesSchema,
   getFavouritesSchema,
   ListFavouritesDto,
+  RemoveFavouritesDto,
+  removeFavouritesSchema,
 } from './dto/addToFavourite';
 import { GetCurrentUserId } from './decorators/getCurrentUserId.decorator';
 import { GetUserByIdDto, getUserByIdSchema } from './dto/getUserById.dto';
@@ -239,6 +241,19 @@ export class AuthController {
   ) {
     const user = await this.authService.addFavourites(userId, addFavouritesDto);
     return ResponseService.buildResponse({ user }, 'Favourites updated successfully');
+  }
+
+  @ApiBearerAuth()
+  @Roles(UserRole.BUYER, UserRole.SELLER)
+  @Patch('buyer/favourites/remove')
+  @UsePipes(new JoiValidationPipe(removeFavouritesSchema, 'body'))
+  @ApiOperation({ summary: 'Remove favourites (unit/residence)' })
+  async removeFavourites(
+    @GetCurrentUserId() userId: string,
+    @Body() removeFavouritesDto: RemoveFavouritesDto
+  ) {
+    const user = await this.authService.removeFavourites(userId, removeFavouritesDto);
+    return ResponseService.buildResponse({ user }, 'Favourites removed successfully');
   }
 
   @ApiBearerAuth()

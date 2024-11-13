@@ -864,4 +864,8 @@ export class AuthService {
       }
     }
   }
+
+  async removeFavourites(userId: string, addFavouritesDto: AddFavouritesDto) {
+    return await this.userService.removeFavourites(userId, addFavouritesDto);
+  }
 }

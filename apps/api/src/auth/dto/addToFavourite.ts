@@ -52,3 +52,25 @@ export const getFavouritesSchema = PaginationSchema.append({
   propertyType: Joi.string().valid('unit', 'residence').required(),
   search: Joi.string().optional(),
 });
+
+export class RemoveFavouritesDto {
+  @ApiProperty({
+    example: PropertyType.RESIDENCE,
+    enum: PropertyType,
+    required: true,
+  })
+  propertyType: PropertyType;
+
+  @ApiProperty({
+    example: '66acda8b857c576159b74da4',
+    required: true,
+  })
+  favouriteId: string;
+}
+
+export const removeFavouritesSchema = Joi.object({
+  favouriteId: Joi.string().custom(joiObjectIdValidator('favouriteIds')).required(),
+  propertyType: Joi.string()
+    .valid(...Object.values(PropertyType))
+    .required(),
+});
