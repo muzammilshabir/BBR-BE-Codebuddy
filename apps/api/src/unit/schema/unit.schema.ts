@@ -48,14 +48,16 @@ export class Unit extends Document {
       type: {
         roomTypeId: { required: false, type: Types.ObjectId, ref: 'RoomType' },
         unit: Number,
+        roomName: { type: String, required: false },
         _id: false,
       },
       _id: false,
     },
   ])
   rooms: {
-    roomTypeId: Types.ObjectId;
+    roomTypeId?: Types.ObjectId;
     unit: number;
+    roomName?: string;
   }[];
 
   @Prop({
