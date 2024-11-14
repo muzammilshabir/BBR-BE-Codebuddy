@@ -1,4 +1,4 @@
-import { ApiProperty, PartialType } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 import * as Joi from 'joi';
 import { RankingRequestStatus } from '../enum/rankingRequest-status.enum';
 import { Types } from 'mongoose';
@@ -19,6 +19,7 @@ export class UpdateRankingRequestDto {
   criteriaScores?: {
     criteriaId: Types.ObjectId;
     score: number;
+    description?: string;
   }[];
 
   @ApiProperty({
@@ -56,6 +57,7 @@ export const updateRankingRequestSchema = Joi.object({
       Joi.object({
         criteriaId: Joi.string().required().custom(joiObjectIdValidator('criteriaId')),
         score: Joi.number().required().min(0).max(100),
+        description: Joi.string().optional(),
       })
     )
     .min(1)

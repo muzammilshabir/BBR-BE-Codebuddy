@@ -435,7 +435,9 @@ export class ResidenceService {
     if (listResidenceDto.featured) {
       filter.featured = listResidenceDto.featured;
     }
-
+    if (listResidenceDto.search) {
+      filter.name = { $regex: listResidenceDto.search, $options: 'i' };
+    }
     const options = PaginationService.prepareOptions(listResidenceDto);
 
     const { data, count } = await this.residenceRepository.findAll(filter, options, [

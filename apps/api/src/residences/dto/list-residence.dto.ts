@@ -14,6 +14,14 @@ export class ListResidenceDto extends ListPropsDto {
   locationId?: string;
 
   @ApiProperty({
+    description: 'Search by residence name',
+    example: 'test',
+    required: false,
+    type: String,
+  })
+  search?: string;
+
+  @ApiProperty({
     example: ResidenceStatus.ACTIVE,
     enum: ResidenceStatus,
     description: 'The status of the residence',
@@ -56,6 +64,7 @@ export class ListResidenceDto extends ListPropsDto {
 export const listResidenceSchema = PaginationSchema.append({
   locationId: Joi.string().custom(joiObjectIdValidator('locationId')).optional(),
   developerId: Joi.string().custom(joiObjectIdValidator('developerId')).optional(),
+  search:Joi.string().optional(),
   status: Joi.string()
     .valid(...Object.values(ResidenceStatus))
     .required(),
