@@ -43,6 +43,9 @@ import { UnitRepository } from '../unit/unit.repository';
 import { GetSimilarResidenceDto } from './dto/get-similar-residence';
 import { Country } from '../country/schema/country.schema';
 import { InjectModel } from '@nestjs/mongoose';
+import { RankingCategoryStatus } from 'src/rankingCategory/enum/rankingCategory-status.enum';
+import { RankingRequest } from 'src/rankingRequest/schema/rankingRequest.schema';
+import { RankingRequestRepository } from 'src/rankingRequest/rankingRequest.repository';
 
 @Injectable()
 export class ResidenceService {
@@ -58,6 +61,7 @@ export class ResidenceService {
     private readonly residenceFeatureRepository: ResidenceFeatureRepository,
     private readonly amenityRepository: AmenityRepository,
     private readonly lifeStyleRepository: LifeStyleRepository,
+    private readonly rankingRequestRepository: RankingRequestRepository,
     @InjectModel(Country.name)
     private readonly countryModel: Model<Country>
   ) {}
@@ -751,11 +755,94 @@ export class ResidenceService {
 
     const options = PaginationService.prepareOptions(listPropsDto);
 
-    const { data, count } = await this.residenceRepository.findAll(filter, options);
+    const { data, count } = await this.residenceRepository.findAll(filter, options,[
+      {
+        path: 'residenceTypeIds',
+        select: 'type',
+        model: 'ResidenceType',
+      },
+      { path: 'cityId', select: 'name countryId upload' },
+      { path: 'countryId', select: 'name geographicalAreasId upload' },
+      { path: 'associatedBrandId', select: 'name' },
+      {
+        path: 'visuals.mainPhotos',
+        select: 'originalFileKey fileKey url mimeType',
+        model: 'Upload',
+      },
+      {
+        path: 'visuals.mainGalleryPhotos',
+        select: 'originalFileKey fileKey url mimeType',
+        model: 'Upload',
+      },
+      {
+        path: 'visuals.secondGalleryPhotos',
+        select: 'originalFileKey fileKey url mimeType',
+        model: 'Upload',
+      },
+      {
+        path: 'visuals.videoTour',
+        select: 'originalFileKey fileKey url mimeType',
+        model: 'Upload',
+      },
+      { path: 'nearbyAmenities.amenitiesList', select: 'name', model: 'Amenity' },
+      { path: 'nearbyAmenities.highlightedAmenities.amenityId', select: 'name', model: 'Amenity' },
+      {
+        path: 'nearbyAmenities.highlightedAmenities.imageId',
+        select: 'originalFileKey fileKey url mimeType',
+        model: 'Upload',
+      },
+      { path: 'createdById', select: 'fullName email role', model: 'User' },
+      { path: 'developerId', select: 'fullName email role', model: 'User' },
+      { path: 'highestRankingCategoryId', model: 'RankingCategory', select: 'title' },
+    ]);
 
     const { pagination } = PaginationService.paginate({ rows: data, count }, listPropsDto);
 
-    return { pagination, residences: data };
+
+    const updatedData = [];
+
+    for (let index = 0; index < data.length; index++) {
+      const residence = data[index];
+      const newRankingRequests = await this.rankingRequestRepository.findAll(
+        {
+          rankingCategoryId: new Types.ObjectId(residence?.highestRankingCategoryId?.['_id'].toString()),
+          isDeleted: { $ne: DeletionStatus.DELETED },
+          bbrScore: { $exists: true },
+          status: {
+            $in: [
+              RankingCategoryStatus.ACTIVE,
+              RankingCategoryStatus.DRAFT,
+              RankingCategoryStatus.PENDING,
+            ],
+          },
+        },
+        {
+          sort: {
+            'bbrScore': -1,
+          },
+        }
+      );
+      const position = await this.getCurrentPosition(
+        newRankingRequests.data,
+        residence?._id.toString()
+      );
+      updatedData.push({
+        ...residence.toObject(),
+        position,
+      });
+    }
+    return { pagination, residences: updatedData };
+  }
+
+  private async getCurrentPosition(
+    rankingRequests: RankingRequest[],
+    residenceId: string
+  ): Promise<number> {
+    const index = rankingRequests.findIndex(
+      (request) => request.residenceId.toString() === residenceId
+    );
+
+    return index !== -1 ? index : -1;
   }
 
   async updateResidenceToDraft(residenceId: string, existingDraftResidenceId: string) {
@@ -1030,7 +1117,39 @@ export class ResidenceService {
 
     const { pagination } = PaginationService.paginate({ rows: data, count }, listTopResidencesDto);
 
-    return { pagination, residences: transformedResidence };
+    const response = [];
+
+    for (let index = 0; index < transformedResidence.length; index++) {
+      const residence = transformedResidence[index];
+      const newRankingRequests = await this.rankingRequestRepository.findAll(
+        {
+          rankingCategoryId: new Types.ObjectId(residence?.highestRankingCategoryId?.['_id'].toString()),
+          isDeleted: { $ne: DeletionStatus.DELETED },
+          bbrScore: { $exists: true },
+          status: {
+            $in: [
+              RankingCategoryStatus.ACTIVE,
+              RankingCategoryStatus.DRAFT,
+              RankingCategoryStatus.PENDING,
+            ],
+          },
+        },
+        {
+          sort: {
+            'bbrScore': -1,
+          },
+        }
+      );
+      const position = await this.getCurrentPosition(
+        newRankingRequests.data,
+        residence?._id.toString()
+      );
+      response.push({
+        ...residence,
+        position,
+      });
+    }
+    return { pagination, residences: response };
   }
 
   async getResidencesTotalCount(query: ListResidenceWithDraftCountDto) {
