@@ -17,7 +17,7 @@ export class UnitDraftRepository extends BaseRepository<UnitDraft> {
       { path: 'visuals.mainGalleryPhotos', model: 'Upload' },
       { path: 'visuals.secondGalleryPhotos', model: 'Upload' },
       { path: 'visuals.videoTour', model: 'Upload' },
-      { path: 'rooms.roomTypeId', model: 'RoomType', select: 'type' },
+      { path: 'rooms.roomTypeId', model: 'RoomType' },
       {
         path: 'unitKeyFeatures.residenceServices.serviceTypeId',
         model: 'ResidenceService',

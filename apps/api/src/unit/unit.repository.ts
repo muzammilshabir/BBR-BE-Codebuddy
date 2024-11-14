@@ -193,6 +193,7 @@ export class UnitRepository extends BaseRepository<Unit> {
                 roomTypeId: '$latestDraft.rooms.roomTypeId',
                 type: '$roomTypeInfo.type', // Use single type per roomTypeId
                 unit: '$latestDraft.rooms.unit',
+                roomName: '$latestDraft.rooms.roomName',
                 roomTypeImages: '$roomTypeImagesData',
               },
             },
