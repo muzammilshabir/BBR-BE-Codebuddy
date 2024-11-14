@@ -59,15 +59,16 @@ export class AddUnitDto {
         unit: 1,
       },
       {
-        roomTypeId: '66acda8b857c576159b74da4',
         unit: 2,
+        roomName: 'Guest Room',
       },
     ],
     required: false,
   })
   rooms?: {
-    roomTypeId: Types.ObjectId;
+    roomTypeId?: Types.ObjectId;
     unit: number;
+    roomName?: string;
   }[];
 
   @ApiProperty({
@@ -101,6 +102,7 @@ export const addUnitSchema = Joi.object({
       Joi.object({
         roomTypeId: Joi.string().custom(joiObjectIdValidator('roomTypeId')).optional(),
         unit: Joi.number().optional(),
+        roomName: Joi.string().optional(),
       })
     )
     .optional(),
