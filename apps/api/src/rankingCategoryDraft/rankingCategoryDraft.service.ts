@@ -143,7 +143,39 @@ export class RankingCategoryDraftService {
       return true;
     }
 
-    if (!this.deepCompare(rankingCategory.criteria, rankingCategoryDraft.criteria)) {
+    if (!this.compareObjectIds(rankingCategory.countryId, rankingCategoryDraft.countryId)) {
+      return true;
+    }
+
+    if (!this.compareObjectIds(rankingCategory.cityId, rankingCategoryDraft.cityId)) {
+      return true;
+    }
+
+    if (!this.compareObjectIds(rankingCategory.locationId, rankingCategoryDraft.locationId)) {
+      return true;
+    }
+
+    if (!this.compareObjectIds(rankingCategory.propertyTypeId, rankingCategoryDraft.propertyTypeId)) {
+      return true;
+    }
+
+    if (!this.compareObjectIds(rankingCategory.geoGraphyId, rankingCategoryDraft.geoGraphyId)) {
+      return true;
+    }
+
+    if (!this.compareObjectIds(rankingCategory.lifeStyleId, rankingCategoryDraft.lifeStyleId)) {
+      return true;
+    }
+
+    if (!this.compareObjectIds(rankingCategory.brandId, rankingCategoryDraft.brandId)) {
+      return true;
+    }
+
+    if (rankingCategory.description !== rankingCategoryDraft.description) {
+      return true;
+    }
+
+    if (!this.deepCompare(rankingCategory.criteria.toObject(), rankingCategoryDraft.criteria.toObject())) {
       return true;
     }
 
@@ -151,7 +183,7 @@ export class RankingCategoryDraftService {
       return true;
     }
 
-    if (!this.deepCompare(rankingCategory.upload, rankingCategoryDraft.upload)) {
+    if (!this.deepCompare(rankingCategory.upload.toObject(), rankingCategoryDraft.upload.toObject())) {
       return true;
     }
 
@@ -162,7 +194,16 @@ export class RankingCategoryDraftService {
     return false;
   }
 
+  private compareObjectIds(id1: any, id2: any): boolean {
+    if (!id1 && !id2) return true;
+    if (!id1 || !id2) return false;
+    return id1.toString() === id2.toString();
+  }
+
   private deepCompare(obj1: any, obj2: any): boolean {
+    // Properties to exclude from comparison
+    const excludedProps = ['_id', 'createdAt', 'updatedAt'];
+
     if (obj1 === obj2) return true;
 
     if (obj1 === null || obj2 === null || typeof obj1 !== 'object' || typeof obj2 !== 'object') {
@@ -174,8 +215,8 @@ export class RankingCategoryDraftService {
       return obj1.every((value, index) => this.deepCompare(value, obj2[index]));
     }
 
-    const keys1 = Object.keys(obj1);
-    const keys2 = Object.keys(obj2);
+    const keys1 = Object.keys(obj1).filter(key => !excludedProps.includes(key));
+    const keys2 = Object.keys(obj2).filter(key => !excludedProps.includes(key));
     if (keys1.length !== keys2.length) return false;
 
     for (const key of keys1) {
