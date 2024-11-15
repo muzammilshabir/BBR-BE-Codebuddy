@@ -143,31 +143,31 @@ export class RankingCategoryDraftService {
       return true;
     }
 
-    if (!this.compareObjectIds(rankingCategory.countryId, rankingCategoryDraft.countryId)) {
+    if (!this.compareObjectIds(rankingCategory.countryId?._id, rankingCategoryDraft.countryId)) {
       return true;
     }
 
-    if (!this.compareObjectIds(rankingCategory.cityId, rankingCategoryDraft.cityId)) {
+    if (!this.compareObjectIds(rankingCategory.cityId?._id, rankingCategoryDraft.cityId)) {
       return true;
     }
 
-    if (!this.compareObjectIds(rankingCategory.locationId, rankingCategoryDraft.locationId)) {
+    if (!this.compareObjectIds(rankingCategory.locationId?._id, rankingCategoryDraft.locationId)) {
       return true;
     }
 
-    if (!this.compareObjectIds(rankingCategory.propertyTypeId, rankingCategoryDraft.propertyTypeId)) {
+    if (!this.compareObjectIds(rankingCategory.propertyTypeId?._id, rankingCategoryDraft.propertyTypeId)) {
       return true;
     }
 
-    if (!this.compareObjectIds(rankingCategory.geoGraphyId, rankingCategoryDraft.geoGraphyId)) {
+    if (!this.compareObjectIds(rankingCategory.geoGraphyId?._id, rankingCategoryDraft.geoGraphyId)) {
       return true;
     }
 
-    if (!this.compareObjectIds(rankingCategory.lifeStyleId, rankingCategoryDraft.lifeStyleId)) {
+    if (!this.compareObjectIds(rankingCategory.lifeStyleId?._id, rankingCategoryDraft.lifeStyleId)) {
       return true;
     }
 
-    if (!this.compareObjectIds(rankingCategory.brandId, rankingCategoryDraft.brandId)) {
+    if (!this.compareObjectIds(rankingCategory.brandId?._id, rankingCategoryDraft.brandId)) {
       return true;
     }
 
