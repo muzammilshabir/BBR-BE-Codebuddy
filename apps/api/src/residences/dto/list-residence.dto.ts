@@ -150,6 +150,14 @@ export class ListResidenceByFiltersDto {
     type: String,
   })
   developerId?: string;
+
+  @ApiProperty({
+    description: 'Filter by Location IDs',
+    example: ['60b6c0f53b5a5c1f88d25a1b'],
+    required: false,
+    type: [String],
+  })
+  locationIds?: string[];
 }
 
 export const listResidenceByFiltersSchema = Joi.object({
@@ -174,6 +182,9 @@ export const listResidenceByFiltersSchema = Joi.object({
   developerId: Joi.string().custom(joiObjectIdValidator('developerId')).optional(),
   status: Joi.string()
     .valid(...Object.values(ResidenceStatus))
+    .optional(),
+  locationIds: Joi.array()
+    .items(Joi.string().custom(joiObjectIdValidator('locationIds')))
     .optional(),
 });
 
