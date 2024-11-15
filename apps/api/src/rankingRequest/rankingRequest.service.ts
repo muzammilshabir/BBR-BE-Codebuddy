@@ -281,14 +281,17 @@ export class RankingRequestService {
     criteriaScores: {
       criteriaId: string | Types.ObjectId;
       score: number;
+      description?: string;
     }[]
   ): {
     criteriaId: Types.ObjectId;
     score: number;
+    description?: string;
   }[] {
     return criteriaScores.map((criteria) => ({
       criteriaId: new Types.ObjectId(criteria.criteriaId),
       score: criteria.score,
+      description: criteria.description,
     }));
   }
 
@@ -799,6 +802,7 @@ export class RankingRequestService {
         const newCriteria = {
           criteriaId: new Types.ObjectId(rankingRequest?.criteriaScores?.[index]?.criteriaId),
           score: 100,
+          description: rankingRequest?.criteriaScores?.[index]?.description,
         };
         return {
           newCriteria,
@@ -808,6 +812,7 @@ export class RankingRequestService {
         const newCriteria = {
           criteriaId: new Types.ObjectId(rankingRequest?.criteriaScores?.[index]?.criteriaId),
           score: rankingRequest?.criteriaScores?.[index]?.score + totalIncreaseNewBbrSCore,
+          description: rankingRequest?.criteriaScores?.[index]?.description,
         };
         return {
           newCriteria,
@@ -819,6 +824,7 @@ export class RankingRequestService {
         const newCriteria = {
           criteriaId: new Types.ObjectId(rankingRequest?.criteriaScores?.[index]?.criteriaId),
           score: rankingRequest?.criteriaScores?.[index]?.score + totalIncreaseNewBbrSCore,
+          description: rankingRequest?.criteriaScores?.[index]?.description,
         };
         return {
           newCriteria,
@@ -828,6 +834,7 @@ export class RankingRequestService {
         const newCriteria = {
           criteriaId: new Types.ObjectId(rankingRequest?.criteriaScores?.[index]?.criteriaId),
           score: 0,
+          description: rankingRequest?.criteriaScores?.[index]?.description,
         };
         return {
           newCriteria,

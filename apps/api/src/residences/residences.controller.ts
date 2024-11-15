@@ -243,7 +243,6 @@ export class ResidenceController {
   @ApiOperation({
     summary: 'List Top Residence',
   })
-  @ApiBearerAuth()
   @Public()
   @UsePipes(new JoiValidationPipe(listTopResidencesSchema, 'query'))
   async getTopResidences(@Query() query: ListTopResidencesDto) {

@@ -213,7 +213,7 @@ export const createRankingCategorySchema = Joi.object({
 
   locationId: Joi.string()
     .custom(joiObjectIdValidator('locationId'))
-    .when('categoryType', { is: CategoryType.CITY, then: Joi.required() }),
+    .optional(),
 
   countryId: Joi.string()
     .custom(joiObjectIdValidator('countryId'))
