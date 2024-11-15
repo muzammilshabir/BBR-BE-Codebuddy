@@ -205,9 +205,7 @@ export class ResidenceController {
   @ApiOperation({
     summary: 'List Residence',
   })
-  @ApiBearerAuth()
-  @Roles(UserRole.SELLER, UserRole.ADMIN, UserRole.BUYER)
-  @Permissions('residence', PermissionLevel.READ)
+  @Public()
   async listResidencesWithDraft(@Query() query: ListResidenceWithDraftDto) {
     const result = await this.residenceService.listResidencesWithDraft(query);
 
