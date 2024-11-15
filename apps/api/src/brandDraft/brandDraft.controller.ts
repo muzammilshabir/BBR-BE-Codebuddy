@@ -9,6 +9,7 @@ import { UserRole } from '../users/enum/user.enum';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { PermissionLevel } from '../modulePolicy/enum/permission-enum';
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
+import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('BrandDraft')
 @Controller('brand-draft')
@@ -31,9 +32,7 @@ export class BrandDraftController {
   @ApiOperation({
     summary: 'List all brand draft with residence count',
   })
-  @ApiBearerAuth()
-  @Roles(UserRole.ADMIN, UserRole.BUYER, UserRole.SELLER)
-  @Permissions('brands', PermissionLevel.EDIT)
+  @Public()
   @UsePipes(new JoiValidationPipe(listBrandSchema, 'query'))
   async list(@Query() listBrandDto: ListBrandDto) {
     const data = await this.brandDraftService.getLatestBrandDraftsWithResidenceCount(listBrandDto);
