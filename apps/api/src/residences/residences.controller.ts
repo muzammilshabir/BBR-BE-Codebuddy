@@ -229,9 +229,7 @@ export class ResidenceController {
   @ApiOperation({
     summary: 'List Similar Residence',
   })
-  @ApiBearerAuth()
-  @Roles(UserRole.SELLER, UserRole.ADMIN, UserRole.BUYER)
-  @Permissions('residence', PermissionLevel.READ)
+  @Public()
   @UsePipes(new JoiValidationPipe(getSimilarResidenceSchema, 'query'))
   async getSimilarResidences(@Query() query: GetSimilarResidenceDto) {
     const result = await this.residenceService.getSimilarResidences(query);
@@ -288,9 +286,7 @@ export class ResidenceController {
   @ApiOperation({
     summary: 'List Residence',
   })
-  @ApiBearerAuth()
-  @Roles(UserRole.ADMIN)
-  @Permissions('residence', PermissionLevel.READ)
+  @Public()
   @UsePipes(new JoiValidationPipe(listResidenceByFiltersSchema, 'body'))
   async residencesListByFilters(
     @Query() listPropsDto: ListResidenceByFiltersQueryPropsDto,

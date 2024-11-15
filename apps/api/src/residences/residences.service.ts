@@ -753,6 +753,12 @@ export class ResidenceService {
       filter.$or = [{ name: { $regex: listPropsDto.search, $options: 'i' } }];
     }
 
+    if (filtersDto.locationIds && filtersDto.locationIds.length > 0) {
+      filter.locationId = {
+        $in: filtersDto.locationIds.map((id) => new Types.ObjectId(id)),
+      };
+    }
+
     const options = PaginationService.prepareOptions(listPropsDto);
 
     const { data, count } = await this.residenceRepository.findAll(filter, options,[
