@@ -658,7 +658,10 @@ export class RankingRequestService {
     const rankingRequest = await this.findRankingRequestById(rankingRequestId);
 
     const { data } = await this.rankingRequestRepository.findAll(
-      { rankingCategoryId: new Types.ObjectId(rankingRequest?.rankingCategoryId) },
+      { rankingCategoryId: new Types.ObjectId(rankingRequest?.rankingCategoryId),
+        status: RankingRequestStatus.ACTIVE,
+        bbrScore: { $exists: true },
+       },
       {
         sort: { bbrScore: -1 },
       }
@@ -696,6 +699,131 @@ export class RankingRequestService {
     return changeRankingScore == ChangeRankingScore.INCREASE
       ? await this.adjustIncreasingRanking(data, currentPosition, newPosition)
       : await this.adjustDecreasingRanking(data, currentPosition, newPosition);
+  }
+
+  public async previewIncreaseRankingAndCriteria(
+    newPosition: number,
+    rankingRequestId: string,
+    changeRankingScore: ChangeRankingScore
+  ) {
+    const rankingRequest = await this.findRankingRequestById(rankingRequestId);
+
+    const { data } = await this.rankingRequestRepository.findAll(
+      {
+        rankingCategoryId: new Types.ObjectId(rankingRequest?.rankingCategoryId),
+        status: RankingRequestStatus.ACTIVE,
+        bbrScore: { $exists: true },
+      },
+      {
+        sort: { bbrScore: -1 },
+      }
+    );
+
+    if (data.length === 0) {
+      throw new NotFoundException('Ranking requests not found');
+    }
+
+    const targetIndex = newPosition;
+    const currentPosition = await this.getCurrentPosition(data, rankingRequestId.toString());
+
+    const { aboveRequest, belowRequest } = this.findUpperAndLowerRequest(
+      targetIndex,
+      data,
+      changeRankingScore
+    );
+
+    const updatedRankingRequests = [];
+    const nextBbrScore = data[targetIndex].bbrScore;
+
+    // Update positions for items between target and current position
+    for (let index = targetIndex; index < currentPosition; index++) {
+      updatedRankingRequests.push({
+        ...data[index].toObject(),
+        bbrScore:
+          aboveRequest &&
+          belowRequest &&
+          Math.abs(aboveRequest.bbrScore - belowRequest.bbrScore) >= 0.01
+            ? data[index].bbrScore
+            : data[index + 1]?.bbrScore,
+        position: index + 1,
+      });
+    }
+
+    // Add the moved item at target position
+    updatedRankingRequests.unshift({
+      ...data[currentPosition].toObject(),
+      bbrScore:
+        aboveRequest &&
+        belowRequest &&
+        Math.abs(aboveRequest.bbrScore - belowRequest.bbrScore) >= 0.01
+          ? (aboveRequest.bbrScore + belowRequest.bbrScore) / 2
+          : nextBbrScore,
+      position: targetIndex,
+    });
+
+    return { rankingRequests: updatedRankingRequests };
+  }
+
+  public async previewDecreaseRankingAndCriteria(
+    newPosition: number,
+    rankingRequestId: string,
+    changeRankingScore: ChangeRankingScore
+  ) {
+    const rankingRequest = await this.findRankingRequestById(rankingRequestId);
+
+    const { data } = await this.rankingRequestRepository.findAll(
+      { rankingCategoryId: new Types.ObjectId(rankingRequest?.rankingCategoryId),
+        status: RankingRequestStatus.ACTIVE,
+        bbrScore: { $exists: true },
+       },
+      {
+        sort: { bbrScore: -1 },
+      }
+    );
+
+    if (data.length === 0) {
+      throw new NotFoundException('Ranking requests not found');
+    }
+
+    const targetIndex = newPosition;
+    const currentPosition = await this.getCurrentPosition(data, rankingRequestId.toString());
+
+    const { aboveRequest, belowRequest } = this.findUpperAndLowerRequest(
+      targetIndex,
+      data,
+      changeRankingScore
+    );
+
+    const updatedRankingRequests = [];
+    const nextBbrScore = data[targetIndex].bbrScore;
+
+    // Update positions for items between target and current position
+    for (let index = targetIndex; index > currentPosition; index--) {
+      updatedRankingRequests.push({
+        ...data[index].toObject(),
+        bbrScore:
+          aboveRequest &&
+          belowRequest &&
+          Math.abs(aboveRequest.bbrScore - belowRequest.bbrScore) >= 0.01
+            ? data[index].bbrScore
+            : data[index - 1]?.bbrScore,
+        position: index - 1,
+      });
+    }
+
+    // Add the moved item at target position
+    updatedRankingRequests.unshift({
+      ...data[currentPosition].toObject(),
+      bbrScore:
+        aboveRequest &&
+        belowRequest &&
+        Math.abs(aboveRequest.bbrScore - belowRequest.bbrScore) >= 0.01
+          ? (aboveRequest.bbrScore + belowRequest.bbrScore) / 2
+          : nextBbrScore,
+      position: targetIndex,
+    });
+
+    return { rankingRequests: updatedRankingRequests };
   }
 
   private findUpperAndLowerRequest(
@@ -842,6 +970,62 @@ export class RankingRequestService {
             rankingRequest?.criteriaScores?.[index]?.score + totalIncreaseNewBbrSCore,
         };
       }
+    }
+  }
+
+  public async previewRankingChange(
+    newPosition: number,
+    rankingRequestId: string,
+    changeRankingScore: ChangeRankingScore
+  ) {
+    // Input validation
+    if (newPosition < 0) {
+      throw new BadRequestException('New position must be non-negative');
+    }
+
+    const rankingRequest = await this.findRankingRequestById(rankingRequestId);
+    if (!rankingRequest) {
+      throw new NotFoundException(`Ranking request with ID ${rankingRequestId} not found`);
+    }
+
+    // Get all ranking requests for the category
+    const { data } = await this.rankingRequestRepository.findAll(
+      { rankingCategoryId: new Types.ObjectId(rankingRequest?.rankingCategoryId) },
+      {
+        sort: { bbrScore: -1 },
+      }
+    );
+
+    if (data.length === 0) {
+      throw new NotFoundException('Ranking requests not found');
+    }
+
+    // Get current position
+    const currentPosition = await this.getCurrentPosition(data, rankingRequestId);
+    if (currentPosition === -1) {
+      throw new NotFoundException(
+        `Ranking request with ID ${rankingRequestId} not found in the list`
+      );
+    }
+
+    // Call appropriate preview function based on change type
+    switch (changeRankingScore) {
+      case ChangeRankingScore.INCREASE:
+        return await this.previewIncreaseRankingAndCriteria(
+          newPosition,
+          rankingRequestId,
+          changeRankingScore
+        );
+
+      case ChangeRankingScore.DECREASE:
+        return await this.previewDecreaseRankingAndCriteria(
+          newPosition,
+          rankingRequestId,
+          changeRankingScore
+        );
+
+      default:
+        throw new BadRequestException('Invalid change ranking score type');
     }
   }
 }
