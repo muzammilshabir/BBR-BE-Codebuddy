@@ -62,6 +62,17 @@ export class PaymentAdminController {
     return ResponseService.buildResponse({ invoice }, 'Invoice updated successfully');
   }
 
+  @Patch('/invoice/:id/mark-as-paid')
+  @ApiOperation({
+    summary: 'Manually mark invoice as paid',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  async markInvoiceAsPaid(@Param('id') id: string) {
+    const invoice = await this.paymentService.markInvoiceAsPaid(id);
+    return ResponseService.buildResponse({ invoice }, 'Invoice marked as paid successfully');
+  }
+
   @Post('/invoice/send-email/:id')
   @ApiOperation({
     summary: 'Send Invoice Email',
@@ -279,6 +290,17 @@ export class PaymentAdminController {
     return ResponseService.buildResponse(data, 'Refunds/Requests retrieved successfully');
   }
 
+  @Get('/refund/:id/receipt')
+  @ApiOperation({
+    summary: 'Generate Refund Receipt',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  async generateRefundReceipt(@Param('id') refundId: string) {
+    const receiptUrl = await this.paymentService.generateRefundReceipt(refundId);
+    return ResponseService.buildResponse({ receiptUrl }, 'Refund receipt generated successfully');
+  }
+
   @Get('/refund/:refundId')
   @ApiOperation({
     summary: 'Get Refund/Request',
@@ -342,13 +364,13 @@ export class PaymentAdminController {
     @Param('userId') userId: string,
     @Body('paymentMethodId') paymentMethodId: string,
     @Ip() ip,
-    @Headers('user-agent') userAgent,
+    @Headers('user-agent') userAgent
   ) {
     const intent = await this.paymentService.createSetupIntent(
       userId,
       paymentMethodId,
       ip,
-      userAgent,
+      userAgent
     );
     return ResponseService.buildResponse({ intent }, 'Setup intent created successfully');
   }
