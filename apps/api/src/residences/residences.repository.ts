@@ -572,24 +572,11 @@ export class ResidenceRepository extends BaseRepository<Residence> {
           },
         },
         {
-          $unwind: {
-            path: '$developerData',
-            preserveNullAndEmptyArrays: true,
-          },
-        },
-
-        {
           $lookup: {
             from: 'residencetypes',
             localField: 'residenceTypeIds', // Assuming the field is now residenceTypeIds (array)
             foreignField: '_id',
             as: 'residenceTypes',
-          },
-        },
-        {
-          $unwind: {
-            path: '$residenceTypes',
-            preserveNullAndEmptyArrays: true,
           },
         },
         {
@@ -601,12 +588,6 @@ export class ResidenceRepository extends BaseRepository<Residence> {
           },
         },
         {
-          $unwind: {
-            path: '$city',
-            preserveNullAndEmptyArrays: true,
-          },
-        },
-        {
           $lookup: {
             from: 'countries',
             localField: 'countryId',
@@ -615,23 +596,11 @@ export class ResidenceRepository extends BaseRepository<Residence> {
           },
         },
         {
-          $unwind: {
-            path: '$country',
-            preserveNullAndEmptyArrays: true,
-          },
-        },
-        {
           $lookup: {
             from: 'associatedbrands',
             localField: 'associatedBrandId',
             foreignField: '_id',
             as: 'associatedBrand',
-          },
-        },
-        {
-          $unwind: {
-            path: '$associatedBrand',
-            preserveNullAndEmptyArrays: true,
           },
         },
         {
@@ -712,10 +681,10 @@ export class ResidenceRepository extends BaseRepository<Residence> {
           $project: {
             _id: 1,
             name: 1,
-            residenceTypeIds: 1,
             websiteLink: 1,
             associatedBrand: '$associatedBrand.name',
             briefOverview: 1,
+            residenceTypeIds: '$residenceTypes',
             comprehensiveOverview: 1,
             budgetLimitationsRange: 1,
             highestBbrScore: 1,
