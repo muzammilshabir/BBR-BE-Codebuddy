@@ -1,6 +1,18 @@
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
-import { Body, Controller, Delete, Get, Headers, Ip, Param, Patch, Post, Query, UsePipes } from '@nestjs/common';
-import {  ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Headers,
+  Ip,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UsePipes,
+} from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { UserRole } from 'src/users/enum/user.enum';
@@ -19,9 +31,7 @@ import { ListTransactionsDto, listTransactionsDtoSchema } from './dto/list-trans
 @ApiTags('Payment')
 @Controller('payment')
 export class PaymentController {
-  constructor(
-    private readonly paymentService: PaymentService,
-  ) {}
+  constructor(private readonly paymentService: PaymentService) {}
   @Get('/invoices/')
   @ApiOperation({
     summary: 'Get Customer Invoices',
@@ -29,10 +39,7 @@ export class PaymentController {
   @ApiBearerAuth()
   @Roles(UserRole.SELLER)
   @UsePipes(new JoiValidationPipe(listInvoicesSchema, 'query'))
-  async getCustomerInvoices(
-    @GetCurrentUserId() userId: string,
-    @Query() query: ListInvoicesDto,
-  ) {
+  async getCustomerInvoices(@GetCurrentUserId() userId: string, @Query() query: ListInvoicesDto) {
     const invoices = await this.paymentService.getUserInvoices(userId, query);
     return ResponseService.buildResponse({ invoices }, 'Customer Invoices retrieved successfully');
   }
@@ -45,7 +52,7 @@ export class PaymentController {
   @Roles(UserRole.SELLER)
   async getCustomerInvoice(
     @GetCurrentUserId() userId: string,
-    @Param('invoiceId') invoiceId: string,
+    @Param('invoiceId') invoiceId: string
   ) {
     const invoices = await this.paymentService.getUserInvoice(userId, invoiceId);
     return ResponseService.buildResponse({ invoices }, 'Customer Invoice retrieved successfully');
@@ -60,8 +67,8 @@ export class PaymentController {
   @UsePipes(new JoiValidationPipe(createInvoiceDtoSchema, 'body'))
   async createInvoice(
     @GetCurrentUserId() userId: string,
-    @Body() createInvoiceDto: CreateInvoiceDto,
-    ) {
+    @Body() createInvoiceDto: CreateInvoiceDto
+  ) {
     const invoice = await this.paymentService.createInvoice(userId, createInvoiceDto, false);
     return ResponseService.buildResponse({ invoice }, 'Invoice created successfully');
   }
@@ -72,12 +79,20 @@ export class PaymentController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.SELLER)
-  async manuallyPayInvoice(
-    @GetCurrentUserId() userId: string,
-    @Param('id') invoiceId: string,
-    ) {
+  async manuallyPayInvoice(@GetCurrentUserId() userId: string, @Param('id') invoiceId: string) {
     const intent = await this.paymentService.createManualPaymentForInvoice(invoiceId, userId);
     return ResponseService.buildResponse({ intent }, 'Invoice Payment Intent created successfully');
+  }
+
+  @Get('/refund/:id/receipt')
+  @ApiOperation({
+    summary: 'Generate Refund Receipt',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
+  async generateRefundReceipt(@GetCurrentUserId() userId: string, @Param('id') refundId: string) {
+    const receiptUrl = await this.paymentService.generateRefundReceipt(refundId, userId);
+    return ResponseService.buildResponse({ receiptUrl }, 'Refund receipt generated successfully');
   }
 
   @Patch('/invoice/:id')
@@ -90,8 +105,8 @@ export class PaymentController {
   async updateInvoice(
     @GetCurrentUserId() userId: string,
     @Param('id') id: string,
-    @Body() updateInvoiceDto: UpdateInvoiceDto,
-    ) {
+    @Body() updateInvoiceDto: UpdateInvoiceDto
+  ) {
     const invoice = await this.paymentService.updateInvoice(userId, id, updateInvoiceDto);
     return ResponseService.buildResponse({ invoice }, 'Invoice updated successfully');
   }
@@ -105,9 +120,13 @@ export class PaymentController {
   @UsePipes(new JoiValidationPipe(createInvoiceItemsDtoSchema, 'body'))
   async createInvoiceItems(
     @GetCurrentUserId() userId: string,
-    @Body() createInvoiceItemsDto: CreateInvoiceItemsDto,
-    ) {
-    const invoiceItems = await this.paymentService.createInvoiceItems(userId, createInvoiceItemsDto, false);
+    @Body() createInvoiceItemsDto: CreateInvoiceItemsDto
+  ) {
+    const invoiceItems = await this.paymentService.createInvoiceItems(
+      userId,
+      createInvoiceItemsDto,
+      false
+    );
     return ResponseService.buildResponse({ invoiceItems }, 'Invoice Items created successfully');
   }
 
@@ -121,9 +140,13 @@ export class PaymentController {
   async updateInvoiceItem(
     @GetCurrentUserId() userId: string,
     @Param('id') id: string,
-    @Body() updateInvoiceItemDto: UpdateInvoiceItemDto,
-    ) {
-    const invoiceItem = await this.paymentService.updateInvoiceItem(userId, id, updateInvoiceItemDto);
+    @Body() updateInvoiceItemDto: UpdateInvoiceItemDto
+  ) {
+    const invoiceItem = await this.paymentService.updateInvoiceItem(
+      userId,
+      id,
+      updateInvoiceItemDto
+    );
     return ResponseService.buildResponse({ invoiceItem }, 'Invoice Item updated successfully');
   }
 
@@ -136,10 +159,17 @@ export class PaymentController {
   @UsePipes(new JoiValidationPipe(createSubscriptionDtoSchema, 'body'))
   async createInvoiceSubscription(
     @GetCurrentUserId() userId: string,
-    @Body() createSubscriptionDto: CreateSubscriptionDto,
-    ) {
-    const subscription = await this.paymentService.createSubscription(userId, createSubscriptionDto, false);
-    return ResponseService.buildResponse({ subscription }, 'Invoice Subscription created successfully');
+    @Body() createSubscriptionDto: CreateSubscriptionDto
+  ) {
+    const subscription = await this.paymentService.createSubscription(
+      userId,
+      createSubscriptionDto,
+      false
+    );
+    return ResponseService.buildResponse(
+      { subscription },
+      'Invoice Subscription created successfully'
+    );
   }
 
   @Patch('/invoice-subscription/:id')
@@ -152,10 +182,17 @@ export class PaymentController {
   async updateInvoiceSubscription(
     @GetCurrentUserId() userId: string,
     @Param('id') id: string,
-    @Body() updateSubscriptionDto: UpdateSubscriptionDto,
-    ) {
-    const subscription = await this.paymentService.updateSubscription(userId, id, updateSubscriptionDto);
-    return ResponseService.buildResponse({ subscription }, 'Invoice Subscription updated successfully');
+    @Body() updateSubscriptionDto: UpdateSubscriptionDto
+  ) {
+    const subscription = await this.paymentService.updateSubscription(
+      userId,
+      id,
+      updateSubscriptionDto
+    );
+    return ResponseService.buildResponse(
+      { subscription },
+      'Invoice Subscription updated successfully'
+    );
   }
 
   @Post('/request-refund/:invoiceId')
@@ -168,9 +205,13 @@ export class PaymentController {
   async requestRefund(
     @GetCurrentUserId() userId: string,
     @Param('invoiceId') invoiceId: string,
-    @Body() refundPaymentDto: RefundPaymentDto,
+    @Body() refundPaymentDto: RefundPaymentDto
   ) {
-    const refund = await this.paymentService.requestInvoiceRefund(userId, invoiceId, refundPaymentDto);
+    const refund = await this.paymentService.requestInvoiceRefund(
+      userId,
+      invoiceId,
+      refundPaymentDto
+    );
     return ResponseService.buildResponse({ refund }, 'Refund request created successfully');
   }
 
@@ -183,7 +224,7 @@ export class PaymentController {
   @UsePipes(new JoiValidationPipe(listTransactionsDtoSchema, 'query'))
   async getTransactions(
     @GetCurrentUserId() userId: string,
-    @Query() listTransactionsDto: ListTransactionsDto,
+    @Query() listTransactionsDto: ListTransactionsDto
   ) {
     const paymentMethods = await this.paymentService.getTransactions(userId, listTransactionsDto);
     return ResponseService.buildResponse({ paymentMethods }, 'Transactions retrieved successfully');
@@ -199,9 +240,13 @@ export class PaymentController {
   async getTransactionsByResidence(
     @GetCurrentUserId() userId: string,
     @Param('residenceId') residenceId: string,
-    @Query() listTransactionsDto: ListTransactionsDto,
+    @Query() listTransactionsDto: ListTransactionsDto
   ) {
-    const paymentMethods = await this.paymentService.getTransactionsForResidence(residenceId, listTransactionsDto, userId);
+    const paymentMethods = await this.paymentService.getTransactionsForResidence(
+      residenceId,
+      listTransactionsDto,
+      userId
+    );
     return ResponseService.buildResponse({ paymentMethods }, 'Transactions retrieved successfully');
   }
 
@@ -213,7 +258,7 @@ export class PaymentController {
   @Roles(UserRole.SELLER)
   async getTransaction(
     @GetCurrentUserId() userId: string,
-    @Param('transactionId') transactionId: string,
+    @Param('transactionId') transactionId: string
   ) {
     const paymentMethods = await this.paymentService.getTransaction(userId, transactionId);
     return ResponseService.buildResponse({ paymentMethods }, 'Transaction retrieved successfully');
@@ -225,11 +270,12 @@ export class PaymentController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.SELLER)
-  async getPaymentMethods(
-    @GetCurrentUserId() userId: string,
-  ) {
+  async getPaymentMethods(@GetCurrentUserId() userId: string) {
     const paymentMethods = await this.paymentService.getSellerPaymentMethods(userId);
-    return ResponseService.buildResponse({ paymentMethods }, 'Payment Methods retrieved successfully');
+    return ResponseService.buildResponse(
+      { paymentMethods },
+      'Payment Methods retrieved successfully'
+    );
   }
 
   @Post('/payment-method')
@@ -242,13 +288,13 @@ export class PaymentController {
     @GetCurrentUserId() userId: string,
     @Body('paymentMethodId') paymentMethodId: string,
     @Ip() ip,
-    @Headers('user-agent') userAgent,
+    @Headers('user-agent') userAgent
   ) {
     const intent = await this.paymentService.createSetupIntent(
       userId,
       paymentMethodId,
       ip,
-      userAgent,
+      userAgent
     );
     return ResponseService.buildResponse({ intent }, 'Setup intent created successfully');
   }
@@ -261,7 +307,7 @@ export class PaymentController {
   @Roles(UserRole.SELLER)
   async deletePaymentMethod(
     @GetCurrentUserId() userId: string,
-    @Param('methodId') methodId: string,
+    @Param('methodId') methodId: string
   ) {
     const method = await this.paymentService.deletePaymentMethod(userId, methodId);
     return ResponseService.buildResponse({ method }, 'Payment Method deleted successfully');
@@ -276,10 +322,17 @@ export class PaymentController {
   async setDefaultResidencePaymentMethod(
     @GetCurrentUserId() userId: string,
     @Param('methodId') methodId: string,
-    @Param('residenceId') residenceId: string,
+    @Param('residenceId') residenceId: string
   ) {
-    const residence = await this.paymentService.setDefaultResidencePaymentMethod(methodId, residenceId, userId);
-    return ResponseService.buildResponse({ residence }, 'Default Residence Payment Method set successfully');
+    const residence = await this.paymentService.setDefaultResidencePaymentMethod(
+      methodId,
+      residenceId,
+      userId
+    );
+    return ResponseService.buildResponse(
+      { residence },
+      'Default Residence Payment Method set successfully'
+    );
   }
 
   @Patch('/payment-method-default-unset/:residenceId')
@@ -290,9 +343,15 @@ export class PaymentController {
   @Roles(UserRole.SELLER)
   async unsetDefaultResidencePaymentMethod(
     @GetCurrentUserId() userId: string,
-    @Param('residenceId') residenceId: string,
+    @Param('residenceId') residenceId: string
   ) {
-    const residence = await this.paymentService.unsetDefaultResidencePaymentMethod(residenceId, userId);
-    return ResponseService.buildResponse({ residence }, 'Default Residence Payment Method unset successfully');
+    const residence = await this.paymentService.unsetDefaultResidencePaymentMethod(
+      residenceId,
+      userId
+    );
+    return ResponseService.buildResponse(
+      { residence },
+      'Default Residence Payment Method unset successfully'
+    );
   }
 }

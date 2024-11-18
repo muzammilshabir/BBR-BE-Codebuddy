@@ -51,6 +51,7 @@ import { SubscriptionPlanModule } from './subscription-plan/subscription-plan.mo
 import { BrandDraftModule } from './brandDraft/brandDraft.module';
 import { LoginAttemptModule } from './loginAttempt/loginAttempt.module';
 import { ScheduleModule, SchedulerRegistry } from '@nestjs/schedule';
+import { PdfModule } from './pdf/pdf.module';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -101,6 +102,7 @@ import { ScheduleModule, SchedulerRegistry } from '@nestjs/schedule';
     BrandDraftModule,
     LoginAttemptModule,
     ScheduleModule.forRoot(),
+    PdfModule,
   ],
   controllers: [AppController],
   providers: [

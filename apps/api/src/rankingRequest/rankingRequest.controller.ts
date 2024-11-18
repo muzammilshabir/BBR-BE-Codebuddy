@@ -42,6 +42,7 @@ import {
 } from './dto/improve-ranking-request.dto ';
 import { ChangeRankingScoreDto, changeRankingScoreSchema } from './dto/change-ranking-score.dto';
 import { Public } from '../auth/decorators/public.decorator';
+import { PreviewRankingChangeDto, previewRankingChangeSchema } from './dto/preview-ranking-change.dto';
 
 @ApiTags('RankingRequest')
 @Controller('rankingRequest')
@@ -311,6 +312,26 @@ export class RankingRequestController {
     return ResponseService.buildResponse(
       { updatedRankingRequest },
       'Ranking request status unarchived successfully'
+    );
+  }
+
+  @Post('preview-ranking-change')
+  @ApiOperation({
+    summary: 'Preview ranking change before applying',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(previewRankingChangeSchema, 'body'))
+  async previewRankingChange(@Body() previewRankingChangeDto: PreviewRankingChangeDto) {
+    const preview = await this.rankingRequestService.previewRankingChange(
+      previewRankingChangeDto.newPosition,
+      previewRankingChangeDto.rankingRequestId.toString(),
+      previewRankingChangeDto.changeRankingScore
+    );
+    
+    return ResponseService.buildResponse(
+      preview,
+      'Ranking change preview generated successfully'
     );
   }
 }

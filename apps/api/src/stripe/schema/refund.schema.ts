@@ -43,6 +43,13 @@ export class Refund extends Document {
   @Prop({ type: Date })
   createdAt: Date;
 
+  @Prop({
+    type: String,
+    example: 'https:/sdfsf.sdfsf/fsfsf',
+    required: false,
+  })
+  receiptUrl?: string;
+
   @Prop({ type: Date })
   updatedAt: Date;
 

@@ -42,7 +42,7 @@ export class UpdateInvoiceDto {
   @ApiProperty({
     description: 'Additional note for the invoice',
     type: String,
-    enum: ['draft', 'pending'],
+    enum: ['draft', 'pending', 'canceled'],
     example: 'pending',
     required: false,
   })
@@ -75,7 +75,7 @@ export const updateInvoiceDtoSchema = Joi.object({
   discount: Joi.number().optional(),
   tax: Joi.number().optional(),
   note: Joi.string().optional(),
-  status: Joi.string().valid('pending', 'draft').optional(),
+  status: Joi.string().valid('pending', 'draft', 'canceled').optional(),
   issuedAt: Joi.date().optional(),
   dueAt: Joi.date().optional(),
   isDeleted: Joi.boolean().optional(),

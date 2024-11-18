@@ -36,4 +36,14 @@ export class ListLifeStyleService {
 
     return await this.lifeStyleRepository.update(id, updateLifeStyleDto);
   }
+
+  async findById(id: string) {
+    const lifeStyle = await this.lifeStyleRepository.findByIdInDetail(id);
+
+    if (!lifeStyle) {
+      throw new NotFoundException(`lifeStyle with id ${id} not found`);
+    }
+
+    return lifeStyle;
+  }
 }

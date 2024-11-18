@@ -59,11 +59,8 @@ export class RankingCategoryController {
   })
   @Public()
   @UsePipes(new JoiValidationPipe(getRankingCategoryByIdSchema, 'param'))
-  async findRankingCategory(
-    @Param() params: GetRankingCategoryByIdDto,
-    @GetCurrentUser() user: JwtPayloadType
-  ) {
-    const rankingCategory = await this.rankingCategoryService.findRankingCategory(params.id, user);
+  async findRankingCategory(@Param() params: GetRankingCategoryByIdDto) {
+    const rankingCategory = await this.rankingCategoryService.findRankingCategory(params.id);
     return ResponseService.buildResponse(
       { rankingCategory },
       'Ranking category retrieved successfully'
@@ -76,11 +73,8 @@ export class RankingCategoryController {
   })
   @Public()
   @UsePipes(new JoiValidationPipe(rankingCategorySchema, 'query'))
-  async getAllRankingCategories(
-    @Query() rankingCategoryDto: RankingCategoryListDto,
-    @GetCurrentUser() user: JwtPayloadType
-  ) {
-    const result = await this.rankingCategoryService.findAll(rankingCategoryDto, user);
+  async getAllRankingCategories(@Query() rankingCategoryDto: RankingCategoryListDto) {
+    const result = await this.rankingCategoryService.findAll(rankingCategoryDto);
     return ResponseService.buildResponse(result, 'All ranking categories retrieved successfully');
   }
 

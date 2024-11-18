@@ -17,7 +17,20 @@ export class RefundRepository extends BaseRepository<Refund> {
         model: 'Invoice',
         populate: [
           { path: 'residenceId', select: 'name', model: 'Residence' },
-          { path: 'developerId', select: 'fullName stripeCustomerId', model: 'User' },
+          { path: 'developerId', select: 'fullName stripeCustomerId email', model: 'User' },
+        ],
+      },
+    ]);
+    return refund;
+  }
+  async findExpanded(filter: any) {
+    const refund = await this.refundModel.findOne(filter).populate([
+      {
+        path: 'invoiceId',
+        model: 'Invoice',
+        populate: [
+          { path: 'residenceId', select: 'name', model: 'Residence' },
+          { path: 'developerId', select: 'fullName stripeCustomerId email', model: 'User' },
         ],
       },
     ]);

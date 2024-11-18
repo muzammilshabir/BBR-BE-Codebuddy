@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, PipelineStage, Types } from 'mongoose';
-import { Unit, UnitSchema } from './schema/unit.schema';
+import { Unit } from './schema/unit.schema';
 import { BaseRepository } from '@bbr/api-core/modules/db/base.repository';
 import { ListUnitDto } from './dto/list-unit.dto';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
@@ -274,11 +274,10 @@ export class UnitRepository extends BaseRepository<Unit> {
       const { propertyTypes, search } = listExclusiveOfferDto;
       const paginationOptions = PaginationService.prepareOptions(listExclusiveOfferDto);
       const sortObject = paginationOptions.sort.reduce((acc, [field, order]) => {
-        // Check if the sorting field is 'specs'
         if (field === 'specs') {
-          acc['specs.generalUnitSpaceSqFt'] = order; // Change to specs.generalUnitSpaceSqFt
+          acc['specs.generalUnitSpaceSqFt'] = order;
         } else {
-          acc[field] = order; // For other fields, use the original field
+          acc[field] = order;
         }
         return acc;
       }, {});
@@ -300,6 +299,7 @@ export class UnitRepository extends BaseRepository<Unit> {
           },
         },
 
+        // Lookup room types
         {
           $lookup: {
             from: 'roomtypes',
@@ -308,6 +308,70 @@ export class UnitRepository extends BaseRepository<Unit> {
             as: 'roomTypeDetails',
           },
         },
+
+        // Unwind roomTypeDetails to process each room type
+        {
+          $unwind: {
+            path: '$roomTypeDetails',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+
+        // Lookup images for room types
+        {
+          $lookup: {
+            from: 'uploads',
+            localField: 'roomTypeDetails.upload.ImageId',
+            foreignField: '_id',
+            as: 'roomTypeImages',
+          },
+        },
+
+        // Group back to maintain document structure
+        {
+          $group: {
+            _id: '$_id',
+            doc: { $first: '$$ROOT' },
+            roomTypeDetails: {
+              $push: {
+                _id: '$roomTypeDetails._id',
+                type: '$roomTypeDetails.type',
+                upload: {
+                  $map: {
+                    input: '$roomTypeDetails.upload',
+                    as: 'uploadItem',
+                    in: {
+                      type: '$$uploadItem.type',
+                      image: {
+                        $arrayElemAt: [
+                          {
+                            $filter: {
+                              input: '$roomTypeImages',
+                              as: 'img',
+                              cond: { $eq: ['$$img._id', '$$uploadItem.ImageId'] },
+                            },
+                          },
+                          0,
+                        ],
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+
+        // Restore document structure
+        {
+          $replaceRoot: {
+            newRoot: {
+              $mergeObjects: ['$doc', { roomTypeDetails: '$roomTypeDetails' }],
+            },
+          },
+        },
+
+        // Lookup residence
         {
           $lookup: {
             from: 'residences',
@@ -316,12 +380,16 @@ export class UnitRepository extends BaseRepository<Unit> {
             as: 'residence',
           },
         },
+
+        // Unwind residence
         {
           $unwind: {
             path: '$residence',
             preserveNullAndEmptyArrays: true,
           },
         },
+
+        // Lookup brand
         {
           $lookup: {
             from: 'brands',
@@ -330,6 +398,8 @@ export class UnitRepository extends BaseRepository<Unit> {
             as: 'brand',
           },
         },
+
+        // Unwind brand
         {
           $unwind: {
             path: '$brand',
@@ -337,6 +407,7 @@ export class UnitRepository extends BaseRepository<Unit> {
           },
         },
 
+        // Search and filter conditions
         {
           $match: {
             ...(search
@@ -352,9 +423,7 @@ export class UnitRepository extends BaseRepository<Unit> {
                         $and: [
                           {
                             'residence.residenceTypeIds': {
-                              $in: propertyTypes.map(
-                                (propertyType) => new Types.ObjectId(propertyType)
-                              ),
+                              $in: propertyTypes.map((propertyType) => new Types.ObjectId(propertyType)),
                             },
                           },
                         ],
@@ -367,9 +436,7 @@ export class UnitRepository extends BaseRepository<Unit> {
                         $and: [
                           {
                             'residence.residenceTypeIds': {
-                              $in: propertyTypes.map(
-                                (propertyType) => new Types.ObjectId(propertyType)
-                              ),
+                              $in: propertyTypes.map((propertyType) => new Types.ObjectId(propertyType)),
                             },
                           },
                         ],
@@ -379,12 +446,12 @@ export class UnitRepository extends BaseRepository<Unit> {
           },
         },
 
-        // Sort units by provided sorting options
+        // Sort
         {
           $sort: sortObject,
         },
 
-        // Visuals and user lookups for additional information
+        // Lookup visuals
         {
           $lookup: {
             from: 'uploads',
@@ -418,6 +485,7 @@ export class UnitRepository extends BaseRepository<Unit> {
           },
         },
 
+        // Lookup created by user
         {
           $lookup: {
             from: 'users',
@@ -427,7 +495,7 @@ export class UnitRepository extends BaseRepository<Unit> {
           },
         },
 
-        // Project only relevant fields for exclusive offers
+        // Project fields
         {
           $project: {
             _id: 1,
@@ -440,10 +508,7 @@ export class UnitRepository extends BaseRepository<Unit> {
             briefOverview: 1,
             unitKeyFeatures: 1,
             isExclusiveOffer: 1,
-            roomTypeDetails: {
-              type: 1,
-              _id: 1,
-            },
+            roomTypeDetails: 1,
             residence: 1,
             brand: 1,
             visuals: {
@@ -465,7 +530,7 @@ export class UnitRepository extends BaseRepository<Unit> {
           },
         },
 
-        // Pagination and total count
+        // Pagination
         {
           $facet: {
             data: [
@@ -517,14 +582,79 @@ export class UnitRepository extends BaseRepository<Unit> {
           },
         },
 
+        // Lookup room types
         {
           $lookup: {
             from: 'roomtypes',
             localField: 'rooms.roomTypeId',
             foreignField: '_id',
-            as: 'rooms',
+            as: 'roomTypeDetails',
           },
         },
+
+        // Unwind roomTypeDetails to process each room type
+        {
+          $unwind: {
+            path: '$roomTypeDetails',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+
+        // Lookup images for room types
+        {
+          $lookup: {
+            from: 'uploads',
+            localField: 'roomTypeDetails.upload.ImageId',
+            foreignField: '_id',
+            as: 'roomTypeImages',
+          },
+        },
+
+        // Group back to maintain document structure
+        {
+          $group: {
+            _id: '$_id',
+            doc: { $first: '$$ROOT' },
+            roomTypeDetails: {
+              $push: {
+                _id: '$roomTypeDetails._id',
+                type: '$roomTypeDetails.type',
+                upload: {
+                  $map: {
+                    input: '$roomTypeDetails.upload',
+                    as: 'uploadItem',
+                    in: {
+                      type: '$$uploadItem.type',
+                      image: {
+                        $arrayElemAt: [
+                          {
+                            $filter: {
+                              input: '$roomTypeImages',
+                              as: 'img',
+                              cond: { $eq: ['$$img._id', '$$uploadItem.ImageId'] },
+                            },
+                          },
+                          0,
+                        ],
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+
+        // Restore document structure
+        {
+          $replaceRoot: {
+            newRoot: {
+              $mergeObjects: ['$doc', { roomTypeDetails: '$roomTypeDetails' }],
+            },
+          },
+        },
+
+        // Lookup residence
         {
           $lookup: {
             from: 'residences',
@@ -533,6 +663,16 @@ export class UnitRepository extends BaseRepository<Unit> {
             as: 'residence',
           },
         },
+
+        // Unwind residence
+        {
+          $unwind: {
+            path: '$residence',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+
+        // Lookup brand
         {
           $lookup: {
             from: 'brands',
@@ -541,19 +681,16 @@ export class UnitRepository extends BaseRepository<Unit> {
             as: 'brand',
           },
         },
+
+        // Unwind brand
         {
           $unwind: {
             path: '$brand',
             preserveNullAndEmptyArrays: true,
           },
         },
-        {
-          $unwind: {
-            path: '$residence',
-            preserveNullAndEmptyArrays: true,
-          },
-        },
 
+        // Match residences
         {
           $match: {
             'residence._id': {
@@ -567,7 +704,7 @@ export class UnitRepository extends BaseRepository<Unit> {
           $sort: sortObject,
         },
 
-        // Visuals and user lookups for additional information
+        // Lookup visuals
         {
           $lookup: {
             from: 'uploads',
@@ -601,6 +738,7 @@ export class UnitRepository extends BaseRepository<Unit> {
           },
         },
 
+        // Lookup created by user
         {
           $lookup: {
             from: 'users',
@@ -610,7 +748,7 @@ export class UnitRepository extends BaseRepository<Unit> {
           },
         },
 
-        // Project only relevant fields for exclusive offers
+        // Project fields
         {
           $project: {
             _id: 1,
@@ -624,6 +762,7 @@ export class UnitRepository extends BaseRepository<Unit> {
             briefOverview: 1,
             isExclusiveOffer: 1,
             unitKeyFeatures: 1,
+            roomTypeDetails: 1,
             residence: 1,
             visuals: {
               mainPhotos: { $ifNull: ['$mainPhotos', []] },
@@ -644,7 +783,7 @@ export class UnitRepository extends BaseRepository<Unit> {
           },
         },
 
-        // Pagination and total count
+        // Pagination
         {
           $facet: {
             data: [
