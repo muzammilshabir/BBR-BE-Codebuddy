@@ -33,4 +33,8 @@ export class BrandRepository extends BaseRepository<Brand> {
 
     return brandDraft;
   }
+
+  async aggregate(pipeline) {
+    return await this.brandModel.aggregate(pipeline);
+  }
 }
