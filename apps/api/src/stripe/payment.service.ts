@@ -31,6 +31,9 @@ import { ListRefundRequestsDto } from './dto/list-refund-requests.dto';
 import { PaymentAttemptStatus } from './enum/payment-attempt-status.enum';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { SendEmailEvent } from 'src/mailer/events/send-email.event';
+import { Invoice } from './schema/invoice.schema';
+import { PdfService } from 'src/pdf/pdf.service';
+import { UploadService } from 'src/upload/upload.service';
 
 @Injectable()
 export class PaymentService {
@@ -46,7 +49,9 @@ export class PaymentService {
     private readonly subscriptionPlanService: SubscriptionPlanService,
     private readonly transactionRepository: TransactionRepository,
     private readonly paymentAttemptRepository: PaymentAttemptRepository,
-    private readonly eventEmitter: EventEmitter2
+    private readonly eventEmitter: EventEmitter2,
+    private pdfService: PdfService,
+    private uploadService: UploadService,
   ) {}
 
   private convertPaymentItemsToLineItems(
@@ -93,7 +98,16 @@ export class PaymentService {
     return this.invoiceRepository.create(transformedDto);
   }
 
-  async createManualPaymentForInvoice(invoiceId: string, userId?: string) {
+  async createManualPaymentForInvoice(invoiceId: string, userId?: string): Promise<{
+    invoice: Invoice;
+    stripeInvoice: {
+      id: string;
+      total: number;
+      customer: string;
+      customer_email: string;
+      items: { description: string; amount: number; currency: string; type: string }[];
+    };
+  }> {
     const invoice = userId
       ? await this.invoiceRepository.find({ _id: invoiceId, developerId: userId })
       : await this.invoiceRepository.findById(invoiceId);
@@ -167,8 +181,39 @@ export class PaymentService {
     return this.invoiceRepository.update(invoiceId, updateInvoiceDto);
   }
 
+  async generateRefundReceipt(refundId: string, userId?: string): Promise<string> {
+    const refund = userId
+       ? await this.refundRepository.findExpanded({ _id: refundId, developerId: userId })
+       : await this.refundRepository.findOneExpanded(refundId);
+
+    if (!refund) {
+      throw new Error('Refund not found');
+    }
+    if(refund.receiptUrl) {
+      return refund.receiptUrl;
+    }
+
+    if(refund.status !== RefundStatus.REFUNDED) {
+      throw new Error('Refund has not been processed');
+    }
+
+    const pdfBuffer = await this.pdfService.generateRefundReceipt(refund);
+    const fileName = `refund-receipt-${refundId}.pdf`;
+
+    const { url } = await this.uploadService.uploadPdfToS3(
+      pdfBuffer,
+      fileName,
+      (refund.invoiceId as any).developerId._id.toString()
+    );
+
+    refund.receiptUrl = url;
+    await refund.save();
+
+    return refund.receiptUrl;
+  }
+
   async updateInvoiceAdmin(invoiceId: string, updateInvoiceDto: UpdateInvoiceDto) {
-    const invoice = await this.invoiceRepository.find(invoiceId);
+    const invoice = await this.invoiceRepository.findById(invoiceId);
     if (!invoice) {
       throw new Error('Invoice not found');
     }
@@ -204,6 +249,42 @@ export class PaymentService {
         toEmail: email,
       })
     );
+  }
+
+  async markInvoiceAsPaid(invoiceId: string) {
+    const invoice = await this.invoiceRepository.findById(invoiceId);
+    if (!invoice) {
+      throw new Error('Invoice not found');
+    }
+    const stripeInvoice = invoice.stripeInvoiceId
+      ? await this.stripeService.getInvoiceFull(invoice.stripeInvoiceId)
+      : (await this.createManualPaymentForInvoice(invoice.id.toString())).stripeInvoice;
+
+    invoice.stripeInvoiceId = stripeInvoice.id;
+
+    await this.stripeService.markInvoiceAsPaid(invoice.stripeInvoiceId, {
+      paid_out_of_band: true,
+      payment_method: 'external',
+    });
+
+    invoice.status = InvoiceStatus.PAID;
+    const paymentAttempt = await this.paymentAttemptRepository.find({
+      invoiceId: invoice._id,
+    });
+    await this.paymentAttemptRepository.update(paymentAttempt.id, {
+      status: PaymentAttemptStatus.SUCCEEDED,
+    });
+    const updatedInvoice = await this.invoiceRepository.update(invoiceId, invoice);
+
+    const transaction: CreateTransactionDto = {
+      residenceId: updatedInvoice.residenceId,
+      developerId: updatedInvoice.developerId,
+      invoiceId: updatedInvoice.id,
+      amount: stripeInvoice.total,
+      status: TransactionStatus.PAID,
+    };
+
+    await this.transactionRepository.create(transaction);
   }
 
   async sendInvoiceEmail(invoiceId: string) {
@@ -774,8 +855,17 @@ export class PaymentService {
     }
     const developer = await this.userService.findById(invoice.developerId.toString());
     const subscriptions = await this.subscriptionRepository.findByInvoiceId(invoiceId);
+    const residence = await this.residenceService.getResidenceById(invoice.residenceId.toString());
 
-    const result: any = { invoice, invoiceItems, subscriptions };
+    const result: any = {
+      invoice,
+      invoiceItems,
+      subscriptions,
+      developer: developer.fullName,
+      email: developer.email,
+      companyName: developer.companyName,
+      residenceName: residence.name,
+    };
 
     if (invoice.stripeInvoiceId) {
       result.stripeInvoice = await this.stripeService.getInvoice(invoice.stripeInvoiceId);
@@ -911,7 +1001,11 @@ export class PaymentService {
       (refund.invoiceId as any).paymentMethodId
     );
 
-    return { ...refund.toObject(), stripePaymentMethod };
+    return {
+      ...refund.toObject(),
+      stripePaymentMethod,
+      email: (refund.invoiceId as any).developerId.email,
+    };
   }
 
   async listRefundRequests(listRefundRequestsDto: ListRefundRequestsDto) {
@@ -999,7 +1093,21 @@ export class PaymentService {
     const count = countResult[0]?.total || 0;
     const { pagination } = PaginationService.paginate({ rows: data, count }, listRefundRequestsDto);
 
-    return { pagination, refundRequests: data };
+    const refundRequests = await Promise.all(
+      data.map(async (refund) => {
+        return {
+          ...refund,
+          invoiceNumber: refund.invoice?.invoiceNumber,
+          residenceDetails: refund.residence,
+          developerDetails: refund.developer,
+          receiptUrl: refund.invoice?.receiptUrl,
+          attachmentName: refund.invoice?.attachmentName,
+          attachmentUrl: refund.invoice?.attachmentUrl,
+        };
+      })
+    );
+
+    return { pagination, refundRequests };
   }
 
   async acceptRejectInvoiceRefund(refundId: string, action: RefundStatus) {
