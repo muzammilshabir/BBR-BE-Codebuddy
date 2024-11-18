@@ -38,9 +38,7 @@ export class UnitController {
   @ApiOperation({
     summary: 'List Units with exclusive offer',
   })
-  @ApiBearerAuth()
-  @Roles(UserRole.SELLER, UserRole.ADMIN, UserRole.BUYER)
-  @Permissions('residence', PermissionLevel.READ)
+  @Public()
   @UsePipes(new JoiValidationPipe(listExclusiveOfferDtoSchema, 'body'))
   async listExclusiveOffers(@Body() query: ListExclusiveOfferDto) {
     const units = await this.unitService.listExclusiveOffers(query);
@@ -141,9 +139,7 @@ export class UnitController {
   @ApiOperation({
     summary: 'List Units with exclusive offer for best branded residence',
   })
-  @ApiBearerAuth()
-  @Roles(UserRole.SELLER, UserRole.ADMIN, UserRole.BUYER)
-  @Permissions('residence', PermissionLevel.READ)
+  @Public()
   @UsePipes(new JoiValidationPipe(PaginationSchema, 'query'))
   async getExclusiveOffersForTopBrandedResidences(@Query() query: ListPropsDto) {
     const units = await this.unitService.getExclusiveOffersForTopBrandedResidences(query);
