@@ -52,6 +52,7 @@ import { BrandDraftModule } from './brandDraft/brandDraft.module';
 import { LoginAttemptModule } from './loginAttempt/loginAttempt.module';
 import { ScheduleModule, SchedulerRegistry } from '@nestjs/schedule';
 import { PdfModule } from './pdf/pdf.module';
+import { CustomerReviewsModule } from './customer-reviews/customer-reviews.module';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -103,6 +104,7 @@ import { PdfModule } from './pdf/pdf.module';
     LoginAttemptModule,
     ScheduleModule.forRoot(),
     PdfModule,
+    CustomerReviewsModule,
   ],
   controllers: [AppController],
   providers: [
