@@ -118,6 +118,21 @@ export class BrandService {
             pipeline: [
               { $sort: { createdAt: -1 } },
               { $limit: 1 },
+              // Add lookup for brandCategoryId
+              {
+                $lookup: {
+                  from: 'brandcategories',
+                  localField: 'brandCategoryId',
+                  foreignField: '_id',
+                  as: 'brandCategoryId'
+                }
+              },
+              {
+                $unwind: {
+                  path: '$brandCategoryId',
+                  preserveNullAndEmptyArrays: true
+                }
+              },
               // Add lookup for draft images
               {
                 $lookup: {
