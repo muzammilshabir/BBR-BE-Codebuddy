@@ -31,7 +31,7 @@ export class BrandService {
         // Initial match for non-deleted brands
         {
           $match: {
-            isDeleted: { $ne: DeletionStatus.DELETED },
+            isDeleted: { $ne: true },
             ...(status ? { status: status } : {}),
             ...(brandCategoryId ? { brandCategoryId: new Types.ObjectId(brandCategoryId) } : {}),
             ...(search ? { name: { $regex: search, $options: 'i' } } : {}),
