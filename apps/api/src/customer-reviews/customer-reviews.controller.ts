@@ -64,7 +64,7 @@ export class CustomerReviewsController {
   @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
   @UsePipes(new JoiValidationPipe(getReviewByIdSchema, 'param'))
-  async getStatsByResidenceId(@Param() params: GetReviewByIdDto) {
+  async getStatsById(@Param() params: GetReviewByIdDto) {
     const reviewStats = await this.customerReviewsService.getReviewById(params.id);
     return ResponseService.buildResponse({ reviewStats }, 'Review Stats retrieved successfully');
   }
