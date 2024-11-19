@@ -213,6 +213,47 @@ export class UploadService {
     });
   }
 
+  async uploadPdfToS3(
+    pdfBuffer: Buffer,
+    fileName: string,
+    userId: string
+  ): Promise<{ url: string; fileKey: string }> {
+    try {
+      const client = this.s3Client;
+      const config = this.config;
+
+      const passThrough = new PassThrough();
+      passThrough.end(pdfBuffer);
+
+      const upload = new Upload({
+        client,
+        params: {
+          Bucket: config.s3.bucket,
+          Key: `pdfs/${shortUUID.generate()}-${fileName}`,
+          ContentType: 'application/pdf',
+          Body: passThrough,
+        },
+      });
+      const response = await upload.done();
+
+      const fileDocument = {
+        originalFileKey: fileName,
+        fileKey: response.Key,
+        url: `https://${config.s3.endpoint}/${response.Key}`,
+        mimeType: 'application/pdf',
+        size: pdfBuffer.length,
+        driver: 'S3',
+        createdById: new Types.ObjectId(userId),
+      };
+
+      const storedFile = await this.uploadRepository.create(fileDocument);
+      return { url: storedFile.url, fileKey: storedFile.fileKey };
+    } catch (error) {
+      this.logger.error('Error uploading PDF to S3 or storing file metadata', error);
+      throw error;
+    }
+  }
+
   async saveFileTemp(key: string): Promise<string> {
     const command = new GetObjectCommand({
       Key: key,

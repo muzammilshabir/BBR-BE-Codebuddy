@@ -4,6 +4,7 @@ import { ListRoomTypeDto } from './dto/listRoomType.dto';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
 import { NotFoundException } from '@bbr/api-core/modules/exceptions';
 import { UpdateRoomTypeDto } from './dto/updateRoomType.dto';
+import { CreateRoomTypeDto } from './dto/createRoomType.dto';
 
 @Injectable()
 export class RoomTypeService {
@@ -13,8 +14,9 @@ export class RoomTypeService {
     const filter = listRoomTypeDto.search
       ? {
           $or: [{ type: { $regex: listRoomTypeDto.search, $options: 'i' } }],
+          isDeleted: false,
         }
-      : {};
+      : { isDeleted: false };
 
     const options = PaginationService.prepareOptions(listRoomTypeDto);
 
@@ -35,5 +37,27 @@ export class RoomTypeService {
     }
 
     return await this.roomTypeRepository.update(id, updateRoomTypeDto);
+  }
+
+  async create(createRoomTypeDto: CreateRoomTypeDto) {
+    return await this.roomTypeRepository.create(createRoomTypeDto);
+  }
+
+  async findById(id: string) {
+    const roomType = await this.roomTypeRepository.findByIdInDetail(id);
+    if (!roomType) {
+      throw new NotFoundException('Room type not found');
+    }
+    return roomType;
+  }
+
+  async softDelete(id: string) {
+    const roomType = await this.roomTypeRepository.findById(id);
+    if (!roomType) {
+      throw new NotFoundException('Room type not found');
+    }
+
+    roomType.isDeleted = true;
+    return await roomType.save();
   }
 }

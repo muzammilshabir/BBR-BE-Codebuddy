@@ -4,11 +4,8 @@ import { BrandDraftService } from './brandDraft.service';
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
 import { GetBrandDraftByIdDto, getBrandDraftByIdSchema } from './dto/getBrandDraft.dto';
 import { ListBrandDto, listBrandSchema } from '../brand/dto/listBrand.dto';
-import { Roles } from '../auth/decorators/roles.decorator';
-import { UserRole } from '../users/enum/user.enum';
-import { Permissions } from '../auth/decorators/permissions.decorator';
-import { PermissionLevel } from '../modulePolicy/enum/permission-enum';
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
+import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('BrandDraft')
 @Controller('brand-draft')
@@ -31,9 +28,7 @@ export class BrandDraftController {
   @ApiOperation({
     summary: 'List all brand draft with residence count',
   })
-  @ApiBearerAuth()
-  @Roles(UserRole.ADMIN, UserRole.BUYER, UserRole.SELLER)
-  @Permissions('brands', PermissionLevel.EDIT)
+  @Public()
   @UsePipes(new JoiValidationPipe(listBrandSchema, 'query'))
   async list(@Query() listBrandDto: ListBrandDto) {
     const data = await this.brandDraftService.getLatestBrandDraftsWithResidenceCount(listBrandDto);

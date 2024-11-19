@@ -35,6 +35,7 @@ export class RankingRequest extends Document {
       {
         criteriaId: { type: Types.ObjectId, required: true },
         score: { type: Number, required: true },
+        description: { type: String, required: false },
       },
     ],
     _id: false,
@@ -43,6 +44,7 @@ export class RankingRequest extends Document {
   criteriaScores: {
     criteriaId: Types.ObjectId;
     score: number;
+    description?: string;
   }[];
 
   @Prop({

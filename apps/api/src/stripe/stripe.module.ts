@@ -34,6 +34,8 @@ import { User, UserSchema } from 'src/users/schema/user.schema';
 import { Feature, FeatureSchema } from 'src/subscription-plan/schema/feature.schema';
 import { Plan, PlanSchema } from 'src/subscription-plan/schema/plan.schema';
 import { Residence, ResidenceSchema } from 'src/residences/schema/residences.schema';
+import { UploadModule } from 'src/upload/upload.module';
+import { PdfModule } from 'src/pdf/pdf.module';
 
 @Module({
   imports: [
@@ -42,6 +44,8 @@ import { Residence, ResidenceSchema } from 'src/residences/schema/residences.sch
     UserModule,
     ResidenceModule,
     SubscriptionPlanModule,
+    UploadModule,
+    PdfModule,
     MongooseModule.forFeature([{ name: Invoice.name, schema: InvoiceSchema }]),
     MongooseModule.forFeature([{ name: InvoiceItem.name, schema: InvoiceItemSchema }]),
     MongooseModule.forFeature([{ name: Subscription.name, schema: SubscriptionSchema }]),
