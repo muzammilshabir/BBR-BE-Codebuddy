@@ -13,6 +13,7 @@ import { DeleteReviewsDto } from './dto/delete-reviews.dto';
 import { ListReviewsDto, RatingSortType } from './dto/list-reviews.dto';
 import { PaginationService } from '../../../../packages/api-core/modules/pagination/pagination.service';
 import { Types } from 'mongoose';
+import { GetResidenceReviewsDto } from './dto/get-reviews-by-residenceId.dto';
 
 @Injectable()
 export class CustomerReviewsService {
@@ -157,6 +158,60 @@ export class CustomerReviewsService {
 
     const { data, count } = await this.customerReviewRepository.findAllReviews(filter, options);
     const { pagination } = PaginationService.paginate({ rows: data, count }, listReviewsDto);
+
+    return {
+      pagination,
+      reviews: data,
+    };
+  }
+
+  async getReviewsByResidence(residenceId: string, getResidenceReviewsDto: GetResidenceReviewsDto) {
+    const { search, ratingSort, sortBy, sortOrder } = getResidenceReviewsDto;
+
+    const filter: any = {
+      residence: new Types.ObjectId(residenceId),
+    };
+
+    if (search) {
+      filter.$or = [
+        { fullName: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { phoneNumber: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const sort: any = {};
+
+    if (ratingSort) {
+      switch (ratingSort) {
+        case RatingSortType.HIGHEST:
+          sort.overallRating = -1;
+          break;
+        case RatingSortType.LOWEST:
+          sort.overallRating = 1;
+          break;
+      }
+    }
+
+    if (sortBy) {
+      sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
+    }
+
+    if (Object.keys(sort).length === 0) {
+      sort.createdAt = -1;
+    }
+
+    const options = {
+      ...PaginationService.prepareOptions(getResidenceReviewsDto),
+      sort,
+    };
+
+    const { data, count } = await this.customerReviewRepository.findAllReviews(filter, options);
+    console.log(count);
+    const { pagination } = PaginationService.paginate(
+      { rows: data, count },
+      getResidenceReviewsDto
+    );
 
     return {
       pagination,

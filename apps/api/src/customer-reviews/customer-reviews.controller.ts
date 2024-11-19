@@ -13,6 +13,12 @@ import { CreateReviewDto, createReviewDtoSchema } from './dto/create-review.dto'
 import { DeleteReviewsDto, deleteReviewsDtoSchema } from './dto/delete-reviews.dto';
 import { ListReviewsDto, listReviewsSchema } from './dto/list-reviews.dto';
 import { GetReviewByIdDto, getReviewByIdSchema } from './dto/get-review-by-id.dto';
+import {
+  GetResidenceReviewsDto,
+  getResidenceReviewsSchema,
+  residenceIdSchema,
+  ResidenceIdSchemaDto,
+} from './dto/get-reviews-by-residenceId.dto';
 
 @ApiTags('Customer-Review')
 @Controller('customer-reviews')
@@ -67,6 +73,27 @@ export class CustomerReviewsController {
   async getStatsById(@Param() params: GetReviewByIdDto) {
     const reviewStats = await this.customerReviewsService.getReviewById(params.id);
     return ResponseService.buildResponse({ reviewStats }, 'Review Stats retrieved successfully');
+  }
+
+  @Get('/:residenceId')
+  @ApiOperation({
+    summary: 'Get Reviews by Residence ID with filters',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @UsePipes(
+    new JoiValidationPipe(getResidenceReviewsSchema, 'query'), // Query validation
+    new JoiValidationPipe(residenceIdSchema, 'param') // Param validation
+  )
+  async getReviewsByResidence(
+    @Param() residenceIdSchemaDto: ResidenceIdSchemaDto,
+    @Query() getResidenceReviewsDto: GetResidenceReviewsDto
+  ) {
+    const reviews = await this.customerReviewsService.getReviewsByResidence(
+      residenceIdSchemaDto.residenceId,
+      getResidenceReviewsDto
+    );
+    return ResponseService.buildResponse(reviews, 'Reviews retrieved successfully');
   }
 
   @Delete('delete')

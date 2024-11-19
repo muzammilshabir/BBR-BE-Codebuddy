@@ -57,7 +57,11 @@ export class CustomerReviewRepository extends BaseRepository<CustomerReview> {
           },
         ])
         .lean(),
-      this.customerReviewModel.countDocuments(filter),
+      this.customerReviewModel.countDocuments({
+        ...filter,
+        isDeleted: false,
+        isVerifiedBuyer: true,
+      }),
     ]);
 
     return { data, count };
