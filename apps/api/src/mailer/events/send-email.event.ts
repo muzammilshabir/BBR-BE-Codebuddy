@@ -8,18 +8,19 @@ export interface ISendEmailEvent {
   toEmail: string;
 }
 
-type Template = 
-'verify-user' |
-'forgot-password' |
-'reset-password' |
-'low-star-review' |
-'request-review' |
-'review-response' |
-'review-weekly-summary' |
-'specific-words-review' |
-'hundred-five-star-reviews' |
-'job-application' |
-'invoice';
+type Template =
+  | 'verify-user'
+  | 'forgot-password'
+  | 'reset-password'
+  | 'low-star-review'
+  | 'request-review'
+  | 'customer-request-review'
+  | 'review-response'
+  | 'review-weekly-summary'
+  | 'specific-words-review'
+  | 'hundred-five-star-reviews'
+  | 'job-application'
+  | 'invoice';
 
 export class SendEmailEvent {
   static event = 'send-email';
