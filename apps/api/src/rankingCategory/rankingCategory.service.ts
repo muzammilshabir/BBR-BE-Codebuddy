@@ -762,6 +762,10 @@ export class RankingCategoryService {
       {
         $skip: (popularRankingCategoryDto.page - 1) * popularRankingCategoryDto.limit,
       },
+    ];
+
+    const dataPipeline = [
+      ...pipeline,
       {
         $limit: popularRankingCategoryDto.limit,
       },
@@ -777,7 +781,33 @@ export class RankingCategoryService {
         },
       },
     ];
+    const countPipeline = [
+      ...pipeline,
+      {
+        $count: 'totalCount',
+      },
+    ];
 
-    return this.rankingCategoryModel.aggregate(pipeline as PipelineStage[]);
+    const result = await Promise.all([
+      this.rankingCategoryModel.aggregate(dataPipeline as PipelineStage[]),
+      this.rankingCategoryModel.aggregate(countPipeline as PipelineStage[]),
+    ]);
+
+    // Prepare the pagination object
+    const totalDocs = result[1][0]?.totalCount || 0;
+    const limit = popularRankingCategoryDto.limit; // Get limit from DTO
+    const currentPage = popularRankingCategoryDto.page; // Get current page from DTO
+    const totalPages = Math.ceil(totalDocs / limit); // Calculate total pages
+
+    const paginationObject = {
+      limit,
+      currentPage,
+      totalDocs,
+      totalPages,
+      hasNextPage: currentPage < totalPages, // Check if there's a next page
+      hasPrevPage: currentPage > 1, // Check if there's a previous page
+    };
+
+    return { pagination: paginationObject, rankingCategories: result[0] };
   }
 }
