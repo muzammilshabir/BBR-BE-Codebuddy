@@ -110,4 +110,14 @@ export class CustomerReviewsController {
     await this.customerReviewsService.deleteReviews(deleteReviewsDto);
     return ResponseService.buildResponse('Review deleted successfully');
   }
+
+  @Public()
+  @Get('google-review/:residenceId')
+  @ApiOperation({
+    summary: 'Get google review by residenceId',
+  })
+  @UsePipes(new JoiValidationPipe(residenceIdSchema, 'param'))
+  async getReviews(@Param() residenceIdDto: ResidenceIdSchemaDto) {
+    return this.customerReviewsService.getReviewsForResidence(residenceIdDto.residenceId);
+  }
 }

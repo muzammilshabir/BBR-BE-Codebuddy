@@ -52,6 +52,7 @@ export class CustomerReview extends Document {
       livingExperience: { type: Number, min: 1, max: 5, required: true },
       value: { type: Number, min: 1, max: 5, required: true },
     },
+    _id: false,
   })
   ratings: {
     location: number;
