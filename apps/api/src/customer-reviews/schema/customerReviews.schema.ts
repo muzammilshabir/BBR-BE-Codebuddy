@@ -36,7 +36,7 @@ export class CustomerReview extends Document {
   })
   photos: Upload[];
 
-  @Prop({ required: true, type: Number })
+  @Prop({ required: true, type: Number, min: 1, max: 10 })
   overallRating: number;
 
   @Prop({ type: Date, required: true })
@@ -52,6 +52,7 @@ export class CustomerReview extends Document {
       livingExperience: { type: Number, min: 1, max: 5, required: true },
       value: { type: Number, min: 1, max: 5, required: true },
     },
+    _id: false,
   })
   ratings: {
     location: number;
