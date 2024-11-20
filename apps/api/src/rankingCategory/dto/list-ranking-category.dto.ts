@@ -23,6 +23,10 @@ export const rankingCategorySchema = PaginationSchema.append({
   brandId: Joi.string().custom(joiObjectIdValidator('geoGraphyId')).optional(),
 });
 
+export const popularRankingCategorySchema = PaginationSchema.fork(['sortBy', 'sortOrder'], () =>
+  Joi.forbidden()
+);
+
 export class RankingCategoryListDto extends ListPropsDto {
   @ApiProperty({
     description: 'Search ranking category',
@@ -112,6 +116,11 @@ export class RankingCategoryListDto extends ListPropsDto {
   })
   brandId?: string;
 }
+
+export class PopularRankingCategoryListDto extends OmitType(ListPropsDto, [
+  'sortBy',
+  'sortOrder',
+] as const) {}
 
 export class PublicRankingCategoryListDto extends OmitType(RankingCategoryListDto, [
   'status',
