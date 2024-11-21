@@ -11,6 +11,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { GoogleReviewRepository } from './google-reviews.repository';
 import { GoogleReviews, GoogleReviewsSchema } from './googleReviewsSchema/googleReviews.schema';
 import { HttpModule } from '@nestjs/axios';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { HttpModule } from '@nestjs/axios';
       { name: GoogleReviews.name, schema: GoogleReviewsSchema },
     ]),
     HttpModule,
+    ScheduleModule.forRoot(),
   ],
   controllers: [CustomerReviewsController],
   providers: [CustomerReviewsService, CustomerReviewRepository, GoogleReviewRepository],

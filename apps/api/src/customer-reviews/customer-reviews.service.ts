@@ -251,16 +251,23 @@ export class CustomerReviewsService {
   }
 
   async fetchGoogleReviews(placeId: string): Promise<any[]> {
-    const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=reviews&key=${process.env.GOOGLE_PLACE_API_KEY}`;
-    const response = await this.httpService.axiosRef.get(url);
+    try {
+      const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=reviews&key=${process.env.GOOGLE_PLACE_API_KEY}`;
+      const response = await this.httpService.axiosRef.get(url);
+      
+      if (response.data.status !== 'OK' || !response.data.result?.reviews) {
+        return [];
+      }
 
-    console.log(response.data);
-    return response.data.result.reviews || [];
+      return response.data.result.reviews;
+    } catch (error) {
+      return [];
+    }
   }
 
   async summarizeReviews(reviews: any[]): Promise<{ summary: string; rating: number }> {
     const reviewText = reviews.map((r) => r.text).join('\n');
-    const openAiUrl = 'https://api.openai.com/v1/chat/completions';
+    const openAiUrl = process.env.OPENAI_URI;
     const prompt = `
       Craft a concise, personal review of this location as if you're a traveler sharing insights with a friend.
       Capture the essence of the experience, highlighting unique aspects and overall impression.
@@ -292,14 +299,11 @@ export class CustomerReviewsService {
     let rating = 0;
     let summary = '';
 
-    try {
       const parsedResponse = JSON.parse(content);
       rating = parsedResponse.rating || 0;
       summary = parsedResponse.summary || '';
-    } catch (error) {
-      console.error('Failed to parse OpenAI response:', error);
-    }
-    console.log(typeof rating);
+    
+
     return { summary, rating };
   }
 
@@ -311,7 +315,7 @@ export class CustomerReviewsService {
 
       const filter = { placeId };
       const updateDto = {
-        residenceId,
+        residenceId: new Types.ObjectId(residenceId),
         placeId,
         reviewSummary: summary,
         rating,
@@ -324,50 +328,38 @@ export class CustomerReviewsService {
 
   async processAllReviews(): Promise<void> {
     const residences = await this.residenceService.getAllResidences({
-      select: { _id: true, placeId: true },
+      select: { _id: true },
     });
 
-    for (const residence of residences) {
-      await this.processReviewsForResidence(residence.id, residence.placeId);
+    for (const residence of residences.data) {
+      if(residence?.placeId){
+        await this.processReviewsForResidence(residence._id.toString(), residence.placeId);
+      }
     }
   }
 
   async getReviewsForResidence(residenceId: string) {
-    const foundResidence = await this.residenceService.getResidenceById(residenceId);
+    const foundResidence = await this.residenceService.getResidenceById(
+      residenceId.toString()
+    );
 
     if (!foundResidence) {
       throw new NotFoundException(`Residence with ID ${residenceId} not found`);
     }
 
-    let foundReview = await this.googleReviewRepository.find({ where: { residenceId } });
-
+    let foundReview = await this.googleReviewRepository.find({ residenceId: new Types.ObjectId(residenceId) });
+  
     if (!foundReview) {
+      if (!foundResidence?.placeId) {
+        throw new NotFoundException(`PlaceId not found for residence with ID ${residenceId}`);
+      }
       await this.processReviewsForResidence(residenceId, foundResidence.placeId);
-      foundReview = await this.googleReviewRepository.find({ where: { residenceId } });
+      
+      foundReview = await this.googleReviewRepository.find({
+        residenceId: new Types.ObjectId(residenceId),
+      });
     }
     return foundReview;
   }
 
-  async testReviewFetching(placeIds: string[]): Promise<void> {
-    for (const placeId of placeIds) {
-      try {
-        console.log(`Fetching reviews for Place ID: ${placeId}`);
-        const reviews = await this.fetchGoogleReviews(placeId);
-
-        console.log(`Number of reviews: ${reviews.length}`);
-
-        if (reviews.length > 0) {
-          const { summary, rating } = await this.summarizeReviews(reviews);
-
-          console.log('\nReview Summary:');
-          console.log(`- Overall Rating: ${rating}`);
-          console.log(`- Summary: ${summary}\n`);
-        } else {
-          console.log('No reviews found for this place ID.\n');
-        }
-      } catch (error) {
-        console.log(`Error fetching reviews for Place ID ${placeId}: ${error.message}`);
-      }
-    }
-  }
 }

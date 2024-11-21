@@ -52,21 +52,6 @@ export class CustomerReviewsController {
     return ResponseService.buildResponse({ review }, 'Review created successfully');
   }
 
-  @Get('test-reviews')
-  @Public()
-  @ApiOperation({
-    summary: 'test google review',
-  })
-  async testReviews() {
-    const placeIds = [
-      'ChIJs5ydyTiuEmsR0fRSlU0C7k0',
-      'ChIJpyiwa4Zw44kRBQSGWKv4wgM',
-      'ChIJpyiwa4Zw44kRBQSGWKv4wgA',
-    ];
-
-    await this.customerReviewsService.testReviewFetching(placeIds);
-  }
-
   @Get('/')
   @ApiOperation({
     summary: 'List Reviews with filters and pagination',
@@ -108,7 +93,7 @@ export class CustomerReviewsController {
       residenceIdSchemaDto.residenceId,
       getResidenceReviewsDto
     );
-    return ResponseService.buildResponse(reviews, 'Reviews retrieved successfully');
+    return ResponseService.buildResponse({reviews}, 'Reviews retrieved successfully');
   }
 
   @Delete('delete')
@@ -133,6 +118,7 @@ export class CustomerReviewsController {
   })
   @UsePipes(new JoiValidationPipe(residenceIdSchema, 'param'))
   async getReviews(@Param() residenceIdDto: ResidenceIdSchemaDto) {
-    return this.customerReviewsService.getReviewsForResidence(residenceIdDto.residenceId);
+    const result = await this.customerReviewsService.getReviewsForResidence(residenceIdDto.residenceId);
+    return ResponseService.buildResponse({result});
   }
 }
