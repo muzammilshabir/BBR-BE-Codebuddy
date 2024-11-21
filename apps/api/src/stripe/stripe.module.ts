@@ -58,11 +58,7 @@ import { PdfModule } from 'src/pdf/pdf.module';
     MongooseModule.forFeature([{ name: Feature.name, schema: FeatureSchema }]),
     MongooseModule.forFeature([{ name: Residence.name, schema: ResidenceSchema }]),
   ],
-  controllers: [
-    StripeController,
-    PaymentController,
-    PaymentAdminController,
-  ],
+  controllers: [StripeController, PaymentController, PaymentAdminController],
   providers: [
     StripeService,
     ProcessPaymentService,
@@ -88,6 +84,7 @@ import { PdfModule } from 'src/pdf/pdf.module';
     PaymentAttemptSeeder,
     RefundSeeder,
     AllInOnePaymentSeeder,
+    InvoiceItemRepository,
   ],
 })
 export class StripeModule {}

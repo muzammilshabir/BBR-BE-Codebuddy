@@ -181,7 +181,7 @@ export class StripeService {
     }
     return this.stripe.paymentMethods.detach(methodId);
   }
-  
+
   async markInvoiceAsPaid(invoiceId: string, options: Stripe.InvoicePayParams) {
     return this.stripe.invoices.pay(invoiceId, options);
   }
@@ -424,6 +424,40 @@ export class StripeService {
       customer_email: fInvoice.customer_email,
       items: this.parseInvoiceLineItems(invoice.lines.data),
     };
+  }
+
+  async createInvoiceV2(customerId: string) {
+    return await this.stripe.invoices.create({
+      customer: customerId,
+      collection_method: 'send_invoice',
+      auto_advance: false,
+      days_until_due: 1,
+    });
+  }
+
+  async createProduct(name: string) {
+    return await this.stripe.products.create({
+      name,
+    });
+  }
+
+  async createInvoiceLineItem(
+    customer: string,
+    product: string,
+    unitAmount: number,
+    invoice: string,
+    quantity = 1
+  ) {
+    return await this.stripe.invoiceItems.create({
+      customer,
+      price_data: {
+        currency: 'usd',
+        unit_amount: unitAmount,
+        product,
+      },
+      quantity,
+      invoice,
+    });
   }
 
   async createProducts(lineItems: PaymentLineItemDto[]): Promise<Stripe.Product[]> {
