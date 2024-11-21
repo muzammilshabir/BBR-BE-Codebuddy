@@ -94,7 +94,7 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
         {
           $match: {
             ...(developerId ? { developerId: new Types.ObjectId(developerId) } : {}),
-            isDeleted: { $ne: DeletionStatus.DELETED },
+            isDeleted: { $ne: true },
           },
         },
 
@@ -257,7 +257,7 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
       const result = await this.rankingRequestModel.aggregate([
         {
           $match: {
-            isDeleted: { $ne: DeletionStatus.DELETED },
+            isDeleted: { $ne: true },
           },
         },
         {
@@ -473,7 +473,7 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
     const pipeline: any[] = [
       {
         $match: {
-          isDeleted: { $ne: DeletionStatus.DELETED },
+          isDeleted: { $ne: true },
         },
       },
     ];
@@ -730,7 +730,7 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
       {
         $match: {
           status: RankingCategoryStatus.ACTIVE,
-          isDeleted: { $ne: DeletionStatus.DELETED },
+          isDeleted: { $ne: true },
         },
       },
     ];
@@ -884,7 +884,7 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
     if (lifeStyleIds && lifeStyleIds.length > 0) {
       pipeline.push({
         $match: {
-          'residence.lifeStyleId': {
+          'rankingCategory.lifeStyleId': {
             $in: lifeStyleIds.map((lifeStyleId) => new Types.ObjectId(lifeStyleId)),
           },
         },
@@ -894,7 +894,7 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
     if (brandIds && brandIds.length > 0) {
       pipeline.push({
         $match: {
-          'residence.associatedBrandId': {
+          'rankingCategory.brandId': {
             $in: brandIds.map((brandId) => new Types.ObjectId(brandId)),
           },
         },
@@ -914,7 +914,7 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
     if (countryId) {
       pipeline.push({
         $match: {
-          'residence.countryId': {
+          'rankingCategory.countryId': {
             $eq: new Types.ObjectId(countryId),
           },
         },
@@ -924,7 +924,7 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
     if (cityId) {
       pipeline.push({
         $match: {
-          'residence.cityId': {
+          'rankingCategory.cityId': {
             $eq: new Types.ObjectId(cityId),
           },
         },
@@ -934,7 +934,7 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
     if (locationId) {
       pipeline.push({
         $match: {
-          'residence.locationId': {
+          'rankingCategory.locationId': {
             $eq: new Types.ObjectId(locationId),
           },
         },
