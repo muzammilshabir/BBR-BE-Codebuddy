@@ -56,7 +56,7 @@ export class CustomerReviewRepository extends BaseRepository<CustomerReview> {
             model: 'Upload',
           },
         ])
-        .lean(),
+        .lean<CustomerReview[]>(),
       this.customerReviewModel.countDocuments({
         ...filter,
         isDeleted: false,
@@ -68,7 +68,7 @@ export class CustomerReviewRepository extends BaseRepository<CustomerReview> {
   }
 
   async findOne(query: any): Promise<CustomerReview | null> {
-    return (await this.customerReviewModel.find(query).sort({ createdAt: -1 }).limit(1).lean())[0];
+    return (await this.customerReviewModel.find(query).sort({ createdAt: -1 }).limit(1).lean<CustomerReview>())[0];
   }
 
   async aggregate(search: any) {
