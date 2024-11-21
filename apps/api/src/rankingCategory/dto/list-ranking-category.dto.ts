@@ -20,7 +20,12 @@ export const rankingCategorySchema = PaginationSchema.append({
   propertyTypeId: Joi.string().custom(joiObjectIdValidator('propertyTypeId')).optional(),
   lifeStyleId: Joi.string().custom(joiObjectIdValidator('lifeStyleId')).optional(),
   geoGraphyId: Joi.string().custom(joiObjectIdValidator('geoGraphyId')).optional(),
+  brandId: Joi.string().custom(joiObjectIdValidator('geoGraphyId')).optional(),
 });
+
+export const popularRankingCategorySchema = PaginationSchema.fork(['sortBy', 'sortOrder'], () =>
+  Joi.forbidden()
+);
 
 export class RankingCategoryListDto extends ListPropsDto {
   @ApiProperty({
@@ -102,7 +107,20 @@ export class RankingCategoryListDto extends ListPropsDto {
     type: String,
   })
   geoGraphyId?: string;
+
+  @ApiProperty({
+    description: 'Filter by brand ID',
+    example: '60d7fe6f9eb1f24a04d65637',
+    required: false,
+    type: String,
+  })
+  brandId?: string;
 }
+
+export class PopularRankingCategoryListDto extends OmitType(ListPropsDto, [
+  'sortBy',
+  'sortOrder',
+] as const) {}
 
 export class PublicRankingCategoryListDto extends OmitType(RankingCategoryListDto, [
   'status',

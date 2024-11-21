@@ -59,12 +59,14 @@ export class CreateInvoiceDto {
   @ApiProperty({
     description: 'The date when the invoice was issued',
     required: true,
+    type: Date,
   })
   issuedAt: Date;
 
   @ApiProperty({
     description: 'The due date for the invoice',
     required: true,
+    type: Date,
    })
   dueAt: Date;
 }

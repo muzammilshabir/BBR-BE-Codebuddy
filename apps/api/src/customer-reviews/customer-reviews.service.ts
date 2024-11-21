@@ -78,7 +78,7 @@ export class CustomerReviewsService {
     const transformedDto = {
       ...createReviewDto,
       residence: new Types.ObjectId(createReviewDto.residenceId),
-      developer: new Types.ObjectId(residence.createdById),
+      developer: new Types.ObjectId(residence?.createdById?._id?.toString()),
       displayId,
       ...(createReviewDto.photos && {
         photos: createReviewDto.photos.map((photo) => new Types.ObjectId(photo)),

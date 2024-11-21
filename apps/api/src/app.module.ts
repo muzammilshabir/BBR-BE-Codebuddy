@@ -51,6 +51,7 @@ import { SubscriptionPlanModule } from './subscription-plan/subscription-plan.mo
 import { BrandDraftModule } from './brandDraft/brandDraft.module';
 import { LoginAttemptModule } from './loginAttempt/loginAttempt.module';
 import { ScheduleModule, SchedulerRegistry } from '@nestjs/schedule';
+import { PdfModule } from './pdf/pdf.module';
 import { CustomerReviewsModule } from './customer-reviews/customer-reviews.module';
 @Module({
   imports: [
@@ -102,6 +103,7 @@ import { CustomerReviewsModule } from './customer-reviews/customer-reviews.modul
     BrandDraftModule,
     LoginAttemptModule,
     ScheduleModule.forRoot(),
+    PdfModule,
     CustomerReviewsModule,
   ],
   controllers: [AppController],

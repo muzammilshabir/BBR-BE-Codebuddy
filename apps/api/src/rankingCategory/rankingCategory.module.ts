@@ -24,6 +24,8 @@ import {
   GeographicalAreasSchema,
 } from '../geographicalAreas/schema/geographicalAreas.schema';
 import { GeographicalAreasRepository } from '../geographicalAreas/geographicalAreas.repository';
+import { Brand, BrandSchema } from '../brand/schema/brand.schema';
+import { BrandRepository } from '../brand/brand.repository';
 
 @Module({
   imports: [
@@ -38,6 +40,7 @@ import { GeographicalAreasRepository } from '../geographicalAreas/geographicalAr
     MongooseModule.forFeature([
       { name: RankingCategoryDraft.name, schema: RankingCategoryDraftSchema },
     ]),
+    MongooseModule.forFeature([{ name: Brand.name, schema: BrandSchema }]),
   ],
   controllers: [RankingCategoryController],
   providers: [
@@ -50,6 +53,7 @@ import { GeographicalAreasRepository } from '../geographicalAreas/geographicalAr
     CountryRepository,
     CityRepository,
     GeographicalAreasRepository,
+    BrandRepository,
   ],
 })
 export class RankingCategoryModule {}

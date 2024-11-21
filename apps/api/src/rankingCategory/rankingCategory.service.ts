@@ -4,7 +4,7 @@ import {
   Injectable,
   InternalServerErrorException,
 } from '@nestjs/common';
-import { Types } from 'mongoose';
+import { Model, PipelineStage, Types } from 'mongoose';
 import { NotFoundException } from '@bbr/api-core/modules/exceptions';
 import { RankingCategoryRepository } from './rankingCategory.repository';
 import { CreateRankingCategoryDto } from './dto/create-ranking-category.dto';
@@ -17,6 +17,7 @@ import {
 } from './dto/update-ranking-category.dto';
 import { DeletionStatus } from '../unit/enum/unit-enum';
 import {
+  PopularRankingCategoryListDto,
   PublicRankingCategoryListDto,
   RankingCategoryListDto,
 } from './dto/list-ranking-category.dto';
@@ -30,6 +31,8 @@ import { LocationRepository } from '../location/location.repository';
 import { PropertyTypeRepository } from '../propertyType/propertyType.repository';
 import { RankingRequestStatus } from '../rankingRequest/enum/rankingRequest-status.enum';
 import { GeographicalAreasRepository } from '../geographicalAreas/geographicalAreas.repository';
+import { BrandRepository } from '../brand/brand.repository';
+import { InjectModel } from '@nestjs/mongoose';
 
 @Injectable()
 export class RankingCategoryService {
@@ -41,10 +44,12 @@ export class RankingCategoryService {
     private readonly countryRepository: CountryRepository,
     private readonly locationRepository: LocationRepository,
     private readonly propertyTypeRepository: PropertyTypeRepository,
-    private readonly geographicalAreasRepository: GeographicalAreasRepository
+    private readonly geographicalAreasRepository: GeographicalAreasRepository,
+    private readonly brandRepository: BrandRepository,
+    @InjectModel(RankingCategory.name) private readonly rankingCategoryModel: Model<RankingCategory>
   ) {}
 
-  async findAll(rankingCategoryDto: RankingCategoryListDto, user?: JwtPayloadType) {
+  async findAll(rankingCategoryDto: RankingCategoryListDto) {
     const {
       search,
       status,
@@ -56,6 +61,7 @@ export class RankingCategoryService {
       propertyTypeId,
       lifeStyleId,
       geoGraphyId,
+      brandId,
     } = rankingCategoryDto;
 
     const query: any = {
@@ -65,7 +71,7 @@ export class RankingCategoryService {
     // Text search for name or description fields
     if (search) {
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
+        { title: { $regex: search, $options: 'i' } },
         { description: { $regex: search, $options: 'i' } },
       ];
     }
@@ -110,6 +116,10 @@ export class RankingCategoryService {
       query.geoGraphyId = new Types.ObjectId(geoGraphyId);
     }
 
+    if (brandId) {
+      query.brandId = new Types.ObjectId(brandId);
+    }
+
     const options = PaginationService.prepareOptions(rankingCategoryDto);
 
     const { data, count } = await this.rankingCategoryRepository.findAll(query, options, [
@@ -140,7 +150,7 @@ export class RankingCategoryService {
       },
       {
         path: 'propertyTypeId',
-        select: 'type description',
+        select: 'name type description',
         model: 'PropertyType',
       },
       {
@@ -157,6 +167,11 @@ export class RankingCategoryService {
         path: 'rankingRequests',
         match: { status: RankingRequestStatus.ACTIVE },
         options: { sort: { bbrScore: -1 } },
+      },
+      {
+        path: 'brandId',
+        select: 'name logo description',
+        model: 'Brand',
       },
     ]);
 
@@ -272,6 +287,19 @@ export class RankingCategoryService {
       transformedDto.geoGraphyId = new Types.ObjectId(createRankingCategoryDto.geoGraphyId);
     }
 
+    if (createRankingCategoryDto?.brandId) {
+      const brand = await this.brandRepository.find({
+        _id: new Types.ObjectId(createRankingCategoryDto.brandId),
+        isDeleted: { $ne: DeletionStatus.DELETED },
+      });
+      if (!brand) {
+        throw new BadRequestException(
+          `Brand with ID ${createRankingCategoryDto.brandId} does not exist or is deleted`
+        );
+      }
+      transformedDto.brandId = new Types.ObjectId(createRankingCategoryDto.brandId);
+    }
+
     const rankingCategory = await this.rankingCategoryRepository.create(transformedDto);
 
     const rankingCategoryDraft = await this.rankingCategoryDraftRepository.create({
@@ -314,6 +342,7 @@ export class RankingCategoryService {
       updatedById: new Types.ObjectId(user.sub),
     };
 
+    delete transformedDto.status;
     if (updateRankingCategoryDto?.cityId) {
       const city = await this.cityRepository.find({
         _id: new Types.ObjectId(updateRankingCategoryDto.cityId),
@@ -392,6 +421,19 @@ export class RankingCategoryService {
       transformedDto.geoGraphyId = new Types.ObjectId(updateRankingCategoryDto.geoGraphyId);
     }
 
+    if (updateRankingCategoryDto?.brandId) {
+      const brand = await this.brandRepository.find({
+        _id: new Types.ObjectId(updateRankingCategoryDto.brandId),
+        isDeleted: { $ne: DeletionStatus.DELETED },
+      });
+      if (!brand) {
+        throw new BadRequestException(
+          `Brand with ID ${updateRankingCategoryDto.brandId} does not exist or is deleted`
+        );
+      }
+      transformedDto.brandId = new Types.ObjectId(updateRankingCategoryDto.brandId);
+    }
+
     const rankingCategoryDraft = await this.checkRankingCategoryDraft(rankingCategoryId);
     if (rankingCategoryDraft) {
       return await this.rankingCategoryDraftRepository.update(
@@ -421,16 +463,10 @@ export class RankingCategoryService {
     });
   }
 
-  async findRankingCategory(id: string, user: JwtPayloadType) {
+  async findRankingCategory(id: string) {
     const rankingCategory = await this.findRankingCategoryById(id);
     if (!rankingCategory) {
       throw new NotFoundException(`Residence with ID ${id}`);
-    }
-    if (
-      rankingCategory.createdById?._id &&
-      rankingCategory.createdById?._id.toString() !== user.sub
-    ) {
-      throw new ForbiddenException('You do not have permission to delete this RankingCategory');
     }
     return {
       ...rankingCategory.toJSON(),
@@ -656,5 +692,122 @@ export class RankingCategoryService {
     const query = { ...rankingCategoryDto, status: 'active' };
     // Pass the query to the existing findAll method
     return this.findAll(query as RankingCategoryListDto);
+  }
+
+  async findAllByPopularity(popularRankingCategoryDto: PopularRankingCategoryListDto) {
+    const pipeline = [
+      {
+        $match: {
+          isDeleted: { $ne: true },
+          status: { $eq: RankingCategoryStatus.ACTIVE },
+        },
+      },
+      {
+        $lookup: {
+          from: 'rankingrequestdrafts',
+          let: { rankingCategoryId: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ['$rankingCategoryId', '$$rankingCategoryId'] },
+                    { $eq: ['$status', 'active'] },
+                    { $eq: ['$isDeleted', false] },
+                  ],
+                },
+              },
+            },
+          ],
+          as: 'requests',
+        },
+      },
+      {
+        $lookup: {
+          from: 'uploads',
+          let: { imageIds: '$upload.ImageId' },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $in: ['$_id', '$$imageIds'],
+                },
+              },
+            },
+            {
+              $project: {
+                _id: 1,
+                originalFileKey: 1,
+                fileKey: 1,
+                url: 1,
+                mimeType: 1,
+              },
+            },
+          ],
+          as: 'uploadDetails',
+        },
+      },
+      {
+        $addFields: {
+          totalRequests: { $size: '$requests' },
+          uploads: '$uploadDetails',
+        },
+      },
+      {
+        $sort: {
+          totalRequests: -1,
+          title: 1,
+        },
+      },
+      {
+        $skip: (popularRankingCategoryDto.page - 1) * popularRankingCategoryDto.limit,
+      },
+    ];
+
+    const dataPipeline = [
+      ...pipeline,
+      {
+        $limit: popularRankingCategoryDto.limit,
+      },
+      {
+        $project: {
+          _id: 1,
+          title: 1,
+          totalRequests: 1,
+          categoryType: 1,
+          description: 1,
+          price: 1,
+          uploads: 1,
+        },
+      },
+    ];
+    const countPipeline = [
+      ...pipeline,
+      {
+        $count: 'totalCount',
+      },
+    ];
+
+    const result = await Promise.all([
+      this.rankingCategoryModel.aggregate(dataPipeline as PipelineStage[]),
+      this.rankingCategoryModel.aggregate(countPipeline as PipelineStage[]),
+    ]);
+
+    // Prepare the pagination object
+    const totalDocs = result[1][0]?.totalCount || 0;
+    const limit = popularRankingCategoryDto.limit; // Get limit from DTO
+    const currentPage = popularRankingCategoryDto.page; // Get current page from DTO
+    const totalPages = Math.ceil(totalDocs / limit); // Calculate total pages
+
+    const paginationObject = {
+      limit,
+      currentPage,
+      totalDocs,
+      totalPages,
+      hasNextPage: currentPage < totalPages, // Check if there's a next page
+      hasPrevPage: currentPage > 1, // Check if there's a previous page
+    };
+
+    return { pagination: paginationObject, rankingCategories: result[0] };
   }
 }

@@ -14,6 +14,14 @@ export class ListResidenceDto extends ListPropsDto {
   locationId?: string;
 
   @ApiProperty({
+    description: 'Search by residence name',
+    example: 'test',
+    required: false,
+    type: String,
+  })
+  search?: string;
+
+  @ApiProperty({
     example: ResidenceStatus.ACTIVE,
     enum: ResidenceStatus,
     description: 'The status of the residence',
@@ -56,6 +64,7 @@ export class ListResidenceDto extends ListPropsDto {
 export const listResidenceSchema = PaginationSchema.append({
   locationId: Joi.string().custom(joiObjectIdValidator('locationId')).optional(),
   developerId: Joi.string().custom(joiObjectIdValidator('developerId')).optional(),
+  search:Joi.string().optional(),
   status: Joi.string()
     .valid(...Object.values(ResidenceStatus))
     .required(),
@@ -85,6 +94,22 @@ export class ListResidenceByFiltersDto {
     type: [String],
   })
   cities?: string[];
+
+  @ApiProperty({
+    description: 'Filter by geographical area IDs',
+    example: ['60b6c0f53b5a5c1f88d25a1b'],
+    required: false,
+    type: [String],
+  })
+  geographicalAreasId?: string[];
+
+  @ApiProperty({
+    description: 'Filter by country IDs',
+    example: ['60b6c0f53b5a5c1f88d25a1b'],
+    required: false,
+    type: [String],
+  })
+  countryId?: string;
 
   @ApiProperty({
     description: 'Filter by lifestyle IDs',
@@ -125,11 +150,25 @@ export class ListResidenceByFiltersDto {
     type: String,
   })
   developerId?: string;
+
+  @ApiProperty({
+    description: 'Filter by Location IDs',
+    example: ['60b6c0f53b5a5c1f88d25a1b'],
+    required: false,
+    type: [String],
+  })
+  locationIds?: string[];
 }
 
 export const listResidenceByFiltersSchema = Joi.object({
   cities: Joi.array()
     .items(Joi.string().custom(joiObjectIdValidator('cities')))
+    .optional(),
+  geographicalAreasId: Joi.array()
+    .items(Joi.string().custom(joiObjectIdValidator('geographicalAreasId')))
+    .optional(),
+  countryId: Joi.array()
+    .items(Joi.string().custom(joiObjectIdValidator('countryId')))
     .optional(),
   lifestyles: Joi.array()
     .items(Joi.string().custom(joiObjectIdValidator('lifestyles')))
@@ -143,6 +182,9 @@ export const listResidenceByFiltersSchema = Joi.object({
   developerId: Joi.string().custom(joiObjectIdValidator('developerId')).optional(),
   status: Joi.string()
     .valid(...Object.values(ResidenceStatus))
+    .optional(),
+  locationIds: Joi.array()
+    .items(Joi.string().custom(joiObjectIdValidator('locationIds')))
     .optional(),
 });
 

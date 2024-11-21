@@ -91,6 +91,10 @@ export class StripeService {
     };
   }
 
+  async getInvoiceFull(invoiceId: string) {
+    return await this.stripe.invoices.retrieve(invoiceId);
+  }
+
   async getCustomerPaymentMethods(customerId: string): Promise<PaymentMethodType[]> {
     const paymentMethods = await this.stripe.customers.listPaymentMethods(customerId);
     const parsedMethods = [];
@@ -176,6 +180,10 @@ export class StripeService {
       throw new Error('Invalid payment method id');
     }
     return this.stripe.paymentMethods.detach(methodId);
+  }
+  
+  async markInvoiceAsPaid(invoiceId: string, options: Stripe.InvoicePayParams) {
+    return this.stripe.invoices.pay(invoiceId, options);
   }
 
   async retrieveCustomerPaymentMethod(customerId: string, paymentMethodId: string) {
@@ -341,7 +349,7 @@ export class StripeService {
 
     return {
       id: fInvoice.id,
-      amount: fInvoice.amount_due,
+      total: fInvoice.amount_due,
       customer: fInvoice.customer_name,
       customer_email: fInvoice.customer_email,
       items: this.parseInvoiceLineItems(invoice.lines.data),

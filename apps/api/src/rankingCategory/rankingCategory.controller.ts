@@ -18,6 +18,8 @@ import {
   updateRankingCategoryStatusSchema,
 } from './dto/update-ranking-category.dto';
 import {
+  PopularRankingCategoryListDto,
+  popularRankingCategorySchema,
   PublicRankingCategoryListDto,
   RankingCategoryListDto,
   rankingCategorySchema,
@@ -53,17 +55,30 @@ export class RankingCategoryController {
     return ResponseService.buildResponse(result, 'Ranking Category retrieved successfully');
   }
 
+  @Get('popular')
+  @ApiOperation({
+    summary: 'Get all ranking categories based on popularity with filters and pagination',
+  })
+  @Public()
+  @UsePipes(new JoiValidationPipe(popularRankingCategorySchema, 'query'))
+  async getAllRankingCategoriesByPopularity(
+    @Query() popularRankingCategoryDto: PopularRankingCategoryListDto
+  ) {
+    const result = await this.rankingCategoryService.findAllByPopularity(popularRankingCategoryDto);
+    return ResponseService.buildResponse(
+      result,
+      'All ranking categories by popularity retrieved successfully'
+    );
+  }
+
   @Get(':id')
   @ApiOperation({
     summary: 'Get ranking category by ID',
   })
   @Public()
   @UsePipes(new JoiValidationPipe(getRankingCategoryByIdSchema, 'param'))
-  async findRankingCategory(
-    @Param() params: GetRankingCategoryByIdDto,
-    @GetCurrentUser() user: JwtPayloadType
-  ) {
-    const rankingCategory = await this.rankingCategoryService.findRankingCategory(params.id, user);
+  async findRankingCategory(@Param() params: GetRankingCategoryByIdDto) {
+    const rankingCategory = await this.rankingCategoryService.findRankingCategory(params.id);
     return ResponseService.buildResponse(
       { rankingCategory },
       'Ranking category retrieved successfully'
@@ -76,11 +91,8 @@ export class RankingCategoryController {
   })
   @Public()
   @UsePipes(new JoiValidationPipe(rankingCategorySchema, 'query'))
-  async getAllRankingCategories(
-    @Query() rankingCategoryDto: RankingCategoryListDto,
-    @GetCurrentUser() user: JwtPayloadType
-  ) {
-    const result = await this.rankingCategoryService.findAll(rankingCategoryDto, user);
+  async getAllRankingCategories(@Query() rankingCategoryDto: RankingCategoryListDto) {
+    const result = await this.rankingCategoryService.findAll(rankingCategoryDto);
     return ResponseService.buildResponse(result, 'All ranking categories retrieved successfully');
   }
 
