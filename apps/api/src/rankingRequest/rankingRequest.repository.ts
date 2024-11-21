@@ -683,15 +683,11 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
       $sort: sortObject,
     });
 
-    // Pagination
-    const options = PaginationService.prepareOptions(listRankingRequestDto);
-    pipeline.push({ $skip: paginationOptions.offset }, { $limit: paginationOptions.limit });
-
     // Count total documents
     pipeline.push(
       {
         $facet: {
-          data: [{ $limit: options.limit }],
+          data: [{ $limit: paginationOptions.limit }],
           totalCount: [{ $count: 'count' }],
         },
       },
@@ -702,6 +698,9 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
         },
       }
     );
+
+    // Pagination
+    pipeline.push({ $skip: paginationOptions.offset }, { $limit: paginationOptions.limit });
 
     return await this.rankingRequestModel.aggregate(pipeline).exec();
   }
@@ -991,15 +990,12 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
       $sort: sortObject,
     });
 
-    // Pagination
-    const options = PaginationService.prepareOptions(listRankingRequestForUserDto);
-    pipeline.push({ $skip: paginationOptions.offset }, { $limit: paginationOptions.limit });
 
     // Count total documents
     pipeline.push(
       {
         $facet: {
-          data: [{ $limit: options.limit }],
+          data: [{ $limit: paginationOptions.limit }],
           totalCount: [{ $count: 'count' }],
         },
       },
@@ -1010,6 +1006,9 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
         },
       }
     );
+
+    // Pagination
+    pipeline.push({ $skip: paginationOptions.offset }, { $limit: paginationOptions.limit });
 
     return await this.rankingRequestModel.aggregate(pipeline).exec();
   }
