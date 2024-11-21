@@ -54,6 +54,13 @@ export class GuestApplyRankingService {
       ),
     ]);
 
+    const stripePaymentMethod = await this.stripeService.createPaymentMethod(
+      stripeCustomer.id,
+      body.stripePmTokenId
+    );
+
+    await this.stripeService.payInvoiceUsingPaymentMethod(stripeInvoice.id, stripePaymentMethod.id);
+
     return invoice;
   }
 
