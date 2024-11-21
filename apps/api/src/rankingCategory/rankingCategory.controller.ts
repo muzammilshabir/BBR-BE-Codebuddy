@@ -18,6 +18,8 @@ import {
   updateRankingCategoryStatusSchema,
 } from './dto/update-ranking-category.dto';
 import {
+  PopularRankingCategoryListDto,
+  popularRankingCategorySchema,
   PublicRankingCategoryListDto,
   RankingCategoryListDto,
   rankingCategorySchema,
@@ -51,6 +53,22 @@ export class RankingCategoryController {
     const result = await this.rankingCategoryService.listResidencesWithDraft(query);
 
     return ResponseService.buildResponse(result, 'Ranking Category retrieved successfully');
+  }
+
+  @Get('popular')
+  @ApiOperation({
+    summary: 'Get all ranking categories based on popularity with filters and pagination',
+  })
+  @Public()
+  @UsePipes(new JoiValidationPipe(popularRankingCategorySchema, 'query'))
+  async getAllRankingCategoriesByPopularity(
+    @Query() popularRankingCategoryDto: PopularRankingCategoryListDto
+  ) {
+    const result = await this.rankingCategoryService.findAllByPopularity(popularRankingCategoryDto);
+    return ResponseService.buildResponse(
+      result,
+      'All ranking categories by popularity retrieved successfully'
+    );
   }
 
   @Get(':id')

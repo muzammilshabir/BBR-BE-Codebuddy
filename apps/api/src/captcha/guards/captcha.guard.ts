@@ -17,7 +17,7 @@ export class CaptchaGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    if(this.configService.captcha.isDisabled) {
+    if (this.configService.captcha.isDisabled) {
       return true;
     }
     const request = context.switchToHttp().getRequest();
@@ -48,7 +48,7 @@ export class CaptchaGuard implements CanActivate {
     const url = `https://www.google.com/recaptcha/api/siteverify?secret=${secretKey}&response=${token}`;
 
     try {
-      const response: CaptchaResponse = await firstValueFrom(this.httpService.post(url));
+      const response: CaptchaResponse = await firstValueFrom(this.httpService.post(url, {}));
 
       if (!(response.data.success && response.data.score > 0.5)) {
         throw new CaptchaValidationFailedException();
