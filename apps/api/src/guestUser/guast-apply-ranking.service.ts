@@ -6,6 +6,8 @@ import { StripeService } from 'src/stripe/stripe.service';
 import { InvoicePostPaymentActionService } from 'src/invoice/invoice-post-payment-action.service';
 import { InvoicePostPaymentActionType } from 'src/stripe/schema/invoice-post-payment-action.schema';
 import * as argon from 'argon2';
+import { PaymentAttemptRepository } from 'src/stripe/payment-attempt.repository';
+import { PaymentAttemptStatus } from 'src/stripe/enum/payment-attempt-status.enum';
 
 @Injectable()
 export class GuestApplyRankingService {
@@ -13,7 +15,8 @@ export class GuestApplyRankingService {
     private readonly rankingCategoryRepository: RankingCategoryRepository,
     private readonly invoiceService: InvoiceService,
     private readonly stripeService: StripeService,
-    private readonly invoicePostPaymentActionService: InvoicePostPaymentActionService
+    private readonly invoicePostPaymentActionService: InvoicePostPaymentActionService,
+    private readonly paymentAttemptRepository: PaymentAttemptRepository
   ) {}
   async findRankingCategory(body: GuestApplyRankingDto) {
     const rankingCategories = await this.getRankingCategories(body.rankingCategoryIds);
@@ -60,6 +63,15 @@ export class GuestApplyRankingService {
     );
 
     await this.stripeService.payInvoiceUsingPaymentMethod(stripeInvoice.id, stripePaymentMethod.id);
+    await this.paymentAttemptRepository.create({
+      invoiceId: invoice._id,
+      paymentMethodId: invoice.paymentMethodId,
+      stripeInvoiceId: stripeInvoice.id,
+      status: PaymentAttemptStatus.PENDING,
+      attemptNumber: 1,
+      attemptsRemaining: 0,
+      attemptsRemainingToday: 0,
+    });
 
     return invoice;
   }

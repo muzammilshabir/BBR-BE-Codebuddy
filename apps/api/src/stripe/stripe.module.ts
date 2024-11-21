@@ -85,6 +85,7 @@ import { PdfModule } from 'src/pdf/pdf.module';
     RefundSeeder,
     AllInOnePaymentSeeder,
     InvoiceItemRepository,
+    PaymentAttemptRepository,
   ],
 })
 export class StripeModule {}

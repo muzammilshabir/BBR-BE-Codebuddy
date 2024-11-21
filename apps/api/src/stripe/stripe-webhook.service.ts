@@ -1,4 +1,11 @@
-import { Injectable, RawBodyRequest, Logger, HttpException, HttpStatus } from '@nestjs/common';
+import {
+  Injectable,
+  RawBodyRequest,
+  Logger,
+  HttpException,
+  HttpStatus,
+  BadRequestException,
+} from '@nestjs/common';
 import { ServiceConfig } from 'src/config';
 import Stripe from 'stripe';
 import { Request, Response } from 'express';
@@ -99,12 +106,9 @@ export class StripeWebhookService {
     try {
       let intent = setupIntent;
       if (setupIntent.status == 'requires_action') {
-        intent = await this.stripe.setupIntents.verifyMicrodeposits(
-          setupIntent.id,
-          {
-            amounts: [32, 45],
-          }
-        );
+        intent = await this.stripe.setupIntents.verifyMicrodeposits(setupIntent.id, {
+          amounts: [32, 45],
+        });
       }
       const paymentMethod = {
         customerId: intent.customer,
@@ -138,13 +142,17 @@ export class StripeWebhookService {
         stripeInvoiceId: stripeInvoice.id,
       });
       if (!paymentAttempt) {
-        throw new Error(`No payment attempt found for Stripe invoice ${stripeInvoice.id}`);
+        throw new BadRequestException(
+          `No payment attempt found for Stripe invoice ${stripeInvoice.id}`
+        );
       }
       const internalInvoice = await this.invoiceRepository.findOne(
         paymentAttempt.invoiceId.toString()
       );
       if (!internalInvoice) {
-        throw new Error(`No internal invoice found for payment attempt ${paymentAttempt.id}`);
+        throw new BadRequestException(
+          `No internal invoice found for payment attempt ${paymentAttempt.id}`
+        );
       }
       await this.paymentAttemptRepository.update(paymentAttempt.id, {
         status: PaymentAttemptStatus.SUCCEEDED,
@@ -153,14 +161,16 @@ export class StripeWebhookService {
         stripeInvoiceId: stripeInvoice.id,
         status: InvoiceStatus.PAID,
       });
-      const transaction: CreateTransactionDto = {
-        residenceId: internalInvoice.residenceId,
-        developerId: internalInvoice.developerId,
-        invoiceId: internalInvoice.id,
-        amount: stripeInvoice.total,
-        status: TransactionStatus.PAID,
-      };
-      await this.transactionRepository.create(transaction);
+      if (internalInvoice.residenceId) {
+        const transaction: CreateTransactionDto = {
+          residenceId: internalInvoice.residenceId,
+          developerId: internalInvoice.developerId,
+          invoiceId: internalInvoice.id,
+          amount: stripeInvoice.total,
+          status: TransactionStatus.PAID,
+        };
+        await this.transactionRepository.create(transaction);
+      }
       this.logger.log(`Successfully processed paid invoice ${internalInvoice.id}`);
       return { success: true, invoiceId: internalInvoice.id, amount: stripeInvoice.total };
     } catch (error) {
