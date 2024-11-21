@@ -52,6 +52,21 @@ export class CustomerReviewsController {
     return ResponseService.buildResponse({ review }, 'Review created successfully');
   }
 
+  @Get('test-reviews')
+  @Public()
+  @ApiOperation({
+    summary: 'test google review',
+  })
+  async testReviews() {
+    const placeIds = [
+      'ChIJs5ydyTiuEmsR0fRSlU0C7k0',
+      'ChIJpyiwa4Zw44kRBQSGWKv4wgM',
+      'ChIJpyiwa4Zw44kRBQSGWKv4wgA',
+    ];
+
+    await this.customerReviewsService.testReviewFetching(placeIds);
+  }
+
   @Get('/')
   @ApiOperation({
     summary: 'List Reviews with filters and pagination',
@@ -111,8 +126,8 @@ export class CustomerReviewsController {
     return ResponseService.buildResponse('Review deleted successfully');
   }
 
-  @Public()
   @Get('google-review/:residenceId')
+  @Public()
   @ApiOperation({
     summary: 'Get google review by residenceId',
   })

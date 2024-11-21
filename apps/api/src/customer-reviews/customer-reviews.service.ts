@@ -253,6 +253,8 @@ export class CustomerReviewsService {
   async fetchGoogleReviews(placeId: string): Promise<any[]> {
     const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=reviews&key=${process.env.GOOGLE_PLACE_API_KEY}`;
     const response = await this.httpService.axiosRef.get(url);
+
+    console.log(response.data);
     return response.data.result.reviews || [];
   }
 
@@ -260,8 +262,18 @@ export class CustomerReviewsService {
     const reviewText = reviews.map((r) => r.text).join('\n');
     const openAiUrl = 'https://api.openai.com/v1/chat/completions';
     const prompt = `
-      Summarize the following Google reviews and provide an overall star rating (1-5):
-      Reviews:
+      Craft a concise, personal review of this location as if you're a traveler sharing insights with a friend.
+      Capture the essence of the experience, highlighting unique aspects and overall impression.
+      Provide a genuine, conversational summary that feels authentic and helpful.
+      Format your response as a JSON object with 'rating' and 'summary' keys.
+
+      Example Format:
+      {
+        "rating": 4.6,
+        "summary": "Friendly description that sounds like a real traveler's recommendation"
+      }
+
+      Reviews to consider:
       ${reviewText}
     `;
 
@@ -277,10 +289,18 @@ export class CustomerReviewsService {
     );
 
     const content = response.data.choices[0]?.message?.content || '';
-    const starRatingMatch = content.match(/(\d+(\.\d+)?)\s*stars/);
-    const rating = starRatingMatch ? parseFloat(starRatingMatch[1]) : 0;
+    let rating = 0;
+    let summary = '';
 
-    return { summary: content, rating };
+    try {
+      const parsedResponse = JSON.parse(content);
+      rating = parsedResponse.rating || 0;
+      summary = parsedResponse.summary || '';
+    } catch (error) {
+      console.error('Failed to parse OpenAI response:', error);
+    }
+    console.log(typeof rating);
+    return { summary, rating };
   }
 
   async processReviewsForResidence(residenceId: string, placeId: string): Promise<void> {
@@ -326,5 +346,28 @@ export class CustomerReviewsService {
       foundReview = await this.googleReviewRepository.find({ where: { residenceId } });
     }
     return foundReview;
+  }
+
+  async testReviewFetching(placeIds: string[]): Promise<void> {
+    for (const placeId of placeIds) {
+      try {
+        console.log(`Fetching reviews for Place ID: ${placeId}`);
+        const reviews = await this.fetchGoogleReviews(placeId);
+
+        console.log(`Number of reviews: ${reviews.length}`);
+
+        if (reviews.length > 0) {
+          const { summary, rating } = await this.summarizeReviews(reviews);
+
+          console.log('\nReview Summary:');
+          console.log(`- Overall Rating: ${rating}`);
+          console.log(`- Summary: ${summary}\n`);
+        } else {
+          console.log('No reviews found for this place ID.\n');
+        }
+      } catch (error) {
+        console.log(`Error fetching reviews for Place ID ${placeId}: ${error.message}`);
+      }
+    }
   }
 }

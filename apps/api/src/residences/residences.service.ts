@@ -308,7 +308,10 @@ export class ResidenceService {
   }
 
   async getAllResidences(options: any): Promise<any> {
-    const residences = await this.residenceRepository.findAll({}, options);
+    const residences = await this.residenceRepository.findAll(
+      { planId: { $exists: true, $ne: null } },
+      options
+    );
     return residences;
   }
 
