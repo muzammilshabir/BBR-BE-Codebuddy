@@ -3,13 +3,17 @@ import { GuestApplyRankingDto } from './guast-apply-ranking.dto';
 import { RankingCategoryRepository } from 'src/rankingCategory/rankingCategory.repository';
 import { InvoiceService } from 'src/invoice/invoice.service';
 import { StripeService } from 'src/stripe/stripe.service';
+import { InvoicePostPaymentActionService } from 'src/invoice/invoice-post-payment-action.service';
+import { InvoicePostPaymentActionType } from 'src/stripe/schema/invoice-post-payment-action.schema';
+import * as argon from 'argon2';
 
 @Injectable()
 export class GuestApplyRankingService {
   constructor(
     private readonly rankingCategoryRepository: RankingCategoryRepository,
     private readonly invoiceService: InvoiceService,
-    private readonly stripeService: StripeService
+    private readonly stripeService: StripeService,
+    private readonly invoicePostPaymentActionService: InvoicePostPaymentActionService
   ) {}
   async findRankingCategory(body: GuestApplyRankingDto) {
     const rankingCategories = await this.getRankingCategories(body.rankingCategoryIds);
@@ -32,6 +36,23 @@ export class GuestApplyRankingService {
       stripeInvoice.id,
       lineItems
     );
+
+    await Promise.all([
+      this.invoicePostPaymentActionService.create(
+        invoice.id,
+        InvoicePostPaymentActionType.CREATE_USER,
+        {
+          ...body.userDetails,
+          stripeCustomerId: stripeCustomer.id,
+          password: await argon.hash(body.userDetails.password),
+        }
+      ),
+      this.invoicePostPaymentActionService.create(
+        invoice.id,
+        InvoicePostPaymentActionType.CREATE_RESIDENCE,
+        body.residenceDetails
+      ),
+    ]);
 
     return invoice;
   }
