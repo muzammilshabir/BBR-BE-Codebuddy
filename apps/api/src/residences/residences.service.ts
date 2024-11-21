@@ -315,6 +315,14 @@ export class ResidenceService {
     return residenceDetails;
   }
 
+  async getAllResidences(options: any): Promise<any> {
+    const residences = await this.residenceRepository.findAll(
+      { planId: { $exists: true, $ne: null } },
+      options
+    );
+    return residences;
+  }
+
   async getResidencesByPlanId(planId: string, options: any): Promise<any> {
     const residences = await this.residenceRepository.findAll({ planId }, options);
     return residences;

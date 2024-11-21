@@ -93,7 +93,7 @@ export class CustomerReviewsController {
       residenceIdSchemaDto.residenceId,
       getResidenceReviewsDto
     );
-    return ResponseService.buildResponse(reviews, 'Reviews retrieved successfully');
+    return ResponseService.buildResponse({reviews}, 'Reviews retrieved successfully');
   }
 
   @Delete('delete')
@@ -109,5 +109,16 @@ export class CustomerReviewsController {
   ) {
     await this.customerReviewsService.deleteReviews(deleteReviewsDto);
     return ResponseService.buildResponse('Review deleted successfully');
+  }
+
+  @Get('google-review/:residenceId')
+  @Public()
+  @ApiOperation({
+    summary: 'Get google review by residenceId',
+  })
+  @UsePipes(new JoiValidationPipe(residenceIdSchema, 'param'))
+  async getReviews(@Param() residenceIdDto: ResidenceIdSchemaDto) {
+    const result = await this.customerReviewsService.getReviewsForResidence(residenceIdDto.residenceId);
+    return ResponseService.buildResponse({result});
   }
 }
