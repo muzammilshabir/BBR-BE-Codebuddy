@@ -499,4 +499,28 @@ export class StripeService {
     }
     return this.stripe.products.retrieve(id);
   }
+
+  async createPaymentMethod(customerId: string, stripePmTokenId: string) {
+    const paymentMethod = await this.stripe.paymentMethods.create({
+      type: 'card',
+      card: {
+        token: stripePmTokenId,
+      },
+    });
+
+    // even though the method above takes customer as a param, it won't work
+    // because we can't attach a payment method to a customer during creation of the payment method
+    // it has to be attached after the payment method is created
+    await this.stripe.paymentMethods.attach(paymentMethod.id, {
+      customer: customerId,
+    });
+
+    return paymentMethod;
+  }
+
+  async payInvoiceUsingPaymentMethod(invoiceId: string, paymentMethodId: string) {
+    return this.stripe.invoices.pay(invoiceId, {
+      payment_method: paymentMethodId,
+    });
+  }
 }

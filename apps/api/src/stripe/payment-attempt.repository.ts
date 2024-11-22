@@ -6,7 +6,9 @@ import { PaymentAttempt } from './schema/payment-attempt.schema';
 
 @Injectable()
 export class PaymentAttemptRepository extends BaseRepository<PaymentAttempt> {
-  constructor(@InjectModel(PaymentAttempt.name) private readonly paymentAttemptModel: Model<PaymentAttempt>) {
+  constructor(
+    @InjectModel(PaymentAttempt.name) private readonly paymentAttemptModel: Model<PaymentAttempt>
+  ) {
     super(paymentAttemptModel);
   }
 
@@ -15,6 +17,6 @@ export class PaymentAttemptRepository extends BaseRepository<PaymentAttempt> {
   }
 
   async findByStripeInvoiceId(stripeInvoiceId: string): Promise<PaymentAttempt> {
-    return this.find(stripeInvoiceId );
+    return this.find(stripeInvoiceId);
   }
 }
