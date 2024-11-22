@@ -8,12 +8,16 @@ import { ResidenceDraft } from 'src/residencesDraft/schema/residencesDraft.schem
 import {
   InvoicePostPaymentAction,
   InvoicePostPaymentActionType,
+  RankingRequestDetails,
   ResidenceDetails,
   UserDetails,
 } from 'src/stripe/schema/invoice-post-payment-action.schema';
 import { UserRole } from 'src/users/enum/user.enum';
 import { SignupMethod } from 'src/users/enum/user.enum';
 import { User } from 'src/users/schema/user.schema';
+import { RankingRequest } from 'src/rankingRequest/schema/rankingRequest.schema';
+import { RankingRequestDraft } from 'src/rankingRequestDraft/schema/rankingRequestDraft.schema';
+import { PaymentStatus } from 'src/rankingRequest/enum/payment-status.enum';
 
 @Injectable()
 export class InvoicePostPaymentActionService {
@@ -29,13 +33,17 @@ export class InvoicePostPaymentActionService {
     @InjectModel(Country.name)
     private countryModel: Model<Country>,
     @InjectModel(Residence.name)
-    private residenceModel: Model<Residence>
+    private residenceModel: Model<Residence>,
+    @InjectModel(RankingRequest.name)
+    private rankingRequestModel: Model<RankingRequest>,
+    @InjectModel(RankingRequestDraft.name)
+    private rankingRequestDraftModel: Model<RankingRequestDraft>
   ) {}
 
   async create(
     invoiceId: string,
     type: InvoicePostPaymentActionType,
-    data: UserDetails | ResidenceDetails
+    data: UserDetails | ResidenceDetails | RankingRequestDetails
   ) {
     return this.invoicePostPaymentActionModel.create({
       invoiceId,
@@ -50,6 +58,7 @@ export class InvoicePostPaymentActionService {
     });
 
     let user: User;
+    let residence: Residence;
     for (const action of invoicePostPaymentActions) {
       if (action.type === InvoicePostPaymentActionType.CREATE_USER) {
         const userDetails = action.data as UserDetails;
@@ -84,11 +93,30 @@ export class InvoicePostPaymentActionService {
             placeId: residenceDetails.placeId,
           },
         };
-        const residence = await this.residenceModel.create(residenceData);
+        residence = await this.residenceModel.create(residenceData);
         await this.residenceDraftModel.create({
           ...residenceData,
           residenceId: residence._id,
         });
+      }
+
+      if (action.type === InvoicePostPaymentActionType.CREATE_RANKING_REQUEST) {
+        const rankingRequestDetails = action.data as RankingRequestDetails;
+        await Promise.all(
+          rankingRequestDetails.rankingCategoryIds.map(async (rankingCategoryId) => {
+            const rankingData = {
+              developerId: user._id,
+              rankingCategoryId,
+              residenceId: residence._id,
+              paymentStatus: PaymentStatus.PAID,
+            };
+            const rankingRequest = await this.rankingRequestModel.create(rankingData);
+            await this.rankingRequestDraftModel.create({
+              ...rankingData,
+              rankingRequestId: rankingRequest._id,
+            });
+          })
+        );
       }
     }
   }

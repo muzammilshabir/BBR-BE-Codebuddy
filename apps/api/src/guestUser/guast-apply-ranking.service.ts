@@ -65,6 +65,13 @@ export class GuestApplyRankingService {
         InvoicePostPaymentActionType.CREATE_RESIDENCE,
         body.residenceDetails
       ),
+      this.invoicePostPaymentActionService.create(
+        invoice.id,
+        InvoicePostPaymentActionType.CREATE_RANKING_REQUEST,
+        {
+          rankingCategoryIds: body.rankingCategoryIds,
+        }
+      ),
     ]);
 
     const stripePaymentMethod = await this.stripeService.createPaymentMethod(
@@ -83,7 +90,7 @@ export class GuestApplyRankingService {
       attemptsRemainingToday: 0,
     });
 
-    return invoice;
+    return true;
   }
 
   async getRankingCategories(rankingCategoryIds: string[]) {

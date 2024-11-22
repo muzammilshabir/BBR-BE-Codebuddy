@@ -18,6 +18,12 @@ import { City, CitySchema } from 'src/city/schema/city.schema';
 import { Country, CountrySchema } from 'src/country/schema/country.schema';
 import { User } from 'src/users/schema/user.schema';
 import { UserSchema } from 'src/users/schema/user.schema';
+import { RankingRequest } from 'src/rankingRequest/schema/rankingRequest.schema';
+import { RankingRequestSchema } from 'src/rankingRequest/schema/rankingRequest.schema';
+import {
+  RankingRequestDraft,
+  RankingRequestDraftSchema,
+} from 'src/rankingRequestDraft/schema/rankingRequestDraft.schema';
 
 @Module({
   imports: [
@@ -35,6 +41,11 @@ import { UserSchema } from 'src/users/schema/user.schema';
     MongooseModule.forFeature([{ name: City.name, schema: CitySchema }]),
     MongooseModule.forFeature([{ name: Country.name, schema: CountrySchema }]),
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
+    MongooseModule.forFeature([{ name: RankingRequest.name, schema: RankingRequestSchema }]),
+    MongooseModule.forFeature([
+      { name: RankingRequestDraft.name, schema: RankingRequestDraftSchema },
+    ]),
+
     forwardRef(() => StripeModule),
   ],
   providers: [InvoiceService, InvoicePostPaymentActionService],
