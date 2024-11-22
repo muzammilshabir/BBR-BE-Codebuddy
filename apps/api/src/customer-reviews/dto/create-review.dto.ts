@@ -28,7 +28,7 @@ export class CreateReviewDto {
     required: true,
     type: String,
   })
-  residence: Types.ObjectId;
+  residenceId: Types.ObjectId;
 
   @ApiProperty({
     example: 9.2,
@@ -92,7 +92,7 @@ export const createReviewDtoSchema = Joi.object({
   fullName: Joi.string().required(),
   email: Joi.string().email().required(),
   phoneNumber: Joi.string().optional(),
-  residence: Joi.string().custom(joiObjectIdValidator('residence')).required(),
+  residenceId: Joi.string().custom(joiObjectIdValidator('residenceId')).required(),
   overallRating: Joi.number().min(1).max(10).required(),
   ratings: Joi.object({
     location: Joi.number().min(1).max(5).required(),

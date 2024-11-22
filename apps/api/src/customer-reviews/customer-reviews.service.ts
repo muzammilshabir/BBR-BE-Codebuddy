@@ -58,11 +58,11 @@ export class CustomerReviewsService {
 
   async create(createReviewDto: CreateReviewDto): Promise<CustomerReview> {
     const residence = await this.residenceService.getResidenceById(
-      createReviewDto.residence.toString()
+      createReviewDto.residenceId.toString()
     );
 
     if (!residence) {
-      throw new NotFoundException(`Residence with ID ${createReviewDto.residence} not found`);
+      throw new NotFoundException(`Residence with ID ${createReviewDto.residenceId} not found`);
     }
 
     const currentYear = new Date().getFullYear();
@@ -78,7 +78,7 @@ export class CustomerReviewsService {
 
     const transformedDto = {
       ...createReviewDto,
-      residence: new Types.ObjectId(createReviewDto.residence),
+      residence: new Types.ObjectId(createReviewDto.residenceId),
       developer: new Types.ObjectId(residence?.createdById?._id?.toString()),
       displayId,
       ...(createReviewDto.photos && {
