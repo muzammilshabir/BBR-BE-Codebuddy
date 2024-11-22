@@ -10,13 +10,14 @@ import { CreateReviewDto } from './dto/create-review.dto';
 import { CustomerReview } from './schema/customerReviews.schema';
 import { CustomerReviewRepository } from './customer-reviews.repository';
 import { DeleteReviewsDto } from './dto/delete-reviews.dto';
-import { ListReviewsDto, RatingSortType } from './dto/list-reviews.dto';
+import { ListReviewsBodyDto, ListReviewsDto, RatingSortType } from './dto/list-reviews.dto';
 import { PaginationService } from '../../../../packages/api-core/modules/pagination/pagination.service';
 import { Types } from 'mongoose';
 import { GetResidenceReviewsDto } from './dto/get-reviews-by-residenceId.dto';
 import { GoogleReviewRepository } from './google-reviews.repository';
 import { HttpService } from '@nestjs/axios';
 import { Cron } from '@nestjs/schedule';
+import { UserRole } from 'src/users/enum/user.enum';
 
 @Injectable()
 export class CustomerReviewsService {
@@ -57,11 +58,11 @@ export class CustomerReviewsService {
 
   async create(createReviewDto: CreateReviewDto): Promise<CustomerReview> {
     const residence = await this.residenceService.getResidenceById(
-      createReviewDto.residence.toString()
+      createReviewDto.residenceId.toString()
     );
 
     if (!residence) {
-      throw new NotFoundException(`Residence with ID ${createReviewDto.residence} not found`);
+      throw new NotFoundException(`Residence with ID ${createReviewDto.residenceId} not found`);
     }
 
     const currentYear = new Date().getFullYear();
@@ -84,16 +85,6 @@ export class CustomerReviewsService {
         photos: createReviewDto.photos.map((photo) => new Types.ObjectId(photo)),
       }),
     };
-
-    console.log({
-      ...createReviewDto,
-      residence: new Types.ObjectId(createReviewDto.residence),
-      developer: new Types.ObjectId(residence.createdById),
-      displayId,
-      ...(createReviewDto.photos && {
-        photos: createReviewDto.photos.map((photo) => new Types.ObjectId(photo)),
-      }),
-    });
 
     const createdReview = await this.customerReviewRepository.create(transformedDto);
 
@@ -125,14 +116,28 @@ export class CustomerReviewsService {
     return review;
   }
 
-  async listReviews(listReviewsDto: ListReviewsDto) {
+  async listReviews(userFromToken: JwtPayloadType, listReviewsDto: ListReviewsDto, listReviewsBodyDto: ListReviewsBodyDto) {
+    
     const filter: any = {
       isDeleted: false,
     };
 
-    if (listReviewsDto.developerIds?.length) {
+    if (listReviewsBodyDto.developerIds?.length) {
       filter.developer = {
-        $in: listReviewsDto.developerIds.map((id) => new Types.ObjectId(id)),
+        $in: listReviewsBodyDto.developerIds.map((id) => new Types.ObjectId(id)),
+      };
+    }
+
+    if(!listReviewsBodyDto.residenceIds?.length && userFromToken.role == UserRole.SELLER){
+      const residences = await this.residenceService.listResidencesByDeveloperId(userFromToken.sub);
+      filter.residence = {
+        $in: residences.map((residence) => residence?._id),
+      };
+    }
+
+    if (listReviewsBodyDto.residenceIds?.length) {
+      filter.residence = {
+        $in: listReviewsBodyDto.residenceIds.map((id) => new Types.ObjectId(id)),
       };
     }
 

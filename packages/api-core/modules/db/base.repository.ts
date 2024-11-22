@@ -31,6 +31,10 @@ export class BaseRepository<T extends Document> {
     return await this.model.findById(id);
   }
 
+  async findAllByFilter(filter: any): Promise<T[]> { 
+    return await this.model.find(filter);
+  }
+
   async create(createDto: any): Promise<T> {
     const createdEntity = new this.model(createDto);
     return await createdEntity.save();
