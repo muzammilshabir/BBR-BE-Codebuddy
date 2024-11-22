@@ -4,6 +4,7 @@ import { Document, Types } from 'mongoose';
 export enum InvoicePostPaymentActionType {
   CREATE_USER = 'create_user',
   CREATE_RESIDENCE = 'create_residence',
+  CREATE_RANKING_REQUEST = 'create_ranking_request',
 }
 
 export type UserDetails = {
@@ -30,6 +31,10 @@ export type ResidenceDetails = {
   placeId: string;
 };
 
+export type RankingRequestDetails = {
+  rankingCategoryIds: string[];
+};
+
 @Schema({ timestamps: true })
 export class InvoicePostPaymentAction extends Document {
   @Prop({ required: true, type: Types.ObjectId, ref: 'Invoice', index: true })
@@ -42,7 +47,7 @@ export class InvoicePostPaymentAction extends Document {
     type: Object,
     _id: false,
   })
-  data: UserDetails | ResidenceDetails;
+  data: UserDetails | ResidenceDetails | RankingRequestDetails;
 }
 
 export const InvoicePostPaymentActionSchema =
