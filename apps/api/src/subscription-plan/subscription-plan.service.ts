@@ -10,6 +10,7 @@ import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.s
 import { SubscriptionRepository } from 'src/stripe/subscription.repository';
 import { ResidenceRepository } from 'src/residences/residences.repository';
 import { ListPlanResidencesDto } from './dto/list-plan-residences.dto';
+import { ListPlansDto } from './dto/list-plan.dto';
 
 @Injectable()
 export class SubscriptionPlanService {
@@ -80,10 +81,15 @@ export class SubscriptionPlanService {
     return this.planRepository.update(planId, transformedPlan);
   }
 
-  async getPlans() {
+  async getPlans(query: ListPlansDto) {
     return this.planRepository.findAllExpanded({
       active: true,
       isDeleted: false,
+      ...(query.forPage && {
+        name: {
+          $in: ['Premium Residence Profile', 'Bespoke Residence Profile'],
+        },
+      }),
     });
   }
 
@@ -116,9 +122,7 @@ export class SubscriptionPlanService {
       query.status = status;
     }
     if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-      ];
+      query.$or = [{ name: { $regex: search, $options: 'i' } }];
     }
     const options = PaginationService.prepareOptions(listResidencesDto);
     const { data, count } = await this.residenceRepository.findAll(query, options);
