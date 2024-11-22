@@ -59,7 +59,6 @@ export class ServiceConfig extends BbrStatefulServiceConfig {
     clientEmail: this.getOrThrow('FCM_CLIENT_EMAIL'),
   };
   readonly stripe = {
-    apiKey: this.getOrThrow('STRIPE_API_KEY'),
     secretKey: this.getOrThrow('STRIPE_SECRET_KEY'),
     successPage: this.getOrThrow('STRIPE_SUCCESS_PAGE'),
     cancelPage: this.getOrThrow('STRIPE_CANCEL_PAGE'),

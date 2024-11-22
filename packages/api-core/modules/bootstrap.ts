@@ -14,7 +14,7 @@ export async function bootstrap(appModule: any) {
   });
   app.enableCors();
 
-  app.useLogger(app.get(Logger));
+  // app.useLogger(app.get(Logger));
 
   const httpAdapter = app.get(HttpAdapterHost);
   app.useGlobalFilters(new GlobalExceptionsFilter(httpAdapter));
