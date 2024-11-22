@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { InvoiceService } from './invoice.service';
 import { StripeModule } from 'src/stripe/stripe.module';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -9,10 +9,24 @@ import {
   InvoicePostPaymentActionSchema,
 } from 'src/stripe/schema/invoice-post-payment-action.schema';
 import { InvoicePostPaymentActionService } from './invoice-post-payment-action.service';
+import { Residence, ResidenceSchema } from 'src/residences/schema/residences.schema';
+import {
+  ResidenceDraft,
+  ResidenceDraftSchema,
+} from 'src/residencesDraft/schema/residencesDraft.schema';
+import { City, CitySchema } from 'src/city/schema/city.schema';
+import { Country, CountrySchema } from 'src/country/schema/country.schema';
+import { User } from 'src/users/schema/user.schema';
+import { UserSchema } from 'src/users/schema/user.schema';
+import { RankingRequest } from 'src/rankingRequest/schema/rankingRequest.schema';
+import { RankingRequestSchema } from 'src/rankingRequest/schema/rankingRequest.schema';
+import {
+  RankingRequestDraft,
+  RankingRequestDraftSchema,
+} from 'src/rankingRequestDraft/schema/rankingRequestDraft.schema';
 
 @Module({
   imports: [
-    StripeModule,
     MongooseModule.forFeature([{ name: Invoice.name, schema: InvoiceSchema }]),
     MongooseModule.forFeature([{ name: InvoiceItem.name, schema: InvoiceItemSchema }]),
     MongooseModule.forFeature([
@@ -21,6 +35,18 @@ import { InvoicePostPaymentActionService } from './invoice-post-payment-action.s
         schema: InvoicePostPaymentActionSchema,
       },
     ]),
+
+    MongooseModule.forFeature([{ name: Residence.name, schema: ResidenceSchema }]),
+    MongooseModule.forFeature([{ name: ResidenceDraft.name, schema: ResidenceDraftSchema }]),
+    MongooseModule.forFeature([{ name: City.name, schema: CitySchema }]),
+    MongooseModule.forFeature([{ name: Country.name, schema: CountrySchema }]),
+    MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
+    MongooseModule.forFeature([{ name: RankingRequest.name, schema: RankingRequestSchema }]),
+    MongooseModule.forFeature([
+      { name: RankingRequestDraft.name, schema: RankingRequestDraftSchema },
+    ]),
+
+    forwardRef(() => StripeModule),
   ],
   providers: [InvoiceService, InvoicePostPaymentActionService],
   exports: [InvoiceService, InvoicePostPaymentActionService],

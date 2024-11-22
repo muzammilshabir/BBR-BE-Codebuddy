@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { StripeService } from './stripe.service';
 import { ServiceConfig } from 'src/config';
 import { ConfigModule } from '@nestjs/config';
@@ -36,6 +36,7 @@ import { Plan, PlanSchema } from 'src/subscription-plan/schema/plan.schema';
 import { Residence, ResidenceSchema } from 'src/residences/schema/residences.schema';
 import { UploadModule } from 'src/upload/upload.module';
 import { PdfModule } from 'src/pdf/pdf.module';
+import { InvoiceModule } from 'src/invoice/invoice.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { PdfModule } from 'src/pdf/pdf.module';
     MongooseModule.forFeature([{ name: Plan.name, schema: PlanSchema }]),
     MongooseModule.forFeature([{ name: Feature.name, schema: FeatureSchema }]),
     MongooseModule.forFeature([{ name: Residence.name, schema: ResidenceSchema }]),
+    forwardRef(() => InvoiceModule),
   ],
   controllers: [StripeController, PaymentController, PaymentAdminController],
   providers: [

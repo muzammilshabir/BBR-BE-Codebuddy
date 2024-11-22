@@ -21,6 +21,7 @@ import { InvoiceStatus } from './enum/invoice-status.enum';
 import { PaymentAttemptStatus } from './enum/payment-attempt-status.enum';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { TransactionStatus } from './enum/transaction-status.enum';
+import { InvoicePostPaymentActionService } from 'src/invoice/invoice-post-payment-action.service';
 
 @Injectable()
 export class StripeWebhookService {
@@ -36,7 +37,8 @@ export class StripeWebhookService {
     private readonly invoiceRepository: InvoiceRepository,
     private readonly invoiceItemRepository: InvoiceItemRepository,
     private readonly subscriptionRepository: SubscriptionRepository,
-    private readonly paymentAttemptRepository: PaymentAttemptRepository
+    private readonly paymentAttemptRepository: PaymentAttemptRepository,
+    private readonly invoicePostPaymentActionService: InvoicePostPaymentActionService
   ) {
     this.stripe = new Stripe(configService.stripe.secretKey, {
       apiVersion: '2024-06-20',
@@ -171,6 +173,9 @@ export class StripeWebhookService {
         };
         await this.transactionRepository.create(transaction);
       }
+
+      await this.invoicePostPaymentActionService.performActions(internalInvoice.id);
+
       this.logger.log(`Successfully processed paid invoice ${internalInvoice.id}`);
       return { success: true, invoiceId: internalInvoice.id, amount: stripeInvoice.total };
     } catch (error) {

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { GuestApplyRankingDto } from './guast-apply-ranking.dto';
 import { RankingCategoryRepository } from 'src/rankingCategory/rankingCategory.repository';
 import { InvoiceService } from 'src/invoice/invoice.service';
@@ -8,6 +8,9 @@ import { InvoicePostPaymentActionType } from 'src/stripe/schema/invoice-post-pay
 import * as argon from 'argon2';
 import { PaymentAttemptRepository } from 'src/stripe/payment-attempt.repository';
 import { PaymentAttemptStatus } from 'src/stripe/enum/payment-attempt-status.enum';
+import { User } from 'src/users/schema/user.schema';
+import { Model } from 'mongoose';
+import { InjectModel } from '@nestjs/mongoose';
 
 @Injectable()
 export class GuestApplyRankingService {
@@ -16,10 +19,17 @@ export class GuestApplyRankingService {
     private readonly invoiceService: InvoiceService,
     private readonly stripeService: StripeService,
     private readonly invoicePostPaymentActionService: InvoicePostPaymentActionService,
-    private readonly paymentAttemptRepository: PaymentAttemptRepository
+    private readonly paymentAttemptRepository: PaymentAttemptRepository,
+    @InjectModel(User.name)
+    private userModel: Model<User>
   ) {}
   async findRankingCategory(body: GuestApplyRankingDto) {
     const rankingCategories = await this.getRankingCategories(body.rankingCategoryIds);
+
+    const user = await this.userModel.findOne({ email: body.userDetails.email });
+    if (user) {
+      throw new ConflictException('User already exists');
+    }
 
     const stripeCustomer = await this.stripeService.createCustomer({
       name: body.userDetails.fullName,
@@ -55,6 +65,13 @@ export class GuestApplyRankingService {
         InvoicePostPaymentActionType.CREATE_RESIDENCE,
         body.residenceDetails
       ),
+      this.invoicePostPaymentActionService.create(
+        invoice.id,
+        InvoicePostPaymentActionType.CREATE_RANKING_REQUEST,
+        {
+          rankingCategoryIds: body.rankingCategoryIds,
+        }
+      ),
     ]);
 
     const stripePaymentMethod = await this.stripeService.createPaymentMethod(
@@ -73,7 +90,7 @@ export class GuestApplyRankingService {
       attemptsRemainingToday: 0,
     });
 
-    return invoice;
+    return true;
   }
 
   async getRankingCategories(rankingCategoryIds: string[]) {
