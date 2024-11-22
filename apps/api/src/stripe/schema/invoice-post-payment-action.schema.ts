@@ -23,6 +23,11 @@ export type ResidenceDetails = {
   cityId: string;
   zipCode: string;
   address1: string;
+  location: {
+    lat: number;
+    lng: number;
+  };
+  placeId: string;
 };
 
 @Schema({ timestamps: true })
