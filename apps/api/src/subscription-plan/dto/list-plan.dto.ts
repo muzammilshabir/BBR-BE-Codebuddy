@@ -3,6 +3,7 @@ import * as Joi from 'joi';
 
 export enum PlanForPage {
   GUEST_UPLOAD_INVENTORY = 'guest-upload-inventory',
+  REQUEST_PREMIUM_RESIDENCE_PROFILE = 'request-premium-residence-profile',
 }
 
 export class ListPlansDto {
