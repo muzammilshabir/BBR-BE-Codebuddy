@@ -11,7 +11,7 @@ import { RequestReviewDto, requestReviewDtoSchema } from './dto/request-review.d
 import { Public } from '../auth/decorators/public.decorator';
 import { CreateReviewDto, createReviewDtoSchema } from './dto/create-review.dto';
 import { DeleteReviewsDto, deleteReviewsDtoSchema } from './dto/delete-reviews.dto';
-import { ListReviewsDto, listReviewsSchema } from './dto/list-reviews.dto';
+import { ListReviewsBodyDto, listReviewsBodySchema, ListReviewsDto, listReviewsSchema } from './dto/list-reviews.dto';
 import { GetReviewByIdDto, getReviewByIdSchema } from './dto/get-review-by-id.dto';
 import {
   GetResidenceReviewsDto,
@@ -45,21 +45,26 @@ export class CustomerReviewsController {
   @ApiOperation({
     summary: 'Create Review for a residence',
   })
-  @ApiBearerAuth()
   @UsePipes(new JoiValidationPipe(createReviewDtoSchema, 'body'))
   async create(@Body() createReviewDto: CreateReviewDto) {
     const review = await this.customerReviewsService.create(createReviewDto);
     return ResponseService.buildResponse({ review }, 'Review created successfully');
   }
 
-  @Get('/')
+  @Post('/list-reviews')
   @ApiOperation({
     summary: 'List Reviews with filters and pagination',
   })
-  @Public()
-  @UsePipes(new JoiValidationPipe(listReviewsSchema, 'query'))
-  async listReviews(@Query() query: ListReviewsDto) {
-    const result = await this.customerReviewsService.listReviews(query);
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN, UserRole.SELLER)
+  @UsePipes(new JoiValidationPipe(listReviewsBodySchema, 'body')) 
+  @UsePipes(new JoiValidationPipe(listReviewsSchema, 'query')) 
+  async listReviews(
+    @Query() query: ListReviewsDto, 
+    @Body() body: ListReviewsBodyDto,
+    @GetCurrentUser() userFromToken: JwtPayloadType,   
+  ) {
+    const result = await this.customerReviewsService.listReviews(userFromToken, query, body);
     return ResponseService.buildResponse(result, 'Reviews retrieved successfully');
   }
 
@@ -70,7 +75,7 @@ export class CustomerReviewsController {
   @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
   @UsePipes(new JoiValidationPipe(getReviewByIdSchema, 'param'))
-  async getStatsById(@Param() params: GetReviewByIdDto) {
+  async getStatsById(@Param() params: GetReviewByIdDto) {  
     const reviewStats = await this.customerReviewsService.getReviewById(params.id);
     return ResponseService.buildResponse({ reviewStats }, 'Review Stats retrieved successfully');
   }

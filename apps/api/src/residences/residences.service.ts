@@ -1197,4 +1197,9 @@ export class ResidenceService {
   async updateFeaturedStatus(updateFeaturedDto: UpdateFeaturedDto) {
     return await this.residenceRepository.updateFeaturedStatus(updateFeaturedDto);
   }
+
+  async listResidencesByDeveloperId(developerId: string) {
+    console.log(developerId)
+    return this.residenceRepository.findAllByFilter({ createdById: new Types.ObjectId(developerId)})
+  }
 }
