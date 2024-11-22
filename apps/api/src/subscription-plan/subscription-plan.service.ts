@@ -5,11 +5,13 @@ import { CreateFeatureDto } from './dto/create-feature.dto';
 import { UpdateFeatureDto } from './dto/update-feature.dto';
 import { CreatePlanDto } from './dto/create-plan.dto';
 import { UpdatePlanDto } from './dto/update-plan.dto';
-import { Types } from 'mongoose';
+import { RootFilterQuery, Types } from 'mongoose';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
 import { SubscriptionRepository } from 'src/stripe/subscription.repository';
 import { ResidenceRepository } from 'src/residences/residences.repository';
 import { ListPlanResidencesDto } from './dto/list-plan-residences.dto';
+import { ListPlansDto, PlanForPage } from './dto/list-plan.dto';
+import { Plan } from './schema/plan.schema';
 
 @Injectable()
 export class SubscriptionPlanService {
@@ -80,11 +82,23 @@ export class SubscriptionPlanService {
     return this.planRepository.update(planId, transformedPlan);
   }
 
-  async getPlans() {
-    return this.planRepository.findAllExpanded({
+  async getPlans(query: ListPlansDto) {
+    const options: RootFilterQuery<Plan> = {
       active: true,
       isDeleted: false,
-    });
+    };
+    if (query.forPage === PlanForPage.GUEST_UPLOAD_INVENTORY) {
+      options.name = {
+        $in: ['Premium Residence Profile', 'Bespoke Residence Profile'],
+      };
+    }
+    if (query.forPage === PlanForPage.REQUEST_PREMIUM_RESIDENCE_PROFILE) {
+      options.name = {
+        $in: ['Premium Residence Profile'],
+      };
+    }
+
+    return this.planRepository.findAllExpanded(options);
   }
 
   async getPlansAdmin() {
@@ -116,9 +130,7 @@ export class SubscriptionPlanService {
       query.status = status;
     }
     if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-      ];
+      query.$or = [{ name: { $regex: search, $options: 'i' } }];
     }
     const options = PaginationService.prepareOptions(listResidencesDto);
     const { data, count } = await this.residenceRepository.findAll(query, options);

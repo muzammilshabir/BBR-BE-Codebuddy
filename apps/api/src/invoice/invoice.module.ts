@@ -24,6 +24,7 @@ import {
   RankingRequestDraft,
   RankingRequestDraftSchema,
 } from 'src/rankingRequestDraft/schema/rankingRequestDraft.schema';
+import { Transaction, TransactionSchema } from 'src/stripe/schema/transaction.schema';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import {
     MongooseModule.forFeature([
       { name: RankingRequestDraft.name, schema: RankingRequestDraftSchema },
     ]),
+    MongooseModule.forFeature([{ name: Transaction.name, schema: TransactionSchema }]),
 
     forwardRef(() => StripeModule),
   ],
