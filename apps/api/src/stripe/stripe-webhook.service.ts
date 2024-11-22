@@ -174,7 +174,10 @@ export class StripeWebhookService {
         await this.transactionRepository.create(transaction);
       }
 
-      await this.invoicePostPaymentActionService.performActions(internalInvoice.id);
+      await this.invoicePostPaymentActionService.performActions(
+        internalInvoice.id,
+        stripeInvoice.total
+      );
 
       this.logger.log(`Successfully processed paid invoice ${internalInvoice.id}`);
       return { success: true, invoiceId: internalInvoice.id, amount: stripeInvoice.total };
