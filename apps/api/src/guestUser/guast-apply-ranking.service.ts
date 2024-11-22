@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { GuestApplyRankingDto } from './guast-apply-ranking.dto';
 import { RankingCategoryRepository } from 'src/rankingCategory/rankingCategory.repository';
 import { InvoiceService } from 'src/invoice/invoice.service';
@@ -6,6 +6,11 @@ import { StripeService } from 'src/stripe/stripe.service';
 import { InvoicePostPaymentActionService } from 'src/invoice/invoice-post-payment-action.service';
 import { InvoicePostPaymentActionType } from 'src/stripe/schema/invoice-post-payment-action.schema';
 import * as argon from 'argon2';
+import { PaymentAttemptRepository } from 'src/stripe/payment-attempt.repository';
+import { PaymentAttemptStatus } from 'src/stripe/enum/payment-attempt-status.enum';
+import { User } from 'src/users/schema/user.schema';
+import { Model } from 'mongoose';
+import { InjectModel } from '@nestjs/mongoose';
 
 @Injectable()
 export class GuestApplyRankingService {
@@ -13,10 +18,18 @@ export class GuestApplyRankingService {
     private readonly rankingCategoryRepository: RankingCategoryRepository,
     private readonly invoiceService: InvoiceService,
     private readonly stripeService: StripeService,
-    private readonly invoicePostPaymentActionService: InvoicePostPaymentActionService
+    private readonly invoicePostPaymentActionService: InvoicePostPaymentActionService,
+    private readonly paymentAttemptRepository: PaymentAttemptRepository,
+    @InjectModel(User.name)
+    private userModel: Model<User>
   ) {}
   async findRankingCategory(body: GuestApplyRankingDto) {
     const rankingCategories = await this.getRankingCategories(body.rankingCategoryIds);
+
+    const user = await this.userModel.findOne({ email: body.userDetails.email });
+    if (user) {
+      throw new ConflictException('User already exists');
+    }
 
     const stripeCustomer = await this.stripeService.createCustomer({
       name: body.userDetails.fullName,
@@ -52,9 +65,32 @@ export class GuestApplyRankingService {
         InvoicePostPaymentActionType.CREATE_RESIDENCE,
         body.residenceDetails
       ),
+      this.invoicePostPaymentActionService.create(
+        invoice.id,
+        InvoicePostPaymentActionType.CREATE_RANKING_REQUEST,
+        {
+          rankingCategoryIds: body.rankingCategoryIds,
+        }
+      ),
     ]);
 
-    return invoice;
+    const stripePaymentMethod = await this.stripeService.createPaymentMethod(
+      stripeCustomer.id,
+      body.stripePmTokenId
+    );
+
+    await this.stripeService.payInvoiceUsingPaymentMethod(stripeInvoice.id, stripePaymentMethod.id);
+    await this.paymentAttemptRepository.create({
+      invoiceId: invoice._id,
+      paymentMethodId: invoice.paymentMethodId,
+      stripeInvoiceId: stripeInvoice.id,
+      status: PaymentAttemptStatus.PENDING,
+      attemptNumber: 1,
+      attemptsRemaining: 0,
+      attemptsRemainingToday: 0,
+    });
+
+    return true;
   }
 
   async getRankingCategories(rankingCategoryIds: string[]) {

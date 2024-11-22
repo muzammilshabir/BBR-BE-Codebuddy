@@ -12,6 +12,11 @@ export const guestApplyRankingSchema = Joi.object({
     cityId: Joi.string().custom(joiObjectIdValidator('cityId')).required(),
     zipCode: Joi.string().required(),
     address1: Joi.string().required(),
+    location: Joi.object({
+      lat: Joi.number().required(),
+      lng: Joi.number().required(),
+    }).required(),
+    placeId: Joi.string().required(),
   }),
   rankingCategoryIds: Joi.array()
     .items(Joi.string().custom(joiObjectIdValidator('rankingCategoryId')))
@@ -27,6 +32,20 @@ export const guestApplyRankingSchema = Joi.object({
   }),
   stripePmTokenId: Joi.string().required(),
 });
+
+export class Location {
+  @ApiProperty({
+    description: 'Latitude',
+    type: Number,
+  })
+  lat: number;
+
+  @ApiProperty({
+    description: 'Longitude',
+    type: Number,
+  })
+  lng: number;
+}
 
 export class ResidenceDetailsDto {
   @ApiProperty({
@@ -64,6 +83,18 @@ export class ResidenceDetailsDto {
     type: String,
   })
   address1: string;
+
+  @ApiProperty({
+    description: 'Location',
+    type: Location,
+  })
+  location: Location;
+
+  @ApiProperty({
+    description: 'Place ID',
+    type: String,
+  })
+  placeId: string;
 }
 
 export class UserDetailsDto {
