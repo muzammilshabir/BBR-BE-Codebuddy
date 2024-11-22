@@ -12,9 +12,9 @@ import { PaymentMethod } from './payment-method.schema';
   toObject: {
     virtuals: true,
   },
- })
+})
 export class Invoice extends Document {
-  @Prop({ required: true, type: Types.ObjectId, ref: 'Residence' })
+  @Prop({ required: false, type: Types.ObjectId, ref: 'Residence' })
   residenceId: Types.ObjectId;
 
   @Prop({
@@ -110,23 +110,23 @@ InvoiceSchema.virtual('paymentMethod', {
   ref: 'PaymentMethod',
   localField: 'paymentMethodId',
   foreignField: 'paymentMethodId',
-  justOne: true
+  justOne: true,
 });
 
-InvoiceSchema.statics.generateInvoiceNumber = async function() {
+InvoiceSchema.statics.generateInvoiceNumber = async function () {
   const currentDate = new Date();
   const year = currentDate.getFullYear().toString().slice(-2);
   const month = (currentDate.getMonth() + 1).toString().padStart(2, '0');
-  
+
   let sequence = 1;
   let invoiceNumber;
   let isUnique = false;
 
   while (!isUnique) {
     invoiceNumber = `INV${year}-M${month}-${sequence.toString().padStart(4, '0')}`;
-    
+
     const existingInvoice = await this.findOne({ invoiceNumber });
-    
+
     if (!existingInvoice) {
       isUnique = true;
     } else {
@@ -137,7 +137,7 @@ InvoiceSchema.statics.generateInvoiceNumber = async function() {
   return invoiceNumber;
 };
 
-InvoiceSchema.pre('save', async function(next) {
+InvoiceSchema.pre('save', async function (next) {
   if (this.isNew) {
     this.invoiceNumber = await (this.constructor as any).generateInvoiceNumber();
   }

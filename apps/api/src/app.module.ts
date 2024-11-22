@@ -53,6 +53,8 @@ import { LoginAttemptModule } from './loginAttempt/loginAttempt.module';
 import { ScheduleModule, SchedulerRegistry } from '@nestjs/schedule';
 import { PdfModule } from './pdf/pdf.module';
 import { CustomerReviewsModule } from './customer-reviews/customer-reviews.module';
+import { GuestApplyRankingModule } from './guestUser/guast-apply-ranking.module';
+import { InvoiceModule } from './invoice/invoice.module';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -105,6 +107,8 @@ import { CustomerReviewsModule } from './customer-reviews/customer-reviews.modul
     ScheduleModule.forRoot(),
     PdfModule,
     CustomerReviewsModule,
+    GuestApplyRankingModule,
+    InvoiceModule,
   ],
   controllers: [AppController],
   providers: [
