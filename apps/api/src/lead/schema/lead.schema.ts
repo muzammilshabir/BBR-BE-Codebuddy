@@ -1,6 +1,9 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { LeadSource, LeadStatus } from '../enum/lead-enum';
+import { CounterService } from '../../counter/counter.service';
+import { PhoneNumber } from '../dto/create-lead.dto';
+
 
 @Schema({
   timestamps: true,
@@ -12,11 +15,14 @@ import { LeadSource, LeadStatus } from '../enum/lead-enum';
   },
 })
 export class Lead extends Document {
+  @Prop({ required: false, unique: true })
+  displayId: string;
+
   @Prop({ required: true })
   name: string;
 
   @Prop({ required: true })
-  phoneNumber: string;
+  phoneNumber: PhoneNumber;
 
   @Prop({ required: true })
   email: string;
@@ -93,6 +99,22 @@ LeadSchema.virtual('user', {
   localField: 'email',
   foreignField: 'email',
   justOne: true,
+});
+
+
+LeadSchema.pre('save', async function(next) {
+  
+  if (this.isNew) {
+    const currentYear = new Date().getFullYear();
+    const counterService = new CounterService(this.model('Counter'));
+
+    const counter = await counterService.getNextSequence('Lead');
+
+    // Format counter to have leading zeros (001, 002, etc.)
+    const paddedCounter = counter.toString().padStart(3, '0');
+    this.displayId = `L${currentYear}-${paddedCounter}`;
+  }
+  next();
 });
 
 export { LeadSchema };
