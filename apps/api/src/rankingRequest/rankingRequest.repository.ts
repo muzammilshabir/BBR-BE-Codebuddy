@@ -77,6 +77,17 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
       ]);
   }
 
+  async findRankings(filter: any): Promise<any> {
+    return this.rankingRequestModel
+      .find({
+        ...filter,
+        isDeleted: { $ne: DeletionStatus.DELETED }, // Ensure non-deleted records
+      })
+      .populate({
+        path: 'rankingCategoryId', 
+      });
+  }
+
   async listRankingRequestWithDraft(
     listRankingRequestWithDraftDto: ListRankingRequestWithDraftDto
   ): Promise<any[]> {
