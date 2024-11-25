@@ -26,7 +26,7 @@ import { CounterModule } from '../counter/counter.module';
     LeadSeeder,
 
   ],
-  exports: [LeadSeeder],
+  exports: [LeadSeeder, LeadService],
   controllers: [LeadController],
 })
 export class LeadModule {}
