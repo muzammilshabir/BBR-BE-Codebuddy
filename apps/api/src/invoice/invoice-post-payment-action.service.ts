@@ -18,6 +18,9 @@ import { User } from 'src/users/schema/user.schema';
 import { RankingRequest } from 'src/rankingRequest/schema/rankingRequest.schema';
 import { RankingRequestDraft } from 'src/rankingRequestDraft/schema/rankingRequestDraft.schema';
 import { PaymentStatus } from 'src/rankingRequest/enum/payment-status.enum';
+import { Invoice } from 'src/stripe/schema/invoice.schema';
+import { Transaction } from 'src/stripe/schema/transaction.schema';
+import { TransactionStatus } from 'src/stripe/enum/transaction-status.enum';
 
 @Injectable()
 export class InvoicePostPaymentActionService {
@@ -37,7 +40,11 @@ export class InvoicePostPaymentActionService {
     @InjectModel(RankingRequest.name)
     private rankingRequestModel: Model<RankingRequest>,
     @InjectModel(RankingRequestDraft.name)
-    private rankingRequestDraftModel: Model<RankingRequestDraft>
+    private rankingRequestDraftModel: Model<RankingRequestDraft>,
+    @InjectModel(Invoice.name)
+    private invoiceModel: Model<Invoice>,
+    @InjectModel(Transaction.name)
+    private transactionModel: Model<Transaction>
   ) {}
 
   async create(
@@ -52,7 +59,7 @@ export class InvoicePostPaymentActionService {
     });
   }
 
-  async performActions(invoiceId: string) {
+  async performActions(invoiceId: string, amount: number) {
     const invoicePostPaymentActions = await this.invoicePostPaymentActionModel.find({
       invoiceId,
     });
@@ -70,6 +77,11 @@ export class InvoicePostPaymentActionService {
           signupMethod: SignupMethod.EMAIL,
           role: UserRole.SELLER,
           stripeCustomerId: userDetails.stripeCustomerId,
+        });
+
+        await this.invoiceModel.findByIdAndUpdate(invoiceId, {
+          createdById: user._id,
+          developerId: user._id,
         });
       }
 
@@ -94,10 +106,22 @@ export class InvoicePostPaymentActionService {
           },
         };
         residence = await this.residenceModel.create(residenceData);
-        await this.residenceDraftModel.create({
-          ...residenceData,
-          residenceId: residence._id,
-        });
+        await Promise.all([
+          this.residenceDraftModel.create({
+            ...residenceData,
+            residenceId: residence._id,
+          }),
+          this.invoiceModel.findByIdAndUpdate(invoiceId, {
+            residenceId: residence._id,
+          }),
+          this.transactionModel.create({
+            residenceId: residence._id,
+            developerId: user._id,
+            invoiceId: invoiceId,
+            amount,
+            status: TransactionStatus.PAID,
+          }),
+        ]);
       }
 
       if (action.type === InvoicePostPaymentActionType.CREATE_RANKING_REQUEST) {

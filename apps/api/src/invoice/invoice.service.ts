@@ -5,6 +5,7 @@ import { Model } from 'mongoose';
 import { RankingCategory } from 'src/rankingCategory/schema/rankingCategory.schema';
 import { InvoiceItem } from 'src/stripe/schema/invoice-item.schema';
 import { StripeService } from 'src/stripe/stripe.service';
+import { Plan } from 'src/subscription-plan/schema/plan.schema';
 
 @Injectable()
 export class InvoiceService {
@@ -59,5 +60,14 @@ export class InvoiceService {
         stripeInvoiceLineItemId: stripeLineItem.id,
       });
     }
+  }
+
+  async createLineItemsFromSubscriptionPlan(invoiceId: string, subscriptionPlan: Plan) {
+    return await this.lineItemModel.create({
+      invoiceId,
+      name: subscriptionPlan.name,
+      unitAmount: subscriptionPlan.fee,
+      totalAmount: subscriptionPlan.fee,
+    });
   }
 }
