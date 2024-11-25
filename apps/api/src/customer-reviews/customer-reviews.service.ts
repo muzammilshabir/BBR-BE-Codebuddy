@@ -10,10 +10,14 @@ import { CreateReviewDto } from './dto/create-review.dto';
 import { CustomerReview } from './schema/customerReviews.schema';
 import { CustomerReviewRepository } from './customer-reviews.repository';
 import { DeleteReviewsDto } from './dto/delete-reviews.dto';
-import { ListReviewsDto, RatingSortType } from './dto/list-reviews.dto';
+import { ListReviewsBodyDto, ListReviewsDto, RatingSortType } from './dto/list-reviews.dto';
 import { PaginationService } from '../../../../packages/api-core/modules/pagination/pagination.service';
 import { Types } from 'mongoose';
 import { GetResidenceReviewsDto } from './dto/get-reviews-by-residenceId.dto';
+import { GoogleReviewRepository } from './google-reviews.repository';
+import { HttpService } from '@nestjs/axios';
+import { Cron } from '@nestjs/schedule';
+import { UserRole } from 'src/users/enum/user.enum';
 
 @Injectable()
 export class CustomerReviewsService {
@@ -21,8 +25,15 @@ export class CustomerReviewsService {
     private readonly residenceService: ResidenceService,
     private readonly userService: UserService,
     private readonly eventEmitter: EventEmitter2,
-    private readonly customerReviewRepository: CustomerReviewRepository
+    private readonly customerReviewRepository: CustomerReviewRepository,
+    private readonly googleReviewRepository: GoogleReviewRepository,
+    private readonly httpService: HttpService
   ) {}
+
+  @Cron('0 0 * * 0')
+  async handleCron() {
+    await this.processAllReviews();
+  }
 
   async requestReview(
     userFromToken: JwtPayloadType,
@@ -105,14 +116,28 @@ export class CustomerReviewsService {
     return review;
   }
 
-  async listReviews(listReviewsDto: ListReviewsDto) {
+  async listReviews(userFromToken: JwtPayloadType, listReviewsDto: ListReviewsDto, listReviewsBodyDto: ListReviewsBodyDto) {
+    
     const filter: any = {
       isDeleted: false,
     };
 
-    if (listReviewsDto.developerIds?.length) {
+    if (listReviewsBodyDto.developerIds?.length) {
       filter.developer = {
-        $in: listReviewsDto.developerIds.map((id) => new Types.ObjectId(id)),
+        $in: listReviewsBodyDto.developerIds.map((id) => new Types.ObjectId(id)),
+      };
+    }
+
+    if(!listReviewsBodyDto.residenceIds?.length && userFromToken.role == UserRole.SELLER){
+      const residences = await this.residenceService.listResidencesByDeveloperId(userFromToken.sub);
+      filter.residence = {
+        $in: residences.map((residence) => residence?._id),
+      };
+    }
+
+    if (listReviewsBodyDto.residenceIds?.length) {
+      filter.residence = {
+        $in: listReviewsBodyDto.residenceIds.map((id) => new Types.ObjectId(id)),
       };
     }
 
@@ -156,11 +181,12 @@ export class CustomerReviewsService {
       sort,
     };
 
-    const { data, count } = await this.customerReviewRepository.findAllReviews(filter, options);
+    const { data, count, avgOverallRating } = await this.customerReviewRepository.findAllReviews(filter, options);
     const { pagination } = PaginationService.paginate({ rows: data, count }, listReviewsDto);
 
     return {
       pagination,
+      avgOverallRating:  parseFloat(avgOverallRating.toFixed(1)),
       reviews: data,
     };
   }
@@ -239,4 +265,117 @@ export class CustomerReviewsService {
       })
     );
   }
+
+  async fetchGoogleReviews(placeId: string): Promise<any[]> {
+    try {
+      const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=reviews&key=${process.env.GOOGLE_PLACE_API_KEY}`;
+      const response = await this.httpService.axiosRef.get(url);
+      
+      if (response.data.status !== 'OK' || !response.data.result?.reviews) {
+        return [];
+      }
+
+      return response.data.result.reviews;
+    } catch (error) {
+      return [];
+    }
+  }
+
+  async summarizeReviews(reviews: any[]): Promise<{ summary: string; rating: number }> {
+    const reviewText = reviews.map((r) => r.text).join('\n');
+    const openAiUrl = process.env.OPENAI_URI;
+    const prompt = `
+      Craft a concise, personal review of this location as if you're a traveler sharing insights with a friend.
+      Capture the essence of the experience, highlighting unique aspects and overall impression.
+      Provide a genuine, conversational summary that feels authentic and helpful.
+      Format your response as a JSON object with 'rating' and 'summary' keys.
+
+      Example Format:
+      {
+        "rating": 4.6,
+        "summary": "Friendly description that sounds like a real traveler's recommendation"
+      }
+
+      Reviews to consider:
+      ${reviewText}
+    `;
+
+    const response = await this.httpService.axiosRef.post(
+      openAiUrl,
+      {
+        model: 'gpt-3.5-turbo',
+        messages: [{ role: 'system', content: prompt }],
+      },
+      {
+        headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
+      }
+    );
+
+    const content = response.data.choices[0]?.message?.content || '';
+    let rating = 0;
+    let summary = '';
+
+      const parsedResponse = JSON.parse(content);
+      rating = parsedResponse.rating || 0;
+      summary = parsedResponse.summary || '';
+    
+
+    return { summary, rating };
+  }
+
+  async processReviewsForResidence(residenceId: string, placeId: string): Promise<void> {
+    const reviews = await this.fetchGoogleReviews(placeId);
+
+    if (reviews.length > 0) {
+      const { summary, rating } = await this.summarizeReviews(reviews);
+
+      const filter = { placeId };
+      const updateDto = {
+        residenceId: new Types.ObjectId(residenceId),
+        placeId,
+        reviewSummary: summary,
+        rating,
+        updatedAt: new Date(),
+      };
+
+      await this.googleReviewRepository.upsert(filter, updateDto);
+    }
+  }
+
+  async processAllReviews(): Promise<void> {
+    const residences = await this.residenceService.getAllResidences({
+      select: { _id: true },
+    });
+
+    for (const residence of residences.data) {
+      if(residence?.placeId){
+        await this.processReviewsForResidence(residence._id.toString(), residence.placeId);
+      }
+    }
+  }
+
+  async getReviewsForResidence(residenceId: string) {
+    const foundResidence = await this.residenceService.getResidenceById(
+      residenceId.toString()
+    );
+
+    if (!foundResidence) {
+      throw new NotFoundException(`Residence with ID ${residenceId} not found`);
+    }
+
+    let foundReview = await this.googleReviewRepository.find({ residenceId: new Types.ObjectId(residenceId) });
+  
+    if (!foundReview) {
+      if (!foundResidence?.placeId) {
+        throw new NotFoundException(`PlaceId not found for residence with ID ${residenceId}`);
+      }
+      await this.processReviewsForResidence(residenceId, foundResidence.placeId);
+      
+      foundReview = await this.googleReviewRepository.find({
+        residenceId: new Types.ObjectId(residenceId),
+      });
+    }
+    return foundReview;
+  }
+
 }

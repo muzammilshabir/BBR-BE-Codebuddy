@@ -18,7 +18,7 @@ export class CreateReviewDto {
   email: string;
 
   @ApiProperty({
-    example: '123-456-7890',
+    example: '9876543210',
     required: false,
   })
   phoneNumber?: string;
@@ -93,7 +93,7 @@ export const createReviewDtoSchema = Joi.object({
   email: Joi.string().email().required(),
   phoneNumber: Joi.string().optional(),
   residenceId: Joi.string().custom(joiObjectIdValidator('residenceId')).required(),
-  overallRating: Joi.number().min(0).max(10).required(),
+  overallRating: Joi.number().min(1).max(10).required(),
   ratings: Joi.object({
     location: Joi.number().min(1).max(5).required(),
     amenities: Joi.number().min(1).max(5).required(),

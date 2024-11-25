@@ -33,18 +33,18 @@ export class CustomerReviewRepository extends BaseRepository<CustomerReview> {
   async findAllReviews(
     filter: any,
     options: any
-  ): Promise<{ data: CustomerReview[]; count: number }> {
-    const [data, count] = await Promise.all([
+  ): Promise<{ data: CustomerReview[]; count: number; avgOverallRating: number }> {
+    const [data, count, avgOverallRatingResult] = await Promise.all([
       this.customerReviewModel
         .find({ ...filter, isDeleted: false, isVerifiedBuyer: true })
         .sort(options.sort)
-        .skip(options.skip)
+        .skip(options.offset)
         .limit(options.limit)
         .populate([
           {
             path: 'residence',
             model: 'Residence',
-            select: 'name',
+            select: 'name visuals',
           },
           {
             path: 'developer',
@@ -62,9 +62,15 @@ export class CustomerReviewRepository extends BaseRepository<CustomerReview> {
         isDeleted: false,
         isVerifiedBuyer: true,
       }),
+      this.customerReviewModel.aggregate([
+        { $match: { ...filter, isDeleted: false, isVerifiedBuyer: true } },
+        { $group: { _id: null, avgOverallRating: { $avg: '$overallRating' } } },
+      ]),
     ]);
-
-    return { data, count };
+  
+    const avgOverallRating = avgOverallRatingResult[0]?.avgOverallRating || 0;
+  
+    return { data, count, avgOverallRating };
   }
 
   async findOne(query: any): Promise<CustomerReview | null> {
