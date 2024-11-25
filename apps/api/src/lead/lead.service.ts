@@ -42,7 +42,30 @@ export class LeadService {
         : undefined,
       unitId: createLeadDto.unitId ? new Types.ObjectId(createLeadDto.unitId) : undefined,
       developerId: await this.getDeveloperId(createLeadDto),
+      preferences: {
+        ...createLeadDto.preferences,
+        brandIds:
+          createLeadDto?.preferences?.brandIds?.map((brandId) => new Types.ObjectId(brandId)) ||
+          undefined,
+        residenceTypeIds:
+          createLeadDto?.preferences?.residenceTypeIds?.map(
+            (residenceTypeId) => new Types.ObjectId(residenceTypeId)
+          ) || undefined,
+        lifeStyleIds:
+          createLeadDto?.preferences?.lifeStyleIds?.map(
+            (lifeStyleId) => new Types.ObjectId(lifeStyleId)
+          ) || undefined,
+        locationIds:
+          createLeadDto?.preferences?.locationIds?.map(
+            (locationId) => new Types.ObjectId(locationId)
+          ) || undefined,
+      },
+      contactInfo: {
+        ...createLeadDto?.contactInfo,
+        countryId: createLeadDto.contactInfo ? new Types.ObjectId(createLeadDto.contactInfo.countryId) : undefined,
+      },
     };
+
     return await this.leadRepository.create(transformedDto);
   }
 
@@ -103,7 +126,34 @@ export class LeadService {
     if (!existingLead) {
       throw new NotFoundException(`Lead with ID ${leadId}`);
     }
-    return this.leadRepository.update(leadId, updateLeadDto);
+    const transformedDto = {
+      ...updateLeadDto,
+      unitId: updateLeadDto.unitId ? new Types.ObjectId(updateLeadDto.unitId) : undefined,
+      preferences: {
+        ...updateLeadDto?.preferences,
+        brandIds:
+          updateLeadDto?.preferences?.brandIds?.map((brandId) => new Types.ObjectId(brandId)) ||
+          undefined,
+        residenceTypeIds:
+          updateLeadDto?.preferences?.residenceTypeIds?.map(
+            (residenceTypeId) => new Types.ObjectId(residenceTypeId)
+          ) || undefined,
+        lifeStyleIds:
+          updateLeadDto?.preferences?.lifeStyleIds?.map(
+            (lifeStyleId) => new Types.ObjectId(lifeStyleId)
+          ) || undefined,
+        locationIds:
+          updateLeadDto?.preferences?.locationIds?.map(
+            (locationId) => new Types.ObjectId(locationId)
+          ) || undefined,
+      },
+      contactInfo: {
+        ...updateLeadDto?.contactInfo,
+        countryId: updateLeadDto.contactInfo ? new Types.ObjectId(updateLeadDto.contactInfo.countryId) : undefined,
+      },
+    };
+
+    return this.leadRepository.update(leadId, transformedDto);
   }
 
   getLead(leadId: string, userId?: string): Promise<Lead> {
