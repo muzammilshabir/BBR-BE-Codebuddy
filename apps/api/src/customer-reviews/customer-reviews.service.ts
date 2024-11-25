@@ -181,11 +181,12 @@ export class CustomerReviewsService {
       sort,
     };
 
-    const { data, count } = await this.customerReviewRepository.findAllReviews(filter, options);
+    const { data, count, avgOverallRating } = await this.customerReviewRepository.findAllReviews(filter, options);
     const { pagination } = PaginationService.paginate({ rows: data, count }, listReviewsDto);
 
     return {
       pagination,
+      avgOverallRating:  parseFloat(avgOverallRating.toFixed(1)),
       reviews: data,
     };
   }
