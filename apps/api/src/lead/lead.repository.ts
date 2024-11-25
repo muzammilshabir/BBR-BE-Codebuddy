@@ -177,6 +177,38 @@ export class LeadRepository extends BaseRepository<Lead> {
       },
       {
         $lookup: {
+          from: 'brands',
+          localField: 'preferences.countryIds',
+          foreignField: '_id',
+          as: 'preferences.countryIds'
+        }
+      },
+      {
+        $lookup: {
+          from: 'residencetypes',
+          localField: 'preferences.residenceTypeIds',
+          foreignField: '_id',
+          as: 'preferences.residenceTypeIds'
+        }
+      },
+      {
+        $lookup: {
+          from: 'locations',
+          localField: 'preferences.locationIds',
+          foreignField: '_id',
+          as: 'preferences.locationIds'
+        }
+      },
+      {
+        $lookup: {
+          from: 'lifestyles',
+          localField: 'preferences.lifeStyleIds',
+          foreignField: '_id',
+          as: 'preferences.lifeStyleIds'
+        }
+      },
+      {
+        $lookup: {
           from: 'users',
           localField: 'email',
           foreignField: 'email',
@@ -232,6 +264,7 @@ export class LeadRepository extends BaseRepository<Lead> {
             role: '$user.role',
             avatarImage: '$user.avatarImage',
           },
+          preferences:1,
           residenceId: 1,
           unitId: 1,
         }

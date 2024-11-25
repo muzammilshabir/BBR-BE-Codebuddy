@@ -3,6 +3,8 @@ import * as Joi from 'joi';
 import { LeadSource, LeadStatus } from '../enum/lead-enum';
 import { Types } from 'mongoose';
 import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
+import { UserContactInfo } from 'src/users/types/user.type';
+import { contactInfoSchema, preferencesSchema, LeadUserPreferences } from './create-lead.dto';
 
 export class PhoneNumber {
   @ApiProperty({ description: 'Country code of the phone number', example: '+1' })
@@ -72,7 +74,6 @@ export class UpdateLeadDto {
   expectedCloseDate?: Date;
 
   @ApiProperty({
-    example: '+123456789',
     description: 'The phone number of the lead, in international format.',
     required: false,
   })
@@ -81,8 +82,20 @@ export class UpdateLeadDto {
   @ApiProperty({ example: 'john@example.com', required: false })
   email?: string;
 
+  @ApiProperty({ example: 'company name', required: false })
+  companyName?: string
+
+  @ApiProperty({ example:"https://www.google.com/",description: 'company or organization website link', required: false })
+  companyOrOrgLink?: string
+
   @ApiProperty({ example: '60d9c6a0a11c3c6c6a9a1a2b', required: false, type: String })
   unitId?: Types.ObjectId;
+
+  @ApiProperty({ description: 'Contact information', type: UserContactInfo, required: false })
+  contactInfo?: UserContactInfo;
+
+  @ApiProperty({ description: 'User preferences', type: LeadUserPreferences, required: false })
+  preferences?: LeadUserPreferences;
 
 }
 
@@ -139,5 +152,9 @@ export const updateLeadSchema = Joi.object({
   expectedCloseDate: Joi.date().iso().optional(),
   phoneNumber: phoneSchema.optional(),
   email: Joi.string().email().optional(),
+  companyName:Joi.string().optional(),
+  companyOrOrgLink:Joi.string().uri().optional(),
   unitId: Joi.string().optional().custom(joiObjectIdValidator('unitId')),
+  contactInfo: contactInfoSchema.optional(),
+  preferences: preferencesSchema.optional(),
 }).min(1);

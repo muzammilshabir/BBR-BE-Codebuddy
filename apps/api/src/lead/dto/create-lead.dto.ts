@@ -3,7 +3,45 @@ import * as Joi from 'joi';
 import { Types } from 'mongoose';
 import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
 import { LeadSource } from '../enum/lead-enum';
+import { UserBudget, UserContactInfo } from 'src/users/types/user.type';
+import { UserContactMethod } from 'src/users/enum/user.enum';
+import { budgetSchema } from 'src/users/dto/createUser.dto';
 
+
+export class LeadUserPreferences {
+  @ApiProperty({
+    description: 'IDs of preferred residence types',
+    isArray: true,
+    example: ['66acda8b857c576159b74da4', '66acda8b857c576159b74da4'],
+  })
+  residenceTypeIds?: Types.ObjectId[];
+
+  @ApiProperty({
+    description: 'IDs of preferred locations',
+    isArray: true,
+    example: ['66acda8b857c576159b74da4', '66acda8b857c576159b74da4'],
+    required: false,
+  })
+  locationIds?: Types.ObjectId[];
+
+  @ApiProperty({
+    description: 'IDs of preferred brands',
+    isArray: true,
+    example: ['66acda8b857c576159b74da4', '66acda8b857c576159b74da4'],
+    required: false,
+  })
+  brandIds?: Types.ObjectId[];
+
+  @ApiProperty({
+    description: 'IDs of preferred lifestyle options',
+    isArray: true,
+    example: ['66acda8b857c576159b74da4', '66acda8b857c576159b74da4'],
+  })
+  lifeStyleIds?: Types.ObjectId[];
+
+  @ApiProperty({ description: 'Budget preferences', type: UserBudget })
+  budget: UserBudget;
+}
 export class PhoneNumber {
   @ApiProperty({ description: 'Country code of the phone number', example: '+1' })
   countryCode: string;
@@ -17,7 +55,6 @@ export class CreateLeadDto {
   name: string;
 
   @ApiProperty({
-    example: '+123456789',
     description: 'The phone number of the lead, in international format.',
     required: true,
   })
@@ -41,11 +78,29 @@ export class CreateLeadDto {
   @ApiProperty({ example: 'USA', required: false })
   country?: string;
 
+  @ApiProperty({ description: 'Contact information', type: UserContactInfo, required: false })
+  contactInfo?: UserContactInfo;
+
   @ApiProperty({ example: '100000-200000', required: false })
   budget?: string;
 
+  @ApiProperty({ description: 'User preferences', type: LeadUserPreferences, required: false })
+  preferences?: LeadUserPreferences;
+
   @ApiProperty({ example: 'Interested in beachfront properties', required: false })
   note?: string;
+
+  @ApiProperty({ example: 'company name', required: false })
+  companyName?: string
+
+  @ApiProperty({ example:"https://www.google.com/",description: 'company or organization website link', required: false })
+  companyOrOrgLink?: string
+
+  @ApiProperty({ description: 'User agreement to terms', example: true })
+  agreeToTerms?: boolean;
+
+  @ApiProperty({ description: 'User preference to receive news letter ', example: true })
+  receiveNewsletter?: boolean;
 
   @ApiProperty({
     example: LeadSource.WEBSITE_FORM,
@@ -71,6 +126,22 @@ export const phoneSchema = Joi.object({
     }),
 });
 
+export const contactInfoSchema = Joi.object({
+  countryId: Joi.string().required(),
+  phone: phoneSchema.required(),
+  preferredContactMethods: Joi.array()
+    .items(Joi.string().valid(...Object.values(UserContactMethod)))
+    .required(),
+});
+
+export const preferencesSchema = Joi.object({
+  residenceTypeIds: Joi.array().items(Joi.string()).required(),
+  locationIds: Joi.array().items(Joi.string()).optional(),
+  brandIds: Joi.array().items(Joi.string()).optional(),
+  lifeStyleIds: Joi.array().items(Joi.string()).required(),
+  budget: budgetSchema.required(),
+});
+
 export const createLeadSchema = Joi.object({
   name: Joi.string().required(),
   phoneNumber: phoneSchema.required(),
@@ -78,6 +149,12 @@ export const createLeadSchema = Joi.object({
   residenceId: Joi.string().optional().custom(joiObjectIdValidator('residenceId')),
   unitId: Joi.string().optional().custom(joiObjectIdValidator('unitId')),
   developerId: Joi.string().optional().custom(joiObjectIdValidator('developerId')),
+  contactInfo: contactInfoSchema.optional(),
+  preferences: preferencesSchema.optional(),
+  agreeToTerms: Joi.boolean().valid(true),
+  receiveNewsletter: Joi.boolean(),
+  companyName:Joi.string().optional(),
+  companyOrOrgLink:Joi.string().uri().optional(),
   pageUrl: Joi.string().optional().uri(),
   country: Joi.string().optional(),
   budget: Joi.string()
