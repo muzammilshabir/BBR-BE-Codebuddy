@@ -315,6 +315,14 @@ export class ResidenceService {
     return residenceDetails;
   }
 
+  async getAllResidences(options: any): Promise<any> {
+    const residences = await this.residenceRepository.findAll(
+      { planId: { $exists: true, $ne: null } },
+      options
+    );
+    return residences;
+  }
+
   async getResidencesByPlanId(planId: string, options: any): Promise<any> {
     const residences = await this.residenceRepository.findAll({ planId }, options);
     return residences;
@@ -1188,5 +1196,10 @@ export class ResidenceService {
 
   async updateFeaturedStatus(updateFeaturedDto: UpdateFeaturedDto) {
     return await this.residenceRepository.updateFeaturedStatus(updateFeaturedDto);
+  }
+
+  async listResidencesByDeveloperId(developerId: string) {
+    console.log(developerId)
+    return this.residenceRepository.findAllByFilter({ createdById: new Types.ObjectId(developerId)})
   }
 }
