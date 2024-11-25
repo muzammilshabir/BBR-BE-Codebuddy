@@ -15,6 +15,15 @@ export class Residence extends Document {
   @Prop({ required: false, type: String })
   placeId: string;
 
+  @Prop({type: String, required: false})
+  uniqueUrl: string
+
+  @Prop({type: Date, required: false})
+  uniqueUrlExpiry: Date
+
+  @Prop({type: String, required: false})
+  token: string
+
   @Prop({ required: false })
   websiteLink?: string;
 

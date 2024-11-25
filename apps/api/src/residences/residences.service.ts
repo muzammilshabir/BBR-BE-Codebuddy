@@ -46,6 +46,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { RankingCategoryStatus } from 'src/rankingCategory/enum/rankingCategory-status.enum';
 import { RankingRequest } from 'src/rankingRequest/schema/rankingRequest.schema';
 import { RankingRequestRepository } from 'src/rankingRequest/rankingRequest.repository';
+import crypto from 'crypto';
 
 @Injectable()
 export class ResidenceService {
@@ -83,6 +84,14 @@ export class ResidenceService {
 
     if (user.role === UserRole.SELLER) {
       transformedDto.developerId = new Types.ObjectId(user.sub);
+    }
+    if (user.role === UserRole.ADMIN) {
+      const uniqueUrlExpiry = new Date(Date.now() + Number(process.env.URL_EXPIRY) * 24 * 60 * 60 * 1000); 
+      const token = crypto.randomBytes(32).toString('hex'); 
+      
+      transformedDto.uniqueUrlExpiry = uniqueUrlExpiry;
+      transformedDto.token = token;
+      transformedDto.uniqueUrl = `${process.env.FRONTEND_BASE_URL}?token=${token}`;
     }
 
     if (createResidenceDto.address?.city) {
