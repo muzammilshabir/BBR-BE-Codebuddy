@@ -13,15 +13,40 @@ export class InvoiceItem extends Document {
   })
   stripeProductId: string;
 
+  @Prop({
+    type: String,
+    example: '33r232432423',
+  })
+  stripeInvoiceLineItemId: string;
+
   @Prop({ required: false, type: Types.ObjectId, ref: 'Feature' })
   feature?: Types.ObjectId;
+
+  @Prop({
+    type: String,
+    example: 'Name',
+  })
+  name: string;
 
   @Prop({ required: false, type: Types.ObjectId, ref: 'Plan' })
   plan?: Types.ObjectId;
 
   @Prop({
     type: Number,
+    example: 1000,
+  })
+  unitAmount: number;
+
+  @Prop({
+    type: Number,
+    example: 1000,
+  })
+  totalAmount: number;
+
+  @Prop({
+    type: Number,
     example: 1,
+    default: 1,
   })
   quantity: number;
 

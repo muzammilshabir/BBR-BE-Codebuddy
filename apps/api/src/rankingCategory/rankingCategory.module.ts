@@ -55,5 +55,6 @@ import { BrandRepository } from '../brand/brand.repository';
     GeographicalAreasRepository,
     BrandRepository,
   ],
+  exports: [RankingCategoryRepository],
 })
 export class RankingCategoryModule {}

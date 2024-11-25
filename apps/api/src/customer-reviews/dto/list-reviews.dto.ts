@@ -22,6 +22,14 @@ export class ListReviewsDto extends ListPropsDto {
   ratingSort?: RatingSortType;
 
   @ApiProperty({
+    description: 'Search by review text',
+    required: false,
+  })
+  search?: string;
+}
+
+export class ListReviewsBodyDto {
+  @ApiProperty({
     description: 'Filter by developer IDs',
     type: [String],
     required: false,
@@ -29,10 +37,11 @@ export class ListReviewsDto extends ListPropsDto {
   developerIds?: string[];
 
   @ApiProperty({
-    description: 'Search by review text',
+    description: 'Filter by Residence IDs',
+    type: [String],
     required: false,
   })
-  search?: string;
+  residenceIds?: string[];
 }
 
 // Schema - separate from the DTO
@@ -41,9 +50,15 @@ export const listReviewsSchema = PaginationSchema.concat(
     ratingSort: Joi.string()
       .valid(...Object.values(RatingSortType))
       .optional(),
-    developerIds: Joi.array()
-      .items(Joi.string().custom(joiObjectIdValidator('developer')))
-      .optional(),
     search: Joi.string().optional(),
   })
 );
+
+export const listReviewsBodySchema = Joi.object({
+  residenceIds: Joi.array()
+      .items(Joi.string().custom(joiObjectIdValidator('residenceIds')))
+      .optional(),
+  developerIds: Joi.array()
+      .items(Joi.string().custom(joiObjectIdValidator('developer')))
+      .optional(),
+});

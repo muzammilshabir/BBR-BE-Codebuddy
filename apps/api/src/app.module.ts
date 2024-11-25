@@ -53,6 +53,8 @@ import { LoginAttemptModule } from './loginAttempt/loginAttempt.module';
 import { ScheduleModule, SchedulerRegistry } from '@nestjs/schedule';
 import { PdfModule } from './pdf/pdf.module';
 import { CustomerReviewsModule } from './customer-reviews/customer-reviews.module';
+import { GuestApplyRankingModule } from './guestUser/guast-apply-ranking.module';
+import { InvoiceModule } from './invoice/invoice.module';
 import { MarketingModule } from './marketing/marketing.module';
 @Module({
   imports: [
@@ -106,6 +108,8 @@ import { MarketingModule } from './marketing/marketing.module';
     ScheduleModule.forRoot(),
     PdfModule,
     CustomerReviewsModule,
+    GuestApplyRankingModule,
+    InvoiceModule,
     MarketingModule,
   ],
   controllers: [AppController],

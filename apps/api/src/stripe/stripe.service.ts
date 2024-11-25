@@ -181,7 +181,7 @@ export class StripeService {
     }
     return this.stripe.paymentMethods.detach(methodId);
   }
-  
+
   async markInvoiceAsPaid(invoiceId: string, options: Stripe.InvoicePayParams) {
     return this.stripe.invoices.pay(invoiceId, options);
   }
@@ -426,6 +426,40 @@ export class StripeService {
     };
   }
 
+  async createInvoiceV2(customerId: string) {
+    return await this.stripe.invoices.create({
+      customer: customerId,
+      collection_method: 'send_invoice',
+      auto_advance: false,
+      days_until_due: 1,
+    });
+  }
+
+  async createProduct(name: string) {
+    return await this.stripe.products.create({
+      name,
+    });
+  }
+
+  async createInvoiceLineItem(
+    customer: string,
+    product: string,
+    unitAmount: number,
+    invoice: string,
+    quantity = 1
+  ) {
+    return await this.stripe.invoiceItems.create({
+      customer,
+      price_data: {
+        currency: 'usd',
+        unit_amount: unitAmount,
+        product,
+      },
+      quantity,
+      invoice,
+    });
+  }
+
   async createProducts(lineItems: PaymentLineItemDto[]): Promise<Stripe.Product[]> {
     const products = [];
     for (const lineItem of lineItems) {
@@ -464,5 +498,29 @@ export class StripeService {
       return this.stripe.products.update(id, updateData);
     }
     return this.stripe.products.retrieve(id);
+  }
+
+  async createPaymentMethod(customerId: string, stripePmTokenId: string) {
+    const paymentMethod = await this.stripe.paymentMethods.create({
+      type: 'card',
+      card: {
+        token: stripePmTokenId,
+      },
+    });
+
+    // even though the method above takes customer as a param, it won't work
+    // because we can't attach a payment method to a customer during creation of the payment method
+    // it has to be attached after the payment method is created
+    await this.stripe.paymentMethods.attach(paymentMethod.id, {
+      customer: customerId,
+    });
+
+    return paymentMethod;
+  }
+
+  async payInvoiceUsingPaymentMethod(invoiceId: string, paymentMethodId: string) {
+    return this.stripe.invoices.pay(invoiceId, {
+      payment_method: paymentMethodId,
+    });
   }
 }
