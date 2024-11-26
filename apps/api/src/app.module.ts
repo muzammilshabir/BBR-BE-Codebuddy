@@ -56,6 +56,7 @@ import { CustomerReviewsModule } from './customer-reviews/customer-reviews.modul
 import { GuestUserModule } from './guestUser/guast-user.module';
 import { InvoiceModule } from './invoice/invoice.module';
 import { ActivityLogModule } from './activity-log/activity-log.module';
+import { CustomerSupportModule } from './customer-support/customer-support.module';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -110,7 +111,8 @@ import { ActivityLogModule } from './activity-log/activity-log.module';
     CustomerReviewsModule,
     GuestUserModule,
     InvoiceModule,
-    ActivityLogModule
+    ActivityLogModule,
+    CustomerSupportModule,
   ],
   controllers: [AppController],
   providers: [
