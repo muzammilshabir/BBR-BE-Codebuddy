@@ -55,6 +55,7 @@ import { PdfModule } from './pdf/pdf.module';
 import { CustomerReviewsModule } from './customer-reviews/customer-reviews.module';
 import { GuestUserModule } from './guestUser/guast-user.module';
 import { InvoiceModule } from './invoice/invoice.module';
+import { ActivityLogModule } from './activity-log/activity-log.module';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -109,6 +110,7 @@ import { InvoiceModule } from './invoice/invoice.module';
     CustomerReviewsModule,
     GuestUserModule,
     InvoiceModule,
+    ActivityLogModule
   ],
   controllers: [AppController],
   providers: [
