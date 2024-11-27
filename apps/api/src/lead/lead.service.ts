@@ -109,8 +109,8 @@ export class LeadService {
     const { data, count } = await this.leadRepository.findAll(query, options, [
       { path: 'residenceId' },
       { path: 'unitId' },
-      { path: 'developerId', select: 'fullName email role' },
-      'user',
+      { path: 'developerId', select: 'fullName email role createdAt' },
+      { path: 'user', select: 'fullName email role createdAt' },
     ]);
 
     const { pagination } = PaginationService.paginate({ rows: data, count }, filterDto);
