@@ -62,6 +62,38 @@ export class CustomerSupportRepository extends BaseRepository<CustomerSupport> {
       },
       {
         $lookup: {
+          from: 'brands',
+          localField: 'preferences.brandIds',
+          foreignField: '_id',
+          as: 'preferences.brandIds',
+        },
+      },
+      {
+        $lookup: {
+          from: 'residencetypes',
+          localField: 'preferences.residenceTypeIds',
+          foreignField: '_id',
+          as: 'preferences.residenceTypeIds',
+        },
+      },
+      {
+        $lookup: {
+          from: 'locations',
+          localField: 'preferences.locationIds',
+          foreignField: '_id',
+          as: 'preferences.locationIds',
+        },
+      },
+      {
+        $lookup: {
+          from: 'lifestyles',
+          localField: 'preferences.lifeStyleIds',
+          foreignField: '_id',
+          as: 'preferences.lifeStyleIds',
+        },
+      },
+      {
+        $lookup: {
           from: 'users',
           localField: 'email',
           foreignField: 'email',
@@ -203,6 +235,7 @@ export class CustomerSupportRepository extends BaseRepository<CustomerSupport> {
           contactInfo: 1,
           companyName: 1,
           priority: 1,
+          preferences: 1,
         },
       },
     ]);
@@ -290,6 +323,38 @@ export class CustomerSupportRepository extends BaseRepository<CustomerSupport> {
         $unwind: {
           path: '$developerId',
           preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: 'brands',
+          localField: 'preferences.brandIds',
+          foreignField: '_id',
+          as: 'preferences.brandIds',
+        },
+      },
+      {
+        $lookup: {
+          from: 'residencetypes',
+          localField: 'preferences.residenceTypeIds',
+          foreignField: '_id',
+          as: 'preferences.residenceTypeIds',
+        },
+      },
+      {
+        $lookup: {
+          from: 'locations',
+          localField: 'preferences.locationIds',
+          foreignField: '_id',
+          as: 'preferences.locationIds',
+        },
+      },
+      {
+        $lookup: {
+          from: 'lifestyles',
+          localField: 'preferences.lifeStyleIds',
+          foreignField: '_id',
+          as: 'preferences.lifeStyleIds',
         },
       },
       {
@@ -424,6 +489,7 @@ export class CustomerSupportRepository extends BaseRepository<CustomerSupport> {
           },
           residenceId: 1,
           unitId: 1,
+          preferences: 1,
           assignedTo: {
             _id: 1,
             fullName: 1,
@@ -679,6 +745,7 @@ export class CustomerSupportRepository extends BaseRepository<CustomerSupport> {
           agreeToTerms: 1,
           message: 1,
           contactInfo: 1,
+          preferences: 1,
           companyName: 1,
         },
       },
