@@ -66,6 +66,20 @@ export class CreateLeadDto {
   @ApiProperty({ example: '60d9c6a0a11c3c6c6a9a1a2a', required: false, type: String })
   residenceId?: Types.ObjectId;
 
+  @ApiProperty({ 
+    description: 'Price of the unit',
+    example: 1000000,
+    required: false 
+  })
+  unitPrice?: number;
+
+  @ApiProperty({ 
+    description: 'Percentage of the deal',
+    example: 25,
+    required: false 
+  })
+  dealPercentage?: number;
+
   @ApiProperty({ example: '60d9c6a0a11c3c6c6a9a1a2b', required: false, type: String })
   unitId?: Types.ObjectId;
 
@@ -158,6 +172,8 @@ export const createLeadSchema = Joi.object({
   receiveNewsletter: Joi.boolean(),
   companyName:Joi.string().optional(),
   companyOrOrgLink:Joi.string().uri().optional(),
+  unitPrice: Joi.number().optional(),
+  dealPercentage: Joi.number().optional(),
   expectedCloseDate: Joi.date().optional(),
   pageUrl: Joi.string().optional().uri(),
   country: Joi.string().optional(),
