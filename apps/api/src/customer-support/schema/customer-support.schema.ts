@@ -1,9 +1,10 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
-import { LeadSource, LeadStatus } from '../enum/lead-enum';
+import { CustomerSupportSource, CustomerSupportStatus, Priority } from '../enum/customer-support-enum';
 import { CounterService } from '../../counter/counter.service';
-import { PhoneNumber, LeadUserPreferences } from '../dto/create-lead.dto';
+import { CustomerSupportUserPreferences, PhoneNumber } from '../dto/create-customer-support.dto';
 import { UserContactInfo } from 'src/users/types/user.type';
+import { CustomerSupportErrorReport, CustomerSupportFeatureRequest } from '../type/customer-support.type';
 
 @Schema({
   timestamps: true,
@@ -14,7 +15,7 @@ import { UserContactInfo } from 'src/users/types/user.type';
     virtuals: true,
   },
 })
-export class Lead extends Document {
+export class CustomerSupport extends Document {
   @Prop({ required: false, unique: true })
   displayId: string;
 
@@ -27,26 +28,23 @@ export class Lead extends Document {
   @Prop({ required: true })
   email: string;
 
+  @Prop({ required: false })
+  message: string;
+
   @Prop({ required: false, type: Object })
   contactInfo: UserContactInfo;
 
   @Prop({ type: Types.ObjectId, ref: 'Residence', required: false })
   residenceId?: Types.ObjectId;
 
-  @Prop({ required: false, type: Object })
-  preferences: LeadUserPreferences;
-
   @Prop({ required: false })
   agreeToTerms: boolean;
-
-  @Prop({ required: false })
-  receiveNewsletter: boolean;
 
   @Prop({ required: false })
   companyName?: string;
 
   @Prop({ required: false })
-  companyOrOrgLink?: string;
+  websiteUrl?: string;
 
   @Prop({ type: Types.ObjectId, ref: 'Unit', required: false })
   unitId?: Types.ObjectId;
@@ -62,41 +60,51 @@ export class Lead extends Document {
 
   @Prop({
     required: false,
-    example: 'range or specific number',
-  })
-  budget?: string;
-
-  @Prop({
-    required: false,
     example: 10000000,
   })
   unitPrice?: number;
 
   @Prop({ required: false })
-  dealPercentage?: number;
-
-  @Prop({ required: false })
   note?: string;
 
-  @Prop({ required: false, enum: LeadSource, default: LeadSource.WEBSITE_FORM })
-  source?: LeadSource;
+  @Prop({
+    required: false,
+    enum: CustomerSupportSource,
+  })
+  source?: CustomerSupportSource;
+  
+  @Prop({ required: false, type: Object })
+  preferences: CustomerSupportUserPreferences;
 
-  @Prop({ required: false })
-  convertedAt?: Date;
+  @Prop({
+    required: false,
+    enum: Priority,
+  })
+  priority?: Priority;
 
-  @Prop({ required: false })
-  contactedAt?: Date;
+  @Prop({
+    required: false,
+    type: CustomerSupportFeatureRequest,
+  })
+  customerSupportFeatureRequest?: CustomerSupportFeatureRequest;
 
-  @Prop({ required: false })
-  lastContactedAt?: Date;
+  @Prop({
+    required: false,
+    type: CustomerSupportErrorReport,
+  })
+  customerSupportErrorReport?: CustomerSupportErrorReport;
 
-  @Prop({ required: false })
-  expectedCloseDate?: Date;
+  @Prop({
+    required: false,
+    type: [Types.ObjectId],
+    ref: 'User',
+  })
+  assignedTo?: Types.ObjectId[];
 
   @Prop({
     type: String,
-    enum: LeadStatus,
-    default: LeadStatus.NEW,
+    enum: CustomerSupportStatus,
+    default: CustomerSupportStatus.NEW,
   })
   status: string;
 
@@ -108,29 +116,30 @@ export class Lead extends Document {
 
   @Prop({ type: Boolean, default: false })
   isDeleted: boolean;
+
 }
 
-const LeadSchema = SchemaFactory.createForClass(Lead);
+const CustomerSupportSchema = SchemaFactory.createForClass(CustomerSupport);
 
-LeadSchema.virtual('user', {
+CustomerSupportSchema.virtual('user', {
   ref: 'User',
   localField: 'email',
   foreignField: 'email',
   justOne: true,
 });
 
-LeadSchema.pre('save', async function (next) {
+CustomerSupportSchema.pre('save', async function (next) {
   if (this.isNew) {
     const currentYear = new Date().getFullYear();
     const counterService = new CounterService(this.model('Counter'));
 
-    const counter = await counterService.getNextSequence('Lead');
+    const counter = await counterService.getNextSequence('CustomerSupport');
 
     // Format counter to have leading zeros (001, 002, etc.)
     const paddedCounter = counter.toString().padStart(3, '0');
-    this.displayId = `L${currentYear}-${paddedCounter}`;
+    this.displayId = `C${currentYear}-${paddedCounter}`;
   }
   next();
 });
 
-export { LeadSchema };
+export { CustomerSupportSchema };

@@ -2,13 +2,16 @@ import { ApiProperty } from '@nestjs/swagger';
 import * as Joi from 'joi';
 import { Types } from 'mongoose';
 import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
-import { LeadSource } from '../enum/lead-enum';
+import { CustomerSupportSource, Priority, Role } from '../enum/customer-support-enum';
 import { UserBudget, UserContactInfo } from 'src/users/types/user.type';
 import { UserContactMethod } from 'src/users/enum/user.enum';
 import { budgetSchema } from 'src/users/dto/createUser.dto';
+import {
+  CustomerSupportFeatureRequest,
+  CustomerSupportErrorReport,
+} from '../type/customer-support.type';
 
-
-export class LeadUserPreferences {
+export class CustomerSupportUserPreferences {
   @ApiProperty({
     description: 'IDs of preferred residence types',
     isArray: true,
@@ -42,6 +45,7 @@ export class LeadUserPreferences {
   @ApiProperty({ description: 'Budget preferences', type: UserBudget })
   budget: UserBudget;
 }
+
 export class PhoneNumber {
   @ApiProperty({ description: 'Country code of the phone number', example: '+1' })
   countryCode: string;
@@ -50,7 +54,7 @@ export class PhoneNumber {
   number: string;
 }
 
-export class CreateLeadDto {
+export class CreateCustomerSupportDto {
   @ApiProperty({ example: 'John Doe', required: true })
   name: string;
 
@@ -81,20 +85,25 @@ export class CreateLeadDto {
   @ApiProperty({ description: 'Contact information', type: UserContactInfo, required: false })
   contactInfo?: UserContactInfo;
 
-  @ApiProperty({ example: '100000-200000', required: false })
-  budget?: string;
-
-  @ApiProperty({ description: 'User preferences', type: LeadUserPreferences, required: false })
-  preferences?: LeadUserPreferences;
+  @ApiProperty({
+    description: 'User preferences',
+    type: CustomerSupportUserPreferences,
+    required: false,
+  })
+  preferences?: CustomerSupportUserPreferences;
 
   @ApiProperty({ example: 'Interested in beachfront properties', required: false })
   note?: string;
 
   @ApiProperty({ example: 'company name', required: false })
-  companyName?: string
+  companyName?: string;
 
-  @ApiProperty({ example:"https://www.google.com/",description: 'company or organization website link', required: false })
-  companyOrOrgLink?: string
+  @ApiProperty({
+    example: 'https://www.google.com/',
+    description: 'company or organization website link',
+    required: false,
+  })
+  websiteUrl?: string;
 
   @ApiProperty({ description: 'User agreement to terms', example: true })
   agreeToTerms?: boolean;
@@ -103,12 +112,36 @@ export class CreateLeadDto {
   receiveNewsletter?: boolean;
 
   @ApiProperty({
-    example: LeadSource.WEBSITE_FORM,
-    enum: LeadSource,
-    description: 'The source of the lead (e.g., website form). Default is WEBSITE_FORM.',
+    example: CustomerSupportSource.HOME,
+    enum: CustomerSupportSource,
+    description: 'The source of the lead (e.g., website form). Default is HOME.',
     required: false,
   })
-  source?: LeadSource;
+  source?: CustomerSupportSource;
+
+  @ApiProperty({ description: 'Message from the customer', required: false })
+  message?: string;
+
+  @ApiProperty({
+    enum: Priority,
+    description: 'Priority level of the support request',
+    required: false,
+  })
+  priority?: Priority;
+
+  @ApiProperty({
+    type: CustomerSupportFeatureRequest,
+    description: 'Feature request details',
+    required: false,
+  })
+  customerSupportFeatureRequest?: CustomerSupportFeatureRequest;
+
+  @ApiProperty({
+    type: CustomerSupportErrorReport,
+    description: 'Error report details',
+    required: false,
+  })
+  customerSupportErrorReport?: CustomerSupportErrorReport;
 }
 
 export const phoneSchema = Joi.object({
@@ -142,7 +175,47 @@ export const preferencesSchema = Joi.object({
   budget: budgetSchema.required(),
 });
 
-export const createLeadSchema = Joi.object({
+export const customerSupportFeatureRequestSchema = Joi.object({
+  role: Joi.string()
+    .valid(...Object.values(Role))
+    .required()
+    .messages({
+      'any.required': 'Role is required',
+      'any.only': 'Role must be one of: seller, buyer, visitor',
+    }),
+  featurePageLink: Joi.string().uri().required().messages({
+    'string.uri': 'Feature page link must be a valid URL',
+    'any.required': 'Feature page link is required',
+  }),
+  featureDescription: Joi.string().required().messages({
+    'any.required': 'Feature description is required',
+  }),
+  documents: Joi.array().items(
+    Joi.string().custom(joiObjectIdValidator('documents'))
+  ).optional(),
+});
+
+export const customerSupportErrorReportSchema = Joi.object({
+  role: Joi.string()
+    .valid(...Object.values(Role))
+    .required()
+    .messages({
+      'any.required': 'Role is required',
+      'any.only': 'Role must be one of: seller, buyer, visitor',
+    }),
+  errorPageLink: Joi.string().uri().required().messages({
+    'string.uri': 'Error page link must be a valid URL',
+    'any.required': 'Error page link is required',
+  }),
+  errorDescription: Joi.string().required().messages({
+    'any.required': 'Error description is required',
+  }),
+  documents: Joi.array().items(
+    Joi.string().custom(joiObjectIdValidator('documents'))
+  ).optional(),
+});
+
+export const createCustomerSupportSchema = Joi.object({
   name: Joi.string().required(),
   phoneNumber: phoneSchema.required(),
   email: Joi.string().required().email(),
@@ -153,31 +226,18 @@ export const createLeadSchema = Joi.object({
   preferences: preferencesSchema.optional(),
   agreeToTerms: Joi.boolean().valid(true),
   receiveNewsletter: Joi.boolean(),
-  companyName:Joi.string().optional(),
-  companyOrOrgLink:Joi.string().uri().optional(),
+  companyName: Joi.string().optional(),
+  websiteUrl: Joi.string().uri().optional(),
   pageUrl: Joi.string().optional().uri(),
   country: Joi.string().optional(),
-  budget: Joi.string()
-    .pattern(/^\d+$|^\d+\s*-\s*\d+$|^\d+\+$/)
-    .custom((value, helpers) => {
-      if (value.includes('-')) {
-        const [min, max] = value.split('-').map((v) => parseInt(v.trim(), 10));
-        if (min > max) {
-          return helpers.error('any.invalid', {
-            message: 'The lower bound of the budget cannot be greater than the upper bound.',
-          });
-        }
-      }
-      return value;
-    })
-    .messages({
-      'string.pattern.base':
-        'Budget must be a number, a range (e.g., "1000-2000"), or an open-ended value (e.g., "1000+").',
-      'any.invalid': '{{#message}}',
-    })
-    .optional(),
   note: Joi.string().optional(),
   source: Joi.string()
-    .valid(...Object.values(LeadSource))
+    .valid(...Object.values(CustomerSupportSource))
     .optional(),
-});
+  message: Joi.string().optional(),
+  priority: Joi.string()
+    .valid(...Object.values(Priority))
+    .optional(),
+  customerSupportFeatureRequest: customerSupportFeatureRequestSchema.optional(),
+  customerSupportErrorReport: customerSupportErrorReportSchema.optional(),
+}).options({ stripUnknown: true });
