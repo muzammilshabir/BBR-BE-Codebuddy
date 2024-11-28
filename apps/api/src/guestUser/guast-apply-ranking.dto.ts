@@ -8,7 +8,6 @@ export const guestApplyRankingSchema = Joi.object({
   residenceDetails: Joi.object({
     name: Joi.string().required(),
     countryId: Joi.string().custom(joiObjectIdValidator('countryId')).required(),
-    stateId: Joi.string().custom(joiObjectIdValidator('stateId')).required(),
     cityId: Joi.string().custom(joiObjectIdValidator('cityId')).required(),
     zipCode: Joi.string().required(),
     address1: Joi.string().required(),
@@ -59,12 +58,6 @@ export class ResidenceDetailsDto {
     type: String,
   })
   countryId: string;
-
-  @ApiProperty({
-    description: 'State ID',
-    type: String,
-  })
-  stateId: string;
 
   @ApiProperty({
     description: 'City ID',

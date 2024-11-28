@@ -117,7 +117,7 @@ export class AuthController {
   @UseGuards(CaptchaGuard)
   @UsePipes(new JoiValidationPipe(loginSchema, 'body'))
   async loginWithEmailPassword(@Body() loginDto: LoginDto, @Ip() ip: string) {
-    const response = await this.authService.loginWithEmailPassword(loginDto, ip);
+    const response = await this.authService.loginWithEmailPassword(loginDto, ip, UserRole.BUYER);
     return ResponseService.buildResponse(response);
   }
 
@@ -299,7 +299,7 @@ export class AuthController {
   @UseGuards(CaptchaGuard)
   @UsePipes(new JoiValidationPipe(loginSchema, 'body'))
   async sellerLoginWithEmailPassword(@Body() loginDto: LoginDto, @Ip() ip: string) {
-    const response = await this.authService.loginWithEmailPassword(loginDto, ip);
+    const response = await this.authService.loginWithEmailPassword(loginDto, ip, UserRole.SELLER);
     return ResponseService.buildResponse(response);
   }
 
@@ -450,7 +450,7 @@ export class AuthController {
   @UseGuards(CaptchaGuard)
   @UsePipes(new JoiValidationPipe(loginSchema, 'body'))
   async adminLoginWithEmailPassword(@Body() loginDto: LoginDto, @Ip() ip: string) {
-    const response = await this.authService.loginWithEmailPassword(loginDto, ip);
+    const response = await this.authService.loginWithEmailPassword(loginDto, ip, UserRole.ADMIN);
     return ResponseService.buildResponse(response);
   }
 

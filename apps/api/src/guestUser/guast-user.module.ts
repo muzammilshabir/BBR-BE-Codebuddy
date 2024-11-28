@@ -9,6 +9,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { User } from 'src/users/schema/user.schema';
 import { Plan, PlanSchema } from 'src/subscription-plan/schema/plan.schema';
 import { GuestUploadInventoryController } from './guestUploadInventory.controller';
+import { GuestPremiumResidenceProfileController } from './guestPremiumResidenceProfile.controller';
 
 @Module({
   imports: [
@@ -18,7 +19,11 @@ import { GuestUploadInventoryController } from './guestUploadInventory.controlle
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
     MongooseModule.forFeature([{ name: Plan.name, schema: PlanSchema }]),
   ],
-  controllers: [GuestApplyRankingController, GuestUploadInventoryController],
+  controllers: [
+    GuestApplyRankingController,
+    GuestUploadInventoryController,
+    GuestPremiumResidenceProfileController,
+  ],
   providers: [GuestUserService],
 })
-export class GuestApplyRankingModule {}
+export class GuestUserModule {}

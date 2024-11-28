@@ -1,10 +1,24 @@
 import { ApiProperty } from '@nestjs/swagger';
 import * as Joi from 'joi';
-import { LeadSource, LeadStatus } from '../enum/lead-enum';
+import {
+  CustomerSupportSource,
+  CustomerSupportStatus,
+  Priority,
+} from '../enum/customer-support-enum';
 import { Types } from 'mongoose';
 import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
 import { UserContactInfo } from 'src/users/types/user.type';
-import { contactInfoSchema, preferencesSchema, LeadUserPreferences } from './create-lead.dto';
+import {
+  contactInfoSchema,
+  preferencesSchema,
+  CustomerSupportUserPreferences,
+  customerSupportFeatureRequestSchema,
+  customerSupportErrorReportSchema,
+} from './create-customer-support.dto';
+import {
+  CustomerSupportFeatureRequest,
+  CustomerSupportErrorReport,
+} from '../type/customer-support.type';
 
 export class PhoneNumber {
   @ApiProperty({ description: 'Country code of the phone number', example: '+1' })
@@ -14,7 +28,7 @@ export class PhoneNumber {
   number: string;
 }
 
-export class UpdateLeadDto {
+export class UpdateCustomerSupportDto {
   @ApiProperty({ example: 'John Doe', required: false })
   name?: string;
 
@@ -25,21 +39,15 @@ export class UpdateLeadDto {
   country?: string;
 
   @ApiProperty({
-    example: "10000000 - 15000000",
-    required: false
-  })
-  budget?: string;
-
-  @ApiProperty({ 
     example: 13400000,
-    description: "Price of the unit entered by the developer for this lead",
+    description: 'Price of the unit entered by the developer for this lead',
     required: false,
   })
   unitPrice?: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     example: 15,
-    description: "n/a",
+    description: 'n/a',
     required: false,
   })
   dealPercentage?: string;
@@ -48,29 +56,29 @@ export class UpdateLeadDto {
   note?: string;
 
   @ApiProperty({
-    example: LeadSource.WEBSITE_FORM,
-    enum: LeadSource,
+    example: CustomerSupportSource.HOME,
+    enum: CustomerSupportSource,
     required: false,
   })
-  source?: LeadSource;
+  source?: CustomerSupportSource;
 
   @ApiProperty({
-    example: LeadStatus.NEW,
-    enum: LeadStatus,
+    example: CustomerSupportStatus.NEW,
+    enum: CustomerSupportStatus,
     required: false,
   })
-  status?: LeadStatus;
+  status?: CustomerSupportStatus;
 
-  @ApiProperty({ example: new Date, required: false })
+  @ApiProperty({ example: new Date(), required: false })
   convertedAt?: Date;
 
-  @ApiProperty({ example: new Date, required: false })
+  @ApiProperty({ example: new Date(), required: false })
   contactedAt?: Date;
 
-  @ApiProperty({ example: new Date, required: false })
+  @ApiProperty({ example: new Date(), required: false })
   lastContactedAt?: Date;
 
-  @ApiProperty({ example: new Date, required: false })
+  @ApiProperty({ example: new Date(), required: false })
   expectedCloseDate?: Date;
 
   @ApiProperty({
@@ -83,10 +91,14 @@ export class UpdateLeadDto {
   email?: string;
 
   @ApiProperty({ example: 'company name', required: false })
-  companyName?: string
+  companyName?: string;
 
-  @ApiProperty({ example:"https://www.google.com/",description: 'company or organization website link', required: false })
-  companyOrOrgLink?: string
+  @ApiProperty({
+    example: 'https://www.google.com/',
+    description: 'company or organization website link',
+    required: false,
+  })
+  companyOrOrgLink?: string;
 
   @ApiProperty({ example: '60d9c6a0a11c3c6c6a9a1a2b', required: false, type: String })
   unitId?: Types.ObjectId;
@@ -94,9 +106,36 @@ export class UpdateLeadDto {
   @ApiProperty({ description: 'Contact information', type: UserContactInfo, required: false })
   contactInfo?: UserContactInfo;
 
-  @ApiProperty({ description: 'User preferences', type: LeadUserPreferences, required: false })
-  preferences?: LeadUserPreferences;
+  @ApiProperty({
+    description: 'User preferences',
+    type: CustomerSupportUserPreferences,
+    required: false,
+  })
+  preferences?: CustomerSupportUserPreferences;
 
+  @ApiProperty({
+    enum: Priority,
+    description: 'Priority level of the support request',
+    required: false,
+  })
+  priority?: Priority;
+
+  @ApiProperty({
+    type: CustomerSupportFeatureRequest,
+    description: 'Feature request details',
+    required: false,
+  })
+  customerSupportFeatureRequest?: CustomerSupportFeatureRequest;
+
+  @ApiProperty({
+    type: CustomerSupportErrorReport,
+    description: 'Error report details',
+    required: false,
+  })
+  customerSupportErrorReport?: CustomerSupportErrorReport;
+
+  @ApiProperty({ example: ['60d9c6a0a11c3c6c6a9a1a2b'], required: false })
+  assignedTo?: Types.ObjectId[];
 }
 
 const phoneSchema = Joi.object({
@@ -114,37 +153,18 @@ const phoneSchema = Joi.object({
     }),
 });
 
-export const updateLeadSchema = Joi.object({
+export const updateCustomerSupportSchema = Joi.object({
   name: Joi.string().optional(),
   pageUrl: Joi.string().uri().optional(),
   country: Joi.string().optional(),
-  budget: Joi.string()
-    .pattern(/^\d+$|^\d+\s*-\s*\d+$|^\d+\+$/)
-    .custom((value, helpers) => {
-      if (value.includes('-')) {
-        const [min, max] = value.split('-').map((v) => parseInt(v.trim(), 10));
-        if (min > max) {
-          return helpers.error('any.invalid', {
-            message: 'The lower bound of the budget cannot be greater than the upper bound.',
-          });
-        }
-      }
-      return value;
-    })
-    .messages({
-      'string.pattern.base':
-        'Budget must be a number, a range (e.g., "1000-2000"), or an open-ended value (e.g., "1000+").',
-      'any.invalid': '{{#message}}',
-    })
-    .optional(),
   unitPrice: Joi.number().min(0).optional(),
   dealPercentage: Joi.number().min(0).optional(),
   note: Joi.string().optional(),
   source: Joi.string()
-    .valid(...Object.values(LeadSource))
+    .valid(...Object.values(CustomerSupportSource))
     .optional(),
   status: Joi.string()
-    .valid(...Object.values(LeadStatus))
+    .valid(...Object.values(CustomerSupportStatus))
     .optional(),
   convertedAt: Joi.date().iso().optional(),
   contactedAt: Joi.date().iso().optional(),
@@ -152,9 +172,15 @@ export const updateLeadSchema = Joi.object({
   expectedCloseDate: Joi.date().iso().optional(),
   phoneNumber: phoneSchema.optional(),
   email: Joi.string().email().optional(),
-  companyName:Joi.string().optional(),
-  companyOrOrgLink:Joi.string().uri().optional(),
+  companyName: Joi.string().optional(),
+  companyOrOrgLink: Joi.string().uri().optional(),
   unitId: Joi.string().optional().custom(joiObjectIdValidator('unitId')),
   contactInfo: contactInfoSchema.optional(),
   preferences: preferencesSchema.optional(),
+  assignedTo: Joi.array().items(Joi.string().custom(joiObjectIdValidator('assignedTo'))).optional(),
+  priority: Joi.string()
+    .valid(...Object.values(Priority))
+    .optional(),
+  customerSupportFeatureRequest: customerSupportFeatureRequestSchema.optional(),
+  customerSupportErrorReport: customerSupportErrorReportSchema.optional(),
 }).min(1);

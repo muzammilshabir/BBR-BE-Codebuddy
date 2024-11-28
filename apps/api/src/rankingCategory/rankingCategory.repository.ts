@@ -79,7 +79,7 @@ export class RankingCategoryRepository extends BaseRepository<RankingCategory> {
       const pipeline: PipelineStage[] = [
         {
           $match: {
-            isDeleted: { $ne: DeletionStatus.DELETED },
+            isDeleted: { $ne: true },
           },
         },
 
