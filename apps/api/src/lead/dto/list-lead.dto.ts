@@ -43,6 +43,13 @@ export class ListLeadDto extends ListPropsDto {
     type: String,
   })
   search?: string;
+
+  @ApiProperty({
+    description: 'Filter leads by registered users',
+    example: true,
+    required: false,
+  })
+  isRegistered?: boolean;
 }
 
 export const listListSchema = PaginationSchema.append({
@@ -55,4 +62,5 @@ export const listListSchema = PaginationSchema.append({
   startDate: Joi.date().iso().optional(),
   endDate: Joi.date().iso().optional(),
   search: Joi.string().optional(),
+  isRegistered: Joi.boolean().optional(),
 });

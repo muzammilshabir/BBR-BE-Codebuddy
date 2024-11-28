@@ -1,4 +1,15 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UsePipes } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Res,
+  UsePipes,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ActivityLogService } from './activity-log.service';
 import { CreateActivityLogDto, createActivityLogSchema } from './dto/create-activity-log.dto';
@@ -11,6 +22,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/enum/user.enum';
 import { ListActivityLogDto } from './dto/list-activity-log.dto';
 import { listActivityLogSchema } from './dto/list-activity-log.dto';
+import { Response } from 'express';
 
 @ApiTags('Activity Log')
 @Controller('activity-log')
@@ -55,8 +67,22 @@ export class ActivityLogController {
   @ApiOperation({ summary: 'Get all activity logs' })
   @Roles(UserRole.SELLER, UserRole.ADMIN)
   @UsePipes(new JoiValidationPipe(listActivityLogSchema, 'query'))
-  async findAll(@Query() query: ListActivityLogDto) {
+  async findAll(@Query() query: ListActivityLogDto, @Res() res: Response) {
     const result = await this.activityLogService.findAll(query);
-    return ResponseService.buildResponse(result, 'Activity logs retrieved successfully');
+    if (query.isDownload) {
+      if (query.fileType === 'csv') {
+        res.header('Content-Type', 'text/csv');
+        res.header('Content-Disposition', 'attachment; filename=activity-logs.csv');
+        return res.send(result);
+      } else if (query.fileType === 'excel') {
+        res.header(
+          'Content-Type',
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        );
+        res.header('Content-Disposition', 'attachment; filename=activity-logs.xlsx');
+        return res.send(result);
+      }
+    }
+    return res.json(ResponseService.buildResponse(result, 'Activity logs retrieved successfully'));
   }
 }
