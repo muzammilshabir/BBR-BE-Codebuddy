@@ -109,6 +109,9 @@ export class CreateLeadDto {
     required: false,
   })
   source?: LeadSource;
+
+  @ApiProperty({ example: '2024-11-28', description: 'Expected close date', required: false })
+  expectedCloseDate?: Date;   
 }
 
 export const phoneSchema = Joi.object({
@@ -155,6 +158,7 @@ export const createLeadSchema = Joi.object({
   receiveNewsletter: Joi.boolean(),
   companyName:Joi.string().optional(),
   companyOrOrgLink:Joi.string().uri().optional(),
+  expectedCloseDate: Joi.date().optional(),
   pageUrl: Joi.string().optional().uri(),
   country: Joi.string().optional(),
   budget: Joi.string()
