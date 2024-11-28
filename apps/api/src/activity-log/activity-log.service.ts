@@ -33,28 +33,21 @@ export class ActivityLogService {
     return this.activityLogRepository.create(activityLog);
   }
 
-  async update(id: string, updateData: UpdateActivityLogDto, userId: string) {
+  async update(id: string, updateData: UpdateActivityLogDto) {
     const activityLog = await this.activityLogRepository.findById(id);
     if (!activityLog) {
       throw new NotFoundException(`Activity log with ID ${id} not found`);
-    }
-
-    if (activityLog.userId.toString() !== userId) {
-      throw new Error('Unauthorized to update this activity log');
     }
 
     return this.activityLogRepository.update(id, updateData);
   }
 
-  async delete(id: string, userId: string) {
+  async delete(id: string) {
     const activityLog = await this.activityLogRepository.findById(id);
     if (!activityLog) {
       throw new NotFoundException(`Activity log with ID ${id} not found`);
     }
 
-    if (activityLog.userId.toString() !== userId) {
-      throw new Error('Unauthorized to delete this activity log');
-    }
 
     return this.activityLogRepository.update(id, { isDeleted: true });
   }

@@ -32,7 +32,7 @@ export class ActivityLogController {
 
   @Post()
   @ApiOperation({ summary: 'Create activity log' })
-  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @Roles(UserRole.ADMIN)
   @UsePipes(new JoiValidationPipe(createActivityLogSchema, 'body'))
   async create(
     @Body() createActivityLogDto: CreateActivityLogDto,
@@ -49,17 +49,16 @@ export class ActivityLogController {
   async update(
     @Param('id') id: string,
     @Body() updateActivityLogDto: UpdateActivityLogDto,
-    @GetCurrentUser() user: JwtPayloadType
   ) {
-    const activityLog = await this.activityLogService.update(id, updateActivityLogDto, user.sub);
+    const activityLog = await this.activityLogService.update(id, updateActivityLogDto);
     return ResponseService.buildResponse({ activityLog }, 'Activity log updated successfully');
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete activity log' })
   @Roles(UserRole.SELLER, UserRole.ADMIN)
-  async delete(@Param('id') id: string, @GetCurrentUser() user: JwtPayloadType) {
-    const activityLog = await this.activityLogService.delete(id, user.sub);
+  async delete(@Param('id') id: string) {
+    const activityLog = await this.activityLogService.delete(id);
     return ResponseService.buildResponse(activityLog, 'Activity log deleted successfully');
   }
 
