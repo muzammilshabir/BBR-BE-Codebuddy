@@ -33,7 +33,7 @@ export class LeadController {
   @UsePipes(new JoiValidationPipe(listListSchema, 'query'))
   async listLeads(@Query() query: ListLeadDto, @GetCurrentUser() user: JwtPayloadType) {
     const leads = await this.leadService.getLeadsWithRole(query, user);
-    return ResponseService.buildResponse({ leads }, 'Leads retrieved successfully');
+    return ResponseService.buildResponse(leads, 'Leads retrieved successfully');
   }
 
   @Patch('/:id')
