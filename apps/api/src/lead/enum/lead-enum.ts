@@ -20,3 +20,4 @@ export enum Interval {
   MONTHLY = 'monthly',
   YEARLY = 'yearly',
 }
+

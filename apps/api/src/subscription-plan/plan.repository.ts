@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, RootFilterQuery } from 'mongoose';
 import { BaseRepository } from '@bbr/api-core/modules/db/base.repository';
 import { Plan } from './schema/plan.schema';
 
@@ -10,7 +10,7 @@ export class PlanRepository extends BaseRepository<Plan> {
     super(planModel);
   }
 
-  async findAllExpanded(filter: any): Promise<any> {
+  async findAllExpanded(filter: RootFilterQuery<Plan>): Promise<any> {
     return this.planModel
       .find(filter)
       .populate([{ path: 'features.feature', select: 'name', model: 'Feature' }]);

@@ -174,8 +174,8 @@ export class AuthService {
     }
   }
 
-  async loginWithEmailPassword(loginDto: LoginDto, ip: string) {
-    const user = await this.userService.findByEmail(loginDto.email);
+  async loginWithEmailPassword(loginDto: LoginDto, ip: string, role: UserRole) {
+    const user = await this.userService.findByEmail(loginDto.email, role);
 
     let failedCount = await this.redisService.get({
       prefix: CaptchaEnum.PREFIX,
