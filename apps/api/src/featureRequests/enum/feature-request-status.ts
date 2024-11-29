@@ -3,5 +3,5 @@ export enum FeatureRequestStatus {
   APPROVED = 'approved',
   REJECTED = 'rejected',
   WITHDRAWN = 'withdrawn',
-  EXPIRED = 'expired'
+  EXPIRED = 'expired',
 }
