@@ -42,10 +42,7 @@ export class FeatureRequestService {
       throw new BadRequestException('User not found');
     }
 
-    if (
-      user.role !== UserRole.ADMIN &&
-      (!createFeatureRequestDto.transactionId || !createFeatureRequestDto.paymentStatus)
-    ) {
+    if (user.role !== UserRole.ADMIN && !createFeatureRequestDto.transactionId) {
       throw new BadRequestException('Payment details are required');
     }
 
@@ -106,7 +103,7 @@ export class FeatureRequestService {
     if (!featureRequest) {
       throw new BadRequestException('Feature request not found');
     }
-    return featureRequest;
+    return featureRequest?.[0];
   }
 
   async delete(id: string, userId: string) {
