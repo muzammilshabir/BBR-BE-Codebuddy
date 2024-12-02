@@ -4,15 +4,19 @@ import {
   Body,
   Controller,
   Get,
+  HttpException,
+  HttpStatus,
   Param,
   Patch,
   Post,
   Put,
   Query,
   Res,
+  UploadedFile,
+  UseInterceptors,
   UsePipes,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/enum/user.enum';
@@ -58,12 +62,14 @@ import { Public } from '../auth/decorators/public.decorator';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { PermissionLevel } from '../modulePolicy/enum/permission-enum';
 import { GetSimilarResidenceDto, getSimilarResidenceSchema } from './dto/get-similar-residence';
+import { ResidenceSeederService } from './residencesSeeder.service';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { PassThrough } from 'stream';
 
 @ApiTags('Residence')
 @Controller('residence')
 export class ResidenceController {
-  constructor(private readonly residenceService: ResidenceService) {}
+  constructor(private readonly residenceService: ResidenceService, private readonly residenceSeederService: ResidenceSeederService) {}
 
   @Post()
   @ApiOperation({
@@ -367,6 +373,36 @@ export class ResidenceController {
       { result },
       'Residence featured status updated successfully'
     );
+  }
+
+  @Public()
+  @ApiOperation({
+    summary: 'Upload bulk data for processing',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @Post('upload-bulk-data')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadInventoryFile(
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+  
+    if (!file) {
+      throw new HttpException('File is required', HttpStatus.BAD_REQUEST);
+    }
+
+    const result = await this.residenceSeederService.processUploadedFile(file);
+    return ResponseService.buildResponse(result);
   }
 
   @Get('/welcome-flow/:key')
