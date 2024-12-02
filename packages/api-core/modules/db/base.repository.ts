@@ -40,6 +40,11 @@ export class BaseRepository<T extends Document> {
     return await createdEntity.save();
   }
 
+  async createMany(createDtos: any[]): Promise<T[]> {
+    const createdEntities = await this.model.insertMany(createDtos);
+    return createdEntities;
+}
+
   async update(id: string, updateDto: any): Promise<T> {
     return await this.model.findByIdAndUpdate(id, updateDto, { new: true });
   }
