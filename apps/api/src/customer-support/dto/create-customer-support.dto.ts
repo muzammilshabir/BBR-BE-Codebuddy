@@ -62,7 +62,7 @@ export class CreateCustomerSupportDto {
     description: 'The phone number of the lead, in international format.',
     required: true,
   })
-  phoneNumber: PhoneNumber;
+  phoneNumber?: PhoneNumber;
 
   @ApiProperty({ example: 'john@example.com', required: true })
   email: string;
@@ -217,7 +217,7 @@ export const customerSupportErrorReportSchema = Joi.object({
 
 export const createCustomerSupportSchema = Joi.object({
   name: Joi.string().required(),
-  phoneNumber: phoneSchema.required(),
+  phoneNumber: phoneSchema.optional(),
   email: Joi.string().required().email(),
   residenceId: Joi.string().optional().custom(joiObjectIdValidator('residenceId')),
   unitId: Joi.string().optional().custom(joiObjectIdValidator('unitId')),
