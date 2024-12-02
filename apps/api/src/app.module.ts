@@ -59,6 +59,8 @@ import { ActivityLogModule } from './activity-log/activity-log.module';
 import { CustomerSupportModule } from './customer-support/customer-support.module';
 import { MarketingModule } from './marketing/marketing.module';
 import { CalendlyWebhookModule } from './calendly/calendlyWebhook.module';
+import { AdminNoteModule } from './admin-note/admin-note.module';
+import { FeatureRequestModule } from './featureRequests/featureRequests.module';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -117,6 +119,8 @@ import { CalendlyWebhookModule } from './calendly/calendlyWebhook.module';
     CustomerSupportModule,
     MarketingModule,
     CalendlyWebhookModule,
+    AdminNoteModule,
+    FeatureRequestModule
   ],
   controllers: [AppController],
   providers: [

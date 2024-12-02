@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CustomerSupportRepository } from './customer-support.repository';
 import { CreateCustomerSupportDto } from './dto/create-customer-support.dto';
 import { CustomerSupport } from './schema/customer-support.schema';
@@ -8,7 +8,6 @@ import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.s
 import { ResidenceRepository } from '../residences/residences.repository';
 import { UpdateCustomerSupportDto } from './dto/update-customer-support.dto';
 import { UnitRepository } from 'src/unit/unit.repository';
-import { DeletionStatus } from 'src/unit/enum/unit-enum';
 import { UserRole } from '../users/enum/user.enum';
 import { JwtPayloadType } from '../auth/type/jwt-payload.type';
 
@@ -46,42 +45,38 @@ export class CustomerSupportService {
         ? new Types.ObjectId(createCustomerSupportDto.unitId)
         : undefined,
       developerId: await this.getDeveloperId(createCustomerSupportDto),
-      preferences: {
+      preferences: createCustomerSupportDto.preferences && {
         ...createCustomerSupportDto.preferences,
-        brandIds:
-          createCustomerSupportDto?.preferences?.brandIds?.map(
-            (brandId) => new Types.ObjectId(brandId)
-          ) || undefined,
-        residenceTypeIds:
-          createCustomerSupportDto?.preferences?.residenceTypeIds?.map(
-            (residenceTypeId) => new Types.ObjectId(residenceTypeId)
-          ) || undefined,
-        lifeStyleIds:
-          createCustomerSupportDto?.preferences?.lifeStyleIds?.map(
-            (lifeStyleId) => new Types.ObjectId(lifeStyleId)
-          ) || undefined,
-        locationIds:
-          createCustomerSupportDto?.preferences?.locationIds?.map(
-            (locationId) => new Types.ObjectId(locationId)
-          ) || undefined,
+        brandIds: createCustomerSupportDto.preferences.brandIds?.map(
+          (brandId) => new Types.ObjectId(brandId)
+        ),
+        residenceTypeIds: createCustomerSupportDto.preferences.residenceTypeIds?.map(
+          (residenceTypeId) => new Types.ObjectId(residenceTypeId)
+        ),
+        lifeStyleIds: createCustomerSupportDto.preferences.lifeStyleIds?.map(
+          (lifeStyleId) => new Types.ObjectId(lifeStyleId)
+        ),
+        locationIds: createCustomerSupportDto.preferences.locationIds?.map(
+          (locationId) => new Types.ObjectId(locationId)
+        ),
       },
-      contactInfo: {
-        ...createCustomerSupportDto?.contactInfo,
-        countryId: createCustomerSupportDto.contactInfo
+      contactInfo: createCustomerSupportDto.contactInfo && {
+        ...createCustomerSupportDto.contactInfo,
+        countryId: createCustomerSupportDto.contactInfo.countryId
           ? new Types.ObjectId(createCustomerSupportDto.contactInfo.countryId)
           : undefined,
       },
-      customerSupportFeatureRequest: {
-        ...createCustomerSupportDto?.customerSupportFeatureRequest,
-        documents: createCustomerSupportDto?.customerSupportFeatureRequest?.documents?.map(
+      customerSupportFeatureRequest: createCustomerSupportDto.customerSupportFeatureRequest && {
+        ...createCustomerSupportDto.customerSupportFeatureRequest,
+        documents: createCustomerSupportDto.customerSupportFeatureRequest.documents?.map(
           (document) => new Types.ObjectId(document)
-        ) || undefined,
+        ),
       },
-      customerSupportErrorReport: {
-        ...createCustomerSupportDto?.customerSupportErrorReport,
-        documents: createCustomerSupportDto?.customerSupportErrorReport?.documents?.map(
+      customerSupportErrorReport: createCustomerSupportDto.customerSupportErrorReport && {
+        ...createCustomerSupportDto.customerSupportErrorReport,
+        documents: createCustomerSupportDto.customerSupportErrorReport.documents?.map(
           (document) => new Types.ObjectId(document)
-        ) || undefined,
+        ),
       },
     };
 
@@ -89,42 +84,9 @@ export class CustomerSupportService {
   }
 
   async getCustomerSupports(filterDto: ListCustomerSupportDto, developerId?: string) {
-    const { status, source, search } = filterDto;
-
-    const query: any = {
-      isDeleted: DeletionStatus.ACTIVE,
-    };
-
-    if (developerId) {
-      query.developerId = developerId;
-    }
-
-    if (status) {
-      query.status = status;
-    }
-
-    if (source) {
-      query.source = source;
-    }
-
-    if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } },
-        { unitId: { $regex: search, $options: 'i' } },
-        { residenceId: { $regex: search, $options: 'i' } },
-        { country: { $regex: search, $options: 'i' } },
-      ];
-    }
-
-    const options = PaginationService.prepareOptions(filterDto);
-
-    const { data, count } = await this.customerSupportRepository.findAll(query, options, [
-      { path: 'residenceId' },
-      { path: 'unitId' },
-      { path: 'developerId', select: 'fullName email role' },
-      'user',
-    ]);
+    const result = await this.customerSupportRepository.findAllCustomerSupports(filterDto, developerId);
+    const count = result[0]?.totalCount || 0;
+    const data = result[0]?.data || [];
 
     const { pagination } = PaginationService.paginate({ rows: data, count }, filterDto);
 
@@ -135,52 +97,79 @@ export class CustomerSupportService {
     customerSupportId: string,
     updateCustomerSupportDto: UpdateCustomerSupportDto
   ): Promise<any> {
-    const transformedDto = {
+    const transformedDto: any = {
       ...updateCustomerSupportDto,
       unitId: updateCustomerSupportDto.unitId
         ? new Types.ObjectId(updateCustomerSupportDto.unitId)
         : undefined,
-      preferences: {
-        ...updateCustomerSupportDto?.preferences,
-        brandIds:
-          updateCustomerSupportDto?.preferences?.brandIds?.map(
-            (brandId) => new Types.ObjectId(brandId)
-          ) || undefined,
-        residenceTypeIds:
-          updateCustomerSupportDto?.preferences?.residenceTypeIds?.map(
-            (residenceTypeId) => new Types.ObjectId(residenceTypeId)
-          ) || undefined,
-        lifeStyleIds:
-          updateCustomerSupportDto?.preferences?.lifeStyleIds?.map(
-            (lifeStyleId) => new Types.ObjectId(lifeStyleId)
-          ) || undefined,
-        locationIds:
-          updateCustomerSupportDto?.preferences?.locationIds?.map(
-            (locationId) => new Types.ObjectId(locationId)
-          ) || undefined,
-      },
-      contactInfo: {
-        ...updateCustomerSupportDto?.contactInfo,
-        countryId: updateCustomerSupportDto.contactInfo
-          ? new Types.ObjectId(updateCustomerSupportDto.contactInfo.countryId)
-          : undefined,
-      },
-      customerSupportFeatureRequest: {
-        ...updateCustomerSupportDto?.customerSupportFeatureRequest,
-        documents: updateCustomerSupportDto?.customerSupportFeatureRequest?.documents?.map(
-          (document) => new Types.ObjectId(document)
-        ) || undefined,
-      },
-      customerSupportErrorReport: {
-        ...updateCustomerSupportDto?.customerSupportErrorReport,
-        documents: updateCustomerSupportDto?.customerSupportErrorReport?.documents?.map(
-          (document) => new Types.ObjectId(document)
-        ) || undefined,
-      },
-      assignedTo: updateCustomerSupportDto.assignedTo?.map(
-        (assignedTo) => new Types.ObjectId(assignedTo)
-      ) || undefined,
     };
+
+    if (updateCustomerSupportDto.preferences) {
+      const { preferences } = updateCustomerSupportDto;
+      transformedDto.preferences = { ...preferences };
+
+      if (preferences.brandIds) {
+        transformedDto.preferences.brandIds = preferences.brandIds.map(
+          (id) => new Types.ObjectId(id)
+        );
+      }
+      if (preferences.residenceTypeIds) {
+        transformedDto.preferences.residenceTypeIds = preferences.residenceTypeIds.map(
+          (id) => new Types.ObjectId(id)
+        );
+      }
+      if (preferences.lifeStyleIds) {
+        transformedDto.preferences.lifeStyleIds = preferences.lifeStyleIds.map(
+          (id) => new Types.ObjectId(id)
+        );
+      }
+      if (preferences.locationIds) {
+        transformedDto.preferences.locationIds = preferences.locationIds.map(
+          (id) => new Types.ObjectId(id)
+        );
+      }
+    }
+
+    if (updateCustomerSupportDto.contactInfo) {
+      transformedDto.contactInfo = {
+        ...updateCustomerSupportDto.contactInfo,
+      };
+      if (updateCustomerSupportDto.contactInfo.countryId) {
+        transformedDto.contactInfo.countryId = new Types.ObjectId(
+          updateCustomerSupportDto.contactInfo.countryId
+        );
+      }
+    }
+
+    if (updateCustomerSupportDto.customerSupportFeatureRequest) {
+      transformedDto.customerSupportFeatureRequest = {
+        ...updateCustomerSupportDto.customerSupportFeatureRequest,
+      };
+      if (updateCustomerSupportDto.customerSupportFeatureRequest.documents) {
+        transformedDto.customerSupportFeatureRequest.documents =
+          updateCustomerSupportDto.customerSupportFeatureRequest.documents.map(
+            (doc) => new Types.ObjectId(doc)
+          );
+      }
+    }
+
+    if (updateCustomerSupportDto.customerSupportErrorReport) {
+      transformedDto.customerSupportErrorReport = {
+        ...updateCustomerSupportDto.customerSupportErrorReport,
+      };
+      if (updateCustomerSupportDto.customerSupportErrorReport.documents) {
+        transformedDto.customerSupportErrorReport.documents =
+          updateCustomerSupportDto.customerSupportErrorReport.documents.map(
+            (doc) => new Types.ObjectId(doc)
+          );
+      }
+    }
+
+    if (updateCustomerSupportDto.assignedTo) {
+      transformedDto.assignedTo = updateCustomerSupportDto.assignedTo.map(
+        (id) => new Types.ObjectId(id)
+      );
+    }
 
     return this.customerSupportRepository.update(customerSupportId, transformedDto);
   }
@@ -204,5 +193,14 @@ export class CustomerSupportService {
     return user.role === UserRole.SELLER
       ? await this.getCustomerSupport(customerSupportId, user.sub)
       : await this.getCustomerSupport(customerSupportId);
+  }
+
+  async deleteCustomerSupport(customerSupportId: string) {
+    const customerSupport = await this.customerSupportRepository.findById(customerSupportId);
+    if (!customerSupport) {
+      throw new NotFoundException(`Customer support with ID ${customerSupportId} not found`);
+    }
+    
+    return await this.customerSupportRepository.update(customerSupportId, { isDeleted: true });
   }
 }
