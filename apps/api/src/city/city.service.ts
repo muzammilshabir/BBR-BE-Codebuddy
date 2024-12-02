@@ -4,6 +4,7 @@ import { ListCityDto } from './dto/listCity.dto';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
 import { UpdateCityDto } from './dto/updateCity.dto';
 import { NotFoundException } from '@bbr/api-core/modules/exceptions';
+import mongoose from 'mongoose';
 
 @Injectable()
 export class CityService {
@@ -14,7 +15,11 @@ export class CityService {
       ? {
           $or: [{ name: { $regex: listCityDto.search, $options: 'i' } }],
         }
-      : {};
+      : ({} as any);
+
+    if (listCityDto.countryId) {
+      filter.countryId = new mongoose.Types.ObjectId(listCityDto.countryId);
+    }
 
     const options = PaginationService.prepareOptions(listCityDto);
 

@@ -66,4 +66,8 @@ export class ServiceConfig extends BbrStatefulServiceConfig {
     redirectPage: this.getOrThrow('STRIPE_REDIRECT_PAGE'),
     webhookSecret: this.getOrThrow('STRIPE_WEBHOOK_SECRET'),
   };
+
+  readonly calendly = {
+    webhookSecret: this.getOrThrow('CALENDLY_WEBHOOK_SECRET'),
+  };
 }

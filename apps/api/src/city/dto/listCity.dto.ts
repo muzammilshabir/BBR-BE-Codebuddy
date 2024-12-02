@@ -1,9 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { ListPropsDto, PaginationSchema } from '@bbr/api-core/modules/dto/listProps.dto';
 import * as Joi from 'joi';
+import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
 
 export const listCitySchema = PaginationSchema.append({
   search: Joi.string().trim().max(100),
+  countryId: Joi.string().custom(joiObjectIdValidator('leadId')),
 });
 
 export class ListCityDto extends ListPropsDto {
@@ -14,4 +16,12 @@ export class ListCityDto extends ListPropsDto {
     type: String,
   })
   search?: string;
+
+  @ApiProperty({
+    description: 'Country ID',
+    example: '66acda8b857c576159b74da4',
+    required: false,
+    type: String,
+  })
+  countryId?: string;
 }

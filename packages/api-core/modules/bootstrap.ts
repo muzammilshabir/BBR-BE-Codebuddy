@@ -4,6 +4,8 @@ import { DocumentBuilder, SwaggerCustomOptions, SwaggerModule } from '@nestjs/sw
 import { Logger } from 'nestjs-pino';
 import { BbrConfig } from './config/bbrConfig';
 import { GlobalExceptionsFilter } from './exceptions/global.exception';
+import { json } from 'body-parser';
+import * as cloneBuffer from 'clone-buffer';
 
 export async function bootstrap(appModule: any) {
   BigInt.prototype['toJSON'] = function () {
@@ -13,6 +15,18 @@ export async function bootstrap(appModule: any) {
     rawBody: true,
   });
   app.enableCors();
+
+  app.use(
+    json({
+      verify: (req: any, res, buf) => {
+        if (req.headers['calendly-webhook-signature'] && Buffer.isBuffer(buf)) {
+          req.rawBody = cloneBuffer(buf);
+        }
+        return true;
+      },
+      limit: '5mb',
+    })
+  );
 
   // app.useLogger(app.get(Logger));
 

@@ -35,6 +35,11 @@ import { UnitRepository } from '../unit/unit.repository';
 import { Country, CountrySchema } from '../country/schema/country.schema';
 import { RankingRequestRepository } from 'src/rankingRequest/rankingRequest.repository';
 import { RankingRequest, RankingRequestSchema } from 'src/rankingRequest/schema/rankingRequest.schema';
+import { ResidenceSeederService } from './residencesSeeder.service';
+import { PropertyTypeRepository } from 'src/propertyType/propertyType.repository';
+import { PropertyType, PropertyTypeSchema } from 'src/propertyType/schema/propertyType.schema';
+import { RankingCategoryRepository } from 'src/rankingCategory/rankingCategory.repository';
+import { RankingCategory, RankingCategorySchema } from 'src/rankingCategory/schema/rankingCategory.schema';
 
 @Module({
   imports: [
@@ -51,9 +56,12 @@ import { RankingRequest, RankingRequestSchema } from 'src/rankingRequest/schema/
     MongooseModule.forFeature([{ name: UnitDraft.name, schema: UnitDraftSchema }]),
     MongooseModule.forFeature([{ name: Country.name, schema: CountrySchema }]),
     MongooseModule.forFeature([{ name: RankingRequest.name, schema: RankingRequestSchema }]),
+    MongooseModule.forFeature([{ name: PropertyType.name, schema: PropertyTypeSchema }]),
+    MongooseModule.forFeature([{ name: RankingCategory.name, schema: RankingCategorySchema }]),
   ],
   providers: [
     ResidenceService,
+    ResidenceSeederService,
     ResidenceRepository,
     ResidenceSeeder,
     ResidencesFixture,
@@ -68,8 +76,10 @@ import { RankingRequest, RankingRequestSchema } from 'src/rankingRequest/schema/
     UnitRepository,
     UnitDraftRepository,
     RankingRequestRepository,
+    PropertyTypeRepository,
+    RankingCategoryRepository,
   ],
-  exports: [ResidenceSeeder, ResidencesFixture, ResidenceService, ResidenceRepository],
+  exports: [ResidenceSeeder, ResidencesFixture, ResidenceService, ResidenceSeederService, ResidenceRepository],
   controllers: [ResidenceController],
 })
 export class ResidenceModule {}
