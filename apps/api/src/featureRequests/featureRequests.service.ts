@@ -3,7 +3,6 @@ import { FeatureRequestRepository } from './featureRequests.repository';
 import { CreateFeatureRequestDto } from './dto/create-feature-request.dto';
 import { UpdateFeatureRequestDto } from './dto/update-feature-request.dto';
 import { Types } from 'mongoose';
-import { CustomerSupportService } from 'src/customer-support/customer-support.service';
 import { UserRepository } from 'src/users/user.repository';
 import { UserRole } from 'src/users/enum/user.enum';
 import { ListFeatureRequestDto } from './dto/list-feature-request.dto';
@@ -15,7 +14,6 @@ import { ResidenceRepository } from 'src/residences/residences.repository';
 export class FeatureRequestService {
   constructor(
     private readonly featureRequestRepository: FeatureRequestRepository,
-    private readonly customerSupportService: CustomerSupportService,
     private readonly userRepository: UserRepository,
     private readonly residenceRepository: ResidenceRepository
   ) {}
@@ -50,12 +48,6 @@ export class FeatureRequestService {
       ...createFeatureRequestDto,
       createdBy: new Types.ObjectId(userId),
       residenceId: new Types.ObjectId(createFeatureRequestDto.residenceId),
-    });
-
-    await this.customerSupportService.create({
-      name: 'New Feature Request',
-      message: `New feature request created for residence ${createFeatureRequestDto.residenceId} with id ${featureRequest._id.toString()}`,
-      email: 'test@test.com',
     });
 
     return featureRequest;
