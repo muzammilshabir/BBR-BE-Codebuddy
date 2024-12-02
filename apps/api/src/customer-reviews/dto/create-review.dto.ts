@@ -61,7 +61,7 @@ export class CreateReviewDto {
 
   @ApiProperty({
     example: 'Great experience, would recommend!',
-    required: true,
+    required: false,
   })
   review: string;
 
@@ -102,7 +102,7 @@ export const createReviewDtoSchema = Joi.object({
     livingExperience: Joi.number().min(1).max(5).required(),
     value: Joi.number().min(1).max(5).required(),
   }).required(),
-  review: Joi.string().required(),
+  review: Joi.string().optional(),
   photos: Joi.array()
     .items(Joi.string().custom(joiObjectIdValidator('photos')))
     .optional(),
