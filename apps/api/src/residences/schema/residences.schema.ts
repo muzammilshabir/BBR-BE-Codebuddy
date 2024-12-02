@@ -18,11 +18,8 @@ export class Residence extends Document {
   @Prop({type: String, required: false})
   uniqueUrl: string
 
-  @Prop({type: Date, required: false})
-  uniqueUrlExpiry: Date
-
   @Prop({type: String, required: false})
-  token: string
+  key: string
 
   @Prop({ required: false })
   websiteLink?: string;

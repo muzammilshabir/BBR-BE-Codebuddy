@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import { ForbiddenException, Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { UnitRepository } from './unit.repository';
 import { AddUnitDto } from './dto/add-unit.dto';
 import { Unit } from './schema/unit.schema';
@@ -23,6 +23,7 @@ import { UnitDraft } from '../unitDraft/schema/unitDraft.schema';
 import { UpdateUnitDto } from './dto/update-unit.dto';
 import { ListExclusiveOfferDto } from './dto/list-exclusive-offer.dto';
 import { ListPropsDto } from '@bbr/api-core/modules/dto/listProps.dto';
+import { ResidenceRepository } from 'src/residences/residences.repository';
 
 @Injectable()
 export class UnitService {
@@ -33,7 +34,8 @@ export class UnitService {
     private readonly residenceService: ResidenceService,
     private readonly roomTypeRepository: RoomTypeRepository,
     private readonly residenceServiceRepository: ResidenceServiceRepository,
-    private readonly unitDraftRepository: UnitDraftRepository
+    private readonly unitDraftRepository: UnitDraftRepository,
+    private readonly residenceRepository: ResidenceRepository,
   ) {}
 
   async addUnit(addUnitDto: AddUnitDto, residenceId: string, userId: string): Promise<UnitDraft> {
@@ -558,5 +560,101 @@ export class UnitService {
     const { pagination } = PaginationService.paginate({ rows: data, count }, listPropsDto);
 
     return { pagination, unit: data };
+  }
+
+  async listUnitsByKey(listUnitDto: ListUnitDto, key: string) {
+
+    if (!process.env.WELCOME_FLOW_ENABLED || process.env.WELCOME_FLOW_ENABLED === 'false') {
+      throw new ForbiddenException('Welcome Flow Disabled');
+    }
+
+    const foundResidence = await this.residenceRepository.find({ key });
+
+    if (!foundResidence) {
+      throw new NotFoundException(`Residence with Key ${key} not found`);
+    }
+
+    await this.checkResidenceRejectedStatus(foundResidence._id.toString());
+
+    const filter: any = { isDeleted: DeletionStatus.ACTIVE };
+
+    
+    filter.residenceId = new Types.ObjectId(foundResidence._id.toString());
+    
+
+    if (listUnitDto.status) {
+      filter.status = listUnitDto.status;
+    }
+
+    const options = PaginationService.prepareOptions(listUnitDto);
+
+    const { data, count } = await this.unitRepository.findAll(filter, options);
+
+    const { pagination } = PaginationService.paginate({ rows: data, count }, listUnitDto);
+
+    return { pagination, units: data };
+  }
+
+  async checkResidenceRejectedStatus(residenceId: string) {
+    const residence = await this.residenceRepository.findById(residenceId);
+    if (!residence) {
+      throw new NotFoundException(`Residence with ID ${residenceId}`);
+    }
+    if (residence.status === ResidenceStatus.REJECTED) {
+      throw new BadRequestException(`Rejected Residence cannot be updated`);
+    }
+  }
+
+  async addUnitByKey(addUnitDto: AddUnitDto, key: string): Promise<UnitDraft> {
+    try {
+
+      if (!process.env.WELCOME_FLOW_ENABLED || process.env.WELCOME_FLOW_ENABLED === 'false') {
+        throw new ForbiddenException('Welcome Flow Disabled');
+      }
+  
+      const foundResidence = await this.residenceRepository.find({ key });
+  
+      if (!foundResidence) {
+        throw new NotFoundException(`Residence with Key ${key} not found`);
+      }
+  
+      await this.checkResidenceRejectedStatus(foundResidence._id.toString());
+      
+
+      if (addUnitDto.specs?.unitNumber) {
+        const existingUnit = await this.unitRepository.find({
+          residenceId: new Types.ObjectId(foundResidence._id.toString()),
+          'specs.unitNumber': addUnitDto.specs.unitNumber,
+        });
+
+        if (existingUnit) {
+          throw new BadRequestException(
+            'Unit with the same unit number already exists in this residence.'
+          );
+        }
+      }
+
+      const transformedDto = {
+        ...addUnitDto,
+        residenceId: new Types.ObjectId(foundResidence._id.toString()),
+        status: ResidenceStatus.DRAFT,
+      };
+
+      const unit = await this.unitRepository.create(transformedDto);
+      const unitDraft = await this.unitDraftRepository.create({
+        unitId: unit._id,
+        ...transformedDto,
+      });
+
+      // Check and handle residence drafts
+      await this.checkAndHandleResidenceDraft(foundResidence._id.toString());
+
+      return unitDraft;
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Failed to create unit draft', error);
+    }
   }
 }
