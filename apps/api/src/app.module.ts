@@ -58,6 +58,8 @@ import { InvoiceModule } from './invoice/invoice.module';
 import { ActivityLogModule } from './activity-log/activity-log.module';
 import { CustomerSupportModule } from './customer-support/customer-support.module';
 import { MarketingModule } from './marketing/marketing.module';
+import { AdminNoteModule } from './admin-note/admin-note.module';
+import { FeatureRequestModule } from './featureRequests/featureRequests.module';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -115,6 +117,8 @@ import { MarketingModule } from './marketing/marketing.module';
     ActivityLogModule,
     CustomerSupportModule,
     MarketingModule,
+    AdminNoteModule,
+    FeatureRequestModule
   ],
   controllers: [AppController],
   providers: [

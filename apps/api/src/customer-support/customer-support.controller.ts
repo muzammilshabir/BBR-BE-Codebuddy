@@ -1,6 +1,6 @@
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
-import { Body, Controller, Get, Param, Patch, Post, Query, UsePipes } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, UsePipes } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CustomerSupportService } from './customer-support.service';
 import {
@@ -38,18 +38,18 @@ export class CustomerSupportController {
     );
   }
 
-  @Get('/')
+  @Post('/list')
   @ApiOperation({ summary: 'List customer support filters' })
   @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
   @Permissions('customer-support', PermissionLevel.READ)
-  @UsePipes(new JoiValidationPipe(listCustomerSupportSchema, 'query'))
+  @UsePipes(new JoiValidationPipe(listCustomerSupportSchema, 'body'))
   async listCustomerSupports(
-    @Query() query: ListCustomerSupportDto,
+    @Body() body: ListCustomerSupportDto,
     @GetCurrentUser() user: JwtPayloadType
   ) {
     const customerSupports = await this.customerSupportService.getCustomerSupportsWithRole(
-      query,
+      body,
       user
     );
     return ResponseService.buildResponse(
@@ -94,6 +94,19 @@ export class CustomerSupportController {
     return ResponseService.buildResponse(
       { customerSupport },
       'Customer support retrieved successfully'
+    );
+  }
+
+  @Delete('/:id')
+  @ApiOperation({ summary: 'Delete Customer Support' })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @Permissions('customer-support', PermissionLevel.DELETE)
+  async deleteCustomerSupport(@Param('id') customerSupportId: string) {
+    const customerSupport = await this.customerSupportService.deleteCustomerSupport(customerSupportId);
+    return ResponseService.buildResponse(
+      { customerSupport },
+      'Customer support deleted successfully'
     );
   }
 }

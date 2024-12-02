@@ -7,6 +7,10 @@ import { NotFoundException } from '@bbr/api-core/modules/exceptions';
 import { UpdateActivityLogDto } from './dto/update-activity-log.dto';
 import { ListActivityLogDto } from './dto/list-activity-log.dto';
 import { LeadService } from '../lead/lead.service';
+import { ActivityLog } from './schema/activity-log.schema';
+import * as XLSX from 'xlsx';
+import { format } from '@fast-csv/format';
+import { Writable } from 'stream';
 
 @Injectable()
 export class ActivityLogService {
@@ -29,28 +33,21 @@ export class ActivityLogService {
     return this.activityLogRepository.create(activityLog);
   }
 
-  async update(id: string, updateData: UpdateActivityLogDto, userId: string) {
+  async update(id: string, updateData: UpdateActivityLogDto) {
     const activityLog = await this.activityLogRepository.findById(id);
     if (!activityLog) {
       throw new NotFoundException(`Activity log with ID ${id} not found`);
-    }
-
-    if (activityLog.userId.toString() !== userId) {
-      throw new Error('Unauthorized to update this activity log');
     }
 
     return this.activityLogRepository.update(id, updateData);
   }
 
-  async delete(id: string, userId: string) {
+  async delete(id: string) {
     const activityLog = await this.activityLogRepository.findById(id);
     if (!activityLog) {
       throw new NotFoundException(`Activity log with ID ${id} not found`);
     }
 
-    if (activityLog.userId.toString() !== userId) {
-      throw new Error('Unauthorized to delete this activity log');
-    }
 
     return this.activityLogRepository.update(id, { isDeleted: true });
   }
@@ -99,8 +96,74 @@ export class ActivityLogService {
       },
     ]);
 
+    if (listActivityLogDto.isDownload) {
+      if (listActivityLogDto.fileType === 'csv') {
+        return this.generateCsv(data);
+      } else if (listActivityLogDto.fileType === 'excel') {
+        return this.generateExcel(data);
+      }
+    }
+
     const { pagination } = PaginationService.paginate({ rows: data, count }, listActivityLogDto);
 
     return { pagination, activityLogs: data };
   }
+
+  private async generateCsv(activityLogs: ActivityLog[]): Promise<Buffer> {
+    const csvStream = format({ headers: true });
+    const bufferStream = new Writable();
+    const data: Buffer[] = [];
+
+    // Write chunks of data to a buffer array
+    bufferStream._write = (chunk, encoding, next) => {
+      data.push(chunk);
+      next();
+    };
+
+    csvStream.pipe(bufferStream);
+
+    // Writing each activity log object to CSV
+    activityLogs.forEach((activityLog: any) => {
+
+      csvStream.write({
+        'Activity': activityLog?.activity || '',
+        'Timestamp': activityLog?.timestamp || '',
+        'Note': activityLog?.note || '',
+      });
+    });
+
+    csvStream.end();
+
+    // Await the CSV generation and return the file
+    const csvFile = await new Promise<Buffer>((resolve) => {
+      bufferStream.on('finish', () => {
+        resolve(Buffer.concat(data));
+      });
+    });
+
+    return csvFile;
+  }
+
+  private async generateExcel(activityLogs: ActivityLog[]): Promise<Buffer> {
+    const workbook = XLSX.utils.book_new();
+    const worksheetData = activityLogs.map((activityLog: any) => {
+      return {
+        'Activity': activityLog?.activity || '',
+        'Timestamp': activityLog?.timestamp || '',
+        'Note': activityLog?.note || '',
+      };
+    });
+    
+    // Convert data to a worksheet
+    const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+
+    // Append the worksheet to the workbook
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Activity Logs');
+
+    // Write the workbook to a buffer
+    const excelFileBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'buffer' });
+
+    return excelFileBuffer;
+  }
+
 }
