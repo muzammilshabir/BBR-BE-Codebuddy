@@ -10,6 +10,7 @@ import { User } from 'src/users/schema/user.schema';
 import { Plan, PlanSchema } from 'src/subscription-plan/schema/plan.schema';
 import { GuestUploadInventoryController } from './guestUploadInventory.controller';
 import { GuestPremiumResidenceProfileController } from './guestPremiumResidenceProfile.controller';
+import { GuestRequestVisitController } from './guestRequestAVisit.controller';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { GuestPremiumResidenceProfileController } from './guestPremiumResidenceP
     GuestApplyRankingController,
     GuestUploadInventoryController,
     GuestPremiumResidenceProfileController,
+    GuestRequestVisitController,
   ],
   providers: [GuestUserService],
 })
