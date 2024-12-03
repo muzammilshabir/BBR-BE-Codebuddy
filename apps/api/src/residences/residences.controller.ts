@@ -22,7 +22,12 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/enum/user.enum';
 import { AddResidenceVisualsDto, addResidenceVisualsSchema } from './dto/add-visuals.dto';
 import { CreateResidenceDto, createResidenceSchema } from './dto/create-residence.dto';
-import { GetResidenceByIdDto, getResidenceByIdSchema } from './dto/get-residence-by-id.dto';
+import {
+  GetResidenceByIdDto,
+  getResidenceByIdSchema,
+  GetResidenceByKeyDto,
+  getResidenceByKeySchema,
+} from './dto/get-residence-by-id.dto';
 import {
   ListResidenceByFiltersDto,
   ListResidenceByFiltersQueryPropsDto,
@@ -59,6 +64,7 @@ import { PermissionLevel } from '../modulePolicy/enum/permission-enum';
 import { GetSimilarResidenceDto, getSimilarResidenceSchema } from './dto/get-similar-residence';
 import { ResidenceSeederService } from './residencesSeeder.service';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { PassThrough } from 'stream';
 
 @ApiTags('Residence')
 @Controller('residence')
@@ -397,5 +403,98 @@ export class ResidenceController {
 
     const result = await this.residenceSeederService.processUploadedFile(file);
     return ResponseService.buildResponse(result);
+  }
+
+  @Get('/welcome-flow/:key')
+  @ApiOperation({
+    summary: 'Get Residence by ID',
+  })
+  @Public()
+  @UsePipes(new JoiValidationPipe(getResidenceByKeySchema, 'param'))
+  async getResidenceByKey(@Param() params: GetResidenceByKeyDto) {
+    const residence = await this.residenceService.getResidenceByKey(params.key);
+    return ResponseService.buildResponse({ residence }, 'Residence retrieved successfully');
+  }
+
+  @Put('/welcome-flow/:key')
+  @ApiOperation({
+    summary: 'Update Residence general info',
+  })
+  @Public()
+  @UsePipes(new JoiValidationPipe(updateResidenceSchema, 'body'))
+  async updateWithKey(@Param('key') key: string, @Body() updateResidenceDto: UpdateResidenceDto) {
+    const residence = await this.residenceService.updateGeneralInfoByKey(key, updateResidenceDto);
+    return ResponseService.buildResponse(
+      { residenceDraft: residence },
+      'Residence updated successfully'
+    );
+  }
+
+  @Put('/welcome-flow/:key/key-features')
+  @ApiOperation({
+    summary: 'Add Residence Key Features By key',
+  })
+  @Public()
+  @UsePipes(new JoiValidationPipe(addKeyFeaturesSchema, 'body'))
+  async addKeyFeaturesByKey(
+    @Param('key') key: string,
+    @Body() addKeyFeaturesDto: AddKeyFeaturesDto
+  ) {
+    const residence = await this.residenceService.addKeyFeaturesByKey(key, addKeyFeaturesDto);
+    return ResponseService.buildResponse(
+      { residenceDraft: residence },
+      'Residence key features added successfully'
+    );
+  }
+
+  @Put('/welcome-flow/:key/visuals')
+  @ApiOperation({
+    summary: 'Add or update visuals for a residence By Key',
+  })
+  @Public()
+  @UsePipes(new JoiValidationPipe(addResidenceVisualsSchema, 'body'))
+  async addVisualsByKey(@Param('key') key: string, @Body() addVisualsDto: AddResidenceVisualsDto) {
+    const residence = await this.residenceService.addVisualsByKey(key, addVisualsDto);
+    return ResponseService.buildResponse(
+      { residenceDraft: residence },
+      'Residence visuals updated successfully'
+    );
+  }
+
+  @Put('/welcome-flow/:key/nearby-amenities')
+  @ApiOperation({
+    summary: 'Add or update nearby amenities for a residence By Key',
+  })
+  @Public()
+  @UsePipes(new JoiValidationPipe(updateNearbyAmenitiesSchema, 'body'))
+  async updateNearbyAmenitiesByKey(
+    @Param('key') key: string,
+    @Body() updateNearbyAmenitiesDto: UpdateNearbyAmenitiesDto
+  ) {
+    const residence = await this.residenceService.updateNearbyAmenitiesByKey(
+      key,
+      updateNearbyAmenitiesDto
+    );
+    return ResponseService.buildResponse(
+      { residenceDraft: residence },
+      'Residence nearby amenities updated successfully'
+    );
+  }
+
+  @Get('download/uniqueurl-csv')
+  @Roles(UserRole.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Download unique URL residences as CSV',
+  })
+  async downloadUniqueUrlCsv(@Res() res: Response) {
+    const filename = `unique-url-residences-${new Date().toISOString()}.csv`;
+    res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+    res.setHeader('Content-Type', 'text/csv');
+
+    const stream = new PassThrough();
+    stream.pipe(res);
+
+    await this.residenceService.streamCsvData(stream);
   }
 }
