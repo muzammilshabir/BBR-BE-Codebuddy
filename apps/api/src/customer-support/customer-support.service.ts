@@ -10,6 +10,7 @@ import { UpdateCustomerSupportDto } from './dto/update-customer-support.dto';
 import { UnitRepository } from 'src/unit/unit.repository';
 import { UserRole } from '../users/enum/user.enum';
 import { JwtPayloadType } from '../auth/type/jwt-payload.type';
+import { UpdateCalendlyDetailsDto } from './dto/update-calendly-details.dto';
 
 @Injectable()
 export class CustomerSupportService {
@@ -202,5 +203,19 @@ export class CustomerSupportService {
     }
     
     return await this.customerSupportRepository.update(customerSupportId, { isDeleted: true });
+  }
+
+  async updateCalendlyDetails(
+    customerSupportId: string,
+    updateCalendlyDetailsDto: UpdateCalendlyDetailsDto
+  ): Promise<CustomerSupport> {
+    const customerSupport = await this.customerSupportRepository.findById(customerSupportId);
+    if (!customerSupport) {
+      throw new NotFoundException(`Customer support with ID ${customerSupportId} not found`);
+    }
+
+    return this.customerSupportRepository.update(customerSupportId, {
+      calendlyDetails: updateCalendlyDetailsDto
+    });
   }
 }

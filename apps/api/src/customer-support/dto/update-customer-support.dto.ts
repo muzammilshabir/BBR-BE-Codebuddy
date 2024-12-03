@@ -14,10 +14,12 @@ import {
   CustomerSupportUserPreferences,
   customerSupportFeatureRequestSchema,
   customerSupportErrorReportSchema,
+  calendlyDetailsSchema,
 } from './create-customer-support.dto';
 import {
   CustomerSupportFeatureRequest,
   CustomerSupportErrorReport,
+  CalendlyDetails,
 } from '../type/customer-support.type';
 
 export class PhoneNumber {
@@ -136,6 +138,13 @@ export class UpdateCustomerSupportDto {
 
   @ApiProperty({ example: ['60d9c6a0a11c3c6c6a9a1a2b'], required: false })
   assignedTo?: Types.ObjectId[];
+
+  @ApiProperty({ 
+    type: CalendlyDetails,
+    required: false,
+    description: 'Calendly meeting details' 
+  })
+  calendlyDetails?: CalendlyDetails;
 }
 
 const phoneSchema = Joi.object({
@@ -183,4 +192,5 @@ export const updateCustomerSupportSchema = Joi.object({
     .optional(),
   customerSupportFeatureRequest: customerSupportFeatureRequestSchema.optional(),
   customerSupportErrorReport: customerSupportErrorReportSchema.optional(),
+  calendlyDetails: calendlyDetailsSchema.optional(),
 }).min(1);
