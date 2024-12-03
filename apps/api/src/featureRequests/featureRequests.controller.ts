@@ -69,7 +69,7 @@ export class FeatureRequestController {
 
   @Patch(':id/payment')
   @ApiBearerAuth()
-  @Roles(UserRole.ADMIN, UserRole.SELLER)
+  @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Update payment information for a feature request' })
   @UsePipes(new JoiValidationPipe(updatePaymentInfoSchema, 'body'))
   async updatePaymentInfo(
