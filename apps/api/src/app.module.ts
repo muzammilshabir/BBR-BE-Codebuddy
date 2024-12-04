@@ -60,6 +60,7 @@ import { CustomerSupportModule } from './customer-support/customer-support.modul
 import { MarketingModule } from './marketing/marketing.module';
 import { AdminNoteModule } from './admin-note/admin-note.module';
 import { FeatureRequestModule } from './featureRequests/featureRequests.module';
+import { CalendlyWebhookModule } from './calendly/calendlyWebhook.module';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -119,6 +120,7 @@ import { FeatureRequestModule } from './featureRequests/featureRequests.module';
     MarketingModule,
     AdminNoteModule,
     FeatureRequestModule
+    CalendlyWebhookModule,
   ],
   controllers: [AppController],
   providers: [

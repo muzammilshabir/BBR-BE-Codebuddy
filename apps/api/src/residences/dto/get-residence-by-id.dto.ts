@@ -14,3 +14,16 @@ export class GetResidenceByIdDto {
 export const getResidenceByIdSchema = Joi.object({
   id: Joi.string().custom(joiObjectIdValidator('id')).required(),
 });
+
+export class GetResidenceByKeyDto {
+  @ApiProperty({
+    example: '88368f2a-d5db-47d8-a05f-534fab0a0045',
+    description: 'Key for the Residence',
+    required: true,
+  })
+  key: string;
+}
+
+export const getResidenceByKeySchema = Joi.object({
+  key: Joi.string().required()
+});
