@@ -50,9 +50,9 @@ import { InjectModel } from '@nestjs/mongoose';
 import { RankingCategoryStatus } from 'src/rankingCategory/enum/rankingCategory-status.enum';
 import { RankingRequest } from 'src/rankingRequest/schema/rankingRequest.schema';
 import { RankingRequestRepository } from 'src/rankingRequest/rankingRequest.repository';
-import crypto from 'crypto';
 import { PassThrough } from 'stream';
 import * as fastcsv from 'fast-csv';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class ResidenceService {
@@ -92,7 +92,7 @@ export class ResidenceService {
       transformedDto.developerId = new Types.ObjectId(user.sub);
     }
     if (user.role === UserRole.ADMIN) {
-      const key = crypto.randomUUID();
+      const key = uuidv4();
       transformedDto.key = key;
       transformedDto.uniqueUrl = `${process.env.FRONTEND_BASE_URL}?key=${key}`;
     }
