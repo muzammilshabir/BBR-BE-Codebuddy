@@ -201,7 +201,23 @@ export class AuthController {
     @GetCurrentUser() userFromToken: JwtPayloadType,
     @Body() buyerSignupDto: UpdateBuyerProfileDto
   ) {
-    const user = await this.authService.updateBuyer(userFromToken, buyerSignupDto);
+    const user = await this.authService.updateBuyer(userFromToken.sub, buyerSignupDto);
+    return ResponseService.buildResponse(user, 'Buyer updated successfully');
+  }
+
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Update Buyer Profile',
+  })
+  @Patch('buyer/:id')
+  @Roles(UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(getUserByIdSchema, 'param'))
+  @UsePipes(new JoiValidationPipe(updateBuyerProfileSchema, 'body'))
+  async updateBuyerById(
+    @Param() params: GetUserByIdDto,
+    @Body() buyerSignupDto: UpdateBuyerProfileDto
+  ) {
+    const user = await this.authService.updateBuyer(params.id, buyerSignupDto);
     return ResponseService.buildResponse(user, 'Buyer updated successfully');
   }
 
