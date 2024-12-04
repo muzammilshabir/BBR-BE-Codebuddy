@@ -1,13 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
 import * as Joi from 'joi';
 import { ListPropsDto, PaginationSchema } from '@bbr/api-core/modules/dto/listProps.dto';
-import { FeatureRequestStatus } from '../enum/feature-request-status';
+import { BbrVerificationStatus } from '../enum/bbr-verification-status';
 import { PaymentStatus } from '../../rankingRequest/enum/payment-status.enum';
-import { joiObjectIdValidator } from '../../../../../packages/api-core/modules/custome-validations/custome-validations';
+import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
+import { VerificationType } from '../enum/verification-type.enum';
 
-export class ListFeatureRequestDto extends ListPropsDto {
+export class ListBbrVerificationDto extends ListPropsDto {
   @ApiProperty({
-    description: 'Search by feature request name',
+    description: 'Search by verification name',
     example: 'test',
     required: false,
     type: String,
@@ -15,12 +16,12 @@ export class ListFeatureRequestDto extends ListPropsDto {
   search?: string;
 
   @ApiProperty({
-    example: FeatureRequestStatus.APPROVED,
-    enum: FeatureRequestStatus,
-    description: 'The status of the feature Request',
+    example: BbrVerificationStatus.APPROVED,
+    enum: BbrVerificationStatus,
+    description: 'The status of the verification',
     required: false,
   })
-  status?: FeatureRequestStatus;
+  status?: BbrVerificationStatus;
 
   @ApiProperty({
     description: 'Filter by residence ID',
@@ -37,15 +38,26 @@ export class ListFeatureRequestDto extends ListPropsDto {
     enum: PaymentStatus,
   })
   paymentStatus?: PaymentStatus;
+
+  @ApiProperty({
+    description: 'Filter by verification type',
+    example: VerificationType.E_VERIFICATION,
+    required: false,
+    enum: VerificationType,
+  })
+  verificationType?: VerificationType;
 }
 
-export const listFeatureRequestSchema = PaginationSchema.append({
+export const listBbrVerificationSchema = PaginationSchema.append({
   search: Joi.string().optional(),
   status: Joi.string()
-    .valid(...Object.values(FeatureRequestStatus))
+    .valid(...Object.values(BbrVerificationStatus))
     .optional(),
   paymentStatus: Joi.string()
     .valid(...Object.values(PaymentStatus))
+    .optional(),
+  verificationType: Joi.string()
+    .valid(...Object.values(VerificationType))
     .optional(),
   residenceId: Joi.string().custom(joiObjectIdValidator('residenceId')).optional(),
 });

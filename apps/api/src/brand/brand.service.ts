@@ -284,6 +284,10 @@ export class BrandService {
 
     // If brandId does not exist, create a new brand
     if (!brandId) {
+      const existingBrand = await this.brandRepository.find({ name });
+      if (existingBrand) {
+        throw new BadRequestException(`Brand with name ${name} already exists`);
+      }
       const newBrand = await this.brandRepository.create({
         name,
         description,
@@ -357,6 +361,10 @@ export class BrandService {
 
     // If brandId does not exist, create a new active brand and draft
     if (!brandId) {
+      const existingBrand = await this.brandRepository.find({ name });
+      if (existingBrand) {
+        throw new BadRequestException(`Brand with name ${name} already exists`);
+      }
       const newBrand = await this.brandRepository.create({
         name,
         description,

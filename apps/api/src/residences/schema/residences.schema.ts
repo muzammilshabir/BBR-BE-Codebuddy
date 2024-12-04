@@ -236,6 +236,18 @@ export class Residence extends Document {
 
   @Prop({ type: Boolean, default: false })
   featured: boolean;
+
+  @Prop({ type: Boolean, default: false })
+  eVerification: boolean;
+
+  @Prop({ type: Boolean, default: false })
+  onsiteVerification: boolean;
+
+  @Prop({ type: Date, default: null })
+  verifiedOn: Date;
+
+  @Prop({ type: Boolean, default: false })
+  isFeatured: boolean;
 }
 
 export const ResidenceSchema = SchemaFactory.createForClass(Residence);

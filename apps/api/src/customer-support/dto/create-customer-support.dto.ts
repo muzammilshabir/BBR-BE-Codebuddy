@@ -83,6 +83,17 @@ export class CreateCustomerSupportDto {
   @ApiProperty({ example: 'USA', required: false })
   country?: string;
 
+  @ApiProperty({
+    description: 'Array of upload objects',
+    example: [{ ImageId: '60d7fe6f9eb1f24a04d65633', type: 'docs' }],
+    required: false,
+    type: Array,
+  })
+  upload?: Array<{
+    ImageId: Types.ObjectId;
+    type?: string;
+  }>;
+
   @ApiProperty({ description: 'Contact information', type: UserContactInfo, required: false })
   contactInfo?: UserContactInfo;
 
@@ -144,10 +155,10 @@ export class CreateCustomerSupportDto {
   })
   customerSupportErrorReport?: CustomerSupportErrorReport;
 
-  @ApiProperty({ 
+  @ApiProperty({
     type: CalendlyDetails,
     required: false,
-    description: 'Calendly meeting details' 
+    description: 'Calendly meeting details',
   })
   calendlyDetails?: CalendlyDetails;
 }
@@ -198,9 +209,9 @@ export const customerSupportFeatureRequestSchema = Joi.object({
   featureDescription: Joi.string().required().messages({
     'any.required': 'Feature description is required',
   }),
-  documents: Joi.array().items(
-    Joi.string().custom(joiObjectIdValidator('documents'))
-  ).optional(),
+  documents: Joi.array()
+    .items(Joi.string().custom(joiObjectIdValidator('documents')))
+    .optional(),
 });
 
 export const customerSupportErrorReportSchema = Joi.object({
@@ -218,9 +229,9 @@ export const customerSupportErrorReportSchema = Joi.object({
   errorDescription: Joi.string().required().messages({
     'any.required': 'Error description is required',
   }),
-  documents: Joi.array().items(
-    Joi.string().custom(joiObjectIdValidator('documents'))
-  ).optional(),
+  documents: Joi.array()
+    .items(Joi.string().custom(joiObjectIdValidator('documents')))
+    .optional(),
 });
 
 export const locationDetailsSchema = Joi.object({
@@ -255,6 +266,16 @@ export const createCustomerSupportSchema = Joi.object({
   receiveNewsletter: Joi.boolean(),
   companyName: Joi.string().optional(),
   websiteUrl: Joi.string().uri().optional(),
+  upload: Joi.array()
+    .items(
+      Joi.object({
+        ImageId: Joi.string()
+          .pattern(/^[0-9a-fA-F]{24}$/)
+          .required(),
+        type: Joi.string().optional(),
+      })
+    )
+    .optional(),
   pageUrl: Joi.string().optional().uri(),
   country: Joi.string().optional(),
   note: Joi.string().optional(),
