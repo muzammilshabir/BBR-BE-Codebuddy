@@ -147,7 +147,7 @@ export class SubscriptionPlanSeeder extends AbstractSeeder {
         },
         {
           name: 'E-Verification',
-          fee: 25000,
+          fee: 99,
           billingCycle: 'month',
           trialPeriod: 0,
           features: planFeatures,
