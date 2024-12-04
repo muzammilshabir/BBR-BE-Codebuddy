@@ -16,6 +16,7 @@ import { Plan } from 'src/subscription-plan/schema/plan.schema';
 import { Invoice } from 'src/stripe/schema/invoice.schema';
 import Stripe from 'stripe';
 import { GuestPremiumResidenceProfileDto } from './guest-request-premium-residence-profile.dto';
+import { GuestRequestVisitDto } from './guest-request-visit.dto';
 
 @Injectable()
 export class GuestUserService {
@@ -155,7 +156,7 @@ export class GuestUserService {
   }
 
   private async createStripeCustomerAndInvoice(
-    body: GuestApplyRankingDto | GuestUploadInventoryDto
+    body: GuestApplyRankingDto | GuestUploadInventoryDto | GuestRequestVisitDto
   ) {
     const user = await this.userModel.findOne({ email: body.userDetails.email });
     if (user) {
@@ -252,5 +253,47 @@ export class GuestUserService {
     }
 
     return subscriptionPlan;
+  }
+
+  async RequestVisit(body: GuestRequestVisitDto){
+    const subscriptionPlan = await this.getSubsPlan(body.subscriptionPlanId);
+
+    const { invoice, stripeCustomer, stripeInvoice } =
+    await this.createStripeCustomerAndInvoice(body);
+
+    const lineItems = await this.invoiceService.createLineItemsFromSubscriptionPlan(
+      invoice.id,
+      subscriptionPlan
+    );
+
+    await this.invoiceService.attachLineItemsToStripeInvoice(stripeCustomer.id, stripeInvoice.id, [
+      lineItems,
+    ]);
+
+    await Promise.all([
+      this.invoicePostPaymentActionService.create(
+        invoice.id,
+        InvoicePostPaymentActionType.CREATE_USER,
+        {
+          ...body.userDetails,
+          stripeCustomerId: stripeCustomer.id,
+          password: await argon.hash(body.userDetails.password),
+        }
+      ),
+      this.invoicePostPaymentActionService.create(
+        invoice.id,
+        InvoicePostPaymentActionType.CREATE_RESIDENCE,
+        body.residenceDetails
+      ),
+    ]);
+
+    await this.createStripePaymentMethodAndPayInvoice(
+      stripeCustomer,
+      stripeInvoice,
+      invoice,
+      body.stripePmTokenId
+    );
+
+    return true;
   }
 }
