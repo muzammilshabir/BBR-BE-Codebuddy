@@ -119,7 +119,7 @@ import { CalendlyWebhookModule } from './calendly/calendlyWebhook.module';
     CustomerSupportModule,
     MarketingModule,
     AdminNoteModule,
-    FeatureRequestModule
+    FeatureRequestModule,
     CalendlyWebhookModule,
   ],
   controllers: [AppController],
