@@ -1,10 +1,18 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
-import { CustomerSupportSource, CustomerSupportStatus, Priority } from '../enum/customer-support-enum';
+import {
+  CustomerSupportSource,
+  CustomerSupportStatus,
+  Priority,
+} from '../enum/customer-support-enum';
 import { CounterService } from '../../counter/counter.service';
 import { CustomerSupportUserPreferences, PhoneNumber } from '../dto/create-customer-support.dto';
 import { UserContactInfo } from 'src/users/types/user.type';
-import { CustomerSupportErrorReport, CustomerSupportFeatureRequest } from '../type/customer-support.type';
+import {
+  CustomerSupportErrorReport,
+  CustomerSupportFeatureRequest,
+  CalendlyDetails,
+} from '../type/customer-support.type';
 
 @Schema({
   timestamps: true,
@@ -72,7 +80,7 @@ export class CustomerSupport extends Document {
     enum: CustomerSupportSource,
   })
   source?: CustomerSupportSource;
-  
+
   @Prop({ required: false, type: Object })
   preferences: CustomerSupportUserPreferences;
 
@@ -117,6 +125,18 @@ export class CustomerSupport extends Document {
   @Prop({ type: Boolean, default: false })
   isDeleted: boolean;
 
+  @Prop({
+    type: {
+      createdAt: { type: Date, required: true },
+      meetingStart: { type: Date, required: true },
+      meetingName: { type: String, required: false },
+      location: { type: Object, required: false },
+      cancelUrl: { type: String, required: false },
+      rescheduleUrl: { type: String, required: false },
+    },
+    required: false,
+  })
+  calendlyDetails?: CalendlyDetails;
 }
 
 const CustomerSupportSchema = SchemaFactory.createForClass(CustomerSupport);
