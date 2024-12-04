@@ -11,12 +11,14 @@ export class RedisService implements RedisRepositoryInterface {
   ) {}
 
   async get(payload: IRedisGetPayload): Promise<string | null> {
-    return this.redisClient.get(`${payload.prefix}:${payload.key}`);
+    return this.redisClient.get(
+      `${this.configService.redis.appPrefix}-${payload.prefix}:${payload.key}`
+    );
   }
 
   async set(payload: IRedisSetPayload): Promise<void> {
     await this.redisClient.set(
-      `${payload.prefix}:${payload.key}`,
+      `${this.configService.redis.appPrefix}-${payload.prefix}:${payload.key}`,
       payload.value,
       'EX',
       payload.expiry || this.configService.redis.defaultExpiry
@@ -24,6 +26,8 @@ export class RedisService implements RedisRepositoryInterface {
   }
 
   async delete(payload: IRedisGetPayload): Promise<void> {
-    await this.redisClient.del(`${payload.prefix}:${payload.key}`);
+    await this.redisClient.del(
+      `${this.configService.redis.appPrefix}-${payload.prefix}:${payload.key}`
+    );
   }
 }

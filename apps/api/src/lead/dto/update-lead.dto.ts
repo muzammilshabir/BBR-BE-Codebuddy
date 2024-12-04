@@ -35,14 +35,14 @@ export class UpdateLeadDto {
     description: "Price of the unit entered by the developer for this lead",
     required: false,
   })
-  unitPrice?: string;
+  unitPrice?: number;
 
   @ApiProperty({ 
     example: 15,
     description: "n/a",
     required: false,
   })
-  dealPercentage?: string;
+  dealPercentage?: number;
 
   @ApiProperty({ example: 'Interested in beachfront properties', required: false })
   note?: string;

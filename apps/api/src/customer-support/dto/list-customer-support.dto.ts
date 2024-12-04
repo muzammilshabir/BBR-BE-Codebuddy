@@ -2,6 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import * as Joi from 'joi';
 import { ListPropsDto, PaginationSchema } from '@bbr/api-core/modules/dto/listProps.dto';
 import { CustomerSupportSource, CustomerSupportStatus, Priority } from '../enum/customer-support-enum';
+import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
 
 export class ListCustomerSupportDto extends ListPropsDto {
   @ApiProperty({
@@ -34,6 +35,14 @@ export class ListCustomerSupportDto extends ListPropsDto {
     type: String,
   })
   search?: string;
+
+  @ApiProperty({
+    description: 'Filter by assigned user IDs',
+    example: ['60d9c6a0a11c3c6c6a9a1a2b'],
+    required: false,
+    type: [String],
+  })
+  assignedTo?: string[];
 }
 
 export const listCustomerSupportSchema = PaginationSchema.append({
@@ -46,5 +55,8 @@ export const listCustomerSupportSchema = PaginationSchema.append({
   priority: Joi.string()
     .valid(...Object.values(Priority))
     .optional(),
+  assignedTo: Joi.array().items(
+    Joi.string().custom(joiObjectIdValidator('assignedTo'))
+  ).optional(),
   search: Joi.string().optional(),
 });

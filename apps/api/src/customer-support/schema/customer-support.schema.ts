@@ -22,7 +22,7 @@ export class CustomerSupport extends Document {
   @Prop({ required: true })
   name: string;
 
-  @Prop({ required: true })
+  @Prop({ required: false })
   phoneNumber: PhoneNumber;
 
   @Prop({ required: true })

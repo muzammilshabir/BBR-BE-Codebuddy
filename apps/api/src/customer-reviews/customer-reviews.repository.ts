@@ -23,7 +23,17 @@ export class CustomerReviewRepository extends BaseRepository<CustomerReview> {
         {
           path: 'residence',
           model: 'Residence',
-          select: 'name',
+          select: 'name associatedBrandId',
+          populate: {
+            path: 'associatedBrandId',
+            model: 'Brand',
+            select: 'name description upload',
+            populate: {
+              path: 'upload.ImageId',
+              model: 'Upload',
+              select: 'originalFileKey fileKey url mimeType'
+            }
+          }
         },
         { path: 'photos', model: 'Upload' },
         { path: 'developer', model: 'User', select: 'fullName' },
@@ -66,6 +76,16 @@ export class CustomerReviewRepository extends BaseRepository<CustomerReview> {
                 model: 'Upload',
                 select: 'originalFileKey fileKey url mimeType',
               },
+              {
+                path: 'associatedBrandId',
+                model: 'Brand',
+                select: 'name description upload',
+                populate: {
+                  path: 'upload.ImageId',
+                  model: 'Upload',
+                  select: 'originalFileKey fileKey url mimeType'
+                }
+              }
             ],
           },
           {
