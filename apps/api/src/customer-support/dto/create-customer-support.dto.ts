@@ -9,6 +9,7 @@ import { budgetSchema } from 'src/users/dto/createUser.dto';
 import {
   CustomerSupportFeatureRequest,
   CustomerSupportErrorReport,
+  CalendlyDetails,
 } from '../type/customer-support.type';
 
 export class CustomerSupportUserPreferences {
@@ -142,6 +143,13 @@ export class CreateCustomerSupportDto {
     required: false,
   })
   customerSupportErrorReport?: CustomerSupportErrorReport;
+
+  @ApiProperty({ 
+    type: CalendlyDetails,
+    required: false,
+    description: 'Calendly meeting details' 
+  })
+  calendlyDetails?: CalendlyDetails;
 }
 
 export const phoneSchema = Joi.object({
@@ -215,6 +223,25 @@ export const customerSupportErrorReportSchema = Joi.object({
   ).optional(),
 });
 
+export const locationDetailsSchema = Joi.object({
+  location: Joi.string().uri().required().messages({
+    'string.uri': 'Location must be a valid URL',
+    'any.required': 'Location is required',
+  }),
+  type: Joi.string().required().messages({
+    'any.required': 'Type is required',
+  }),
+});
+
+export const calendlyDetailsSchema = Joi.object({
+  createdAt: Joi.date().iso().required(),
+  meetingStart: Joi.date().iso().required(),
+  meetingName: Joi.string().optional(),
+  location: locationDetailsSchema.optional(),
+  cancelUrl: Joi.string().uri().optional(),
+  rescheduleUrl: Joi.string().uri().optional(),
+});
+
 export const createCustomerSupportSchema = Joi.object({
   name: Joi.string().required(),
   phoneNumber: phoneSchema.optional(),
@@ -240,4 +267,5 @@ export const createCustomerSupportSchema = Joi.object({
     .optional(),
   customerSupportFeatureRequest: customerSupportFeatureRequestSchema.optional(),
   customerSupportErrorReport: customerSupportErrorReportSchema.optional(),
+  calendlyDetails: calendlyDetailsSchema.optional(),
 }).options({ stripUnknown: true });
