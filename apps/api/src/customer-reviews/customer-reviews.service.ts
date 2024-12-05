@@ -49,7 +49,7 @@ export class CustomerReviewsService {
         email,
         residence.name,
         residenceSeller.fullName,
-        process.env.REVIEW_FRONTEND_URL
+        `${process.env.REVIEW_FRONTEND_URL}?residenceId=${requestReviewDto.residenceId.toString()}`
       );
     }
 
