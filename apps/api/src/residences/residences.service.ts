@@ -779,6 +779,40 @@ export class ResidenceService {
       };
     }
 
+    if (filtersDto.minPrice || filtersDto.maxPrice) {
+      filter.$and = filter.$and || [];
+      
+      if (filtersDto.minPrice) {
+          filter.$and.push({ 'budgetLimitationsRange.endRange': { $gte: filtersDto.minPrice } });
+      }
+      if (filtersDto.maxPrice) {
+          filter.$and.push({ 'budgetLimitationsRange.startRange': { $lte: filtersDto.maxPrice } });
+      }
+    }
+
+    if (filtersDto.developmentStatus && filtersDto.developmentStatus.length > 0) {
+      filter['residenceKeyFeatures.developmentInfo.developmentStatus'] = {
+          $in: filtersDto.developmentStatus.map(status => 
+              new RegExp(status, 'i')
+          )
+      };
+    }
+
+    if (filtersDto.rentalPotential && filtersDto.rentalPotential.length > 0) {
+      filter['residenceKeyFeatures.developmentInfo.rentalPotential'] = {
+          $in: filtersDto.rentalPotential.map(potential => 
+              new RegExp(potential, 'i')
+          )
+      };
+    }
+
+ 
+    if (filtersDto.amenities && filtersDto.amenities.length > 0) {
+      filter['nearbyAmenities.amenitiesList'] = {
+          $all: filtersDto.amenities.map((id) => new Types.ObjectId(id))
+      };
+    }
+
     const options = PaginationService.prepareOptions(listPropsDto);
 
     const { data, count } = await this.residenceRepository.findAll(filter, options, [
