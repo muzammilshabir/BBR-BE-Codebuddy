@@ -61,6 +61,7 @@ import { MarketingModule } from './marketing/marketing.module';
 import { CalendlyWebhookModule } from './calendly/calendlyWebhook.module';
 import { AdminNoteModule } from './admin-note/admin-note.module';
 import { FeatureRequestModule } from './featureRequests/featureRequests.module';
+import { BbrVerificationModule } from './bbr-verification/bbr-verification.module';
 import { MatchmakingModule } from './matchmaking/matchmaking.module';
 @Module({
   imports: [
@@ -122,6 +123,7 @@ import { MatchmakingModule } from './matchmaking/matchmaking.module';
     CalendlyWebhookModule,
     AdminNoteModule,
     FeatureRequestModule,
+    BbrVerificationModule,
     MatchmakingModule
   ],
   controllers: [AppController],

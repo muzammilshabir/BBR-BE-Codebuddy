@@ -126,6 +126,21 @@ export class CustomerSupport extends Document {
   isDeleted: boolean;
 
   @Prop({
+    type: [
+      {
+        ImageId: { type: Types.ObjectId, ref: 'Upload' },
+        type: { type: String, required: false },
+      },
+    ],
+    _id: false,
+    default: [],
+  })
+  upload?: {
+    ImageId: Types.ObjectId;
+    type?: string;
+  }[];
+
+  @Prop({
     type: {
       createdAt: { type: Date, required: true },
       meetingStart: { type: Date, required: true },
