@@ -603,7 +603,7 @@ export class AuthService {
 
     // Only include preferences if they are provided in the update DTO
     if (updateBuyerDto.preferences) {
-      transformedDto.preferences = {};
+      transformedDto.preferences = { ...updateBuyerDto.preferences };
 
       // Only transform and include each preference array if it exists
       if (updateBuyerDto.preferences.cityIds?.length) {
