@@ -44,12 +44,20 @@ export class MatchmakingPreferencesDto {
   propertyTypes?: string[];
 
   @ApiProperty({
-    description: 'Price range',
-    example: [100000, 500000],
+    description: 'Minimum price',
+    example: 100000,
     required: false,
-    type: [Number],
+    type: Number,
   })
-  price?: number[];
+  minPrice?: number;
+
+  @ApiProperty({
+    description: 'Maximum price',
+    example: 500000,
+    required: false,
+    type: Number,
+  })
+  maxPrice?: number;
 
   @ApiProperty({
     description: 'Development status options',
@@ -89,8 +97,13 @@ export const matchmakingPreferencesSchema = Joi.object({
     .items(Joi.string().custom(joiObjectIdValidator('propertyTypes')))
     .optional(),
 
-  price: Joi.array()
-    .items(Joi.number().min(0))
+  minPrice: Joi.number()
+    .min(0)
+    .optional(),
+
+  maxPrice: Joi.number()
+    .min(0)
+    .greater(Joi.ref('minPrice'))
     .optional(),
 
   developmentStatus: Joi.array()
