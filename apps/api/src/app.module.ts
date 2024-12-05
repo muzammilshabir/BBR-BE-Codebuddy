@@ -61,6 +61,7 @@ import { MarketingModule } from './marketing/marketing.module';
 import { CalendlyWebhookModule } from './calendly/calendlyWebhook.module';
 import { AdminNoteModule } from './admin-note/admin-note.module';
 import { FeatureRequestModule } from './featureRequests/featureRequests.module';
+import { MatchmakingModule } from './matchmaking/matchmaking.module';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -120,7 +121,8 @@ import { FeatureRequestModule } from './featureRequests/featureRequests.module';
     MarketingModule,
     CalendlyWebhookModule,
     AdminNoteModule,
-    FeatureRequestModule
+    FeatureRequestModule,
+    MatchmakingModule
   ],
   controllers: [AppController],
   providers: [
