@@ -97,6 +97,11 @@ export class SubscriptionPlanService {
         $in: ['Premium Residence Profile'],
       };
     }
+    if (query.forPage === PlanForPage.REQUEST_BBR_VERIFICATION) {
+      options.name = {
+        $in: ['Onsite Verification', 'E-Verification'],
+      };
+    }
 
     return this.planRepository.findAllExpanded(options);
   }

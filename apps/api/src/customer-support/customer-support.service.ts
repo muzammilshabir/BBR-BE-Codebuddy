@@ -79,6 +79,10 @@ export class CustomerSupportService {
           (document) => new Types.ObjectId(document)
         ),
       },
+      upload: createCustomerSupportDto.upload?.map((upload) => ({
+        ImageId: new Types.ObjectId(upload.ImageId),
+        type: upload.type,
+      })),
     };
 
     return await this.customerSupportRepository.create(transformedDto);
@@ -140,6 +144,13 @@ export class CustomerSupportService {
           updateCustomerSupportDto.contactInfo.countryId
         );
       }
+    }
+
+    if (updateCustomerSupportDto.upload) {
+      transformedDto.upload = updateCustomerSupportDto.upload.map((upload) => ({
+        ImageId: new Types.ObjectId(upload.ImageId),
+        type: upload.type,
+      }));
     }
 
     if (updateCustomerSupportDto.customerSupportFeatureRequest) {

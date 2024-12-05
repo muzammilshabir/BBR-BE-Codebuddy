@@ -19,6 +19,7 @@ import {
 import { Permissions } from 'src/auth/decorators/permissions.decorator';
 import { PermissionLevel } from 'src/modulePolicy/enum/permission-enum';
 import { UpdateCalendlyDetailsDto, updateCalendlyDetailsSchema } from './dto/update-calendly-details.dto';
+import { Public } from 'src/auth/decorators/public.decorator';
 
 @ApiTags('CustomerSupport')
 @Controller('customer-support')
@@ -27,9 +28,7 @@ export class CustomerSupportController {
 
   @Post()
   @ApiOperation({ summary: 'Create Customer Support' })
-  @Roles(UserRole.SELLER, UserRole.ADMIN)
-  @ApiBearerAuth()
-  @Permissions('customer-support', PermissionLevel.EDIT)
+  @Public()
   @UsePipes(new JoiValidationPipe(createCustomerSupportSchema, 'body'))
   async create(@Body() createCustomerSupportDto: CreateCustomerSupportDto) {
     const customerSupport = await this.customerSupportService.create(createCustomerSupportDto);

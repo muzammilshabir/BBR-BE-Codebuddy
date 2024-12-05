@@ -4,11 +4,11 @@ import { CreateFeatureRequestDto } from './dto/create-feature-request.dto';
 import { UpdateFeatureRequestDto } from './dto/update-feature-request.dto';
 import { Types } from 'mongoose';
 import { UserRepository } from 'src/users/user.repository';
-import { UserRole } from 'src/users/enum/user.enum';
 import { ListFeatureRequestDto } from './dto/list-feature-request.dto';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
 import { UpdatePaymentInfoDto } from './dto/update-payment-info.dto';
 import { ResidenceRepository } from 'src/residences/residences.repository';
+import { FeatureRequestStatus } from './enum/feature-request-status';
 
 @Injectable()
 export class FeatureRequestService {
@@ -40,10 +40,6 @@ export class FeatureRequestService {
       throw new BadRequestException('User not found');
     }
 
-    if (user.role !== UserRole.ADMIN && !createFeatureRequestDto.transactionId) {
-      throw new BadRequestException('Payment details are required');
-    }
-
     const featureRequest = await this.featureRequestRepository.create({
       ...createFeatureRequestDto,
       createdBy: new Types.ObjectId(userId),
@@ -58,6 +54,25 @@ export class FeatureRequestService {
 
     if (!featureRequest) {
       throw new BadRequestException('Feature request not found');
+    }
+
+    if (
+      updateFeatureRequestDto.status &&
+      updateFeatureRequestDto.status === FeatureRequestStatus.APPROVED
+    ) {
+      await this.residenceRepository.update(featureRequest.residenceId.toString(), {
+        isFeatured: true,
+      });
+    }
+
+    if (
+      updateFeatureRequestDto.status &&
+      updateFeatureRequestDto.status === FeatureRequestStatus.WITHDRAWN &&
+      updateFeatureRequestDto.withdrawnOn
+    ) {
+      await this.residenceRepository.update(featureRequest.residenceId.toString(), {
+        isFeatured: false,
+      });
     }
 
     return this.featureRequestRepository.update(id, {
@@ -103,7 +118,16 @@ export class FeatureRequestService {
     if (!featureRequest) {
       throw new BadRequestException('Feature request not found');
     }
-
+    const currentDate = new Date();
+    if (
+      featureRequest.status === FeatureRequestStatus.APPROVED &&
+      currentDate > featureRequest.featuredFrom &&
+      currentDate < featureRequest.featuredTo
+    ) {
+      await this.residenceRepository.update(featureRequest.residenceId.toString(), {
+        isFeatured: false,
+      });
+    }
     return this.featureRequestRepository.update(id, {
       isDeleted: true,
       updatedBy: new Types.ObjectId(userId),

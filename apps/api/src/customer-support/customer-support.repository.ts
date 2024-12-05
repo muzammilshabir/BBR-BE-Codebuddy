@@ -140,6 +140,14 @@ export class CustomerSupportRepository extends BaseRepository<CustomerSupport> {
       },
       {
         $lookup: {
+          from: 'uploads',
+          localField: 'upload.ImageId',
+          foreignField: '_id',
+          as: 'upload.ImageId',
+        },
+      },
+      {
+        $lookup: {
           from: 'users',
           localField: 'assignedTo',
           foreignField: '_id',
@@ -189,6 +197,7 @@ export class CustomerSupportRepository extends BaseRepository<CustomerSupport> {
           contactInfo: { $first: '$contactInfo' },
           assignedTo: { $push: '$assignedTo' },
           priority: { $first: '$priority' },
+          upload: { $first: '$upload' },
         },
       },
       {
@@ -236,6 +245,7 @@ export class CustomerSupportRepository extends BaseRepository<CustomerSupport> {
           companyName: 1,
           priority: 1,
           preferences: 1,
+          upload: 1,
         },
       },
     ]);
@@ -405,6 +415,14 @@ export class CustomerSupportRepository extends BaseRepository<CustomerSupport> {
       },
       {
         $lookup: {
+          from: 'uploads',
+          localField: 'upload.ImageId',
+          foreignField: '_id',
+          as: 'upload.ImageId',
+        },
+      },
+      {
+        $lookup: {
           from: 'users',
           localField: 'assignedTo',
           foreignField: '_id',
@@ -454,6 +472,7 @@ export class CustomerSupportRepository extends BaseRepository<CustomerSupport> {
           message: { $first: '$message' },
           contactInfo: { $first: '$contactInfo' },
           assignedTo: { $push: '$assignedTo' },
+          upload: { $first: '$upload' },
         },
       },
       {
@@ -504,6 +523,7 @@ export class CustomerSupportRepository extends BaseRepository<CustomerSupport> {
           message: 1,
           contactInfo: 1,
           companyName: 1,
+          upload: 1,
         },
       },
       {
@@ -652,6 +672,14 @@ export class CustomerSupportRepository extends BaseRepository<CustomerSupport> {
       },
       {
         $lookup: {
+          from: 'uploads',
+          localField: 'upload.ImageId',
+          foreignField: '_id',
+          as: 'upload.ImageId',
+        },
+      },
+      {
+        $lookup: {
           from: 'users',
           localField: 'assignedTo',
           foreignField: '_id',
@@ -700,6 +728,7 @@ export class CustomerSupportRepository extends BaseRepository<CustomerSupport> {
           message: { $first: '$message' },
           contactInfo: { $first: '$contactInfo' },
           assignedTo: { $push: '$assignedTo' },
+          upload: { $first: '$upload' },
         },
       },
       {
@@ -747,6 +776,7 @@ export class CustomerSupportRepository extends BaseRepository<CustomerSupport> {
           contactInfo: 1,
           preferences: 1,
           companyName: 1,
+          upload: 1,
         },
       },
     ]);
