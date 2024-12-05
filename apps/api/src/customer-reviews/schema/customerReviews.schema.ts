@@ -25,7 +25,7 @@ export class CustomerReview extends Document {
   phoneNumber?: string;
 
   @Prop({
-    required: true,
+    required: false,
     type: String,
   })
   review: string;

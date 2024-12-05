@@ -116,22 +116,22 @@ export class CustomerReviewsService {
     return review;
   }
 
-  async listReviews(userFromToken: JwtPayloadType, listReviewsDto: ListReviewsDto, listReviewsBodyDto: ListReviewsBodyDto) {
-    
+  async listReviews(
+    userFromToken: JwtPayloadType,
+    listReviewsDto: ListReviewsDto,
+    listReviewsBodyDto: ListReviewsBodyDto
+  ) {
     const filter: any = {
       isDeleted: false,
     };
 
-    if (listReviewsBodyDto.developerIds?.length) {
-      filter.developer = {
-        $in: listReviewsBodyDto.developerIds.map((id) => new Types.ObjectId(id)),
-      };
+    if (userFromToken.role === UserRole.SELLER) {
+      filter.developer = new Types.ObjectId(userFromToken.sub);
     }
 
-    if(!listReviewsBodyDto.residenceIds?.length && userFromToken.role == UserRole.SELLER){
-      const residences = await this.residenceService.listResidencesByDeveloperId(userFromToken.sub);
-      filter.residence = {
-        $in: residences.map((residence) => residence?._id),
+    if (userFromToken.role === UserRole.ADMIN && listReviewsBodyDto.developerIds?.length) {
+      filter.developer = {
+        $in: listReviewsBodyDto.developerIds.map((id) => new Types.ObjectId(id)),
       };
     }
 
@@ -142,30 +142,22 @@ export class CustomerReviewsService {
     }
 
     if (listReviewsDto.search) {
+      const residenceResults = await this.customerReviewRepository.aggregate(listReviewsDto.search);
       filter.$or = [
         { fullName: { $regex: listReviewsDto.search, $options: 'i' } },
         { email: { $regex: listReviewsDto.search, $options: 'i' } },
         { phoneNumber: { $regex: listReviewsDto.search, $options: 'i' } },
       ];
 
-      const residenceResults = await this.customerReviewRepository.aggregate(listReviewsDto.search);
-
       if (residenceResults.length > 0) {
         const reviewIds = residenceResults.map((result) => result._id);
         filter.$or.push({ _id: { $in: reviewIds } });
       }
     }
-    const sort: any = {};
 
+    const sort: any = {};
     if (listReviewsDto.ratingSort) {
-      switch (listReviewsDto.ratingSort) {
-        case RatingSortType.HIGHEST:
-          sort.overallRating = -1;
-          break;
-        case RatingSortType.LOWEST:
-          sort.overallRating = 1;
-          break;
-      }
+      sort.overallRating = listReviewsDto.ratingSort === RatingSortType.HIGHEST ? -1 : 1;
     }
 
     if (listReviewsDto.sortBy) {
@@ -181,12 +173,15 @@ export class CustomerReviewsService {
       sort,
     };
 
-    const { data, count, avgOverallRating } = await this.customerReviewRepository.findAllReviews(filter, options);
+    const { data, count, avgOverallRating } = await this.customerReviewRepository.findAllReviews(
+      filter,
+      options
+    );
     const { pagination } = PaginationService.paginate({ rows: data, count }, listReviewsDto);
 
     return {
       pagination,
-      avgOverallRating:  parseFloat(avgOverallRating.toFixed(1)),
+      avgOverallRating: parseFloat(avgOverallRating.toFixed(1)),
       reviews: data,
     };
   }
@@ -270,7 +265,7 @@ export class CustomerReviewsService {
     try {
       const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=reviews&key=${process.env.GOOGLE_PLACE_API_KEY}`;
       const response = await this.httpService.axiosRef.get(url);
-      
+
       if (response.data.status !== 'OK' || !response.data.result?.reviews) {
         return [];
       }
@@ -315,10 +310,9 @@ export class CustomerReviewsService {
     let rating = 0;
     let summary = '';
 
-      const parsedResponse = JSON.parse(content);
-      rating = parsedResponse.rating || 0;
-      summary = parsedResponse.summary || '';
-    
+    const parsedResponse = JSON.parse(content);
+    rating = parsedResponse.rating || 0;
+    summary = parsedResponse.summary || '';
 
     return { summary, rating };
   }
@@ -348,34 +342,33 @@ export class CustomerReviewsService {
     });
 
     for (const residence of residences.data) {
-      if(residence?.placeId){
+      if (residence?.placeId) {
         await this.processReviewsForResidence(residence._id.toString(), residence.placeId);
       }
     }
   }
 
   async getReviewsForResidence(residenceId: string) {
-    const foundResidence = await this.residenceService.getResidenceById(
-      residenceId.toString()
-    );
+    const foundResidence = await this.residenceService.getResidenceById(residenceId.toString());
 
     if (!foundResidence) {
       throw new NotFoundException(`Residence with ID ${residenceId} not found`);
     }
 
-    let foundReview = await this.googleReviewRepository.find({ residenceId: new Types.ObjectId(residenceId) });
-  
+    let foundReview = await this.googleReviewRepository.find({
+      residenceId: new Types.ObjectId(residenceId),
+    });
+
     if (!foundReview) {
       if (!foundResidence?.placeId) {
         throw new NotFoundException(`PlaceId not found for residence with ID ${residenceId}`);
       }
       await this.processReviewsForResidence(residenceId, foundResidence.placeId);
-      
+
       foundReview = await this.googleReviewRepository.find({
         residenceId: new Types.ObjectId(residenceId),
       });
     }
     return foundReview;
   }
-
 }
