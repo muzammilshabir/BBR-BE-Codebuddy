@@ -158,6 +158,46 @@ export class ListResidenceByFiltersDto {
     type: [String],
   })
   locationIds?: string[];
+
+  @ApiProperty({
+    description: 'Filter by minimum price',
+    example: 100000,
+    required: false,
+    type: Number,
+  })
+  minPrice?: number;
+
+  @ApiProperty({
+    description: 'Filter by maximum price',
+    example: 500000,
+    required: false,
+    type: Number,
+  })
+  maxPrice?: number;
+
+  @ApiProperty({
+    description: 'Filter by development status',
+    example: ['under_construction', 'ready_to_move'],
+    required: false,
+    type: [String],
+  })
+  developmentStatus?: string[];
+
+  @ApiProperty({
+    description: 'Filter by rental potential',
+    example: ['high', 'medium', 'low'],
+    required: false,
+    type: [String],
+  })
+  rentalPotential?: string[];
+
+  @ApiProperty({
+    description: 'Filter by Amenity IDs',
+    example: ['60b6c0f53b5a5c1f88d25a1b'],
+    required: false,
+    type: [String],
+  })
+  amenities?: string[];
 }
 
 export const listResidenceByFiltersSchema = Joi.object({
@@ -185,6 +225,22 @@ export const listResidenceByFiltersSchema = Joi.object({
     .optional(),
   locationIds: Joi.array()
     .items(Joi.string().custom(joiObjectIdValidator('locationIds')))
+    .optional(),
+  minPrice: Joi.number()
+    .min(0)
+    .optional(),
+  maxPrice: Joi.number()
+    .min(0)
+    .greater(Joi.ref('minPrice'))
+    .optional(),
+  developmentStatus: Joi.array()
+    .items(Joi.string())
+    .optional(),
+  rentalPotential: Joi.array()
+    .items(Joi.string())
+    .optional(),
+    amenities: Joi.array()
+    .items(Joi.string().custom(joiObjectIdValidator('amenities')))
     .optional(),
 });
 

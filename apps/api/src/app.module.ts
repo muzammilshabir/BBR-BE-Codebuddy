@@ -62,6 +62,7 @@ import { CalendlyWebhookModule } from './calendly/calendlyWebhook.module';
 import { AdminNoteModule } from './admin-note/admin-note.module';
 import { FeatureRequestModule } from './featureRequests/featureRequests.module';
 import { BbrVerificationModule } from './bbr-verification/bbr-verification.module';
+import { MatchmakingModule } from './matchmaking/matchmaking.module';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -122,7 +123,8 @@ import { BbrVerificationModule } from './bbr-verification/bbr-verification.modul
     CalendlyWebhookModule,
     AdminNoteModule,
     FeatureRequestModule,
-    BbrVerificationModule
+    BbrVerificationModule,
+    MatchmakingModule
   ],
   controllers: [AppController],
   providers: [
