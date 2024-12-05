@@ -63,6 +63,7 @@ import { AdminNoteModule } from './admin-note/admin-note.module';
 import { FeatureRequestModule } from './featureRequests/featureRequests.module';
 import { BbrVerificationModule } from './bbr-verification/bbr-verification.module';
 import { MatchmakingModule } from './matchmaking/matchmaking.module';
+import { CustomerSupportConversationModule } from './customer-support-conversation/customer-support-conversation.module';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -124,7 +125,8 @@ import { MatchmakingModule } from './matchmaking/matchmaking.module';
     AdminNoteModule,
     FeatureRequestModule,
     BbrVerificationModule,
-    MatchmakingModule
+    MatchmakingModule,
+    CustomerSupportConversationModule
   ],
   controllers: [AppController],
   providers: [
