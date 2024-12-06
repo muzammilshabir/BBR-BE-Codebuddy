@@ -555,7 +555,7 @@ export class AuthService {
     });
   }
 
-  private async sendVerificationEmail(
+  async sendVerificationEmail(
     email: string,
     verifyToken: string,
     userRole: UserRole,
