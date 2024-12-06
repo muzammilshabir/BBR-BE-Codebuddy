@@ -134,7 +134,7 @@ export class ResidenceSeederService {
     };
 
     try {
-      await this.residenceRepository.updateMany({}, { $set: { isDeleted: true } });
+      
 
       const workbook = XLSX.read(file.buffer, { type: 'buffer' });
       const sheets = {
@@ -154,91 +154,277 @@ export class ResidenceSeederService {
         brandCategories: XLSX.utils.sheet_to_json(workbook.Sheets['BrandCategory']),
       };
 
-      for (let i = 0; i < sheets.rankingCategories.length; i += BATCH_SIZE) {
-       
+      for (let i = 0; i < sheets.countries.length; i += BATCH_SIZE) {
+        const batch = sheets.countries.slice(i, i + BATCH_SIZE);
+        
+        
         if (i > 0) {
-          await new Promise(resolve => setTimeout(resolve, 2000)); // 2 seconds delay
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      
+        // Process each residence in batch sequentially
+        for (const singleCountry of batch) {
+          try {
+            const country = singleCountry as any;
+
+            let countryDoc = await this.countryModel.findOne({
+              name: { $regex: new RegExp(`^${country.name}$`, 'i') },
+            });
+
+
+            if (!countryDoc) {
+              const countryData: any = {
+                name: country.name,
+              };
+        
+              if (country.logo) {
+                const imagesArray = country.logo.includes(',')
+                  ? country.logo.split(',').map((path) => path.trim())
+                  : [country.logo.trim()];
+        
+                const imageIds = await this.uploadImagesAndGetIds(imagesArray);
+        
+                countryData.upload = imageIds.map((id) => ({
+                  ImageId: new Types.ObjectId(id),
+                  type: 'logo',
+                }));
+              }
+        
+              countryDoc = await this.countryModel.create(countryData);
+            }
+      
+          } catch (error) {
+            errors.residences.push({
+              id: (singleCountry as any).country_id,
+              name: (singleCountry as any).name,
+              error: error.message
+            });
+          }
+        }
+      }
+
+      for (let i = 0; i < sheets.cities.length; i += BATCH_SIZE) {
+        const batch = sheets.cities.slice(i, i + BATCH_SIZE);
+        
+        
+        if (i > 0) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      
+        // Process each residence in batch sequentially
+        for (const singleCity of batch) {
+          try {
+            const city = singleCity as any;
+
+            if (city.logo) {
+              city.logo = city.logo.replace(/^"|"$/g, '').trim();
+            }
+        
+            let cityDoc;
+            let countryId;
+        
+            if (city.country_id) {
+              countryId = await this.processCountry(city, sheets.countries);
+            }
+        
+            const searchQuery: any = {
+              name: { $regex: new RegExp(`^${city.name}$`, 'i') },
+            };
+        
+            if (countryId) {
+              searchQuery.countryId = new Types.ObjectId(countryId);
+            }
+        
+            cityDoc = await this.cityModel.findOne(searchQuery);
+        
+            if (!cityDoc) {
+              const cityData: any = {
+                name: city.name,
+              };
+        
+              if (countryId) {
+                cityData.countryId = new Types.ObjectId(countryId);
+              }
+        
+              if (city.logo) {
+                const imagesArray = city.logo.includes(',')
+                  ? city.logo.split(',').map((path) => path.trim())
+                  : [city.logo.trim()];
+        
+                const imageIds = await this.uploadImagesAndGetIds(imagesArray);
+        
+                cityData.upload = imageIds.map((id) => ({
+                  ImageId: new Types.ObjectId(id),
+                  type: 'main',
+                }));
+              }
+        
+              cityDoc = await this.cityModel.create(cityData);
+            }
+      
+          } catch (error) {
+            errors.residences.push({
+              id: (singleCity as any).city_id,
+              name: (singleCity as any).name,
+              error: error.message
+            });
+          }
+        }
+      }
+
+      for (let i = 0; i < sheets.brands.length; i += BATCH_SIZE) {
+        const batch = sheets.brands.slice(i, i + BATCH_SIZE);
+        
+        
+        if (i > 0) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      
+        // Process each residence in batch sequentially
+        for (const singleBrand of batch) {
+          try {
+            const brand = singleBrand as any;
+
+            const imageFields = [
+              { key: 'image1_path', type: 'logo' },
+              { key: 'image2_path', type: 'logoDirectory' },
+              { key: 'image3_path', type: 'preview' },
+              { key: 'image4_path', type: 'backgroundImage' },
+            ];
+            
+            let brandDoc = await this.brandRepository.find({
+              name: { $regex: new RegExp(`^${brand.name}$`, 'i') },
+            });
+
+
+            if (!brandDoc) {
+              const brandData: any = {
+                name: brand.name,
+                description: brand.description || '',
+                registeredDate: new Date(),
+                status: 'active',
+                brandCategoryId: await this.processBrandCategory(brand, sheets.brandCategories),
+              };
+        
+              const uploadImages = imageFields
+                .filter(
+                  (field) =>
+                    brand[field.key] &&
+                  brand[field.key].trim() !== '' &&
+                  brand[field.key] !== '""'
+                )
+                .map((field) => ({
+                  path: brand[field.key].replace(/^"|"$/g, '').trim(),
+                  type: field.type,
+                }));
+        
+        
+              if (uploadImages.length > 0) {
+                const imageIds = await this.uploadImagesAndGetIds(uploadImages.map((image) => image.path));
+                brandData.upload = imageIds.map((id, index) => ({
+                  ImageId: new Types.ObjectId(id),
+                  type: uploadImages[index].type,
+                }));
+              }
+              brandDoc = await this.brandRepository.create(brandData);
+              
+            }
+      
+          } catch (error) {
+            errors.residences.push({
+              id: (singleBrand as any).Brand_id,
+              name: (singleBrand as any).name,
+              error: error.message
+            });
+          }
+        }
+      }
+
+      for (let i = 0; i < sheets.rankingCategories.length; i += BATCH_SIZE) {
+        if (i > 0) {
+          await new Promise(resolve => setTimeout(resolve, 2000)); 
         }
       
         const batch = sheets.rankingCategories.slice(i, i + BATCH_SIZE);
-        await Promise.all(
-          batch.map(async (rankingCategory) => {
-            try {
-              
-              await new Promise(resolve => setTimeout(resolve, 500)); 
+        
+        // Process each ranking category in batch sequentially
+        for (const rankingCategory of batch) {
+          try {
+            await new Promise(resolve => setTimeout(resolve, 500));
       
-              const rankingCategoryTyped = rankingCategory as RankingCategory;
-              let criteria;
+            const rankingCategoryTyped = rankingCategory as RankingCategory;
+            let criteria;
       
-              if (
-                rankingCategoryTyped.criteria_id1 ||
-                rankingCategoryTyped.criteria_id2 ||
-                rankingCategoryTyped.criteria_id3 ||
-                rankingCategoryTyped.criteria_id4 ||
-                rankingCategoryTyped.criteria_id5 ||
-                rankingCategoryTyped.criteria_id6
-              ) {
-                criteria = await this.processCriteria(
-                  rankingCategoryTyped,
-                  sheets.rankingCriterias
-                );
-              }
-             
-              const idFields = [
-                'country_id',
-                'city_id',
-                'lifestyle_id',
-                'brand_id',
-                'property_type_id',
-                'geographical_area_id',
-              ];
-              const foundIdField = idFields.find((field) => rankingCategoryTyped[field] != null);
-             
-              if (!foundIdField) {
-                throw new Error(
-                  `No valid ID field found for rankingCategory: ${rankingCategoryTyped.title}`
-                );
-              }
-      
-              const categoryType = foundIdField.replace('_id', '');
-              const mappedCategoryType = categoryTypeMapping[categoryType];
-      
-              if (!mappedCategoryType) {
-                throw new Error(`Invalid category type mapping for: ${categoryType}`);
-              }
-      
-              const doc = await this.processCategoryType(categoryType, rankingCategoryTyped, {
-                countries: sheets.countries,
-                cities: sheets.cities,
-                lifestyles: sheets.lifestyles,
-                brands: sheets.brands,
-                propertyTypes: sheets.propertyTypes,
-                geographicalType: sheets.geographicalArea,
-                brandCategories: sheets.brandCategories
-              });
-      
-              const rankingCategoryData = {
-                title: rankingCategoryTyped.title,
-                description: rankingCategoryTyped?.description || '',
-                categoryType: mappedCategoryType,
-                residenceLimitation: rankingCategoryTyped?.residence_limitation || null,
-                price: rankingCategoryTyped?.ranking_price || null,
-                criteria: criteria || [],
-                status: RankingCategoryStatus.ACTIVE,
-                isDeleted: false,
-                totalRequests: 0,
-                [this.getSchemaField(foundIdField)]: new Types.ObjectId(doc._id),
-              };
-              await this.rankingCategoryRepository.create(rankingCategoryData);
-            } catch (error) {
-              errors.rankingCategories.push({
-                id: (rankingCategory as RankingCategory).ranking_category_id,
-                name: (rankingCategory as RankingCategory).title,
-                error: error.message,
-              });
+            if (
+              rankingCategoryTyped.criteria_id1 ||
+              rankingCategoryTyped.criteria_id2 ||
+              rankingCategoryTyped.criteria_id3 ||
+              rankingCategoryTyped.criteria_id4 ||
+              rankingCategoryTyped.criteria_id5 ||
+              rankingCategoryTyped.criteria_id6
+            ) {
+              criteria = await this.processCriteria(
+                rankingCategoryTyped,
+                sheets.rankingCriterias
+              );
             }
-          })
-        );
+      
+            const idFields = [
+              'country_id',
+              'city_id',
+              'lifestyle_id',
+              'brand_id',
+              'property_type_id',
+              'geographical_area_id',
+            ];
+            const foundIdField = idFields.find((field) => rankingCategoryTyped[field] != null);
+      
+            if (!foundIdField) {
+              throw new Error(
+                `No valid ID field found for rankingCategory: ${rankingCategoryTyped.title}`
+              );
+            }
+      
+            const categoryType = foundIdField.replace('_id', '');
+            const mappedCategoryType = categoryTypeMapping[categoryType];
+      
+            if (!mappedCategoryType) {
+              throw new Error(`Invalid category type mapping for: ${categoryType}`);
+            }
+      
+            const doc = await this.processCategoryType(categoryType, rankingCategoryTyped, {
+              countries: sheets.countries,
+              cities: sheets.cities,
+              lifestyles: sheets.lifestyles,
+              brands: sheets.brands,
+              propertyTypes: sheets.propertyTypes,
+              geographicalType: sheets.geographicalArea,
+              brandCategories: sheets.brandCategories
+            });
+      
+            const rankingCategoryData = {
+              title: rankingCategoryTyped.title,
+              description: rankingCategoryTyped?.description || '',
+              categoryType: mappedCategoryType,
+              residenceLimitation: rankingCategoryTyped?.residence_limitation || null,
+              price: rankingCategoryTyped?.ranking_price || null,
+              criteria: criteria || [],
+              status: RankingCategoryStatus.ACTIVE,
+              isDeleted: false,
+              totalRequests: 0,
+              [this.getSchemaField(foundIdField)]: new Types.ObjectId(doc._id),
+            };
+      
+            await this.rankingCategoryRepository.create(rankingCategoryData);
+            
+          } catch (error) {
+            errors.rankingCategories.push({
+              id: (rankingCategory as RankingCategory).ranking_category_id,
+              name: (rankingCategory as RankingCategory).title,
+              error: error.message,
+            });
+          }
+        }
       }
 
       for (let i = 0; i < sheets.residences.length; i += BATCH_SIZE) {
@@ -246,93 +432,90 @@ export class ResidenceSeederService {
         
         // Add delay between batches
         if (i > 0) {
-          await new Promise(resolve => setTimeout(resolve, 2000)); // 2 seconds delay
+          await new Promise(resolve => setTimeout(resolve, 500));
         }
       
-        await Promise.all(
-          batch.map(async (singleResidence) => {
-            try {
-              const residence = singleResidence as Residence;
+        // Process each residence in batch sequentially
+        for (const singleResidence of batch) {
+          try {
+            const residence = singleResidence as Residence;
+            
+            // Add small delay between individual items
+            await new Promise(resolve => setTimeout(resolve, 200));
+      
+            const residenceTypeDoc = await this.processResidence(residence, sheets.residenceTypes);
+            const brandDoc = await this.processBrand(residence, sheets.brands, sheets.brandCategories);
+            const cityDoc = await this.processCity(residence, sheets.cities, sheets.countries);
+            const countryDoc = await this.processCountry(residence, sheets.countries);
+            await new Promise(resolve => setTimeout(resolve, 100));
+            const lifeStyleDoc = residence.lifestyle_id 
+              ? await this.processLifestyle(residence, sheets.lifestyles)
+              : null;
               
-              // Add small delay between individual items in batch
-              await new Promise(resolve => setTimeout(resolve, 500)); // 500ms delay
-      
-              const promises = [
-                // Required promises first
-                this.processResidence(residence, sheets.residenceTypes),
-                this.processBrand(residence, sheets.brands, sheets.brandCategories),
-                this.processCity(residence, sheets.cities, sheets.countries),
-                this.processCountry(residence, sheets.countries),
-                
-                // Optional promises in fixed order
-                residence.lifestyle_id 
-                  ? this.processLifestyle(residence, sheets.lifestyles)
-                  : Promise.resolve(null),
-                  
-                residence.address
-                  ? this.getPlaceDetails(residence.address)
-                  : Promise.resolve(null),
-                  
-                Object.keys(residence).some((key) => key.startsWith('feature_id'))
-                  ? this.processResidenceFeature(residence, sheets.residenceFeatures)
-                  : Promise.resolve(null),
-                  
-                (residence.main_photo || residence.main_gallery_path || residence.second_gallery_path)
-                  ? this.processVisuals(residence)
-                  : Promise.resolve(null),
-                  
-                residence.amenity_ids
-                  ? this.processAmenity(residence, sheets.amenities)
-                  : Promise.resolve(null),
-                  
-                (residence.highlighted_amenity_id1 || residence.highlighted_amenity_id2 || residence.highlighted_amenity_id3)
-                  ? this.findAmenities(residence, sheets.amenities)
-                  : Promise.resolve(null),
-                  
-                this.processResidenceScores(residence, sheets.rankingCategories, sheets.residenceScores)
-              ];
-      
-              const [
-                residenceTypeDoc,   
-                brandDoc,          
-                cityDoc,           
-                countryDoc,        
-                lifeStyleDoc,      
-                placeDetails,      
-                residenceFeatureIds, 
-                visuals,           
-                amenityIds,        
-                highlightedAmenities, 
-                rankingScoreDocArray  
-              ] = await Promise.all(promises);
-      
-              const residenceData = this.createResidenceData(residence, {
-                residenceTypeDoc,
-                brandDoc,
-                residenceFeatureIds: residenceFeatureIds || [],
-                cityDoc,
-                countryDoc,
-                amenityIds: amenityIds || [],
-                highlightedAmenities: highlightedAmenities || [],
-                lifeStyleDoc,
-                visuals: visuals || {},
-                placeDetails: placeDetails || {},
-              });
-      
-              await this.residenceRepository.create(residenceData);
-             
-              if (rankingScoreDocArray?.length) {
-                await this.rankingRequestRepository.createMany(rankingScoreDocArray);
+            const placeDetails = residence.address
+              ? await this.getPlaceDetails(residence.address)
+              : null;
+              
+            const residenceFeatureIds = Object.keys(residence).some(key => key.startsWith('feature_id'))
+              ? await this.processResidenceFeature(residence, sheets.residenceFeatures)
+              : [];
+              await new Promise(resolve => setTimeout(resolve, 100));
+            const visuals = (residence.main_photo || residence.main_gallery_path || residence.second_gallery_path)
+              ? await this.processVisuals(residence)
+              : {};
+              
+            const amenityIds = residence.amenity_ids
+              ? await this.processAmenity(residence, sheets.amenities)
+              : [];
+              await new Promise(resolve => setTimeout(resolve, 100));
+            const highlightedAmenities = (residence.highlighted_amenity_id1 || residence.highlighted_amenity_id2 || residence.highlighted_amenity_id3)
+              ? await this.findAmenities(residence, sheets.amenities)
+              : [];
+              
+            const rankingScoreDocArray = await this.processResidenceScores(
+              residence, 
+              sheets.rankingCategories, 
+              sheets.residenceScores
+            );
+      console.log("processing going for residence --->", i)
+            const residenceData = this.createResidenceData(residence, {
+              residenceTypeDoc,
+              brandDoc,
+              residenceFeatureIds,
+              cityDoc,
+              countryDoc,
+              amenityIds,
+              highlightedAmenities,
+              lifeStyleDoc,
+              visuals,
+              placeDetails
+            });
+
+            await this.residenceRepository.updateMany(
+              { 
+                name: { 
+                  $regex: new RegExp(`^${residenceData.name}$`, 'i') 
+                }
+              }, 
+              { 
+                $set: { isDeleted: true } 
               }
-            } catch (error) {
-              errors.residences.push({
-                id: (singleResidence as Residence).residence_id,
-                name: (singleResidence as Residence).name,
-                error: error.message,
-              });
+            );
+            
+            await this.residenceRepository.create(residenceData);
+            
+            if (rankingScoreDocArray?.length) {
+              await this.rankingRequestRepository.createMany(rankingScoreDocArray);
             }
-          })
-        );
+      
+          } catch (error) {
+            errors.residences.push({
+              id: (singleResidence as Residence).residence_id,
+              name: (singleResidence as Residence).name,
+              error: error.message
+            });
+          }
+        }
       }
 
       return {
@@ -360,50 +543,42 @@ export class ResidenceSeederService {
     return fieldMapping[idField];
   }
 
-  private createResidenceData(
-    residence: Residence,
-    data: {
-      residenceTypeDoc: any;
-      brandDoc: any;
-      residenceFeatureIds: any[];
-      cityDoc: any;
-      countryDoc: any;
-      amenityIds: any[];
-      highlightedAmenities: any[];
-      lifeStyleDoc: any;
-      visuals: any;
-      placeDetails: any;
-    }
-  ) {
-
-    return {
+  private createResidenceData(residence: Residence, data: {
+    residenceTypeDoc: any;
+    brandDoc: any;
+    residenceFeatureIds: any[];
+    cityDoc: any;
+    countryDoc: any;
+    amenityIds: any[];
+    highlightedAmenities: any[];
+    lifeStyleDoc: any;
+    visuals: any;
+    placeDetails: any;
+  }) {
+    const baseData: any = {
       name: residence.name,
       residenceTypeIds: [new Types.ObjectId(data.residenceTypeDoc._id)],
       websiteLink: residence.website_link || undefined,
       associatedBrandId: data.brandDoc ? new Types.ObjectId(data.brandDoc._id) : undefined,
       placeId: data.placeDetails?.placeId,
       briefOverview: {
-        subtitle: residence.subtitle,
-        briefDescription: residence.brief_description,
+        subtitle: residence?.subtitle,
+        briefDescription: residence?.brief_description,
       },
       comprehensiveOverview: {
-        subtitle: residence.subtitle,
-        generalDescription: residence.general_description,
-        community: residence.community,
-        recentRenovation: residence.recent_renovation,
-        localAttractions: residence.local_attractions,
-        futureDevelopmentPlans: residence.future_development,
-      },
-      budgetLimitationsRange: {
-        startRange: Number(residence.start_range),
-        endRange: Number(residence.end_range),
+        subtitle: residence?.subtitle,
+        generalDescription: residence?.general_description,
+        community: residence?.community,
+        recentRenovation: residence?.recent_renovation,
+        localAttractions: residence?.local_attractions,
+        futureDevelopmentPlans: residence?.future_development,
       },
       residenceKeyFeatures: {
         featureIds: data.residenceFeatureIds,
         developmentInfo: {
-          yearOfBuild: Number(residence.build_year),
-          rentalPotential: residence.rental_potential,
-          developmentStatus: residence.development_status,
+          yearOfBuild: Number(residence?.build_year),
+          rentalPotential: residence?.rental_potential,
+          developmentStatus: residence?.development_status,
         },
         petPolicy: residence.pet_policy,
       },
@@ -417,10 +592,10 @@ export class ResidenceSeederService {
       countryId: new Types.ObjectId(data.countryDoc._id),
       lifeStyleId: data.lifeStyleDoc ? new Types.ObjectId(data.lifeStyleDoc._id) : undefined,
       address: {
-        country: data.countryDoc.name,
-        state: residence.state,
-        city: data.cityDoc.name,
-        userInput: residence.address,
+        country: data.countryDoc?.name,
+        state: residence?.state,
+        city: data.cityDoc?.name,
+        userInput: residence?.address,
         location: {
           lat: data.placeDetails?.latitude,
           lng: data.placeDetails?.longitude,
@@ -432,6 +607,30 @@ export class ResidenceSeederService {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
+
+    if (residence.start_range?.toString().trim() || residence.end_range?.toString().trim()) {
+      const budgetLimitationsRange: any = {};
+      
+      if (residence.start_range?.toString().trim()) {
+        const startRange = Number(residence.start_range);
+        if (!isNaN(startRange)) {
+          budgetLimitationsRange.startRange = startRange;
+        }
+      }
+      
+      if (residence.end_range?.toString().trim()) {
+        const endRange = Number(residence.end_range);
+        if (!isNaN(endRange)) {
+          budgetLimitationsRange.endRange = endRange;
+        }
+      }
+  
+      if (Object.keys(budgetLimitationsRange).length > 0) {
+        baseData.budgetLimitationsRange = budgetLimitationsRange;
+      }
+    }
+  
+    return baseData;
   }
 
   async processResidenceScores(
@@ -684,7 +883,7 @@ export class ResidenceSeederService {
   }
 
   private async processBrand(model: any, brands: any[], brandCategories: any[]): Promise<any> {
-    const matchingBrand = brands.find((brand) => brand.brand_id == model.brand_id);
+    const matchingBrand = brands.find((brand) => brand.Brand_id == model.brand_id);
    
     if (!matchingBrand) {
       this.logger.error(`Brand not found for residence: ${model.brand_id}`);
