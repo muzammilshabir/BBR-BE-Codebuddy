@@ -12,7 +12,7 @@ export const guestRequestVisitSchema = Joi.object({
     phone: Joi.object({
       countryCode: Joi.string().required(),
       number: Joi.string().required(),
-    }).required(),
+    }).optional(),
   }),
   subscriptionPlanId: Joi.string().custom(joiObjectIdValidator('subscriptionPlanId')).required(),
   residenceDetails: Joi.object({

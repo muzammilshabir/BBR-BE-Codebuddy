@@ -11,7 +11,7 @@ export type UserDetails = {
   fullName: string;
   password: string;
   email: string;
-  phone: {
+  phone?: {
     countryCode: string;
     number: string;
   };

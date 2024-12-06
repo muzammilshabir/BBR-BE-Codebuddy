@@ -27,7 +27,7 @@ export const guestApplyRankingSchema = Joi.object({
     phone: Joi.object({
       countryCode: Joi.string().required(),
       number: Joi.string().required(),
-    }).required(),
+    }).optional(),
   }),
   stripePmTokenId: Joi.string().required(),
 });
@@ -112,8 +112,9 @@ export class UserDetailsDto {
   @ApiProperty({
     description: 'Phone',
     type: UserPhone,
+    required: false,
   })
-  phone: UserPhone;
+  phone?: UserPhone;
 }
 
 export class GuestApplyRankingDto {
