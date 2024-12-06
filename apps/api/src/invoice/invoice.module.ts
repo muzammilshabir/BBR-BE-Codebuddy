@@ -25,6 +25,8 @@ import {
   RankingRequestDraftSchema,
 } from 'src/rankingRequestDraft/schema/rankingRequestDraft.schema';
 import { Transaction, TransactionSchema } from 'src/stripe/schema/transaction.schema';
+import { AuthModule } from 'src/auth/auth.module';
+import { UserModule } from 'src/users/user.module';
 
 @Module({
   imports: [
@@ -47,8 +49,9 @@ import { Transaction, TransactionSchema } from 'src/stripe/schema/transaction.sc
       { name: RankingRequestDraft.name, schema: RankingRequestDraftSchema },
     ]),
     MongooseModule.forFeature([{ name: Transaction.name, schema: TransactionSchema }]),
-
     forwardRef(() => StripeModule),
+    forwardRef(() => AuthModule),
+    UserModule,
   ],
   providers: [InvoiceService, InvoicePostPaymentActionService],
   exports: [InvoiceService, InvoicePostPaymentActionService],
