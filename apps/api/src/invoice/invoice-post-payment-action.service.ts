@@ -21,6 +21,8 @@ import { PaymentStatus } from 'src/rankingRequest/enum/payment-status.enum';
 import { Invoice } from 'src/stripe/schema/invoice.schema';
 import { Transaction } from 'src/stripe/schema/transaction.schema';
 import { TransactionStatus } from 'src/stripe/enum/transaction-status.enum';
+import { AuthService } from 'src/auth/auth.service';
+import { UserService } from 'src/users/user.service';
 
 @Injectable()
 export class InvoicePostPaymentActionService {
@@ -44,7 +46,9 @@ export class InvoicePostPaymentActionService {
     @InjectModel(Invoice.name)
     private invoiceModel: Model<Invoice>,
     @InjectModel(Transaction.name)
-    private transactionModel: Model<Transaction>
+    private transactionModel: Model<Transaction>,
+    private authService: AuthService,
+    private userService: UserService
   ) {}
 
   async create(
@@ -73,11 +77,14 @@ export class InvoicePostPaymentActionService {
           fullName: userDetails.fullName,
           email: userDetails.email,
           password: userDetails.password,
+          phone: userDetails.phone,
           isVerified: false,
           signupMethod: SignupMethod.EMAIL,
           role: UserRole.SELLER,
           stripeCustomerId: userDetails.stripeCustomerId,
         });
+        user = await this.userService.assignVerificationToken(userDetails.email);
+        this.authService.sendVerificationEmail(user.email, user.verificationToken, user.role);
 
         await this.invoiceModel.findByIdAndUpdate(invoiceId, {
           createdById: user._id,

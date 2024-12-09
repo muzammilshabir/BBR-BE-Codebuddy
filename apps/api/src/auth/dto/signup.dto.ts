@@ -7,7 +7,12 @@ import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/
 
 export const buyerSignupSchema = createUserSchema.fork(
   ['fullName', 'email', 'password', 'agreeToTerms', 'receiveLuxuryInsights'],
-  (schema) => schema.required()
+  (schema) => schema.required().messages({
+    'any.required': 'Please fill in all required fields',
+    'boolean.base': 'Please accept the terms and conditions to continue',
+    'any.only': 'You must agree to the terms and conditions to proceed'
+
+  })
 );
 
 export class BuyerSignupDto extends PickType(CreateUserDto, [
@@ -27,7 +32,12 @@ export const sellerSignupSchema = createUserSchema.fork(
     'agreeToTerms',
     'receiveLuxuryInsights',
   ],
-  (schema) => schema.required()
+  (schema) => schema.required().messages({
+    'any.required': 'Please fill in all required fields',
+    'boolean.base': 'Please accept the terms and conditions to continue',
+    'any.only': 'You must agree to the terms and conditions to proceed'
+
+  })
 );
 
 export class SellerSignupDto extends PickType(CreateUserDto, [

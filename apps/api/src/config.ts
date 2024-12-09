@@ -46,6 +46,7 @@ export class ServiceConfig extends BbrStatefulServiceConfig {
     db: this.getOrThrow<number>('APP_REDIS_DB'),
     password: this.get('APP_REDIS_PASSWORD'),
     defaultExpiry: this.getOrThrow<number>('APP_REDIS_DEFAULT_EXPIRY'),
+    appPrefix: this.getOrThrow('APP_REDIS_APP_PREFIX'),
   };
 
   readonly captcha = {
@@ -64,5 +65,9 @@ export class ServiceConfig extends BbrStatefulServiceConfig {
     cancelPage: this.getOrThrow('STRIPE_CANCEL_PAGE'),
     redirectPage: this.getOrThrow('STRIPE_REDIRECT_PAGE'),
     webhookSecret: this.getOrThrow('STRIPE_WEBHOOK_SECRET'),
+  };
+
+  readonly calendly = {
+    webhookSecret: this.getOrThrow('CALENDLY_WEBHOOK_SECRET'),
   };
 }

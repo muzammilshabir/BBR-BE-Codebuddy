@@ -109,9 +109,18 @@ export class UserService {
 
     return true;
   }
+  async findByEmail(email: string, role?: UserRole): Promise<User> {
+    const filter: { email: string; role?: UserRole | { $in: UserRole[] } } = { email };
+    
+    if (!role) {
+      return this.userModel.findOne(filter).exec();
+    }
 
-  async findByEmail(email: string): Promise<User> {
-    return this.userModel.findOne({ email }).exec();
+    filter.role = role === UserRole.ADMIN 
+      ? UserRole.ADMIN
+      : { $in: [UserRole.BUYER, UserRole.SELLER] };
+
+    return this.userModel.findOne(filter).exec();
   }
 
   async findById(id: string): Promise<User> {

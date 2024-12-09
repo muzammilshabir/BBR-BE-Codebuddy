@@ -8,7 +8,11 @@ import {
   UpdateResidenceDto,
   UpdateResidenceStatusDto,
 } from './dto/update-residence.dto';
-import { BadRequestException, NotFoundException } from '@bbr/api-core/modules/exceptions';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@bbr/api-core/modules/exceptions';
 import { AddKeyFeaturesDto } from './dto/residenceKeyFeatures.dto';
 import { AddResidenceVisualsDto } from './dto/add-visuals.dto';
 import { Model, Types } from 'mongoose';
@@ -46,6 +50,10 @@ import { InjectModel } from '@nestjs/mongoose';
 import { RankingCategoryStatus } from 'src/rankingCategory/enum/rankingCategory-status.enum';
 import { RankingRequest } from 'src/rankingRequest/schema/rankingRequest.schema';
 import { RankingRequestRepository } from 'src/rankingRequest/rankingRequest.repository';
+import { PassThrough } from 'stream';
+import * as fastcsv from 'fast-csv';
+import { v4 as uuidv4 } from 'uuid';
+import { PatchResidenceDto } from './dto/patch-update-residence.dto';
 
 @Injectable()
 export class ResidenceService {
@@ -83,6 +91,11 @@ export class ResidenceService {
 
     if (user.role === UserRole.SELLER) {
       transformedDto.developerId = new Types.ObjectId(user.sub);
+    }
+    if (user.role === UserRole.ADMIN) {
+      const key = uuidv4();
+      transformedDto.key = key;
+      transformedDto.uniqueUrl = `${process.env.FRONTEND_BASE_URL}?key=${key}`;
     }
 
     if (createResidenceDto.address?.city) {
@@ -767,9 +780,43 @@ export class ResidenceService {
       };
     }
 
+    if (filtersDto.minPrice || filtersDto.maxPrice) {
+      filter.$and = filter.$and || [];
+      
+      if (filtersDto.minPrice) {
+          filter.$and.push({ 'budgetLimitationsRange.endRange': { $gte: filtersDto.minPrice } });
+      }
+      if (filtersDto.maxPrice) {
+          filter.$and.push({ 'budgetLimitationsRange.startRange': { $lte: filtersDto.maxPrice } });
+      }
+    }
+
+    if (filtersDto.developmentStatus && filtersDto.developmentStatus.length > 0) {
+      filter['residenceKeyFeatures.developmentInfo.developmentStatus'] = {
+          $in: filtersDto.developmentStatus.map(status => 
+              new RegExp(status, 'i')
+          )
+      };
+    }
+
+    if (filtersDto.rentalPotential && filtersDto.rentalPotential.length > 0) {
+      filter['residenceKeyFeatures.developmentInfo.rentalPotential'] = {
+          $in: filtersDto.rentalPotential.map(potential => 
+              new RegExp(potential, 'i')
+          )
+      };
+    }
+
+ 
+    if (filtersDto.amenities && filtersDto.amenities.length > 0) {
+      filter['nearbyAmenities.amenitiesList'] = {
+          $all: filtersDto.amenities.map((id) => new Types.ObjectId(id))
+      };
+    }
+
     const options = PaginationService.prepareOptions(listPropsDto);
 
-    const { data, count } = await this.residenceRepository.findAll(filter, options,[
+    const { data, count } = await this.residenceRepository.findAll(filter, options, [
       {
         path: 'residenceTypeIds',
         select: 'type',
@@ -812,14 +859,15 @@ export class ResidenceService {
 
     const { pagination } = PaginationService.paginate({ rows: data, count }, listPropsDto);
 
-
     const updatedData = [];
 
     for (let index = 0; index < data.length; index++) {
       const residence = data[index];
       const newRankingRequests = await this.rankingRequestRepository.findAll(
         {
-          rankingCategoryId: new Types.ObjectId(residence?.highestRankingCategoryId?.['_id'].toString()),
+          rankingCategoryId: new Types.ObjectId(
+            residence?.highestRankingCategoryId?.['_id'].toString()
+          ),
           isDeleted: { $ne: DeletionStatus.DELETED },
           bbrScore: { $exists: true },
           status: {
@@ -1137,7 +1185,9 @@ export class ResidenceService {
       const residence = transformedResidence[index];
       const newRankingRequests = await this.rankingRequestRepository.findAll(
         {
-          rankingCategoryId: new Types.ObjectId(residence?.highestRankingCategoryId?.['_id'].toString()),
+          rankingCategoryId: new Types.ObjectId(
+            residence?.highestRankingCategoryId?.['_id'].toString()
+          ),
           isDeleted: { $ne: DeletionStatus.DELETED },
           bbrScore: { $exists: true },
           status: {
@@ -1199,7 +1249,391 @@ export class ResidenceService {
   }
 
   async listResidencesByDeveloperId(developerId: string) {
-    console.log(developerId)
-    return this.residenceRepository.findAllByFilter({ createdById: new Types.ObjectId(developerId)})
+    console.log(developerId);
+    return this.residenceRepository.findAllByFilter({
+      createdById: new Types.ObjectId(developerId),
+    });
+  }
+
+  async getResidenceByKey(key: string): Promise<any> {
+    if (!process.env.WELCOME_FLOW_ENABLED || process.env.WELCOME_FLOW_ENABLED === 'false') {
+      throw new ForbiddenException('Welcome Flow Disabled');
+    }
+
+    const residenceDetails = await this.residenceRepository.findByKeyInDetail(key);
+    return residenceDetails;
+  }
+
+  async updateGeneralInfoByKey(
+    key: string,
+    updateResidenceDto: UpdateResidenceDto
+  ): Promise<ResidenceDraft> {
+    try {
+      if (!process.env.WELCOME_FLOW_ENABLED || process.env.WELCOME_FLOW_ENABLED === 'false') {
+        throw new ForbiddenException('Welcome Flow Disabled');
+      }
+
+      const foundResidence = await this.residenceRepository.find({ key });
+
+      if (!foundResidence) {
+        throw new NotFoundException(`Residence with Key ${key} not found`);
+      }
+
+      await this.checkResidenceRejectedStatus(foundResidence._id.toString());
+
+      const transformedDto: any = {
+        ...updateResidenceDto,
+        residenceTypeIds: updateResidenceDto.residenceTypeIds
+          ? updateResidenceDto.residenceTypeIds.map((typeId) => new Types.ObjectId(typeId))
+          : undefined,
+        locationId: updateResidenceDto.locationId
+          ? new Types.ObjectId(updateResidenceDto.locationId)
+          : undefined,
+        associatedBrandId: updateResidenceDto.associatedBrandId
+          ? new Types.ObjectId(updateResidenceDto.associatedBrandId)
+          : undefined,
+      };
+
+      if (updateResidenceDto.address?.city) {
+        const cityName = updateResidenceDto.address.city.trim();
+        const cityDetails = await this.cityRepository.findByCityName(cityName);
+
+        if (!cityDetails) {
+          throw new NotFoundException(`Unsupported city ${cityName}`);
+        }
+
+        transformedDto.cityId = new Types.ObjectId(cityDetails.id);
+        transformedDto.countryId = new Types.ObjectId(cityDetails.countryId);
+        transformedDto.address = updateResidenceDto.address;
+      }
+      const residenceDraft = await this.checkResidenceDraft(foundResidence._id.toString());
+      if (residenceDraft) {
+        return await this.residenceDraftRepository.update(residenceDraft.id, transformedDto);
+      }
+
+      return await this.residenceDraftRepository.create({
+        ...transformedDto,
+        residenceId: new Types.ObjectId(foundResidence._id.toString()),
+      });
+    } catch (error) {
+      console.log(error);
+      throw error;
+    }
+  }
+
+  async addKeyFeaturesByKey(
+    key: string,
+    addKeyFeaturesDto: AddKeyFeaturesDto
+  ): Promise<ResidenceDraft> {
+    if (!process.env.WELCOME_FLOW_ENABLED || process.env.WELCOME_FLOW_ENABLED === 'false') {
+      throw new ForbiddenException('Welcome Flow Disabled');
+    }
+
+    const foundResidence = await this.residenceRepository.find({ key });
+
+    if (!foundResidence) {
+      throw new NotFoundException(`Residence with Key ${key} not found`);
+    }
+
+    await this.checkResidenceRejectedStatus(foundResidence._id.toString());
+
+    const transformedDto = {
+      ...addKeyFeaturesDto,
+      featureIds: addKeyFeaturesDto.featureIds.map((featureId) => new Types.ObjectId(featureId)),
+    };
+
+    const residenceDraft = await this.checkResidenceDraft(foundResidence._id.toString());
+
+    if (residenceDraft) {
+      const updatedData = await this.residenceDraftRepository.update(residenceDraft.id, {
+        residenceKeyFeatures: transformedDto,
+      });
+      return updatedData;
+    }
+    const residence: Residence = await this.residenceRepository.findById(
+      foundResidence._id.toString()
+    );
+
+    const plainResidence = residence.toJSON();
+    delete plainResidence._id;
+    delete plainResidence.status;
+
+    const newResidenceDraft = {
+      ...plainResidence,
+      residenceKeyFeatures: transformedDto,
+      residenceId: new Types.ObjectId(foundResidence._id.toString()),
+      status: ResidenceStatus.DRAFT,
+    };
+
+    return await this.residenceDraftRepository.create(newResidenceDraft);
+  }
+
+  async addVisualsByKey(key: string, addVisualsDto: AddResidenceVisualsDto): Promise<Residence> {
+    if (!process.env.WELCOME_FLOW_ENABLED || process.env.WELCOME_FLOW_ENABLED === 'false') {
+      throw new ForbiddenException('Welcome Flow Disabled');
+    }
+
+    const foundResidence = await this.residenceRepository.find({ key });
+
+    if (!foundResidence) {
+      throw new NotFoundException(`Residence with Key ${key} not found`);
+    }
+
+    await this.checkResidenceRejectedStatus(foundResidence._id.toString());
+
+    const transformedDto = {
+      ...addVisualsDto,
+      mainPhotos: addVisualsDto.mainGalleryPhotos
+        ? addVisualsDto.mainGalleryPhotos.map((photoId) => new Types.ObjectId(photoId))
+        : undefined,
+      mainGalleryPhotos: addVisualsDto.mainGalleryPhotos.map(
+        (photoId) => new Types.ObjectId(photoId)
+      ),
+      secondGalleryPhotos: addVisualsDto.secondGalleryPhotos?.map(
+        (photoId) => new Types.ObjectId(photoId)
+      ),
+      videoTour: addVisualsDto.videoTour ? new Types.ObjectId(addVisualsDto.videoTour) : undefined,
+    };
+
+    const residenceDraft = await this.checkResidenceDraft(foundResidence._id.toString());
+
+    if (residenceDraft) {
+      return await this.residenceDraftRepository.update(residenceDraft.id, {
+        visuals: transformedDto,
+      });
+    }
+
+    const residence: Residence = await this.residenceRepository.findById(
+      foundResidence._id.toString()
+    );
+
+    const plainResidence = residence.toJSON();
+    delete plainResidence._id;
+    delete plainResidence.status;
+
+    const newResidenceDraft = {
+      ...plainResidence,
+      visuals: transformedDto,
+      residenceId: new Types.ObjectId(foundResidence._id.toString()),
+      status: ResidenceStatus.DRAFT,
+    };
+
+    return await this.residenceDraftRepository.create(newResidenceDraft);
+  }
+
+  async updateNearbyAmenitiesByKey(
+    key: string,
+    updateNearbyAmenitiesDto: UpdateNearbyAmenitiesDto
+  ): Promise<Residence> {
+    if (!process.env.WELCOME_FLOW_ENABLED || process.env.WELCOME_FLOW_ENABLED === 'false') {
+      throw new ForbiddenException('Welcome Flow Disabled');
+    }
+
+    const foundResidence = await this.residenceRepository.find({ key });
+
+    if (!foundResidence) {
+      throw new NotFoundException(`Residence with Key ${key} not found`);
+    }
+
+    await this.checkResidenceRejectedStatus(foundResidence._id.toString());
+
+    const transformedDto = {
+      ...updateNearbyAmenitiesDto,
+      amenitiesList: updateNearbyAmenitiesDto.amenitiesList.map(
+        (amenityId) => new Types.ObjectId(amenityId)
+      ),
+      highlightedAmenities: updateNearbyAmenitiesDto.highlightedAmenities.map(
+        (highlightedAmenity) => ({
+          ...highlightedAmenity,
+          amenityId: highlightedAmenity.amenityId
+            ? new Types.ObjectId(highlightedAmenity.amenityId)
+            : undefined,
+          imageId: highlightedAmenity.imageId
+            ? new Types.ObjectId(highlightedAmenity.imageId)
+            : undefined,
+        })
+      ),
+    };
+
+    const residenceDraft = await this.checkResidenceDraft(foundResidence._id.toString());
+
+    if (residenceDraft) {
+      return await this.residenceDraftRepository.update(residenceDraft.id, {
+        nearbyAmenities: transformedDto,
+      });
+    }
+    const residence: Residence = await this.residenceRepository.findById(
+      foundResidence._id.toString()
+    );
+
+    const plainResidence = residence.toJSON();
+    delete plainResidence._id;
+    delete plainResidence.status;
+
+    const newResidenceDraft = {
+      ...plainResidence,
+      nearbyAmenities: transformedDto,
+      residenceId: new Types.ObjectId(foundResidence._id.toString()),
+      status: ResidenceStatus.DRAFT,
+    };
+
+    return await this.residenceDraftRepository.create(newResidenceDraft);
+  }
+
+  async streamCsvData(stream: PassThrough) {
+    const csvStream = fastcsv.format({
+      headers: true,
+      quoteColumns: true,
+    });
+    csvStream.pipe(stream);
+
+    const batchSize = 100;
+    let skip = 0;
+    let hasMoreData = true;
+    let hasWrittenAnyData = false;
+
+    while (hasMoreData) {
+      const residences = await this.residenceRepository.listResidenceWithUniqueUrl(skip, batchSize);
+
+      if (residences.length < batchSize) {
+        hasMoreData = false;
+      }
+
+      if (residences.length > 0) {
+        residences.forEach((residence) => {
+          console.log('Current residence object:', JSON.stringify(residence, null, 2));
+        });
+
+        const flattenedData = residences.map((residence) => ({
+          'Residence Name': residence?.name || '-',
+          'Status': residence?.status || '-',
+          'Unique URL': residence?.uniqueUrl || '-',
+          'City': residence.city?.[0]?.name || '-',
+          'Country': residence.country?.[0]?.name || '-',
+          'Last Updated': residence.lastUpdated
+            ? new Date(residence.lastUpdated).toLocaleString()
+            : '-',
+          'Created At': residence.createdAt ? new Date(residence.createdAt).toLocaleString() : '-',
+        }));
+
+        flattenedData.forEach((row) => csvStream.write(row));
+        hasWrittenAnyData = true;
+      }
+
+      skip += batchSize;
+    }
+
+    if (!hasWrittenAnyData) {
+      // Write at least one row to ensure headers are present
+      csvStream.write({
+        'Residence Name': '-',
+        'Status': '-',
+        'Unique URL': '-',
+        'Developer Name': '-',
+        'Developer Email': '-',
+        'Developer Contact': '-',
+        'City': '-',
+        'Country': '-',
+        'Last Updated': '-',
+        'Created At': '-',
+      });
+    }
+
+    csvStream.end();
+  }
+
+  async patchResidence(key: string, patchResidenceDto: PatchResidenceDto): Promise<Residence> {
+    if (!process.env.WELCOME_FLOW_ENABLED || process.env.WELCOME_FLOW_ENABLED === 'false') {
+      throw new ForbiddenException('Welcome Flow Disabled');
+    }
+
+    const foundResidence = await this.residenceRepository.find({ key });
+
+    if (!foundResidence) {
+      throw new NotFoundException(`Residence with Key ${key} not found`);
+    }
+
+    await this.checkResidenceRejectedStatus(foundResidence._id.toString());
+
+    const transformedDto: any = {
+      ...patchResidenceDto,
+      residenceTypeIds: patchResidenceDto.residenceTypeIds
+        ? patchResidenceDto.residenceTypeIds.map((typeId) => new Types.ObjectId(typeId))
+        : undefined,
+      locationId: patchResidenceDto.locationId
+        ? new Types.ObjectId(patchResidenceDto.locationId)
+        : undefined,
+      associatedBrandId: patchResidenceDto.associatedBrandId
+        ? new Types.ObjectId(patchResidenceDto.associatedBrandId)
+        : undefined,
+    };
+
+    if (patchResidenceDto.visuals) {
+      transformedDto.visuals = {
+        ...patchResidenceDto.visuals,
+        mainPhotos: patchResidenceDto.visuals.mainPhotos
+          ? patchResidenceDto.visuals.mainPhotos.map((id) => new Types.ObjectId(id))
+          : undefined,
+        mainGalleryPhotos: patchResidenceDto.visuals.mainGalleryPhotos
+          ? patchResidenceDto.visuals.mainGalleryPhotos.map((id) => new Types.ObjectId(id))
+          : undefined,
+        secondGalleryPhotos: patchResidenceDto.visuals.secondGalleryPhotos
+          ? patchResidenceDto.visuals.secondGalleryPhotos.map((id) => new Types.ObjectId(id))
+          : undefined,
+        videoTour: patchResidenceDto.visuals.videoTour
+          ? new Types.ObjectId(patchResidenceDto.visuals.videoTour)
+          : undefined,
+      };
+    }
+
+    if (patchResidenceDto.residenceKeyFeatures?.featureIds) {
+      transformedDto.residenceKeyFeatures = {
+        ...patchResidenceDto.residenceKeyFeatures,
+        featureIds: patchResidenceDto.residenceKeyFeatures.featureIds.map(
+          (id) => new Types.ObjectId(id)
+        ),
+      };
+    }
+
+    if (patchResidenceDto.nearbyAmenities) {
+      transformedDto.nearbyAmenities = {
+          amenitiesList: patchResidenceDto.nearbyAmenities.amenitiesList
+              ? patchResidenceDto.nearbyAmenities.amenitiesList.map(id => new Types.ObjectId(id))
+              : undefined,
+          highlightedAmenities: patchResidenceDto.nearbyAmenities.highlightedAmenities
+              ? patchResidenceDto.nearbyAmenities.highlightedAmenities.map(amenity => ({
+                  ...amenity,
+                  amenityId: new Types.ObjectId(amenity.amenityId),
+                  imageId: new Types.ObjectId(amenity.imageId)
+              }))
+              : undefined
+      };
+    }
+
+    if (patchResidenceDto.address?.city) {
+      const cityName = patchResidenceDto.address.city.trim();
+      const cityDetails = await this.cityRepository.findByCityName(cityName);
+
+      if (!cityDetails) {
+        throw new NotFoundException(`Unsupported city ${cityName}`);
+      }
+
+      transformedDto.cityId = new Types.ObjectId(cityDetails.id);
+      transformedDto.countryId = new Types.ObjectId(cityDetails.countryId);
+      transformedDto.address = patchResidenceDto.address;
+    }
+
+    const residenceDraft = await this.residenceDraftRepository.find({
+      residenceId: new Types.ObjectId(foundResidence._id.toString()),
+    });
+
+    if (residenceDraft) {
+      return await this.residenceDraftRepository.update(residenceDraft.id, transformedDto);
+    }
+
+    return await this.residenceDraftRepository.create({
+      ...transformedDto,
+      residenceId: new Types.ObjectId(foundResidence._id.toString()),
+    });
   }
 }

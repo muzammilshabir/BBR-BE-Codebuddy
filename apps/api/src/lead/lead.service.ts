@@ -9,8 +9,9 @@ import { ResidenceRepository } from '../residences/residences.repository';
 import { NotFoundException } from '@bbr/api-core/modules/exceptions';
 import { UpdateLeadDto } from './dto/update-lead.dto';
 import { UnitRepository } from 'src/unit/unit.repository';
-import { DeletionStatus } from 'src/unit/enum/unit-enum';
 import { LeadStatus } from './enum/lead-enum';
+import { UserRole } from '../users/enum/user.enum';
+import { JwtPayloadType } from '../auth/type/jwt-payload.type';
 
 @Injectable()
 export class LeadService {
@@ -34,6 +35,7 @@ export class LeadService {
     }
     return null;
   }
+
   async create(createLeadDto: CreateLeadDto): Promise<Lead> {
     const transformedDto = {
       ...createLeadDto,
@@ -42,51 +44,39 @@ export class LeadService {
         : undefined,
       unitId: createLeadDto.unitId ? new Types.ObjectId(createLeadDto.unitId) : undefined,
       developerId: await this.getDeveloperId(createLeadDto),
+      preferences: {
+        ...createLeadDto.preferences,
+        brandIds:
+          createLeadDto?.preferences?.brandIds?.map((brandId) => new Types.ObjectId(brandId)) ||
+          undefined,
+        residenceTypeIds:
+          createLeadDto?.preferences?.residenceTypeIds?.map(
+            (residenceTypeId) => new Types.ObjectId(residenceTypeId)
+          ) || undefined,
+        lifeStyleIds:
+          createLeadDto?.preferences?.lifeStyleIds?.map(
+            (lifeStyleId) => new Types.ObjectId(lifeStyleId)
+          ) || undefined,
+        locationIds:
+          createLeadDto?.preferences?.locationIds?.map(
+            (locationId) => new Types.ObjectId(locationId)
+          ) || undefined,
+      },
+      contactInfo: {
+        ...createLeadDto?.contactInfo,
+        countryId: createLeadDto.contactInfo
+          ? new Types.ObjectId(createLeadDto.contactInfo.countryId)
+          : undefined,
+      },
     };
+
     return await this.leadRepository.create(transformedDto);
   }
 
   async getLeads(filterDto: ListLeadDto, developerId?: string) {
-    const { status, source, startDate, endDate, search } = filterDto;
-
-    const query: any = {
-      isDeleted: DeletionStatus.ACTIVE,
-    };
-
-    if (developerId) {
-      query.developerId = developerId;
-    }
-
-    if (status) {
-      query.status = status;
-    }
-
-    if (source) {
-      query.source = source;
-    }
-
-    if (startDate && endDate) {
-      query.createdAt = { $gte: startDate, $lte: endDate };
-    }
-
-    if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } },
-        { unitId: { $regex: search, $options: 'i' } },
-        { residenceId: { $regex: search, $options: 'i' } },
-        { country: { $regex: search, $options: 'i' } },
-      ];
-    }
-
-    const options = PaginationService.prepareOptions(filterDto);
-
-    const { data, count } = await this.leadRepository.findAll(query, options, [
-      { path: 'residenceId' },
-      { path: 'unitId' },
-      { path: 'developerId', select: 'fullName email role' },
-      'user',
-    ]);
+    const result = await this.leadRepository.findAllLeads(filterDto, developerId);
+    const count = result[0]?.totalCount || 0;
+    const data = result[0]?.data || [];
 
     const { pagination } = PaginationService.paginate({ rows: data, count }, filterDto);
 
@@ -103,16 +93,45 @@ export class LeadService {
     if (!existingLead) {
       throw new NotFoundException(`Lead with ID ${leadId}`);
     }
-    return this.leadRepository.update(leadId, updateLeadDto);
+    const transformedDto = {
+      ...updateLeadDto,
+      unitId: updateLeadDto.unitId ? new Types.ObjectId(updateLeadDto.unitId) : undefined,
+      preferences: {
+        ...updateLeadDto?.preferences,
+        brandIds:
+          updateLeadDto?.preferences?.brandIds?.map((brandId) => new Types.ObjectId(brandId)) ||
+          undefined,
+        residenceTypeIds:
+          updateLeadDto?.preferences?.residenceTypeIds?.map(
+            (residenceTypeId) => new Types.ObjectId(residenceTypeId)
+          ) || undefined,
+        lifeStyleIds:
+          updateLeadDto?.preferences?.lifeStyleIds?.map(
+            (lifeStyleId) => new Types.ObjectId(lifeStyleId)
+          ) || undefined,
+        locationIds:
+          updateLeadDto?.preferences?.locationIds?.map(
+            (locationId) => new Types.ObjectId(locationId)
+          ) || undefined,
+      },
+      contactInfo: {
+        ...updateLeadDto?.contactInfo,
+        countryId: updateLeadDto.contactInfo
+          ? new Types.ObjectId(updateLeadDto.contactInfo.countryId)
+          : undefined,
+      },
+    };
+
+    return this.leadRepository.update(leadId, transformedDto);
   }
 
-  getLead(leadId: string, userId?: string): Promise<Lead> {
+  async getLead(leadId: string, userId?: string): Promise<Lead> {
     return userId
-      ? this.leadRepository.find({
+      ? await this.leadRepository.find({
           _id: leadId,
           developerId: userId,
         })
-      : this.leadRepository.findById(leadId);
+      : await this.leadRepository.findById(leadId);
   }
 
   async getLeadStatisticsAdmin() {
@@ -468,5 +487,44 @@ export class LeadService {
       { $replaceRoot: { newRoot: '$periods' } },
       { $sort: { [dateField]: 1 } },
     ]);
+  }
+
+  async getLeadsWithRole(query: ListLeadDto, user: JwtPayloadType) {
+    return user.role === UserRole.SELLER
+      ? await this.getLeads(query, user.sub)
+      : await this.getLeads(query);
+  }
+
+  async updateLeadWithRole(leadId: string, updateLeadDto: UpdateLeadDto, user: JwtPayloadType) {
+    return user.role === UserRole.SELLER
+      ? await this.updateLead(leadId, updateLeadDto, user.sub)
+      : await this.updateLead(leadId, updateLeadDto);
+  }
+
+  async getLeadWithRole(leadId: string, user: JwtPayloadType) {
+    return user.role === UserRole.SELLER
+      ? await this.getLead(leadId, user.sub)
+      : await this.getLead(leadId);
+  }
+
+  async deleteLead(leadId: string, userId?: string): Promise<Lead> {
+    const existingLead = userId
+      ? await this.leadRepository.find({
+          _id: leadId,
+          developerId: userId,
+        })
+      : await this.leadRepository.findById(leadId);
+
+    if (!existingLead) {
+      throw new NotFoundException(`Lead with ID ${leadId}`);
+    }
+
+    return this.leadRepository.update(leadId, { isDeleted: true });
+  }
+
+  async deleteLeadWithRole(leadId: string, user: JwtPayloadType) {
+    return user.role === UserRole.SELLER
+      ? await this.deleteLead(leadId, user.sub)
+      : await this.deleteLead(leadId);
   }
 }

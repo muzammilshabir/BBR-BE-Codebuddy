@@ -111,6 +111,96 @@ export class ResidenceRepository extends BaseRepository<Residence> {
     return residence;
   }
 
+  async findByKeyInDetail(residenceKey: string): Promise<any> {
+    let residence: any = await this.residenceModel
+      .findOne({ key: residenceKey, isDeleted: { $ne: DeletionStatus.DELETED } })
+      .populate([
+        { path: 'residenceTypeIds', select: 'type', model: 'ResidenceType' },
+        { path: 'cityId', select: 'name type countryId' },
+        { path: 'countryId', select: 'name type' },
+        { path: 'associatedBrandId', select: 'name' },
+        { path: 'residenceKeyFeatures.featureIds', select: 'name', model: 'ResidenceFeature' },
+        {
+          path: 'visuals.mainPhotos',
+          select: 'originalFileKey fileKey url mimeType',
+          model: 'Upload',
+        },
+        {
+          path: 'visuals.mainGalleryPhotos',
+          select: 'originalFileKey fileKey url mimeType',
+          model: 'Upload',
+        },
+        {
+          path: 'visuals.secondGalleryPhotos',
+          select: 'originalFileKey fileKey url mimeType',
+          model: 'Upload',
+        },
+        {
+          path: 'visuals.videoTour',
+          select: 'originalFileKey fileKey url mimeType',
+          model: 'Upload',
+        },
+        {
+          path: 'nearbyAmenities.amenitiesList',
+          model: 'Amenity',
+          populate: {
+            path: 'upload.imageId',
+            select: 'originalFileKey fileKey url mimeType',
+            model: 'Upload',
+          },
+        },
+        {
+          path: 'nearbyAmenities.highlightedAmenities.amenityId',
+          model: 'Amenity',
+          populate: {
+            path: 'upload.imageId',
+            select: 'originalFileKey fileKey url mimeType',
+            model: 'Upload',
+          },
+        },
+        {
+          path: 'nearbyAmenities.highlightedAmenities.imageId',
+          select: 'originalFileKey fileKey url mimeType',
+          model: 'Upload',
+        },
+        { path: 'createdById', model: 'User', select: 'fullName email role' },
+        {
+          path: 'developerId',
+          model: 'User',
+          select:
+            '_id fullName email role loginAddress loginTime contactInfo contactPersonInfo companyInfo',
+        },
+        { path: 'highestRankingCategoryId', model: 'RankingCategory', select: 'title' },
+      ]);
+
+    if (!residence) {
+      throw new NotFoundException(`Residence with Key ${residenceKey}`);
+    }
+
+    residence = residence.toObject();
+    const units = await this.residenceModel.aggregate([
+      { $match: { key: residenceKey } },
+
+      {
+        $lookup: {
+          from: 'units',
+          localField: '_id',
+          foreignField: 'residenceId',
+          as: 'units',
+        },
+      },
+
+      {
+        $project: {
+          units: 1,
+        },
+      },
+    ]);
+
+    residence.units = units.length > 0 ? units[0].units : [];
+    return residence;
+  }
+
   async aggregate(pipeline) {
     return await this.residenceModel.aggregate(pipeline);
   }
@@ -572,24 +662,11 @@ export class ResidenceRepository extends BaseRepository<Residence> {
           },
         },
         {
-          $unwind: {
-            path: '$developerData',
-            preserveNullAndEmptyArrays: true,
-          },
-        },
-
-        {
           $lookup: {
             from: 'residencetypes',
             localField: 'residenceTypeIds', // Assuming the field is now residenceTypeIds (array)
             foreignField: '_id',
             as: 'residenceTypes',
-          },
-        },
-        {
-          $unwind: {
-            path: '$residenceTypes',
-            preserveNullAndEmptyArrays: true,
           },
         },
         {
@@ -601,12 +678,6 @@ export class ResidenceRepository extends BaseRepository<Residence> {
           },
         },
         {
-          $unwind: {
-            path: '$city',
-            preserveNullAndEmptyArrays: true,
-          },
-        },
-        {
           $lookup: {
             from: 'countries',
             localField: 'countryId',
@@ -615,23 +686,11 @@ export class ResidenceRepository extends BaseRepository<Residence> {
           },
         },
         {
-          $unwind: {
-            path: '$country',
-            preserveNullAndEmptyArrays: true,
-          },
-        },
-        {
           $lookup: {
             from: 'associatedbrands',
             localField: 'associatedBrandId',
             foreignField: '_id',
             as: 'associatedBrand',
-          },
-        },
-        {
-          $unwind: {
-            path: '$associatedBrand',
-            preserveNullAndEmptyArrays: true,
           },
         },
         {
@@ -712,10 +771,10 @@ export class ResidenceRepository extends BaseRepository<Residence> {
           $project: {
             _id: 1,
             name: 1,
-            residenceTypeIds: 1,
             websiteLink: 1,
             associatedBrand: '$associatedBrand.name',
             briefOverview: 1,
+            residenceTypeIds: '$residenceTypes',
             comprehensiveOverview: 1,
             budgetLimitationsRange: 1,
             highestBbrScore: 1,
@@ -931,5 +990,105 @@ export class ResidenceRepository extends BaseRepository<Residence> {
     }
 
     return updatedResidence;
+  }
+
+  async listResidenceWithUniqueUrl(skip: number, batchSize: number): Promise<any[]> {
+    const pipeline: PipelineStage[] = [
+      {
+        $match: {
+          uniqueUrl: { $exists: true, $ne: null },
+          isDeleted: { $ne: true }
+        }
+      },
+      {
+        $lookup: {
+          from: 'residencedrafts',
+          localField: '_id',
+          foreignField: 'residenceId',
+          as: 'drafts'
+        }
+      },
+      {
+        $unwind: {
+          path: '$drafts',
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $sort: {
+          'drafts.createdAt': -1
+        }
+      },
+      {
+        $group: {
+          _id: '$_id',
+          latestDraft: { $first: '$drafts' },
+          residenceData: { $first: '$$ROOT' }
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'residenceData.developerId',
+          foreignField: '_id',
+          as: 'developer'
+        }
+      },
+      {
+        $unwind: {
+          path: '$developer',
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $lookup: {
+          from: 'cities',
+          localField: 'residenceData.cityId',
+          foreignField: '_id',
+          as: 'city'
+        }
+      },
+      {
+        $lookup: {
+          from: 'countries',
+          localField: 'residenceData.countryId',
+          foreignField: '_id',
+          as: 'country'
+        }
+      },
+      {
+        $project: {
+          _id: 1,
+          name: { $ifNull: ['$latestDraft.name', '$residenceData.name'] },
+          status: { $ifNull: ['$latestDraft.status', '$residenceData.status'] },
+          uniqueUrl: '$residenceData.uniqueUrl',
+          city: {
+            name: { $arrayElemAt: ['$city.name', 0] }
+          },
+          country: {
+            name: { $arrayElemAt: ['$country.name', 0] }
+          },
+          developer: {
+            fullName: '$developer.fullName',
+            email: '$developer.email',
+            contactInfo: '$developer.contactInfo'
+          },
+          createdAt: { $ifNull: ['$latestDraft.createdAt', '$residenceData.createdAt'] },
+          lastUpdated: { $ifNull: ['$latestDraft.updatedAt', '$residenceData.updatedAt'] }
+        }
+      },
+      {
+        $sort: {
+          createdAt: -1
+        }
+      },
+      { $skip: skip },
+      { $limit: batchSize }
+    ];
+  
+    return this.residenceModel
+      .aggregate(pipeline)
+      .collation({ locale: 'en', strength: 1 })
+      .exec();
   }
 }
