@@ -102,6 +102,11 @@ export class SubscriptionPlanService {
         $in: ['Onsite Verification', 'E-Verification'],
       };
     }
+    if (query.forPage === PlanForPage.REQUEST_FEATURES_RESIDENCES) {
+      options.name = {
+        $in: ['Features Residences', 'Features Residences weekly'],
+      };
+    }
 
     return this.planRepository.findAllExpanded(options);
   }

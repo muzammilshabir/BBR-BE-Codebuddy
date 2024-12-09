@@ -2,7 +2,6 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { FeatureRequestStatus } from '../enum/feature-request-status';
 import { PaymentStatus } from 'src/rankingRequest/enum/payment-status.enum';
-import { BillingCycle } from '../enum/billing-cycle-enum';
 
 @Schema({ timestamps: true })
 export class FeatureRequest extends Document {
@@ -49,9 +48,6 @@ export class FeatureRequest extends Document {
 
   @Prop({ type: String })
   rejectedReason: string;
-
-  @Prop({ type: String, enum: BillingCycle })
-  billingCycle: BillingCycle;
 
   @Prop({ type: Boolean, default: false })
   isDeleted: boolean;
