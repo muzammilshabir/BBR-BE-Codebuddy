@@ -40,6 +40,12 @@ import { PropertyTypeRepository } from 'src/propertyType/propertyType.repository
 import { PropertyType, PropertyTypeSchema } from 'src/propertyType/schema/propertyType.schema';
 import { RankingCategoryRepository } from 'src/rankingCategory/rankingCategory.repository';
 import { RankingCategory, RankingCategorySchema } from 'src/rankingCategory/schema/rankingCategory.schema';
+import { GeographicalAreasRepository } from 'src/geographicalAreas/geographicalAreas.repository';
+import { GeographicalAreas, GeographicalAreasSchema } from 'src/geographicalAreas/schema/geographicalAreas.schema';
+import { BrandCategoryRepository } from 'src/brandCategory/brandCategoryRepository.repository';
+import { BrandCategory, BrandCategorySchema } from 'src/brandCategory/schema/brandCategory.schema';
+import { UploadRepository } from 'src/upload/upload.repository';
+import { Upload, UploadSchema } from 'src/upload/schema/upload.schema';
 
 @Module({
   imports: [
@@ -58,6 +64,10 @@ import { RankingCategory, RankingCategorySchema } from 'src/rankingCategory/sche
     MongooseModule.forFeature([{ name: RankingRequest.name, schema: RankingRequestSchema }]),
     MongooseModule.forFeature([{ name: PropertyType.name, schema: PropertyTypeSchema }]),
     MongooseModule.forFeature([{ name: RankingCategory.name, schema: RankingCategorySchema }]),
+    MongooseModule.forFeature([{ name: GeographicalAreas.name, schema: GeographicalAreasSchema }]),
+    MongooseModule.forFeature([{ name: BrandCategory.name, schema: BrandCategorySchema }]),
+    MongooseModule.forFeature([{ name: Upload.name, schema: UploadSchema }
+    ]),
   ],
   providers: [
     ResidenceService,
@@ -78,6 +88,9 @@ import { RankingCategory, RankingCategorySchema } from 'src/rankingCategory/sche
     RankingRequestRepository,
     PropertyTypeRepository,
     RankingCategoryRepository,
+    GeographicalAreasRepository,
+    BrandCategoryRepository,
+    UploadRepository
   ],
   exports: [ResidenceSeeder, ResidencesFixture, ResidenceService, ResidenceSeederService, ResidenceRepository],
   controllers: [ResidenceController],
