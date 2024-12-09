@@ -1,7 +1,7 @@
 import { Public } from '@bbr/api-core/modules/decorators';
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
-import { Body, Controller, Get, Param, Patch, Post, Query, UsePipes } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, UsePipes, Delete } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { LeadService } from './lead.service';
 import { CreateLeadDto, createLeadSchema } from './dto/create-lead.dto';
@@ -18,9 +18,7 @@ export class LeadController {
   constructor(private readonly leadService: LeadService) {}
 
   @Post()
-  @ApiOperation({
-    summary: 'Create Lead',
-  })
+  @ApiOperation({ summary: 'Create Lead' })
   @Public()
   @UsePipes(new JoiValidationPipe(createLeadSchema, 'body'))
   async create(@Body() createLeadDto: CreateLeadDto) {
@@ -29,23 +27,17 @@ export class LeadController {
   }
 
   @Get('/')
-  @ApiOperation({
-    summary: 'List lead filters',
-  })
+  @ApiOperation({ summary: 'List lead filters' })
   @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
   @UsePipes(new JoiValidationPipe(listListSchema, 'query'))
   async listLeads(@Query() query: ListLeadDto, @GetCurrentUser() user: JwtPayloadType) {
-    const leads = user.role === UserRole.SELLER ?
-    await this.leadService.getLeads(query, user.sub) :
-    await this.leadService.getLeads(query);
-    return ResponseService.buildResponse({ leads }, 'Leads retrieved successfully');
+    const leads = await this.leadService.getLeadsWithRole(query, user);
+    return ResponseService.buildResponse(leads, 'Leads retrieved successfully');
   }
 
   @Patch('/:id')
-  @ApiOperation({
-    summary: 'Update Lead',
-  })
+  @ApiOperation({ summary: 'Update Lead' })
   @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
   @UsePipes(new JoiValidationPipe(updateLeadSchema, 'body'))
@@ -54,25 +46,19 @@ export class LeadController {
     @Param('id') leadId: string,
     @Body() updateLeadDto: UpdateLeadDto,
   ) {
-    const lead = user.role === UserRole.SELLER ?
-    await this.leadService.updateLead(leadId, updateLeadDto, user.sub) :
-    await this.leadService.updateLead(leadId, updateLeadDto);
+    const lead = await this.leadService.updateLeadWithRole(leadId, updateLeadDto, user);
     return ResponseService.buildResponse({ lead }, 'lead updated successfully');
   }
 
   @Get('/:id')
-  @ApiOperation({
-    summary: 'Get Lead by ID',
-  })
+  @ApiOperation({ summary: 'Get Lead by ID' })
   @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
   async getLeadById(
     @GetCurrentUser() user: JwtPayloadType,
     @Param('id') leadId: string,
   ) {
-    const lead = user.role === UserRole.SELLER ?
-    await this.leadService.getLead(leadId, user.sub) :
-    await this.leadService.getLead(leadId);
+    const lead = await this.leadService.getLeadWithRole(leadId, user);
     return ResponseService.buildResponse({ lead }, 'lead retrieved successfully');
   }
 
@@ -134,5 +120,17 @@ export class LeadController {
   ) {
     const counts = await this.leadService.getLeadConversionByTime(user.sub, period);
     return ResponseService.buildResponse(counts, 'Lead conversion by time period retrieved successfully');
+  }
+
+  @Delete('/:id')
+  @ApiOperation({ summary: 'Delete Lead' })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  async deleteLead(
+    @GetCurrentUser() user: JwtPayloadType,
+    @Param('id') leadId: string,
+  ) {
+    const lead = await this.leadService.deleteLeadWithRole(leadId, user);
+    return ResponseService.buildResponse({ lead }, 'Lead deleted successfully');
   }
 }

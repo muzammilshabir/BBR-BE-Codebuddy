@@ -12,6 +12,7 @@ import { Brand } from './schema/brand.schema';
 import { DeletionStatus } from '../unit/enum/unit-enum';
 import { ResidenceService } from '../residences/residences.service';
 import { ResidenceStatus } from '../residences/enum/residence-enum';
+import { PipelineStage } from 'mongoose';
 
 @Injectable()
 export class BrandService {
@@ -22,25 +23,249 @@ export class BrandService {
   ) {}
 
   async findAll(listBrandDto: ListBrandDto) {
-    const filter = listBrandDto.search
-      ? {
-          $or: [{ name: { $regex: listBrandDto.search, $options: 'i' } }],
-          isDeleted: { $ne: DeletionStatus.DELETED },
+    try {
+      const { status, brandCategoryId, search } = listBrandDto;
+      const paginationOptions = PaginationService.prepareOptions(listBrandDto);
+      
+      const pipeline: PipelineStage[] = [
+        // Initial match for non-deleted brands
+        {
+          $match: {
+            isDeleted: { $ne: true },
+            ...(status ? { status: status } : {}),
+            ...(brandCategoryId ? { brandCategoryId: new Types.ObjectId(brandCategoryId) } : {}),
+            ...(search ? { name: { $regex: search, $options: 'i' } } : {}),
+          },
+        },
+
+        // Lookup brand category
+        {
+          $lookup: {
+            from: 'brandcategories',
+            localField: 'brandCategoryId',
+            foreignField: '_id',
+            as: 'brandCategoryId',
+          },
+        },
+        {
+          $unwind: {
+            path: '$brandCategoryId',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+
+        // Lookup uploads for images
+        {
+          $lookup: {
+            from: 'uploads',
+            let: { uploads: '$upload' },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $in: ['$_id', {
+                      $map: {
+                        input: '$$uploads',
+                        as: 'upload',
+                        in: '$$upload.ImageId'
+                      }
+                    }]
+                  }
+                }
+              },
+              {
+                $project: {
+                  _id: 1,
+                  originalFileKey: 1,
+                  fileKey: 1,
+                  url: 1,
+                  mimeType: 1,
+                  id: '$_id'
+                }
+              }
+            ],
+            as: 'uploadDocs'
+          }
+        },
+        {
+          $addFields: {
+            upload: {
+              $map: {
+                input: '$upload',
+                as: 'uploadItem',
+                in: {
+                  ImageId: {
+                    $arrayElemAt: [{
+                      $filter: {
+                        input: '$uploadDocs',
+                        cond: { $eq: ['$$this._id', '$$uploadItem.ImageId'] }
+                      }
+                    }, 0]
+                  },
+                  type: '$$uploadItem.type'
+                }
+              }
+            }
+          }
+        },
+
+        // Lookup brand drafts and their images
+        {
+          $lookup: {
+            from: 'branddrafts',
+            localField: '_id',
+            foreignField: 'brandId',
+            pipeline: [
+              { $sort: { createdAt: -1 } },
+              { $limit: 1 },
+              // Add lookup for brandCategoryId
+              {
+                $lookup: {
+                  from: 'brandcategories',
+                  localField: 'brandCategoryId',
+                  foreignField: '_id',
+                  as: 'brandCategoryId'
+                }
+              },
+              {
+                $unwind: {
+                  path: '$brandCategoryId',
+                  preserveNullAndEmptyArrays: true
+                }
+              },
+              // Add lookup for draft images
+              {
+                $lookup: {
+                  from: 'uploads',
+                  let: { uploads: '$upload' },
+                  pipeline: [
+                    {
+                      $match: {
+                        $expr: {
+                          $in: ['$_id', {
+                            $map: {
+                              input: '$$uploads',
+                              as: 'upload',
+                              in: '$$upload.ImageId'
+                            }
+                          }]
+                        }
+                      }
+                    },
+                    {
+                      $project: {
+                        _id: 1,
+                        originalFileKey: 1,
+                        fileKey: 1,
+                        url: 1,
+                        mimeType: 1,
+                        id: '$_id'
+                      }
+                    }
+                  ],
+                  as: 'uploadDocs'
+                }
+              },
+              // Map the upload docs to the upload array
+              {
+                $addFields: {
+                  upload: {
+                    $map: {
+                      input: '$upload',
+                      as: 'uploadItem',
+                      in: {
+                        ImageId: {
+                          $arrayElemAt: [{
+                            $filter: {
+                              input: '$uploadDocs',
+                              cond: { $eq: ['$$this._id', '$$uploadItem.ImageId'] }
+                            }
+                          }, 0]
+                        },
+                        type: '$$uploadItem.type'
+                      }
+                    }
+                  }
+                }
+              }
+            ],
+            as: 'brandDrafts',
+          },
+        },
+
+        // Lookup residences count - Moved before $facet
+        {
+          $lookup: {
+            from: 'residences',
+            let: { brandId: '$_id' },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $and: [
+                      { $eq: ['$associatedBrandId', '$$brandId'] },
+                      { $ne: ['$isDeleted', true] },
+                      { $eq: ['$status', 'active'] }
+                    ]
+                  }
+                }
+              },
+              {
+                $count: 'total'
+              }
+            ],
+            as: 'residenceCount'
+          }
+        },
+        {
+          $addFields: {
+            numberOfResidences: {
+              $ifNull: [{ $arrayElemAt: ['$residenceCount.total', 0] }, 0]
+            }
+          }
+        },
+
+        // Apply sorting
+        {
+          $sort: paginationOptions.sort.reduce((acc, [field, order]) => {
+            acc[field] = order;
+            return acc;
+          }, {}),
+        },
+
+        // Pagination and total count using facet
+        {
+          $facet: {
+            data: [
+              { $skip: paginationOptions.offset },
+              { $limit: paginationOptions.limit },
+            ],
+            totalCount: [{ $count: 'count' }],
+          },
+        },
+
+        // Final projection to format the response
+        {
+          $project: {
+            data: 1,
+            totalCount: { $arrayElemAt: ['$totalCount.count', 0] },
+          },
         }
-      : {
-          isDeleted: { $ne: DeletionStatus.DELETED },
-        };
+      ];
 
-    const options = PaginationService.prepareOptions(listBrandDto);
+      const result = await this.brandRepository.aggregate(pipeline);
+      const count = result[0]?.totalCount || 0;
+      const data = result[0]?.data || [];
 
-    const { data, count } = await this.brandRepository.findAll(filter, options, [
-      { path: 'upload.ImageId', select: 'originalFileKey fileKey url mimeType', model: 'Upload' },
-      { path: 'brandCategoryId', model: 'BrandCategory' },
-    ]);
+      const { pagination } = PaginationService.paginate(
+        { rows: data, count },
+        listBrandDto
+      );
 
-    const { pagination } = PaginationService.paginate({ rows: data, count }, listBrandDto);
-
-    return { pagination, brands: data };
+      return { pagination, brands: data };
+    } catch (error) {
+      throw new Error(`Error while fetching brand list: ${error}`);
+    }
   }
 
   async update(id: string, updateBrandDto: UpdateBrandDto) {
@@ -59,6 +284,10 @@ export class BrandService {
 
     // If brandId does not exist, create a new brand
     if (!brandId) {
+      const existingBrand = await this.brandRepository.find({ name });
+      if (existingBrand) {
+        throw new BadRequestException(`Brand with name ${name} already exists`);
+      }
       const newBrand = await this.brandRepository.create({
         name,
         description,
@@ -132,6 +361,10 @@ export class BrandService {
 
     // If brandId does not exist, create a new active brand and draft
     if (!brandId) {
+      const existingBrand = await this.brandRepository.find({ name });
+      if (existingBrand) {
+        throw new BadRequestException(`Brand with name ${name} already exists`);
+      }
       const newBrand = await this.brandRepository.create({
         name,
         description,

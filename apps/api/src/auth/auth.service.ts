@@ -174,8 +174,8 @@ export class AuthService {
     }
   }
 
-  async loginWithEmailPassword(loginDto: LoginDto, ip: string) {
-    const user = await this.userService.findByEmail(loginDto.email);
+  async loginWithEmailPassword(loginDto: LoginDto, ip: string, role: UserRole) {
+    const user = await this.userService.findByEmail(loginDto.email, role);
 
     let failedCount = await this.redisService.get({
       prefix: CaptchaEnum.PREFIX,
@@ -555,7 +555,7 @@ export class AuthService {
     });
   }
 
-  private async sendVerificationEmail(
+  async sendVerificationEmail(
     email: string,
     verifyToken: string,
     userRole: UserRole,
@@ -581,50 +581,56 @@ export class AuthService {
     );
   }
 
-  async updateBuyer(loggedInUser: JwtPayloadType, updateBuyerDto: UpdateBuyerProfileDto) {
-    try {
-      if (!loggedInUser || !loggedInUser.sub) throw new UnauthorizedException('Invalid token');
+  async updateBuyer(userId: string, updateBuyerDto: UpdateBuyerProfileDto) {
+    const user = await this.userService.getBuyerById(userId);
 
-      if (loggedInUser.role !== UserRole.BUYER) throw new UnauthorizedException('Invalid token');
+    if (updateBuyerDto.email) {
+      const existingUser = await this.userService.findByEmail(updateBuyerDto.email);
+      if (existingUser && existingUser._id.toString() !== user.id) {
+        throw new ConflictException('Email is already in use by another user');
+      }
+    }
 
-      const transformedDto = {
-        ...updateBuyerDto,
+    const transformedDto: any = {
+      ...updateBuyerDto,
+    };
 
-        avatarImage: updateBuyerDto.avatarImage
-          ? new Types.ObjectId(updateBuyerDto.avatarImage)
-          : undefined,
-        preferences: {
-          ...updateBuyerDto.preferences,
-          cityIds:
-            updateBuyerDto?.preferences?.cityIds?.map((cityId) => new Types.ObjectId(cityId)) ||
-            undefined,
-          residenceTypeIds:
-            updateBuyerDto?.preferences?.residenceTypeIds?.map(
-              (residenceTypeId) => new Types.ObjectId(residenceTypeId)
-            ) || undefined,
-          countryIds:
-            updateBuyerDto?.preferences?.countryIds?.map(
-              (countryId) => new Types.ObjectId(countryId)
-            ) || undefined,
-          lifeStyleIds:
-            updateBuyerDto?.preferences?.lifeStyleIds?.map(
-              (lifeStyleId) => new Types.ObjectId(lifeStyleId)
-            ) || undefined,
-        },
-      };
+    if (updateBuyerDto.avatarImage) {
+      transformedDto.avatarImage = updateBuyerDto.avatarImage
+        ? new Types.ObjectId(updateBuyerDto.avatarImage)
+        : undefined;
+    }
 
-      // Check if the email already exists in the database
-      if (updateBuyerDto.email) {
-        const existingUser = await this.userService.findByEmail(updateBuyerDto.email);
-        if (existingUser && existingUser._id.toString() !== loggedInUser.sub) {
-          throw new ConflictException('Email is already in use by another user');
-        }
+    // Only include preferences if they are provided in the update DTO
+    if (updateBuyerDto.preferences) {
+      transformedDto.preferences = { ...updateBuyerDto.preferences };
+
+      // Only transform and include each preference array if it exists
+      if (updateBuyerDto.preferences.cityIds?.length) {
+        transformedDto.preferences.cityIds = updateBuyerDto.preferences.cityIds.map(
+          (id) => new Types.ObjectId(id)
+        );
       }
 
-      return await this.userService.update(loggedInUser.sub, transformedDto);
-    } catch (error) {
-      throw error;
+      if (updateBuyerDto.preferences.residenceTypeIds?.length) {
+        transformedDto.preferences.residenceTypeIds =
+          updateBuyerDto.preferences.residenceTypeIds.map((id) => new Types.ObjectId(id));
+      }
+
+      if (updateBuyerDto.preferences.countryIds?.length) {
+        transformedDto.preferences.countryIds = updateBuyerDto.preferences.countryIds.map(
+          (id) => new Types.ObjectId(id)
+        );
+      }
+
+      if (updateBuyerDto.preferences.lifeStyleIds?.length) {
+        transformedDto.preferences.lifeStyleIds = updateBuyerDto.preferences.lifeStyleIds.map(
+          (id) => new Types.ObjectId(id)
+        );
+      }
     }
+
+    return await this.userService.update(user.id, transformedDto);
   }
 
   async signupDeveloper(sellerSignupDto: SellerSignupDto) {

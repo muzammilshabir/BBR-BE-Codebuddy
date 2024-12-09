@@ -15,6 +15,8 @@ import { GuestUploadInventoryDto } from './guest-upload-inventory.dto';
 import { Plan } from 'src/subscription-plan/schema/plan.schema';
 import { Invoice } from 'src/stripe/schema/invoice.schema';
 import Stripe from 'stripe';
+import { GuestPremiumResidenceProfileDto } from './guest-request-premium-residence-profile.dto';
+import { GuestRequestVisitDto } from './guest-request-visit.dto';
 
 @Injectable()
 export class GuestUserService {
@@ -154,7 +156,7 @@ export class GuestUserService {
   }
 
   private async createStripeCustomerAndInvoice(
-    body: GuestApplyRankingDto | GuestUploadInventoryDto
+    body: GuestApplyRankingDto | GuestUploadInventoryDto | GuestRequestVisitDto
   ) {
     const user = await this.userModel.findOne({ email: body.userDetails.email });
     if (user) {
@@ -194,5 +196,104 @@ export class GuestUserService {
       attemptsRemaining: 0,
       attemptsRemainingToday: 0,
     });
+  }
+
+  async requestPremiumResidenceProfile(body: GuestPremiumResidenceProfileDto) {
+    const subscriptionPlan = await this.getPremiumResidenceProfilePlan();
+
+    const { invoice, stripeCustomer, stripeInvoice } = await this.createStripeCustomerAndInvoice({
+      ...body,
+      subscriptionPlanId: subscriptionPlan.id,
+    });
+
+    const lineItems = await this.invoiceService.createLineItemsFromSubscriptionPlan(
+      invoice.id,
+      subscriptionPlan
+    );
+    await this.invoiceService.attachLineItemsToStripeInvoice(stripeCustomer.id, stripeInvoice.id, [
+      lineItems,
+    ]);
+
+    await Promise.all([
+      this.invoicePostPaymentActionService.create(
+        invoice.id,
+        InvoicePostPaymentActionType.CREATE_USER,
+        {
+          ...body.userDetails,
+          stripeCustomerId: stripeCustomer.id,
+          password: await argon.hash(body.userDetails.password),
+        }
+      ),
+      this.invoicePostPaymentActionService.create(
+        invoice.id,
+        InvoicePostPaymentActionType.CREATE_RESIDENCE,
+        body.residenceDetails
+      ),
+    ]);
+
+    await this.createStripePaymentMethodAndPayInvoice(
+      stripeCustomer,
+      stripeInvoice,
+      invoice,
+      body.stripePmTokenId
+    );
+
+    return true;
+  }
+
+  private async getPremiumResidenceProfilePlan() {
+    const subscriptionPlan = await this.planModel.findOne({
+      name: 'Premium Residence Profile',
+      active: true,
+      isDeleted: false,
+    });
+
+    if (!subscriptionPlan) {
+      throw new NotFoundException('Premium residence profile plan not found');
+    }
+
+    return subscriptionPlan;
+  }
+
+  async RequestVisit(body: GuestRequestVisitDto){
+    const subscriptionPlan = await this.getSubsPlan(body.subscriptionPlanId);
+
+    const { invoice, stripeCustomer, stripeInvoice } =
+    await this.createStripeCustomerAndInvoice(body);
+
+    const lineItems = await this.invoiceService.createLineItemsFromSubscriptionPlan(
+      invoice.id,
+      subscriptionPlan
+    );
+
+    await this.invoiceService.attachLineItemsToStripeInvoice(stripeCustomer.id, stripeInvoice.id, [
+      lineItems,
+    ]);
+
+    await Promise.all([
+      this.invoicePostPaymentActionService.create(
+        invoice.id,
+        InvoicePostPaymentActionType.CREATE_USER,
+        {
+          ...body.userDetails,
+          stripeCustomerId: stripeCustomer.id,
+          password: await argon.hash(body.userDetails.password),
+        }
+      ),
+      this.invoicePostPaymentActionService.create(
+        invoice.id,
+        InvoicePostPaymentActionType.CREATE_RESIDENCE,
+        body.residenceDetails
+      ),
+    ]);
+
+    await this.createStripePaymentMethodAndPayInvoice(
+      stripeCustomer,
+      stripeInvoice,
+      invoice,
+      body.stripePmTokenId
+    );
+
+    return true;
   }
 }

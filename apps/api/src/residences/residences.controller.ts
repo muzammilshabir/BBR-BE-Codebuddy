@@ -22,7 +22,12 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/enum/user.enum';
 import { AddResidenceVisualsDto, addResidenceVisualsSchema } from './dto/add-visuals.dto';
 import { CreateResidenceDto, createResidenceSchema } from './dto/create-residence.dto';
-import { GetResidenceByIdDto, getResidenceByIdSchema } from './dto/get-residence-by-id.dto';
+import {
+  GetResidenceByIdDto,
+  getResidenceByIdSchema,
+  GetResidenceByKeyDto,
+  getResidenceByKeySchema,
+} from './dto/get-residence-by-id.dto';
 import {
   ListResidenceByFiltersDto,
   ListResidenceByFiltersQueryPropsDto,
@@ -59,11 +64,16 @@ import { PermissionLevel } from '../modulePolicy/enum/permission-enum';
 import { GetSimilarResidenceDto, getSimilarResidenceSchema } from './dto/get-similar-residence';
 import { ResidenceSeederService } from './residencesSeeder.service';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { PassThrough } from 'stream';
+import { PatchResidenceDto, patchResidenceSchema } from './dto/patch-update-residence.dto';
 
 @ApiTags('Residence')
 @Controller('residence')
 export class ResidenceController {
-  constructor(private readonly residenceService: ResidenceService, private readonly residenceSeederService: ResidenceSeederService) {}
+  constructor(
+    private readonly residenceService: ResidenceService,
+    private readonly residenceSeederService: ResidenceSeederService
+  ) {}
 
   @Post()
   @ApiOperation({
@@ -387,16 +397,52 @@ export class ResidenceController {
   })
   @Post('upload-bulk-data')
   @UseInterceptors(FileInterceptor('file'))
-  async uploadInventoryFile(
-    @UploadedFile() file: Express.Multer.File,
-  ) {
-  
+  async uploadInventoryFile(@UploadedFile() file: Express.Multer.File) {
     if (!file) {
       throw new HttpException('File is required', HttpStatus.BAD_REQUEST);
     }
 
     const result = await this.residenceSeederService.processUploadedFile(file);
     return ResponseService.buildResponse(result);
+  }
+
+  @Get('/welcome-flow/:key')
+  @ApiOperation({
+    summary: 'Get Residence by ID',
+  })
+  @Public()
+  @UsePipes(new JoiValidationPipe(getResidenceByKeySchema, 'param'))
+  async getResidenceByKey(@Param() params: GetResidenceByKeyDto) {
+    const residence = await this.residenceService.getResidenceByKey(params.key);
+    return ResponseService.buildResponse({ residence }, 'Residence retrieved successfully');
+  }
+
+  @Public()
+  @Patch('/welcome-flow/update-residence/:key')
+  @ApiOperation({
+    summary: 'Update Residence and Draft',
+  })
+  @UsePipes(new JoiValidationPipe(patchResidenceSchema, 'body'))
+  async patchResidence(@Param('key') key: string, @Body() patchResidenceDto: PatchResidenceDto) {
+    const residence = await this.residenceService.patchResidence(key, patchResidenceDto);
+    return ResponseService.buildResponse({ residence }, 'Residence updated successfully');
+  }
+
+  @Get('download/uniqueurl-csv')
+  @Roles(UserRole.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Download unique URL residences as CSV',
+  })
+  async downloadUniqueUrlCsv(@Res() res: Response) {
+    const filename = `unique-url-residences-${new Date().toISOString()}.csv`;
+    res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
+    res.setHeader('Content-Type', 'text/csv');
+
+    const stream = new PassThrough();
+    stream.pipe(res);
+
+    await this.residenceService.streamCsvData(stream);
   }
 
   @Public()

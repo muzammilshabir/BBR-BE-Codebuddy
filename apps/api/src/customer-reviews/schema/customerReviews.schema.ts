@@ -25,7 +25,7 @@ export class CustomerReview extends Document {
   phoneNumber?: string;
 
   @Prop({
-    required: true,
+    required: false,
     type: String,
   })
   review: string;
@@ -39,7 +39,7 @@ export class CustomerReview extends Document {
   @Prop({ required: true, type: Number, min: 1, max: 10 })
   overallRating: number;
 
-  @Prop({ type: Date, required: true })
+  @Prop({ type: Date })
   dateOfPurchase: Date;
 
   @Prop({

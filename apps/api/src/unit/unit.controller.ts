@@ -38,9 +38,7 @@ export class UnitController {
   @ApiOperation({
     summary: 'List Units with exclusive offer',
   })
-  @ApiBearerAuth()
-  @Roles(UserRole.SELLER, UserRole.ADMIN, UserRole.BUYER)
-  @Permissions('residence', PermissionLevel.READ)
+  @Public()
   @UsePipes(new JoiValidationPipe(listExclusiveOfferDtoSchema, 'body'))
   async listExclusiveOffers(@Body() query: ListExclusiveOfferDto) {
     const units = await this.unitService.listExclusiveOffers(query);
@@ -141,9 +139,7 @@ export class UnitController {
   @ApiOperation({
     summary: 'List Units with exclusive offer for best branded residence',
   })
-  @ApiBearerAuth()
-  @Roles(UserRole.SELLER, UserRole.ADMIN, UserRole.BUYER)
-  @Permissions('residence', PermissionLevel.READ)
+  @Public()
   @UsePipes(new JoiValidationPipe(PaginationSchema, 'query'))
   async getExclusiveOffersForTopBrandedResidences(@Query() query: ListPropsDto) {
     const units = await this.unitService.getExclusiveOffersForTopBrandedResidences(query);
@@ -201,4 +197,34 @@ export class UnitController {
       throw new BadRequestException('Error processing file: ' + error.message);
     }
   }
+
+  @Get('/welcome-flow/:key')
+  @ApiOperation({
+    summary: 'List Units with optional residenceId filter by key',
+  })
+  @Public()
+  @UsePipes(new JoiValidationPipe(listUnitSchema, 'query'))
+  async listUnitsByKey(@Query() query: ListUnitDto, @Param('key') key: string,) {
+    
+    const units = await this.unitService.listUnitsByKey(query, key);
+    return ResponseService.buildResponse(units, 'Units retrieved successfully');
+  }
+  
+  @Post('/welcome-flow/:key')
+  @ApiOperation({
+    summary: 'Add a Unit to a Residence',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @Permissions('residence', PermissionLevel.EDIT)
+  @UsePipes(new JoiValidationPipe(addUnitSchema, 'body'))
+  async addUnitByKey(
+    @Param('key') key: string,
+    @Body() addUnitDto: AddUnitDto,
+  ) {
+    const unit = await this.unitService.addUnitByKey(addUnitDto, key);
+    return ResponseService.buildResponse({ unitDraft: unit }, 'Unit added successfully');
+  }
+
+  
 }

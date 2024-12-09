@@ -117,7 +117,7 @@ export class AuthController {
   @UseGuards(CaptchaGuard)
   @UsePipes(new JoiValidationPipe(loginSchema, 'body'))
   async loginWithEmailPassword(@Body() loginDto: LoginDto, @Ip() ip: string) {
-    const response = await this.authService.loginWithEmailPassword(loginDto, ip);
+    const response = await this.authService.loginWithEmailPassword(loginDto, ip, UserRole.BUYER);
     return ResponseService.buildResponse(response);
   }
 
@@ -201,7 +201,23 @@ export class AuthController {
     @GetCurrentUser() userFromToken: JwtPayloadType,
     @Body() buyerSignupDto: UpdateBuyerProfileDto
   ) {
-    const user = await this.authService.updateBuyer(userFromToken, buyerSignupDto);
+    const user = await this.authService.updateBuyer(userFromToken.sub, buyerSignupDto);
+    return ResponseService.buildResponse(user, 'Buyer updated successfully');
+  }
+
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Update Buyer Profile',
+  })
+  @Patch('buyer/:id')
+  @Roles(UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(getUserByIdSchema, 'param'))
+  @UsePipes(new JoiValidationPipe(updateBuyerProfileSchema, 'body'))
+  async updateBuyerById(
+    @Param() params: GetUserByIdDto,
+    @Body() buyerSignupDto: UpdateBuyerProfileDto
+  ) {
+    const user = await this.authService.updateBuyer(params.id, buyerSignupDto);
     return ResponseService.buildResponse(user, 'Buyer updated successfully');
   }
 
@@ -299,7 +315,7 @@ export class AuthController {
   @UseGuards(CaptchaGuard)
   @UsePipes(new JoiValidationPipe(loginSchema, 'body'))
   async sellerLoginWithEmailPassword(@Body() loginDto: LoginDto, @Ip() ip: string) {
-    const response = await this.authService.loginWithEmailPassword(loginDto, ip);
+    const response = await this.authService.loginWithEmailPassword(loginDto, ip, UserRole.SELLER);
     return ResponseService.buildResponse(response);
   }
 
@@ -450,7 +466,7 @@ export class AuthController {
   @UseGuards(CaptchaGuard)
   @UsePipes(new JoiValidationPipe(loginSchema, 'body'))
   async adminLoginWithEmailPassword(@Body() loginDto: LoginDto, @Ip() ip: string) {
-    const response = await this.authService.loginWithEmailPassword(loginDto, ip);
+    const response = await this.authService.loginWithEmailPassword(loginDto, ip, UserRole.ADMIN);
     return ResponseService.buildResponse(response);
   }
 
