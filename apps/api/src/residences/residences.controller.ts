@@ -65,11 +65,15 @@ import { GetSimilarResidenceDto, getSimilarResidenceSchema } from './dto/get-sim
 import { ResidenceSeederService } from './residencesSeeder.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { PassThrough } from 'stream';
+import { PatchResidenceDto, patchResidenceSchema } from './dto/patch-update-residence.dto';
 
 @ApiTags('Residence')
 @Controller('residence')
 export class ResidenceController {
-  constructor(private readonly residenceService: ResidenceService, private readonly residenceSeederService: ResidenceSeederService) {}
+  constructor(
+    private readonly residenceService: ResidenceService,
+    private readonly residenceSeederService: ResidenceSeederService
+  ) {}
 
   @Post()
   @ApiOperation({
@@ -393,10 +397,7 @@ export class ResidenceController {
   })
   @Post('upload-bulk-data')
   @UseInterceptors(FileInterceptor('file'))
-  async uploadInventoryFile(
-    @UploadedFile() file: Express.Multer.File,
-  ) {
-  
+  async uploadInventoryFile(@UploadedFile() file: Express.Multer.File) {
     if (!file) {
       throw new HttpException('File is required', HttpStatus.BAD_REQUEST);
     }
@@ -416,69 +417,15 @@ export class ResidenceController {
     return ResponseService.buildResponse({ residence }, 'Residence retrieved successfully');
   }
 
-  @Put('/welcome-flow/:key')
-  @ApiOperation({
-    summary: 'Update Residence general info',
-  })
   @Public()
-  @UsePipes(new JoiValidationPipe(updateResidenceSchema, 'body'))
-  async updateWithKey(@Param('key') key: string, @Body() updateResidenceDto: UpdateResidenceDto) {
-    const residence = await this.residenceService.updateGeneralInfoByKey(key, updateResidenceDto);
-    return ResponseService.buildResponse(
-      { residenceDraft: residence },
-      'Residence updated successfully'
-    );
-  }
-
-  @Put('/welcome-flow/:key/key-features')
+  @Patch('/welcome-flow/update-residence/:key')
   @ApiOperation({
-    summary: 'Add Residence Key Features By key',
+    summary: 'Update Residence and Draft',
   })
-  @Public()
-  @UsePipes(new JoiValidationPipe(addKeyFeaturesSchema, 'body'))
-  async addKeyFeaturesByKey(
-    @Param('key') key: string,
-    @Body() addKeyFeaturesDto: AddKeyFeaturesDto
-  ) {
-    const residence = await this.residenceService.addKeyFeaturesByKey(key, addKeyFeaturesDto);
-    return ResponseService.buildResponse(
-      { residenceDraft: residence },
-      'Residence key features added successfully'
-    );
-  }
-
-  @Put('/welcome-flow/:key/visuals')
-  @ApiOperation({
-    summary: 'Add or update visuals for a residence By Key',
-  })
-  @Public()
-  @UsePipes(new JoiValidationPipe(addResidenceVisualsSchema, 'body'))
-  async addVisualsByKey(@Param('key') key: string, @Body() addVisualsDto: AddResidenceVisualsDto) {
-    const residence = await this.residenceService.addVisualsByKey(key, addVisualsDto);
-    return ResponseService.buildResponse(
-      { residenceDraft: residence },
-      'Residence visuals updated successfully'
-    );
-  }
-
-  @Put('/welcome-flow/:key/nearby-amenities')
-  @ApiOperation({
-    summary: 'Add or update nearby amenities for a residence By Key',
-  })
-  @Public()
-  @UsePipes(new JoiValidationPipe(updateNearbyAmenitiesSchema, 'body'))
-  async updateNearbyAmenitiesByKey(
-    @Param('key') key: string,
-    @Body() updateNearbyAmenitiesDto: UpdateNearbyAmenitiesDto
-  ) {
-    const residence = await this.residenceService.updateNearbyAmenitiesByKey(
-      key,
-      updateNearbyAmenitiesDto
-    );
-    return ResponseService.buildResponse(
-      { residenceDraft: residence },
-      'Residence nearby amenities updated successfully'
-    );
+  @UsePipes(new JoiValidationPipe(patchResidenceSchema, 'body'))
+  async patchResidence(@Param('key') key: string, @Body() patchResidenceDto: PatchResidenceDto) {
+    const residence = await this.residenceService.patchResidence(key, patchResidenceDto);
+    return ResponseService.buildResponse({ residence }, 'Residence updated successfully');
   }
 
   @Get('download/uniqueurl-csv')
