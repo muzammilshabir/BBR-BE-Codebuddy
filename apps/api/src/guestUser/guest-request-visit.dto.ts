@@ -19,7 +19,7 @@ export const guestRequestVisitSchema = Joi.object({
     name: Joi.string().required(),
     countryId: Joi.string().custom(joiObjectIdValidator('countryId')).required(),
     cityId: Joi.string().custom(joiObjectIdValidator('cityId')).required(),
-    zipCode: Joi.string().required(),
+    zipCode: Joi.string().optional(),
     address1: Joi.string().required(),
     location: Joi.object({
       lat: Joi.number().required(),
