@@ -398,4 +398,34 @@ export class ResidenceController {
     const result = await this.residenceSeederService.processUploadedFile(file);
     return ResponseService.buildResponse(result);
   }
+
+  @Public()
+  @ApiOperation({
+    summary: 'Upload images',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @Post('upload-bulk-images')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadBulkImages(
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+  
+    if (!file) {
+      throw new HttpException('File is required', HttpStatus.BAD_REQUEST);
+    }
+
+    const result = await this.residenceSeederService.processUploadedImages(file);
+    return ResponseService.buildResponse(result);
+  }
 }

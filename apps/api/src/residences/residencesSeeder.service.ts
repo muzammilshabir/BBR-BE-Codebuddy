@@ -6,11 +6,6 @@ import { ResidenceType } from 'src/residenceType/schema/residenceType.schema';
 import { ResidenceRepository } from './residences.repository';
 import * as XLSX from 'xlsx';
 import { Country } from 'src/country/schema/country.schema';
-// import { ResidenceStatus } from './enum/residence-enum';
-import * as path from 'path';
-import * as fs from 'fs';
-import * as FormData from 'form-data';
-import * as mime from 'mime-types';
 import axios from 'axios';
 import { ResidenceTypeRepository } from 'src/residenceType/residenceType.repository';
 import { BrandRepository } from 'src/brand/brand.repository';
@@ -26,6 +21,8 @@ import { CategoryType } from 'src/rankingCategory/enum/category-type.enum';
 import { BrandCategoryRepository } from 'src/brandCategory/brandCategoryRepository.repository';
 import { PaymentStatus } from 'src/rankingRequest/enum/payment-status.enum';
 import { RankingRequestStatus } from 'src/rankingRequest/enum/rankingRequest-status.enum';
+import { S3Client, ListObjectsV2Command } from "@aws-sdk/client-s3";
+import { UploadRepository } from 'src/upload/upload.repository';
 
 interface RankingCategory {
   ranking_category_id: string;
@@ -105,6 +102,7 @@ const categoryTypeMapping = {
 export class ResidenceSeederService {
   private readonly logger = new Logger(ResidenceSeederService.name);
   private readonly BATCH_SIZE = 10;
+  private readonly s3Client: S3Client;
 
   constructor(
     private readonly residenceRepository: ResidenceRepository,
@@ -123,8 +121,22 @@ export class ResidenceSeederService {
     @InjectModel(ResidenceType.name)
     private readonly residenceTypeModel: Model<ResidenceType>,
     @InjectModel(Country.name)
-    private readonly countryModel: Model<Country>
-  ) {}
+    private readonly countryModel: Model<Country>,
+    private readonly uploadRepository: UploadRepository
+  ) {
+
+    this.s3Client = new S3Client({
+      region: process.env.AWS_S3_BUCKET_REGION,
+      ...(process.env.END_POINT && {
+          endpoint: `https://${process.env.END_POINT}`,
+          forcePathStyle: true 
+      }),
+      credentials: {
+          accessKeyId: process.env.AWS_S3_USER_ACCESS_KEY_ID,
+          secretAccessKey: process.env.AWS_S3_USER_SECRET,
+      },
+  });
+  }
 
   async processUploadedFile(file: Express.Multer.File) {
     const BATCH_SIZE = 10;
@@ -162,7 +174,6 @@ export class ResidenceSeederService {
           await new Promise(resolve => setTimeout(resolve, 100));
         }
       
-        // Process each residence in batch sequentially
         for (const singleCountry of batch) {
           try {
             const country = singleCountry as any;
@@ -176,19 +187,6 @@ export class ResidenceSeederService {
               const countryData: any = {
                 name: country.name,
               };
-        
-              if (country.logo) {
-                const imagesArray = country.logo.includes(',')
-                  ? country.logo.split(',').map((path) => path.trim())
-                  : [country.logo.trim()];
-        
-                const imageIds = await this.uploadImagesAndGetIds(imagesArray);
-        
-                countryData.upload = imageIds.map((id) => ({
-                  ImageId: new Types.ObjectId(id),
-                  type: 'logo',
-                }));
-              }
         
               countryDoc = await this.countryModel.create(countryData);
             }
@@ -211,7 +209,6 @@ export class ResidenceSeederService {
           await new Promise(resolve => setTimeout(resolve, 100));
         }
       
-        // Process each residence in batch sequentially
         for (const singleCity of batch) {
           try {
             const city = singleCity as any;
@@ -246,18 +243,6 @@ export class ResidenceSeederService {
                 cityData.countryId = new Types.ObjectId(countryId);
               }
         
-              if (city.logo) {
-                const imagesArray = city.logo.includes(',')
-                  ? city.logo.split(',').map((path) => path.trim())
-                  : [city.logo.trim()];
-        
-                const imageIds = await this.uploadImagesAndGetIds(imagesArray);
-        
-                cityData.upload = imageIds.map((id) => ({
-                  ImageId: new Types.ObjectId(id),
-                  type: 'main',
-                }));
-              }
         
               cityDoc = await this.cityModel.create(cityData);
             }
@@ -280,17 +265,9 @@ export class ResidenceSeederService {
           await new Promise(resolve => setTimeout(resolve, 100));
         }
       
-        // Process each residence in batch sequentially
         for (const singleBrand of batch) {
           try {
             const brand = singleBrand as any;
-
-            const imageFields = [
-              { key: 'image1_path', type: 'logo' },
-              { key: 'image2_path', type: 'logoDirectory' },
-              { key: 'image3_path', type: 'preview' },
-              { key: 'image4_path', type: 'backgroundImage' },
-            ];
             
             let brandDoc = await this.brandRepository.find({
               name: { $regex: new RegExp(`^${brand.name}$`, 'i') },
@@ -306,26 +283,6 @@ export class ResidenceSeederService {
                 brandCategoryId: await this.processBrandCategory(brand, sheets.brandCategories),
               };
         
-              const uploadImages = imageFields
-                .filter(
-                  (field) =>
-                    brand[field.key] &&
-                  brand[field.key].trim() !== '' &&
-                  brand[field.key] !== '""'
-                )
-                .map((field) => ({
-                  path: brand[field.key].replace(/^"|"$/g, '').trim(),
-                  type: field.type,
-                }));
-        
-        
-              if (uploadImages.length > 0) {
-                const imageIds = await this.uploadImagesAndGetIds(uploadImages.map((image) => image.path));
-                brandData.upload = imageIds.map((id, index) => ({
-                  ImageId: new Types.ObjectId(id),
-                  type: uploadImages[index].type,
-                }));
-              }
               brandDoc = await this.brandRepository.create(brandData);
               
             }
@@ -347,7 +304,6 @@ export class ResidenceSeederService {
       
         const batch = sheets.rankingCategories.slice(i, i + BATCH_SIZE);
         
-        // Process each ranking category in batch sequentially
         for (const rankingCategory of batch) {
           try {
             await new Promise(resolve => setTimeout(resolve, 500));
@@ -430,17 +386,14 @@ export class ResidenceSeederService {
       for (let i = 0; i < sheets.residences.length; i += BATCH_SIZE) {
         const batch = sheets.residences.slice(i, i + BATCH_SIZE);
         
-        // Add delay between batches
         if (i > 0) {
           await new Promise(resolve => setTimeout(resolve, 500));
         }
       
-        // Process each residence in batch sequentially
         for (const singleResidence of batch) {
           try {
             const residence = singleResidence as Residence;
             
-            // Add small delay between individual items
             await new Promise(resolve => setTimeout(resolve, 200));
       
             const residenceTypeDoc = await this.processResidence(residence, sheets.residenceTypes);
@@ -460,9 +413,6 @@ export class ResidenceSeederService {
               ? await this.processResidenceFeature(residence, sheets.residenceFeatures)
               : [];
               await new Promise(resolve => setTimeout(resolve, 100));
-            const visuals = (residence.main_photo || residence.main_gallery_path || residence.second_gallery_path)
-              ? await this.processVisuals(residence)
-              : {};
               
             const amenityIds = residence.amenity_ids
               ? await this.processAmenity(residence, sheets.amenities)
@@ -487,7 +437,6 @@ export class ResidenceSeederService {
               amenityIds,
               highlightedAmenities,
               lifeStyleDoc,
-              visuals,
               placeDetails
             });
 
@@ -552,7 +501,6 @@ export class ResidenceSeederService {
     amenityIds: any[];
     highlightedAmenities: any[];
     lifeStyleDoc: any;
-    visuals: any;
     placeDetails: any;
   }) {
     const baseData: any = {
@@ -574,15 +522,14 @@ export class ResidenceSeederService {
         futureDevelopmentPlans: residence?.future_development,
       },
       residenceKeyFeatures: {
-        featureIds: data.residenceFeatureIds,
+        featureIds: data?.residenceFeatureIds,
         developmentInfo: {
           yearOfBuild: Number(residence?.build_year),
           rentalPotential: residence?.rental_potential,
           developmentStatus: residence?.development_status,
         },
-        petPolicy: residence.pet_policy,
+        petPolicy: residence?.pet_policy,
       },
-      visuals: data.visuals,
       nearbyAmenities: {
         amenitiesList: data.amenityIds || [],
         highlightedAmenities: data.highlightedAmenities || [],
@@ -658,7 +605,7 @@ export class ResidenceSeederService {
                 const criteriaScore = score[`criteria${i}_score`];
                 const criteriaId = rankingCategory[`criteria_id${i}`];
 
-                // Only add if all required fields are present
+               
                 if (criteriaFeedback && criteriaScore && criteriaId) {
                     criteriaScores.push({
                         criteriaId: new Types.ObjectId(criteriaId),
@@ -727,24 +674,6 @@ export class ResidenceSeederService {
         name: matchingPropertyType.name,
       };
 
-      if (
-        matchingPropertyType.image_path &&
-        matchingPropertyType.image_path.trim() !== '' &&
-        matchingPropertyType.image_path !== '""'
-      ) {
-        const imagePath = matchingPropertyType.image_path.replace(/^"|"$/g, '').trim();
-        const imagesArray = imagePath.includes(',')
-          ? imagePath.split(',').map((path) => path.trim())
-          : [imagePath];
-
-        const imageIds = await this.uploadImagesAndGetIds(imagesArray);
-
-        propertyData.upload = imageIds.map((id) => ({
-          ImageId: new Types.ObjectId(id),
-          type: 'main',
-        }));
-      }
-
       propertyTypeDoc = await this.propertyTypeRepository.create(propertyData);
     }
 
@@ -764,24 +693,6 @@ export class ResidenceSeederService {
       const areaData: any = {
         name: matchingArea.name,
       };
-
-      if (
-        matchingArea.image_path &&
-        matchingArea.image_path.trim() !== '' &&
-        matchingArea.image_path !== '""'
-      ) {
-        const imagePath = matchingArea.image_path.replace(/^"|"$/g, '').trim();
-        const imagesArray = imagePath.includes(',')
-          ? imagePath.split(',').map((path) => path.trim())
-          : [imagePath];
-
-        const imageIds = await this.uploadImagesAndGetIds(imagesArray);
-
-        areaData.upload = imageIds.map((id) => ({
-          ImageId: new Types.ObjectId(id),
-          type: 'main',
-        }));
-      }
 
       geographicalAreaDoc = await this.geographicalAreasRepository.create(areaData);
     }
@@ -859,24 +770,6 @@ export class ResidenceSeederService {
         updatedAt: new Date(),
       } as ResidenceType;
 
-      if (
-        matchingResidenceType.images_path &&
-        matchingResidenceType.images_path.trim() !== '' &&
-        matchingResidenceType.images_path !== '""'
-      ) {
-        const imagePath = matchingResidenceType.images_path.replace(/^"|"$/g, '').trim();
-        const imagesArray = imagePath.includes(',')
-          ? imagePath.split(',').map((path) => path.trim())
-          : [imagePath];
-
-        const imageIds = await this.uploadImagesAndGetIds(imagesArray);
-
-        residenceData.upload = imageIds.map((id) => ({
-          ImageId: new Types.ObjectId(id),
-          type: 'main',
-        }));
-      }
-
       residenceTypeDoc = await this.residenceTypeModel.create(residenceData);
     }
     return residenceTypeDoc;
@@ -890,12 +783,6 @@ export class ResidenceSeederService {
       return null;
     }
 
-    const imageFields = [
-      { key: 'image1_path', type: 'logo' },
-      { key: 'image2_path', type: 'logoDirectory' },
-      { key: 'image3_path', type: 'preview' },
-      { key: 'image4_path', type: 'backgroundImage' },
-    ];
 
     let brandDoc = await this.brandRepository.find({
       name: { $regex: new RegExp(`^${matchingBrand.name}$`, 'i') },
@@ -911,26 +798,7 @@ export class ResidenceSeederService {
         brandCategoryId: await this.processBrandCategory(matchingBrand, brandCategories),
       };
 
-      const uploadImages = imageFields
-        .filter(
-          (field) =>
-            matchingBrand[field.key] &&
-            matchingBrand[field.key].trim() !== '' &&
-            matchingBrand[field.key] !== '""'
-        )
-        .map((field) => ({
-          path: matchingBrand[field.key].replace(/^"|"$/g, '').trim(),
-          type: field.type,
-        }));
-
-
-      if (uploadImages.length > 0) {
-        const imageIds = await this.uploadImagesAndGetIds(uploadImages.map((image) => image.path));
-        brandData.upload = imageIds.map((id, index) => ({
-          ImageId: new Types.ObjectId(id),
-          type: uploadImages[index].type,
-        }));
-      }
+     
       brandDoc = await this.brandRepository.create(brandData);
       
     }
@@ -945,7 +813,9 @@ export class ResidenceSeederService {
     if (!matchingBrandCategory) {
       throw new Error(`Brand category with id ${brand.brand_category_id} not found`);
     }
-
+    if( matchingBrandCategory.name == "Luxury Hotel and Resort Brands"){
+      matchingBrandCategory.name = 'Luxury Hotel Resort Brands'
+    }
     let brandCategoryDoc = await this.brandCategoryRepository.find({
       name: { $regex: new RegExp(`^${matchingBrandCategory.name}$`, 'i') },
     });
@@ -982,20 +852,6 @@ export class ResidenceSeederService {
           name: matchingResidenceFeature.name,
         };
 
-        if (matchingResidenceFeature.image_path) {
-          const imagePath = matchingResidenceFeature.image_path.replace(/^"|"$/g, '').trim();
-          if (imagePath && imagePath !== '""') {
-            const imagesArray = imagePath.includes(',')
-              ? imagePath.split(',').map((path) => path.trim())
-              : [imagePath];
-
-            const imageIds = await this.uploadImagesAndGetIds(imagesArray);
-
-            featureData.upload = imageIds.map((id) => ({
-              ImageId: new Types.ObjectId(id),
-            }));
-          }
-        }
 
         residenceFeatureDoc = await this.residenceFeatureRepository.create(featureData);
       }
@@ -1044,18 +900,6 @@ export class ResidenceSeederService {
         cityData.countryId = new Types.ObjectId(countryId);
       }
 
-      if (matchingCity.logo) {
-        const imagesArray = matchingCity.logo.includes(',')
-          ? matchingCity.logo.split(',').map((path) => path.trim())
-          : [matchingCity.logo.trim()];
-
-        const imageIds = await this.uploadImagesAndGetIds(imagesArray);
-
-        cityData.upload = imageIds.map((id) => ({
-          ImageId: new Types.ObjectId(id),
-          type: 'main',
-        }));
-      }
 
       cityDoc = await this.cityModel.create(cityData);
     }
@@ -1082,18 +926,6 @@ export class ResidenceSeederService {
         name: matchingCountry.name,
       };
 
-      if (matchingCountry.logo) {
-        const imagesArray = matchingCountry.logo.includes(',')
-          ? matchingCountry.logo.split(',').map((path) => path.trim())
-          : [matchingCountry.logo.trim()];
-
-        const imageIds = await this.uploadImagesAndGetIds(imagesArray);
-
-        countryData.upload = imageIds.map((id) => ({
-          ImageId: new Types.ObjectId(id),
-          type: 'logo',
-        }));
-      }
 
       countryDoc = await this.countryModel.create(countryData);
     }
@@ -1119,22 +951,6 @@ export class ResidenceSeederService {
         const amenityData: any = {
           name: matchingAmenity.name,
         };
-
-        if (matchingAmenity.logo_image) {
-          const imagePath = matchingAmenity.logo_image.replace(/^"|"$/g, '').trim();
-          if (imagePath && imagePath !== '""') {
-            const imagesArray = imagePath.includes(',')
-              ? imagePath.split(',').map((path) => path.trim())
-              : [imagePath];
-
-            const imageIds = await this.uploadImagesAndGetIds(imagesArray);
-
-            amenityData.upload = imageIds.map((id) => ({
-              ImageId: new Types.ObjectId(id),
-              type: 'logo',
-            }));
-          }
-        }
 
         amenityDoc = await this.amenityRepository.create(amenityData);
       }
@@ -1170,23 +986,11 @@ export class ResidenceSeederService {
         amenityId: amenityDoc._id,
       };
 
-      // Add description if exists
       if (residence[`highlighted_amenity_description${i}`]) {
         highlightedAmenity.generalDescription = residence[`highlighted_amenity_description${i}`];
       }
 
-      // Process image if exists
-      if (residence[`highlighted_amenity_image_path${i}`]) {
-        const imagePath = residence[`highlighted_amenity_image_path${i}`]
-          .replace(/^"|"$/g, '')
-          .trim();
-        if (imagePath && imagePath !== '""') {
-          const imageIds = await this.uploadImagesAndGetIds([imagePath]);
-          if (imageIds.length > 0) {
-            highlightedAmenity.imageId = imageIds[0];
-          }
-        }
-      }
+      
 
       highlightedAmenities.push(highlightedAmenity);
     }
@@ -1211,88 +1015,11 @@ export class ResidenceSeederService {
         name: matchingLifestyle.name,
       };
 
-      if (matchingLifestyle.image_path) {
-        const imagePath = matchingLifestyle.image_path.replace(/^"|"$/g, '').trim();
-        const imageIds = await this.uploadImagesAndGetIds(
-          imagePath.includes(',') ? imagePath.split(',').map((path) => path.trim()) : [imagePath]
-        );
-
-        lifestyleData.upload = imageIds.map((id) => ({
-          ImageId: new Types.ObjectId(id),
-          type: 'main',
-        }));
-      }
 
       lifeStyleDoc = await this.lifeStyleRepository.create(lifestyleData);
     }
  
     return lifeStyleDoc;
-  }
-
-  private async processVisuals(residence: any) {
-    const processGalleryImages = async (
-      galleryPath: string,
-      imagesString: string,
-      galleryType: string
-    ) => {
-      // Return empty array if either path or images are missing
-      if (!galleryPath?.trim() || !imagesString?.trim()) return [];
-
-      try {
-        const basePath = `All Residences 01-117/${galleryPath.trim()}/${galleryType}`;
-        const images = imagesString
-          .replace(/^'|'$/g, '')
-          .trim()
-          .split(',')
-          .map((img) => img.trim());
-
-        const fullPaths = images.map((img) => `${basePath}/${img}`);
-        return await this.uploadImagesAndGetIds(fullPaths);
-      } catch (error) {
-        console.error(`Error processing ${galleryType}:`, error);
-        return [];
-      }
-    };
-
-    const processMainPhoto = async (galleryPath: string) => {
-      // Return empty array if either path or main photo is missing
-      if (!galleryPath?.trim() || !residence.main_photo?.trim()) return [];
-
-      try {
-        const mainPhotoPath = `All Residences/Residences/${galleryPath.trim()}/Main Photo/${residence.main_photo.trim()}`;
-        return await this.uploadImagesAndGetIds([mainPhotoPath]);
-      } catch (error) {
-        console.error('Error processing main photo:', error);
-        return [];
-      }
-    };
-
-
-    const [mainGalleryPhotos, secondGalleryPhotos, mainPhotos] = await Promise.all([
-      residence.main_gallery_path && residence.main_gallery_images
-        ? processGalleryImages(
-            residence.main_gallery_path,
-            residence.main_gallery_images,
-            'Main Gallery'
-          )
-        : Promise.resolve([]),
-      residence.second_gallery_path && residence.second_gallery_images
-        ? processGalleryImages(
-            residence.second_gallery_path,
-            residence.second_gallery_images,
-            'Second Gallery'
-          )
-        : Promise.resolve([]),
-      residence.main_gallery_path && residence.main_photo
-        ? processMainPhoto(residence.main_gallery_path)
-        : Promise.resolve([]),
-    ]);
-
-    return {
-      ...(mainPhotos.length > 0 && { mainPhotos }),
-      ...(mainGalleryPhotos.length > 0 && { mainGalleryPhotos }),
-      ...(secondGalleryPhotos.length > 0 && { secondGalleryPhotos }),
-    };
   }
 
   private async getPlaceDetails(address: string) {
@@ -1331,28 +1058,122 @@ export class ResidenceSeederService {
     }
   }
 
-  private async uploadImagesAndGetIds(imagePaths: string[]): Promise<string[]> {
-    const form = new FormData();
 
-    imagePaths.forEach((file) => {
+   async processUploadedImages(file: Express.Multer.File) {
+    const BATCH_SIZE = 10;
 
-      const filePath = path.resolve(__dirname, '../../../../../src', file);
-      form.append('files', fs.createReadStream(filePath), {
-        filename: path.basename(filePath),
-        contentType: mime.lookup(filePath) || 'image/png',
-      });
-    });
+      const workbook = XLSX.read(file.buffer, { type: 'buffer' });
+      const sheets = {
+        residences: XLSX.utils.sheet_to_json(workbook.Sheets['Residences']),
+      };
 
-    try {
-      const response = await axios.post('http://localhost:4001/upload', form, {
-        headers: form.getHeaders(),
-      });
-      return response.data?.data?.files.map((upload) => upload._id) || [];
-    } catch (uploadError) {
-      this.logger.error(
-        `Error uploading files from imagepath ${imagePaths}: ${uploadError.message}`
-      );
-      return [];
-    }
+      for (let i = 0; i < sheets.residences.length; i += BATCH_SIZE) {
+        const batch = sheets.residences.slice(i, i + BATCH_SIZE);
+        
+        if (i > 0) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      
+        for (const singleResidence of batch) {
+        
+            const residence = singleResidence as Residence;
+            
+            const mainGalleryPath = residence.main_gallery_path 
+              ? `${process.env.RESIDENCE_SEEDER_FOLDER}/${residence.main_gallery_path}/Main Gallery` 
+              : null;
+            
+            const secondGalleryPath = residence.second_gallery_path 
+              ? `${process.env.RESIDENCE_SEEDER_FOLDER}/${residence.second_gallery_path}/Second Gallery` 
+              : null;
+            
+            const [mainGalleryObjects, secondGalleryObjects] = await Promise.all([
+              mainGalleryPath ? this.listS3Objects(mainGalleryPath) : [],
+              secondGalleryPath ? this.listS3Objects(secondGalleryPath) : []
+            ]);
+  
+            const mainGalleryUploads = await this.createUploadRecords(mainGalleryObjects);
+            const secondGalleryUploads = await this.createUploadRecords(secondGalleryObjects);
+            
+            if (mainGalleryUploads.length > 0 || secondGalleryUploads.length > 0) {
+              const visualsUpdate: any = {
+                  visuals: {}
+              };
+
+              if (mainGalleryUploads.length > 0) {
+                  visualsUpdate.visuals.mainPhotos = [mainGalleryUploads[0]?._id]; 
+                  visualsUpdate.visuals.mainGalleryPhotos = mainGalleryUploads.map(upload => upload._id);
+              }
+      
+              if (secondGalleryUploads.length > 0) {
+                  visualsUpdate.visuals.secondGalleryPhotos = secondGalleryUploads.map(upload => upload._id);
+              }
+      
+              const check = await this.residenceRepository.updateWithFilter(
+                  { name: residence.name,  isDeleted: false },
+                  { $set: visualsUpdate }
+              );
+
+              console.log(check)
+            }
+        }
+      }
   }
+
+  private async listS3Objects(prefix: string) {
+    try {
+        const params = {
+            Bucket: process.env.AWS_S3_BUCKET_NAME,
+            Prefix: prefix + '/', 
+            MaxKeys: 1000
+        };
+
+        const command = new ListObjectsV2Command(params);
+        const response = await this.s3Client.send(command);
+        
+        return response.Contents || [];
+    } catch (error) {
+        console.error(`Error listing S3 objects for prefix ${prefix}:`, error);
+        return [];
+    }
+}
+
+private async createUploadRecords(s3Objects: any[]) {
+    const uploads = [];
+    
+    for (const object of s3Objects) {
+        try {
+            const url = `https://${process.env.CDN_URL}/${object.Key}`;
+          
+            const uploadRecord = {
+                originalFileKey: object.Key,
+                size: object.Size,
+                mimeType: this.getContentType(object.Key),
+                url: url,
+                fileKey: object.ETag,
+                driver: 'S3'
+            };
+
+            const upload = await this.uploadRepository.create(uploadRecord);
+            uploads.push(upload);
+        } catch (error) {
+            console.error(`Error creating upload record for ${object.Key}:`, error);
+        }
+    }
+
+    return uploads;
+}
+
+private getContentType(filename: string): string {
+    const ext = filename.split('.').pop()?.toLowerCase();
+    const contentTypes = {
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'png': 'image/png',
+        'gif': 'image/gif',
+        'webp': 'image/webp'
+    };
+    return contentTypes[ext] || 'application/octet-stream';
+}
+
+
 }

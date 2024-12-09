@@ -44,6 +44,8 @@ import { GeographicalAreasRepository } from 'src/geographicalAreas/geographicalA
 import { GeographicalAreas, GeographicalAreasSchema } from 'src/geographicalAreas/schema/geographicalAreas.schema';
 import { BrandCategoryRepository } from 'src/brandCategory/brandCategoryRepository.repository';
 import { BrandCategory, BrandCategorySchema } from 'src/brandCategory/schema/brandCategory.schema';
+import { UploadRepository } from 'src/upload/upload.repository';
+import { Upload, UploadSchema } from 'src/upload/schema/upload.schema';
 
 @Module({
   imports: [
@@ -64,6 +66,8 @@ import { BrandCategory, BrandCategorySchema } from 'src/brandCategory/schema/bra
     MongooseModule.forFeature([{ name: RankingCategory.name, schema: RankingCategorySchema }]),
     MongooseModule.forFeature([{ name: GeographicalAreas.name, schema: GeographicalAreasSchema }]),
     MongooseModule.forFeature([{ name: BrandCategory.name, schema: BrandCategorySchema }]),
+    MongooseModule.forFeature([{ name: Upload.name, schema: UploadSchema }
+    ]),
   ],
   providers: [
     ResidenceService,
@@ -86,6 +90,7 @@ import { BrandCategory, BrandCategorySchema } from 'src/brandCategory/schema/bra
     RankingCategoryRepository,
     GeographicalAreasRepository,
     BrandCategoryRepository,
+    UploadRepository
   ],
   exports: [ResidenceSeeder, ResidencesFixture, ResidenceService, ResidenceSeederService, ResidenceRepository],
   controllers: [ResidenceController],
