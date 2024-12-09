@@ -1474,9 +1474,6 @@ export class ResidenceService {
           'Residence Name': residence?.name || '-',
           'Status': residence?.status || '-',
           'Unique URL': residence?.uniqueUrl || '-',
-          'Developer Name': residence.developer?.fullName || '-',
-          'Developer Email': residence.developer?.email || '-',
-          'Developer Contact': residence.developer?.contactInfo?.phone || '-',
           'City': residence.city?.[0]?.name || '-',
           'Country': residence.country?.[0]?.name || '-',
           'Last Updated': residence.lastUpdated
