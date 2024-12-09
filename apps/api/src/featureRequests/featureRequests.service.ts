@@ -9,13 +9,15 @@ import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.s
 import { UpdatePaymentInfoDto } from './dto/update-payment-info.dto';
 import { ResidenceRepository } from 'src/residences/residences.repository';
 import { FeatureRequestStatus } from './enum/feature-request-status';
+import { PlanRepository } from 'src/subscription-plan/plan.repository';
 
 @Injectable()
 export class FeatureRequestService {
   constructor(
     private readonly featureRequestRepository: FeatureRequestRepository,
     private readonly userRepository: UserRepository,
-    private readonly residenceRepository: ResidenceRepository
+    private readonly residenceRepository: ResidenceRepository,
+    private readonly subscriptionPlanRepository: PlanRepository
   ) {}
 
   async create(createFeatureRequestDto: CreateFeatureRequestDto, userId: string) {
@@ -40,10 +42,17 @@ export class FeatureRequestService {
       throw new BadRequestException('User not found');
     }
 
+    const plan = await this.subscriptionPlanRepository.findById(createFeatureRequestDto.planId.toString());
+
+    if (!plan) {
+      throw new BadRequestException('Plan not found');
+    }
+
     const featureRequest = await this.featureRequestRepository.create({
       ...createFeatureRequestDto,
       createdBy: new Types.ObjectId(userId),
       residenceId: new Types.ObjectId(createFeatureRequestDto.residenceId),
+      planId: new Types.ObjectId(createFeatureRequestDto.planId),
     });
 
     return featureRequest;

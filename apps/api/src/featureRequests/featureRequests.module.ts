@@ -13,12 +13,16 @@ import { ResidenceSchema } from 'src/residences/schema/residences.schema';
 import { Residence } from 'src/residences/schema/residences.schema';
 import { ScheduleModule } from '@nestjs/schedule';
 import { FeatureRequestCronService } from './cron/feature-request-cron.service';
+import { PlanSchema } from 'src/subscription-plan/schema/plan.schema';
+import { Plan } from 'src/subscription-plan/schema/plan.schema';
+import { PlanRepository } from 'src/subscription-plan/plan.repository';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: FeatureRequest.name, schema: FeatureRequestSchema }]),
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
     MongooseModule.forFeature([{ name: Residence.name, schema: ResidenceSchema }]),
+    MongooseModule.forFeature([{ name: Plan.name, schema: PlanSchema }]),
     CustomerSupportModule,
     ScheduleModule.forRoot(),
 
@@ -30,6 +34,7 @@ import { FeatureRequestCronService } from './cron/feature-request-cron.service';
     UserRepository,
     ResidenceRepository,
     FeatureRequestCronService,
+    PlanRepository,
   ],
   exports: [FeatureRequestService],
 })
