@@ -9,7 +9,7 @@ export const guestApplyRankingSchema = Joi.object({
     name: Joi.string().required(),
     countryId: Joi.string().custom(joiObjectIdValidator('countryId')).required(),
     cityId: Joi.string().custom(joiObjectIdValidator('cityId')).required(),
-    zipCode: Joi.string().required(),
+    zipCode: Joi.string().optional(),
     address1: Joi.string().required(),
     location: Joi.object({
       lat: Joi.number().required(),
@@ -68,8 +68,9 @@ export class ResidenceDetailsDto {
   @ApiProperty({
     description: 'Zip code',
     type: String,
+    required: false,
   })
-  zipCode: string;
+  zipCode?: string;
 
   @ApiProperty({
     description: 'Address line 1',

@@ -22,7 +22,7 @@ export type ResidenceDetails = {
   name: string;
   countryId: string;
   cityId: string;
-  zipCode: string;
+  zipCode?: string;
   address1: string;
   location: {
     lat: number;
