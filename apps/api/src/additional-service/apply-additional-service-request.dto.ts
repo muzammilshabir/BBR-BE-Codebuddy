@@ -1,0 +1,77 @@
+import { ApiProperty } from '@nestjs/swagger';
+import * as Joi from 'joi';
+import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
+import { Types } from 'mongoose';
+
+export const applyAdditionalServiceRequestSchema = Joi.object({
+  bbrVerificationRequestId: Joi.string()
+    .custom(joiObjectIdValidator('bbrVerificationRequestId'))
+    .optional(),
+  rankingCategoryIds: Joi.array()
+    .items(Joi.string().custom(joiObjectIdValidator('rankingCategoryId')))
+    .optional(),
+  featureRequestId: Joi.string().custom(joiObjectIdValidator('featureRequestId')).optional(),
+  // TODO: May be used later
+  // stripePmTokenId: Joi.string().required(),
+  userDetails: Joi.object({
+    fullName: Joi.string().required(),
+    email: Joi.string().email().required(),
+  }),
+});
+
+export class UserInfoForAdditionalServiceDto {
+  @ApiProperty({
+    description: 'Full name',
+    type: String,
+  })
+  fullName: string;
+
+  @ApiProperty({
+    description: 'Email',
+    type: String,
+    example: 'test@test.com',
+  })
+  email: string;
+
+}
+
+export class ApplyAdditionalServiceRequestDto {
+  @ApiProperty({
+    description: 'BBR verification request ID',
+    type: Types.ObjectId,
+    required: false,
+    example: '60d5f485f7c6a4b2b8e8b623',
+  })
+  bbrVerificationRequestId?: Types.ObjectId;
+
+  @ApiProperty({
+    description: 'Ranking category IDs',
+    type: [String],
+    required: false,
+    example: ['60d5f485f7c6a4b2b8e8b623', '60d5f485f7c6a4b2b8e8b623'],
+  })
+  rankingCategoryIds?: string[];
+
+  @ApiProperty({
+    description: 'Feature request ID',
+    type: Types.ObjectId,
+    required: false,
+    example: '60d5f485f7c6a4b2b8e8b623',
+  })
+  featureRequestId?: Types.ObjectId;
+
+  @ApiProperty({
+    description: 'User details',
+    type: UserInfoForAdditionalServiceDto,
+  })
+  userDetails: UserInfoForAdditionalServiceDto;
+
+  // TODO: May be used later
+  // @ApiProperty({
+  //   description: 'Stripe payment method token ID',
+  //   type: String,
+  //   required: true,
+  // })
+  // stripePmTokenId: string;
+}
+

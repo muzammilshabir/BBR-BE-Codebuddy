@@ -5,6 +5,8 @@ export enum InvoicePostPaymentActionType {
   CREATE_USER = 'create_user',
   CREATE_RESIDENCE = 'create_residence',
   CREATE_RANKING_REQUEST = 'create_ranking_request',
+  CREATE_FEATURE_REQUEST = 'create_feature_request',
+  CREATE_BBR_VERIFICATION_REQUEST = 'create_bbr_verification_request',
 }
 
 export type UserDetails = {
@@ -35,6 +37,14 @@ export type RankingRequestDetails = {
   rankingCategoryIds: string[];
 };
 
+export type FeatureRequestDetails = {
+  featureRequestId: string;
+};
+
+export type BbrVerificationRequestDetails = {
+  bbrVerificationRequestId: string;
+};
+
 @Schema({ timestamps: true })
 export class InvoicePostPaymentAction extends Document {
   @Prop({ required: true, type: Types.ObjectId, ref: 'Invoice', index: true })
@@ -47,7 +57,7 @@ export class InvoicePostPaymentAction extends Document {
     type: Object,
     _id: false,
   })
-  data: UserDetails | ResidenceDetails | RankingRequestDetails;
+  data: UserDetails | ResidenceDetails | RankingRequestDetails | FeatureRequestDetails | BbrVerificationRequestDetails;
 }
 
 export const InvoicePostPaymentActionSchema =
