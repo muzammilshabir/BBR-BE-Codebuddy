@@ -6,6 +6,8 @@ import { City } from 'src/city/schema/city.schema';
 import { Country } from 'src/country/schema/country.schema';
 import { ResidenceDraft } from 'src/residencesDraft/schema/residencesDraft.schema';
 import {
+  BbrVerificationRequestDetails,
+  FeatureRequestDetails,
   InvoicePostPaymentAction,
   InvoicePostPaymentActionType,
   RankingRequestDetails,
@@ -23,6 +25,8 @@ import { Transaction } from 'src/stripe/schema/transaction.schema';
 import { TransactionStatus } from 'src/stripe/enum/transaction-status.enum';
 import { AuthService } from 'src/auth/auth.service';
 import { UserService } from 'src/users/user.service';
+import { FeatureRequest } from 'src/featureRequests/schema/featureRequest.schema';
+import { BbrVerification } from 'src/bbr-verification/schema/bbr-verification.schema';
 
 @Injectable()
 export class InvoicePostPaymentActionService {
@@ -47,6 +51,10 @@ export class InvoicePostPaymentActionService {
     private invoiceModel: Model<Invoice>,
     @InjectModel(Transaction.name)
     private transactionModel: Model<Transaction>,
+    @InjectModel(FeatureRequest.name)
+    private featureRequestModel: Model<FeatureRequest>,
+    @InjectModel(BbrVerification.name)
+    private bbrVerificationModel: Model<BbrVerification>,
     private authService: AuthService,
     private userService: UserService
   ) {}
@@ -54,7 +62,12 @@ export class InvoicePostPaymentActionService {
   async create(
     invoiceId: string,
     type: InvoicePostPaymentActionType,
-    data: UserDetails | ResidenceDetails | RankingRequestDetails
+    data:
+      | UserDetails
+      | ResidenceDetails
+      | RankingRequestDetails
+      | FeatureRequestDetails
+      | BbrVerificationRequestDetails
   ) {
     return this.invoicePostPaymentActionModel.create({
       invoiceId,
@@ -147,6 +160,26 @@ export class InvoicePostPaymentActionService {
               rankingRequestId: rankingRequest._id,
             });
           })
+        );
+      }
+
+      if (action.type === InvoicePostPaymentActionType.CREATE_FEATURE_REQUEST) {
+        const featureRequestDetails = action.data as FeatureRequestDetails;
+        await this.featureRequestModel.findByIdAndUpdate(
+          featureRequestDetails.featureRequestId,
+          {
+            status: PaymentStatus.PAID,
+          }
+        );
+      }
+
+      if (action.type === InvoicePostPaymentActionType.CREATE_BBR_VERIFICATION_REQUEST) {
+        const bbrVerificationRequestDetails = action.data as BbrVerificationRequestDetails;
+        await this.bbrVerificationModel.findByIdAndUpdate(
+          bbrVerificationRequestDetails.bbrVerificationRequestId,
+          {
+            status: PaymentStatus.PAID,
+          }
         );
       }
     }
