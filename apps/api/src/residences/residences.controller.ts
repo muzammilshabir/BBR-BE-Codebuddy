@@ -461,7 +461,7 @@ export class ResidenceController {
       },
     },
   })
-  @Post('upload-bulk-images')
+  @Post('upload-residence-images')
   @UseInterceptors(FileInterceptor('file'))
   async uploadBulkImages(
     @UploadedFile() file: Express.Multer.File,
@@ -472,6 +472,186 @@ export class ResidenceController {
     }
 
     const result = await this.residenceSeederService.processUploadedImages(file);
+    return ResponseService.buildResponse(result);
+  }
+
+  @Public()
+  @ApiOperation({
+    summary: 'Upload City images',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @Post('upload-city-images')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadBulkCityImages(
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+  
+    if (!file) {
+      throw new HttpException('File is required', HttpStatus.BAD_REQUEST);
+    }
+
+    const result = await this.residenceSeederService.processCityImages(file);
+    return ResponseService.buildResponse(result);
+  }
+
+  @Public()
+  @ApiOperation({
+    summary: 'Upload Country images',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @Post('upload-country-images')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadBulkCountryImages(
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+  
+    if (!file) {
+      throw new HttpException('File is required', HttpStatus.BAD_REQUEST);
+    }
+
+    const result = await this.residenceSeederService.processCountryImages(file);
+    return ResponseService.buildResponse(result);
+  }
+
+  @Public()
+  @ApiOperation({
+    summary: 'Upload PropertyType images',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @Post('upload-propertytype-images')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadBulkpropertyImages(
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+  
+    if (!file) {
+      throw new HttpException('File is required', HttpStatus.BAD_REQUEST);
+    }
+
+    const result = await this.residenceSeederService.processPropertyTypeImages(file);
+    return ResponseService.buildResponse(result);
+  }
+
+  @Public()
+  @ApiOperation({
+    summary: 'Upload Lifestyle images',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @Post('upload-lifestyle-images')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadBulkLifestyleImages(
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+  
+    if (!file) {
+      throw new HttpException('File is required', HttpStatus.BAD_REQUEST);
+    }
+
+    const result = await this.residenceSeederService.processLifestyleImages(file);
+    return ResponseService.buildResponse(result);
+  }
+
+  @Public()
+  @ApiOperation({
+    summary: 'Upload Geographical images',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @Post('upload-geographical-images')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadBulkGeographicalImages(
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+  
+    if (!file) {
+      throw new HttpException('File is required', HttpStatus.BAD_REQUEST);
+    }
+
+    const result = await this.residenceSeederService.processGeographicalAreaImages(file);
+    return ResponseService.buildResponse(result);
+  }
+
+  @Public()
+  @ApiOperation({
+    summary: 'Upload Brand images',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @Post('upload-brand-images')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadBulkBrandImages(
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+  
+    if (!file) {
+      throw new HttpException('File is required', HttpStatus.BAD_REQUEST);
+    }
+
+    const result = await this.residenceSeederService.processBrandImages(file);
     return ResponseService.buildResponse(result);
   }
 }

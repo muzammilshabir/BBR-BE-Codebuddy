@@ -89,6 +89,34 @@ interface Residence {
   amenity_ids: string;
 }
 
+interface CityInterface {
+  city_id: string;
+  name: string;
+  country_id: string;
+  logo: string;
+}
+
+interface CountryInterface{
+  logo:string
+  name:string
+}
+
+interface PropertyTypeInterface{
+  image_path: string;
+  name:string;
+
+}
+
+interface LifeStyleInterface{
+  image_path: string;
+  name:string;
+}
+
+interface GeographicalAreasInterface{
+  image_path: string;
+  name:string;
+}
+
 const categoryTypeMapping = {
   'country': CategoryType.COUNTRY,
   'city': CategoryType.CITY,
@@ -427,7 +455,6 @@ export class ResidenceSeederService {
               sheets.rankingCategories, 
               sheets.residenceScores
             );
-      console.log("processing going for residence --->", i)
             const residenceData = this.createResidenceData(residence, {
               residenceTypeDoc,
               brandDoc,
@@ -1108,12 +1135,11 @@ export class ResidenceSeederService {
                   visualsUpdate.visuals.secondGalleryPhotos = secondGalleryUploads.map(upload => upload._id);
               }
       
-              const check = await this.residenceRepository.updateWithFilter(
+              await this.residenceRepository.updateWithFilter(
                   { name: residence.name,  isDeleted: false },
                   { $set: visualsUpdate }
               );
 
-              console.log(check)
             }
         }
       }
@@ -1173,6 +1199,383 @@ private getContentType(filename: string): string {
         'webp': 'image/webp'
     };
     return contentTypes[ext] || 'application/octet-stream';
+}
+
+/// city
+async processCityImages(file: Express.Multer.File) {
+  const BATCH_SIZE = 10;
+  
+  const workbook = XLSX.read(file.buffer, { type: 'buffer' });
+  const sheets = {
+    cities: XLSX.utils.sheet_to_json(workbook.Sheets['Cities']),
+  };
+
+  for (let i = 0; i < sheets.cities.length; i += BATCH_SIZE) {
+    const batch = sheets.cities.slice(i, i + BATCH_SIZE);
+    
+    if (i > 0) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+  
+    for (const singleCity of batch) {
+      const city = singleCity as CityInterface;
+      
+      if (city.logo) {
+        const imagePath = `${process.env.CITY_SEEDER_FOLDER}/${city.logo}`;
+        
+        try {
+          const s3Object = await this.listS3Object(imagePath);
+          
+          if (s3Object.length > 0) {
+            const uploadRecord = await this.createUploadRecord(s3Object[0]);
+            
+            if (uploadRecord) {
+              await this.cityModel.updateOne(
+                { name: city.name, isDeleted: false },
+                { 
+                  $set: { 
+                    upload: [{
+                      ImageId: uploadRecord._id,
+                      type: 'main'
+                    }]
+                  } 
+                }
+              );
+            }
+          }
+        } catch (error) {
+          console.error(`Error processing image for city ${city.name}:`, error);
+        }
+      }
+    }
+  }
+}
+
+private async listS3Object(prefix: string) {
+  try {
+    const params = {
+      Bucket: process.env.AWS_S3_BUCKET_NAME,
+      Prefix: prefix,
+      MaxKeys: 1
+    };
+
+    const command = new ListObjectsV2Command(params);
+    const response = await this.s3Client.send(command);
+    
+    return response.Contents || [];
+  } catch (error) {
+    console.error(`Error listing S3 object for prefix ${prefix}:`, error);
+    return [];
+  }
+}
+
+private async createUploadRecord(s3Object: any) {
+  try {
+    const url = `https://${process.env.CDN_URL}/${s3Object.Key}`;
+    
+    const uploadRecord = {
+      originalFileKey: s3Object.Key,
+      size: s3Object.Size,
+      mimeType: this.getContentType(s3Object.Key),
+      url: url,
+      fileKey: s3Object.ETag,
+      driver: 'S3'
+    };
+
+    return await this.uploadRepository.create(uploadRecord);
+  } catch (error) {
+    console.error(`Error creating upload record for ${s3Object.Key}:`, error);
+    return null;
+  }
+}
+
+// countries 
+async processCountryImages(file: Express.Multer.File) {
+  const BATCH_SIZE = 10;
+  
+  const workbook = XLSX.read(file.buffer, { type: 'buffer' });
+  const sheets = {
+    countries: XLSX.utils.sheet_to_json(workbook.Sheets['Countries']),
+  };
+
+  for (let i = 0; i < sheets.countries.length; i += BATCH_SIZE) {
+    const batch = sheets.countries.slice(i, i + BATCH_SIZE);
+    
+    if (i > 0) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+  
+    for (const singleCountry of batch) {
+      const country = singleCountry as CountryInterface;
+      
+      if (country.logo) {
+        try {
+          const imagePath = `${process.env.COUNTRY_SEEDER_FOLDER}/${country.logo}`;
+
+          const s3Object = await this.listS3Object(imagePath);
+          
+          if (s3Object.length > 0) {
+            const uploadRecord = await this.createUploadRecord(s3Object[0]);
+            
+            if (uploadRecord) {
+              await this.countryModel.updateOne(
+                { name: country.name, isDeleted: false },
+                { 
+                  $set: { 
+                    upload: [{
+                      ImageId: uploadRecord._id,
+                      type: 'logo'
+                    }]
+                  } 
+                }
+              );
+            }
+          }
+        } catch (error) {
+          console.error(`Error processing image for country ${country.name}:`, error);
+        }
+      }
+    }
+  }
+}
+
+
+//PropertyType
+async processPropertyTypeImages(file: Express.Multer.File) {
+  const BATCH_SIZE = 10;
+  
+  const workbook = XLSX.read(file.buffer, { type: 'buffer' });
+  const sheets = {
+    propertyTypes: XLSX.utils.sheet_to_json(workbook.Sheets['PropertyTypes']),
+  };
+
+  for (let i = 0; i < sheets.propertyTypes.length; i += BATCH_SIZE) {
+    const batch = sheets.propertyTypes.slice(i, i + BATCH_SIZE);
+    
+    if (i > 0) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+  
+    for (const singlePropertyType of batch) {
+      const propertyType = singlePropertyType as PropertyTypeInterface;
+      
+      if (propertyType.image_path) {
+        const imagePath = `${process.env.PROPERTY_TYPE_SEEDER_FOLDER}/${propertyType.image_path}`;
+        
+        try {
+          const s3Object = await this.listS3Object(imagePath);
+          
+          if (s3Object.length > 0) {
+            const uploadRecord = await this.createUploadRecord(s3Object[0]);
+            
+            if (uploadRecord) {
+              await this.propertyTypeRepository.updateWithFilter(
+                { name: propertyType.name, isDeleted: false },
+                { 
+                  $set: { 
+                    upload: [{
+                      ImageId: uploadRecord._id,
+                      type: 'main'
+                    }]
+                  } 
+                }
+              );
+            }
+          }
+        } catch (error) {
+          console.error(`Error processing image for property type ${propertyType.name}:`, error);
+        }
+      }
+    }
+  }
+}
+
+///Lifestyle 
+async processLifestyleImages(file: Express.Multer.File) {
+  const BATCH_SIZE = 10;
+  
+  const workbook = XLSX.read(file.buffer, { type: 'buffer' });
+  const sheets = {
+    lifestyles: XLSX.utils.sheet_to_json(workbook.Sheets['Lifestyles']),
+  };
+
+  for (let i = 0; i < sheets.lifestyles.length; i += BATCH_SIZE) {
+    const batch = sheets.lifestyles.slice(i, i + BATCH_SIZE);
+    
+    if (i > 0) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+  
+    for (const singleLifestyle of batch) {
+      const lifestyle = singleLifestyle as LifeStyleInterface;
+      
+      if (lifestyle.image_path) {
+        const imagePath = `${process.env.LIFESTYLE_SEEDER_FOLDER}/${lifestyle.image_path}`;
+        
+        try {
+          const s3Object = await this.listS3Object(imagePath);
+          
+          if (s3Object.length > 0) {
+            const uploadRecord = await this.createUploadRecord(s3Object[0]);
+            
+            if (uploadRecord) {
+              await this.lifeStyleRepository.updateWithFilter(
+                { name: lifestyle.name, isDeleted: false },
+                { 
+                  $set: { 
+                    upload: [{
+                      ImageId: uploadRecord._id,
+                      type: 'main'
+                    }]
+                  } 
+                }
+              );
+            }
+          }
+        } catch (error) {
+          console.error(`Error processing image for lifestyle ${lifestyle.name}:`, error);
+        }
+      }
+    }
+  }
+}
+
+//geographicalareas 
+
+async processGeographicalAreaImages(file: Express.Multer.File) {
+  const BATCH_SIZE = 10;
+  
+  const workbook = XLSX.read(file.buffer, { type: 'buffer' });
+  const sheets = {
+    geographicalAreas: XLSX.utils.sheet_to_json(workbook.Sheets['GeographicalArea']),
+  };
+
+  for (let i = 0; i < sheets.geographicalAreas.length; i += BATCH_SIZE) {
+    const batch = sheets.geographicalAreas.slice(i, i + BATCH_SIZE);
+    
+    if (i > 0) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+  
+    for (const singleArea of batch) {
+      const geographicalArea = singleArea as GeographicalAreasInterface;
+      
+      if (geographicalArea.image_path) {
+        const imagePath = `${process.env.GEOGRAPHICAL_AREAS_SEEDER_FOLDER}/${geographicalArea.image_path}`;
+        
+        try {
+          const s3Object = await this.listS3Object(imagePath);
+          
+          if (s3Object.length > 0) {
+            const uploadRecord = await this.createUploadRecord(s3Object[0]);
+            
+            if (uploadRecord) {
+              await this.geographicalAreasRepository.updateWithFilter(
+                { name: geographicalArea.name, isDeleted: false },
+                { 
+                  $set: { 
+                    upload: [{
+                      ImageId: uploadRecord._id,
+                      type: 'main'
+                    }]
+                  } 
+                }
+              );
+            }
+          }
+        } catch (error) {
+          console.error(`Error processing image for geographical area ${geographicalArea.name}:`, error);
+        }
+      }
+    }
+  }
+}
+
+async processBrandImages(file: Express.Multer.File) {
+  const BATCH_SIZE = 10;
+  
+  const workbook = XLSX.read(file.buffer, { type: 'buffer' });
+  const sheets = {
+    brands: XLSX.utils.sheet_to_json(workbook.Sheets['Brands']),
+  };
+
+  for (let i = 0; i < sheets.brands.length; i += BATCH_SIZE) {
+    const batch = sheets.brands.slice(i, i + BATCH_SIZE);
+    
+    if (i > 0) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+  
+    for (const singleBrand of batch) {
+      const brand = singleBrand as any;
+      const uploadArray = [];
+      
+      try {
+        // Process logo image
+        if (brand.image1_path) {
+          const logoPath = `${process.env.BRAND_SEEDER_LOGO_FOLDER}/${brand.image1_path}`;
+          const logoUpload = await this.processImage(logoPath, 'logo');
+          if (logoUpload) uploadArray.push(logoUpload);
+        }
+
+        // Process logo directory image
+        if (brand.image2_path) {
+          const logoDirectoryPath = `${process.env.BRAND_SEEDER_DIRECTORY_FOLDER}/${brand.image2_path}`;
+          const logoDirectoryUpload = await this.processImage(logoDirectoryPath, 'logoDirectory');
+          if (logoDirectoryUpload) uploadArray.push(logoDirectoryUpload);
+        }
+
+        // Process preview image
+        if (brand.image3_path) {
+          const previewPath = `${process.env.BRAND_SEEDER_PREVIEW_FOLDER}/${brand.image3_path}`;
+          const previewUpload = await this.processImage(previewPath, 'preview');
+          if (previewUpload) uploadArray.push(previewUpload);
+        }
+
+        // Process background image
+        if (brand.image4_path) {
+          const backgroundPath = `${process.env.BRAND_SEEDER_BG_FOLDER}/${brand.image4_path}`;
+          const backgroundUpload = await this.processImage(backgroundPath, 'backgroundImage');
+          if (backgroundUpload) uploadArray.push(backgroundUpload);
+        }
+
+        // Update brand document if any images were processed
+        if (uploadArray.length > 0) {
+          await this.brandRepository.updateWithFilter(
+            { name: brand.name, isDeleted: false },
+            { 
+              $set: { 
+                upload: uploadArray
+              } 
+            }
+          );
+        }
+      } catch (error) {
+        console.error(`Error processing images for brand ${brand.name}:`, error);
+      }
+    }
+  }
+}
+
+private async processImage(imagePath: string, imageType: string) {
+  try {
+    const s3Object = await this.listS3Object(imagePath);
+    
+    if (s3Object.length > 0) {
+      const uploadRecord = await this.createUploadRecord(s3Object[0]);
+      
+      if (uploadRecord) {
+        return {
+          ImageId: uploadRecord._id,
+          type: imageType
+        };
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error(`Error processing ${imageType} image at path ${imagePath}:`, error);
+    return null;
+  }
 }
 
 
