@@ -87,6 +87,8 @@ export class Residence extends Document {
         floorAreaSqFt: Number,
         staffToResidenceRatio: Number,
       },
+      bespokeAmenitiesAmount: Number,
+      avgPricePerUnit: Number,
       petPolicy: String, // Enum values: "petFriendly", "No pet Allowed"
     },
     _id: false,
@@ -100,6 +102,8 @@ export class Residence extends Document {
       floorAreaSqFt: number;
       staffToResidenceRatio: number;
     };
+    bespokeAmenitiesAmount: number,
+    avgPricePerUnit: number;
     petPolicy: string;
   };
 
