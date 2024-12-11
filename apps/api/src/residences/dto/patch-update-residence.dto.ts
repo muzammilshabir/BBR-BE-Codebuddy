@@ -81,6 +81,8 @@ export class PatchResidenceDto {
         floorAreaSqFt: 2500,
         staffToResidenceRatio: 0.5
       },
+      bespokeAmenitiesAmount: 40,
+      avgPricePerUnit: 5000000,
       petPolicy: "petFriendly"
     }
   })
@@ -93,6 +95,8 @@ export class PatchResidenceDto {
       floorAreaSqFt?: number;
       staffToResidenceRatio?: number;
     };
+    bespokeAmenitiesAmount?: number;
+    avgPricePerUnit?: number;
     petPolicy?: string;
   };
   
@@ -203,6 +207,8 @@ export class PatchResidenceDto {
         floorAreaSqFt: Joi.number().optional(),
         staffToResidenceRatio: Joi.number().optional(),
       }).optional(),
+      bespokeAmenitiesAmount: Joi.number().optional(),
+      avgPricePerUnit: Joi.number().optional(),
       petPolicy: Joi.string().optional(),
     }).optional(),
     address: Joi.object({
