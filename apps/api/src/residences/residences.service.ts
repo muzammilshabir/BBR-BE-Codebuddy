@@ -1628,12 +1628,21 @@ export class ResidenceService {
     });
 
     if (residenceDraft) {
-      return await this.residenceDraftRepository.update(residenceDraft.id, transformedDto);
+      const existingData = residenceDraft.toObject();
+      delete existingData._id;
+      delete existingData.__v;
+      console.log(existingData)
+      return await this.residenceDraftRepository.update(
+        residenceDraft.id, 
+        { ...existingData, ...transformedDto }
+      );
     }
 
     return await this.residenceDraftRepository.create({
       ...transformedDto,
       residenceId: new Types.ObjectId(foundResidence._id.toString()),
     });
+    
   }
+
 }
