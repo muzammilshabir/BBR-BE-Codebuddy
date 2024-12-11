@@ -69,7 +69,7 @@ export class ResidenceDraftRepository extends BaseRepository<ResidenceDraft> {
 
   async findByKeyInDetail(residenceKey: string): Promise<any> {
     const residenceDraft: any = await this.residenceDraftModel
-    .findOne({ key: residenceKey, isDeleted: { $ne: DeletionStatus.DELETED }, isDraft: true , status: { $in: [ResidenceStatus.PENDING, ResidenceStatus.DRAFT, ResidenceStatus.ACTIVE]} })
+    .findOne({ key: residenceKey, isDeleted: { $ne: DeletionStatus.DELETED }, status: { $in: [ResidenceStatus.PENDING, ResidenceStatus.DRAFT, ResidenceStatus.ACTIVE]} })
     .sort({ createdAt: -1 })
     .limit(1)
     .populate([
