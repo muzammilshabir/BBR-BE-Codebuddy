@@ -6,6 +6,7 @@ import { RankingCategory } from 'src/rankingCategory/schema/rankingCategory.sche
 import { InvoiceItem } from 'src/stripe/schema/invoice-item.schema';
 import { StripeService } from 'src/stripe/stripe.service';
 import { Plan } from 'src/subscription-plan/schema/plan.schema';
+import { BespokeRequestFeature } from '../bespokeRequests/bespokeRequests.service';
 
 @Injectable()
 export class InvoiceService {
@@ -17,6 +18,14 @@ export class InvoiceService {
 
   async createInvoice() {
     return await this.invoiceModel.create({});
+  }
+
+  async getInvoiceById(id: string) {
+    return await this.invoiceModel.findById(id);
+  }
+
+  async getStripeInvoiceById(invoiceId: string) {
+    return await this.stripeService.getInvoiceFull(invoiceId);
   }
 
   async attachStripeInvoice(invoiceId: string, stripeInvoiceId: string) {
@@ -41,6 +50,24 @@ export class InvoiceService {
     return lineItems;
   }
 
+  async createLineItemsFromFeatures(invoiceId: string, features: BespokeRequestFeature[]) {
+    const lineItems = [];
+    await this.lineItemModel.deleteMany({
+      invoiceId,
+    });
+    for (const feature of features) {
+      lineItems.push(
+        await this.lineItemModel.create({
+          invoiceId,
+          name: feature.featureName,
+          unitAmount: feature.monthlyPrice,
+          totalAmount: feature.monthlyPrice,
+        })
+      );
+    }
+    return lineItems;
+  }
+
   async attachLineItemsToStripeInvoice(
     stripeCustomerId: string,
     stripeInvoiceId: string,
@@ -59,6 +86,43 @@ export class InvoiceService {
         stripeProductId: stripeProduct.id,
         stripeInvoiceLineItemId: stripeLineItem.id,
       });
+    }
+  }
+
+  async updateLineItemsToStripeInvoice(
+    stripeCustomerId: string,
+    stripeInvoiceId: string,
+    lineItems: InvoiceItem[]
+  ) {
+    try {
+      // Remove existing line items from the Stripe invoice
+      const stripeInvoice = await this.stripeService.getInvoiceFull(stripeInvoiceId);
+
+      // Delete existing line items
+      const existingLineItemPromises = stripeInvoice.lines.data.map((lineItem) =>
+        this.stripeService.delLineItem(lineItem.id)
+      );
+
+      await Promise.all(existingLineItemPromises);
+
+      for (const lineItem of lineItems) {
+        const stripeProduct = await this.stripeService.createProduct(lineItem.name);
+
+        const stripeLineItem = await this.stripeService.createInvoiceLineItem(
+          stripeCustomerId,
+          stripeProduct.id,
+          lineItem.unitAmount,
+          stripeInvoiceId
+        );
+
+        await this.lineItemModel.findByIdAndUpdate(lineItem.id, {
+          stripeProductId: stripeProduct.id,
+          stripeInvoiceLineItemId: stripeLineItem.id,
+        });
+      }
+    } catch (error) {
+      console.error('Error updating Stripe invoice line items:', error);
+      throw error;
     }
   }
 
