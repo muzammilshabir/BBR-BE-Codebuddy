@@ -65,6 +65,7 @@ import { BbrVerificationModule } from './bbr-verification/bbr-verification.modul
 import { MatchmakingModule } from './matchmaking/matchmaking.module';
 import { CustomerSupportConversationModule } from './customer-support-conversation/customer-support-conversation.module';
 import { AdditionalServiceModule } from './additional-service/additional-service.module';
+import { EditorNoteModule } from './editor-note/editor-note.module';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -128,7 +129,8 @@ import { AdditionalServiceModule } from './additional-service/additional-service
     BbrVerificationModule,
     MatchmakingModule,
     CustomerSupportConversationModule,
-    AdditionalServiceModule
+    AdditionalServiceModule,
+    EditorNoteModule,
   ],
   controllers: [AppController],
   providers: [
