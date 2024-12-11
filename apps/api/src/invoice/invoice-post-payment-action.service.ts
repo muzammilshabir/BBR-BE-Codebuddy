@@ -7,6 +7,7 @@ import { Country } from 'src/country/schema/country.schema';
 import { ResidenceDraft } from 'src/residencesDraft/schema/residencesDraft.schema';
 import {
   BbrVerificationRequestDetails,
+  BespokeRequestDetails,
   FeatureRequestDetails,
   InvoicePostPaymentAction,
   InvoicePostPaymentActionType,
@@ -27,6 +28,8 @@ import { AuthService } from 'src/auth/auth.service';
 import { UserService } from 'src/users/user.service';
 import { FeatureRequest } from 'src/featureRequests/schema/featureRequest.schema';
 import { BbrVerification } from 'src/bbr-verification/schema/bbr-verification.schema';
+import { CustomerSupportService } from 'src/customer-support/customer-support.service';
+import { BespokeRequest } from '../bespokeRequests/schema/bespokeRequests.schema';
 
 @Injectable()
 export class InvoicePostPaymentActionService {
@@ -55,8 +58,11 @@ export class InvoicePostPaymentActionService {
     private featureRequestModel: Model<FeatureRequest>,
     @InjectModel(BbrVerification.name)
     private bbrVerificationModel: Model<BbrVerification>,
+    @InjectModel(BespokeRequest.name)
+    private bespokeRequestModel: Model<BespokeRequest>,
     private authService: AuthService,
-    private userService: UserService
+    private userService: UserService,
+    private readonly customerSupportService: CustomerSupportService
   ) {}
 
   async create(
@@ -68,6 +74,7 @@ export class InvoicePostPaymentActionService {
       | RankingRequestDetails
       | FeatureRequestDetails
       | BbrVerificationRequestDetails
+      | BespokeRequestDetails
   ) {
     return this.invoicePostPaymentActionModel.create({
       invoiceId,
@@ -161,16 +168,39 @@ export class InvoicePostPaymentActionService {
             });
           })
         );
+        if (rankingRequestDetails.userInfo) {
+          await this.customerSupportService.create({
+            name: rankingRequestDetails.userInfo.fullName,
+            email: rankingRequestDetails.userInfo.email,
+            message: `Payment for ranking requests with ids:${rankingRequestDetails.rankingCategoryIds.join(', ')} and invoice id:${invoiceId} is Paid`,
+          });
+        }
       }
 
       if (action.type === InvoicePostPaymentActionType.CREATE_FEATURE_REQUEST) {
         const featureRequestDetails = action.data as FeatureRequestDetails;
-        await this.featureRequestModel.findByIdAndUpdate(
-          featureRequestDetails.featureRequestId,
-          {
-            status: PaymentStatus.PAID,
-          }
-        );
+        await this.featureRequestModel.findByIdAndUpdate(featureRequestDetails.featureRequestId, {
+          status: PaymentStatus.PAID,
+        });
+
+        await this.customerSupportService.create({
+          name: featureRequestDetails.userInfo.fullName,
+          email: featureRequestDetails.userInfo.email,
+          message: `Payment for feature request with id:${featureRequestDetails.featureRequestId} and invoice id:${invoiceId} is Paid`,
+        });
+      }
+
+      if (action.type === InvoicePostPaymentActionType.CREATE_BESPOKE_REQUEST) {
+        const featureRequestDetails = action.data as BespokeRequestDetails;
+        await this.bespokeRequestModel.findByIdAndUpdate(featureRequestDetails.bespokeRequestId, {
+          status: PaymentStatus.PAID,
+        });
+
+        await this.customerSupportService.create({
+          name: featureRequestDetails.userInfo.fullName,
+          email: featureRequestDetails.userInfo.email,
+          message: `Payment for bespoke request with id:${featureRequestDetails.bespokeRequestId} and invoice id:${invoiceId} is Paid`,
+        });
       }
 
       if (action.type === InvoicePostPaymentActionType.CREATE_BBR_VERIFICATION_REQUEST) {
@@ -181,6 +211,12 @@ export class InvoicePostPaymentActionService {
             status: PaymentStatus.PAID,
           }
         );
+
+        await this.customerSupportService.create({
+          name: bbrVerificationRequestDetails.userInfo.fullName,
+          email: bbrVerificationRequestDetails.userInfo.email,
+          message: `Payment for bbr verification request with id:${bbrVerificationRequestDetails.bbrVerificationRequestId} and invoice id:${invoiceId} is Paid`,
+        });
       }
     }
   }

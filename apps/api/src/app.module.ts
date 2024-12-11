@@ -66,6 +66,7 @@ import { MatchmakingModule } from './matchmaking/matchmaking.module';
 import { CustomerSupportConversationModule } from './customer-support-conversation/customer-support-conversation.module';
 import { AdditionalServiceModule } from './additional-service/additional-service.module';
 import { EditorNoteModule } from './editor-note/editor-note.module';
+import { BespokeRequestModule } from './bespokeRequests/bespokeRequests.module';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -131,6 +132,7 @@ import { EditorNoteModule } from './editor-note/editor-note.module';
     CustomerSupportConversationModule,
     AdditionalServiceModule,
     EditorNoteModule,
+    BespokeRequestModule,
   ],
   controllers: [AppController],
   providers: [
