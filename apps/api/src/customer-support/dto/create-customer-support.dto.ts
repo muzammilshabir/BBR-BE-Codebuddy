@@ -61,7 +61,7 @@ export class CreateCustomerSupportDto {
 
   @ApiProperty({
     description: 'The phone number of the lead, in international format.',
-    required: true,
+    required: false,
   })
   phoneNumber?: PhoneNumber;
 
@@ -117,10 +117,10 @@ export class CreateCustomerSupportDto {
   })
   websiteUrl?: string;
 
-  @ApiProperty({ description: 'User agreement to terms', example: true })
+  @ApiProperty({ description: 'User agreement to terms', example: true , required: false})
   agreeToTerms?: boolean;
 
-  @ApiProperty({ description: 'User preference to receive news letter ', example: true })
+  @ApiProperty({ description: 'User preference to receive news letter ', example: true, required: false })
   receiveNewsletter?: boolean;
 
   @ApiProperty({
@@ -263,7 +263,7 @@ export const createCustomerSupportSchema = Joi.object({
   contactInfo: contactInfoSchema.optional(),
   preferences: preferencesSchema.optional(),
   agreeToTerms: Joi.boolean().valid(true),
-  receiveNewsletter: Joi.boolean(),
+  receiveNewsletter: Joi.boolean().optional(),
   companyName: Joi.string().optional(),
   websiteUrl: Joi.string().uri().optional(),
   upload: Joi.array()
