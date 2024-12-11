@@ -414,7 +414,7 @@ export class ResidenceController {
   @UsePipes(new JoiValidationPipe(getResidenceByKeySchema, 'param'))
   async getResidenceByKey(@Param() params: GetResidenceByKeyDto) {
     const residence = await this.residenceService.getResidenceByKey(params.key);
-    return ResponseService.buildResponse({ residence }, 'Residence retrieved successfully');
+    return ResponseService.buildResponse( {...residence} , 'Residence retrieved successfully');
   }
 
   @Public()

@@ -1261,7 +1261,9 @@ export class ResidenceService {
     }
 
     const residenceDetails = await this.residenceRepository.findByKeyInDetail(key);
-    return residenceDetails;
+    const residenceDraftDetails = await this.residenceDraftRepository.findByKeyInDetail(key);
+
+    return {residence: residenceDetails, residenceDraft: residenceDraftDetails};
   }
 
   async updateGeneralInfoByKey(
@@ -1555,6 +1557,8 @@ export class ResidenceService {
 
     await this.checkResidenceRejectedStatus(foundResidence._id.toString());
 
+    
+
     const transformedDto: any = {
       ...patchResidenceDto,
       residenceTypeIds: patchResidenceDto.residenceTypeIds
@@ -1623,24 +1627,28 @@ export class ResidenceService {
       transformedDto.address = patchResidenceDto.address;
     }
 
-    const residenceDraft = await this.residenceDraftRepository.find({
-      residenceId: new Types.ObjectId(foundResidence._id.toString()),
-    });
+    const residenceDraft = await this.checkResidenceDraft(foundResidence._id.toString());
+
 
     if (residenceDraft) {
       const existingData = residenceDraft.toObject();
       delete existingData._id;
       delete existingData.__v;
-      console.log(existingData)
       return await this.residenceDraftRepository.update(
         residenceDraft.id, 
         { ...existingData, ...transformedDto }
       );
     }
 
+    const plainResidence = foundResidence.toJSON();
+    delete plainResidence._id;
+    delete plainResidence.status;
+
     return await this.residenceDraftRepository.create({
+      ...plainResidence,
       ...transformedDto,
       residenceId: new Types.ObjectId(foundResidence._id.toString()),
+      status: ResidenceStatus.DRAFT,
     });
     
   }
