@@ -654,4 +654,34 @@ export class ResidenceController {
     const result = await this.residenceSeederService.processBrandImages(file);
     return ResponseService.buildResponse(result);
   }
+
+  @Public()
+  @ApiOperation({
+    summary: 'Upload Ranking Category images',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @Post('upload-rankingcategory-images')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadBulkRankingCategoryImages(
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+  
+    if (!file) {
+      throw new HttpException('File is required', HttpStatus.BAD_REQUEST);
+    }
+
+    const result = await this.residenceSeederService.processRankingCategoryImages(file);
+    return ResponseService.buildResponse(result);
+  }
 }

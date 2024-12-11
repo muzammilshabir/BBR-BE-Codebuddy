@@ -1324,7 +1324,7 @@ async processCountryImages(file: Express.Multer.File) {
                   $set: { 
                     upload: [{
                       ImageId: uploadRecord._id,
-                      type: 'logo'
+                      type: 'main'
                     }]
                   } 
                 }
@@ -1434,6 +1434,57 @@ async processLifestyleImages(file: Express.Multer.File) {
           }
         } catch (error) {
           console.error(`Error processing image for lifestyle ${lifestyle.name}:`, error);
+        }
+      }
+    }
+  }
+}
+
+
+
+async processRankingCategoryImages(file: Express.Multer.File) {
+  const BATCH_SIZE = 10;
+  
+  const workbook = XLSX.read(file.buffer, { type: 'buffer' });
+  const sheets = {
+    rankingCategories: XLSX.utils.sheet_to_json(workbook.Sheets['RankingCategories']),
+  };
+
+  for (let i = 0; i < sheets.rankingCategories.length; i += BATCH_SIZE) {
+    const batch = sheets.rankingCategories.slice(i, i + BATCH_SIZE);
+    
+    if (i > 0) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+  
+    for (const singleRankingCategory of batch) {
+      const rankingCategory = singleRankingCategory as any;
+      
+      if (rankingCategory.image_folder_name && rankingCategory.image_name) {
+        const imagePath = `${rankingCategory.image_folder_name}/${rankingCategory.image_name}`;
+        
+        try {
+          const s3Object = await this.listS3Object(imagePath);
+          
+          if (s3Object.length > 0) {
+            const uploadRecord = await this.createUploadRecord(s3Object[0]);
+            
+            if (uploadRecord) {
+              await this.rankingCategoryRepository.updateWithFilter(
+                { title: rankingCategory.title, isDeleted: false },
+                { 
+                  $set: { 
+                    upload: [{
+                      ImageId: uploadRecord._id,
+                      type: 'Picture'
+                    }]
+                  } 
+                }
+              );
+            }
+          }
+        } catch (error) {
+          console.error(`Error processing image for lifestyle ${rankingCategory.title}:`, error);
         }
       }
     }
@@ -1577,6 +1628,5 @@ private async processImage(imagePath: string, imageType: string) {
     return null;
   }
 }
-
 
 }
