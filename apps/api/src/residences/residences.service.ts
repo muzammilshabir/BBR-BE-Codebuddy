@@ -1227,7 +1227,9 @@ export class ResidenceService {
     }
 
     const residenceDetails = await this.residenceRepository.findByKeyInDetail(key);
-    return residenceDetails;
+    const residenceDraftDetails = await this.residenceDraftRepository.findByKeyInDetail(key);
+
+    return {residence: residenceDetails, residenceDraft: residenceDraftDetails};
   }
 
   async updateGeneralInfoByKey(
