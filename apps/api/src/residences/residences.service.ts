@@ -1607,8 +1607,8 @@ export class ResidenceService {
     }
 
     const plainResidence = foundResidence.toJSON();
-    delete foundResidence._id;
-    delete foundResidence.status;
+    delete plainResidence._id;
+    delete plainResidence.status;
 
     return await this.residenceDraftRepository.create({
       ...plainResidence,
