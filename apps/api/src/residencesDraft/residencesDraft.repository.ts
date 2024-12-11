@@ -63,14 +63,14 @@ export class ResidenceDraftRepository extends BaseRepository<ResidenceDraft> {
       throw new NotFoundException(`residenceDraft with ID ${residenceDraftId}`);
     }
 
-    //Todo: Get releted draft unit's
-
     return residenceDraft;
   }
 
   async findByKeyInDetail(residenceKey: string): Promise<any> {
     const residenceDraft: any = await this.residenceDraftModel
-    .findOne({ key: residenceKey, isDeleted: { $ne: DeletionStatus.DELETED } })
+    .findOne({ key: residenceKey, isDeleted: { $ne: DeletionStatus.DELETED }, isDraft: true , status: { $in: ['pending', 'draft', 'active']} })
+    .sort({ createdAt: -1 })
+    .limit(1)
     .populate([
       { path: 'residenceTypeIds', select: 'type', model: 'ResidenceType' },
         { path: 'cityId', select: 'name type countryId' },
