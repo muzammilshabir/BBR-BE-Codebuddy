@@ -110,6 +110,7 @@ interface PropertyTypeInterface{
 interface LifeStyleInterface{
   image_path: string;
   name:string;
+  
 }
 
 interface GeographicalAreasInterface{
