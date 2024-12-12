@@ -207,7 +207,7 @@ export class ResidenceSeederService {
             const country = singleCountry as any;
 
             let countryDoc = await this.countryModel.findOne({
-              name: { $regex: new RegExp(`^${country.name}$`, 'i') },
+              name: { $regex: new RegExp(country.name, 'i') }
             });
 
 
@@ -240,10 +240,6 @@ export class ResidenceSeederService {
         for (const singleCity of batch) {
           try {
             const city = singleCity as any;
-
-            if (city.logo) {
-              city.logo = city.logo.replace(/^"|"$/g, '').trim();
-            }
         
             let cityDoc;
             let countryId;
@@ -253,7 +249,7 @@ export class ResidenceSeederService {
             }
         
             const searchQuery: any = {
-              name: { $regex: new RegExp(`^${city.name}$`, 'i') },
+              name: { $regex: new RegExp(city.name, 'i') }
             };
         
             if (countryId) {
@@ -298,7 +294,7 @@ export class ResidenceSeederService {
             const brand = singleBrand as any;
             
             let brandDoc = await this.brandRepository.find({
-              name: { $regex: new RegExp(`^${brand.name}$`, 'i') },
+              name: { $regex: new RegExp(brand.name, 'i') }
             });
 
 
@@ -387,11 +383,11 @@ export class ResidenceSeederService {
             });
       
             const rankingCategoryData = {
-              title: rankingCategoryTyped.title,
+              title: rankingCategoryTyped?.title || '',
               description: rankingCategoryTyped?.description || '',
               categoryType: mappedCategoryType,
-              residenceLimitation: rankingCategoryTyped?.residence_limitation || null,
-              price: rankingCategoryTyped?.ranking_price || null,
+              residenceLimitation: Number(rankingCategoryTyped?.residence_limitation) || null,
+              price: Number(rankingCategoryTyped?.ranking_price) || null,
               criteria: criteria || [],
               status: RankingCategoryStatus.ACTIVE,
               isDeleted: false,
@@ -425,7 +421,9 @@ export class ResidenceSeederService {
             await new Promise(resolve => setTimeout(resolve, 200));
       
             const residenceTypeDoc = await this.processResidence(residence, sheets.residenceTypes);
-            const brandDoc = await this.processBrand(residence, sheets.brands, sheets.brandCategories);
+            
+            const brandDoc = residence.brand_id ? await this.processBrand(residence, sheets.brands, sheets.brandCategories) : null;
+            
             const cityDoc = await this.processCity(residence, sheets.cities, sheets.countries);
             const countryDoc = await this.processCountry(residence, sheets.countries);
             await new Promise(resolve => setTimeout(resolve, 100));
@@ -466,19 +464,22 @@ export class ResidenceSeederService {
               lifeStyleDoc,
               placeDetails
             });
-
-            await this.residenceRepository.updateMany(
-              { 
-                name: { 
-                  $regex: new RegExp(`^${residenceData.name}$`, 'i') 
-                }
-              }, 
-              { 
-                $set: { isDeleted: true } 
-              }
-            );
+            const foundResidence = await this.residenceRepository.find({
+              name: new RegExp(`^${residenceData.name}$`, 'i') 
+            })
             
-            await this.residenceRepository.create(residenceData);
+            if(!foundResidence) {
+              await this.residenceRepository.create(residenceData);
+            }else{
+              const plainResidence = foundResidence.toJSON();
+              delete plainResidence._id;
+
+              await this.residenceRepository.update(
+                foundResidence._id.toString(),
+                {...plainResidence,...residenceData}
+              );
+            }
+            
             
             if (rankingScoreDocArray?.length) {
               await this.rankingRequestRepository.createMany(rankingScoreDocArray);
@@ -529,83 +530,211 @@ export class ResidenceSeederService {
     highlightedAmenities: any[];
     lifeStyleDoc: any;
     placeDetails: any;
-  }) {
+}) {
     const baseData: any = {
-      name: residence.name,
-      residenceTypeIds: [new Types.ObjectId(data.residenceTypeDoc._id)],
-      websiteLink: residence.website_link || undefined,
-      associatedBrandId: data.brandDoc ? new Types.ObjectId(data.brandDoc._id) : undefined,
-      placeId: data.placeDetails?.placeId,
-      briefOverview: {
-        subtitle: residence?.subtitle,
-        briefDescription: residence?.brief_description,
-      },
-      comprehensiveOverview: {
-        subtitle: residence?.subtitle,
-        generalDescription: residence?.general_description,
-        community: residence?.community,
-        recentRenovation: residence?.recent_renovation,
-        localAttractions: residence?.local_attractions,
-        futureDevelopmentPlans: residence?.future_development,
-      },
-      residenceKeyFeatures: {
-        featureIds: data?.residenceFeatureIds,
-        developmentInfo: {
-          yearOfBuild: Number(residence?.build_year),
-          rentalPotential: residence?.rental_potential,
-          developmentStatus: residence?.development_status,
-        },
-        petPolicy: residence?.pet_policy,
-      },
-      nearbyAmenities: {
-        amenitiesList: data.amenityIds || [],
-        highlightedAmenities: data.highlightedAmenities || [],
-      },
-      status: 'active',
-      cityId: new Types.ObjectId(data.cityDoc._id),
-      countryId: new Types.ObjectId(data.countryDoc._id),
-      lifeStyleId: data.lifeStyleDoc ? new Types.ObjectId(data.lifeStyleDoc._id) : undefined,
-      address: {
-        country: data.countryDoc?.name,
-        state: residence?.state,
-        city: data.cityDoc?.name,
-        userInput: residence?.address,
-        location: {
-          lat: data.placeDetails?.latitude,
-          lng: data.placeDetails?.longitude,
-        },
-        placeId: data.placeDetails?.placeId,
-      },
-      isDeleted: false,
-      featured: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+        name: residence.name,
+        isDeleted: false,
+        featured: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        status: 'active',
+        eVerification: true,
+        verifiedOn: new Date()
     };
 
-    if (residence.start_range?.toString().trim() || residence.end_range?.toString().trim()) {
-      const budgetLimitationsRange: any = {};
-      
-      if (residence.start_range?.toString().trim()) {
-        const startRange = Number(residence.start_range);
-        if (!isNaN(startRange)) {
-          budgetLimitationsRange.startRange = startRange;
-        }
-      }
-      
-      if (residence.end_range?.toString().trim()) {
-        const endRange = Number(residence.end_range);
-        if (!isNaN(endRange)) {
-          budgetLimitationsRange.endRange = endRange;
-        }
-      }
-  
-      if (Object.keys(budgetLimitationsRange).length > 0) {
-        baseData.budgetLimitationsRange = budgetLimitationsRange;
-      }
+    // Handle required IDs and basic fields
+    if (data.residenceTypeDoc?._id) {
+        baseData.residenceTypeIds = [new Types.ObjectId(data.residenceTypeDoc._id)];
     }
-  
+
+    if (residence.website_link?.toString().trim()) {
+        baseData.websiteLink = residence.website_link;
+    }
+
+    if (data.brandDoc?._id) {
+        baseData.associatedBrandId = new Types.ObjectId(data.brandDoc._id);
+    }
+
+    if (data.placeDetails?.placeId?.toString().trim()) {
+        baseData.placeId = data.placeDetails.placeId;
+    }
+
+    // Handle briefOverview
+    if (residence.subtitle?.toString().trim() || residence.brief_description?.toString().trim()) {
+        const briefOverview: any = {};
+        
+        if (residence.subtitle?.toString().trim()) {
+            briefOverview.subtitle = residence.subtitle;
+        }
+        if (residence.brief_description?.toString().trim()) {
+            briefOverview.briefDescription = residence.brief_description;
+        }
+
+        if (Object.keys(briefOverview).length > 0) {
+            baseData.briefOverview = briefOverview;
+        }
+    }
+
+    // Handle comprehensiveOverview
+    if (residence.subtitle?.toString().trim() || residence.general_description?.toString().trim() || 
+        residence.community?.toString().trim() || residence.recent_renovation?.toString().trim() || 
+        residence.local_attractions?.toString().trim() || residence.future_development?.toString().trim()) {
+        
+        const comprehensiveOverview: any = {};
+        
+        if (residence.subtitle?.toString().trim()) {
+            comprehensiveOverview.subtitle = residence.subtitle;
+        }
+        if (residence.general_description?.toString().trim()) {
+            comprehensiveOverview.generalDescription = residence.general_description;
+        }
+        if (residence.community?.toString().trim()) {
+            comprehensiveOverview.community = residence.community;
+        }
+        if (residence.recent_renovation?.toString().trim()) {
+            comprehensiveOverview.recentRenovation = residence.recent_renovation;
+        }
+        if (residence.local_attractions?.toString().trim()) {
+            comprehensiveOverview.localAttractions = residence.local_attractions;
+        }
+        if (residence.future_development?.toString().trim()) {
+            comprehensiveOverview.futureDevelopmentPlans = residence.future_development;
+        }
+
+        if (Object.keys(comprehensiveOverview).length > 0) {
+            baseData.comprehensiveOverview = comprehensiveOverview;
+        }
+    }
+
+    // Handle residenceKeyFeatures
+    if (data?.residenceFeatureIds?.length > 0 || residence.build_year?.toString().trim() || 
+        residence.rental_potential?.toString().trim() || residence.development_status?.toString().trim() || 
+        residence.pet_policy?.toString().trim() || residence.floor_area_sqft?.toString().trim()) {
+        
+        const residenceKeyFeatures: any = {};
+        
+        if (data?.residenceFeatureIds?.length > 0) {
+            residenceKeyFeatures.featureIds = data.residenceFeatureIds;
+        }
+
+        const developmentInfo: any = {};
+        
+        if (residence.build_year?.toString().trim()) {
+            const yearOfBuild = Number(residence.build_year);
+            if (!isNaN(yearOfBuild)) {
+                developmentInfo.yearOfBuild = yearOfBuild;
+            }
+        }
+        if (residence.rental_potential?.toString().trim()) {
+            developmentInfo.rentalPotential = residence.rental_potential;
+        }
+        if (residence.development_status?.toString().trim()) {
+            developmentInfo.developmentStatus = residence.development_status;
+        }
+
+        if (Object.keys(developmentInfo).length > 0) {
+            residenceKeyFeatures.developmentInfo = developmentInfo;
+        }
+
+        if (residence.pet_policy?.toString().trim()) {
+            residenceKeyFeatures.petPolicy = residence.pet_policy;
+        }
+
+        if (residence.floor_area_sqft?.toString().trim()) {
+            const floorArea = Number(residence.floor_area_sqft.split('k')[0]) * 1000;
+            if (!isNaN(floorArea)) {
+                residenceKeyFeatures.floorAreaSqFt = floorArea;
+            }
+        }
+
+        if (Object.keys(residenceKeyFeatures).length > 0) {
+            baseData.residenceKeyFeatures = residenceKeyFeatures;
+        }
+    }
+
+    // Handle nearbyAmenities
+    if (data.amenityIds?.length > 0 || data.highlightedAmenities?.length > 0) {
+        const nearbyAmenities: any = {};
+        
+        if (data.amenityIds?.length > 0) {
+            nearbyAmenities.amenitiesList = data.amenityIds;
+        }
+        if (data.highlightedAmenities?.length > 0) {
+            nearbyAmenities.highlightedAmenities = data.highlightedAmenities;
+        }
+
+        if (Object.keys(nearbyAmenities).length > 0) {
+            baseData.nearbyAmenities = nearbyAmenities;
+        }
+    }
+
+    if (residence.start_range?.toString().trim() || residence.end_range?.toString().trim()) {
+        const budgetLimitationsRange: any = {};
+        
+        if (residence.start_range?.toString().trim()) {
+            const startRange = Number(residence.start_range);
+            if (!isNaN(startRange)) {
+                budgetLimitationsRange.startRange = startRange;
+            }
+        }
+        
+        if (residence.end_range?.toString().trim()) {
+            const endRange = Number(residence.end_range);
+            if (!isNaN(endRange)) {
+                budgetLimitationsRange.endRange = endRange;
+            }
+        }
+
+        if (Object.keys(budgetLimitationsRange).length > 0) {
+            baseData.budgetLimitationsRange = budgetLimitationsRange;
+        }
+    }
+
+    // Handle address
+    if (data.countryDoc?.name?.toString().trim() || residence.state?.toString().trim() || 
+        data.cityDoc?.name?.toString().trim() || residence.address?.toString().trim() || 
+        data.placeDetails?.latitude || data.placeDetails?.longitude) {
+        
+        const address: any = {};
+        
+        if (data.countryDoc?.name?.toString().trim()) {
+            address.country = data.countryDoc.name;
+        }
+        if (residence.state?.toString().trim()) {
+            address.state = residence.state;
+        }
+        if (data.cityDoc?.name?.toString().trim()) {
+            address.city = data.cityDoc.name;
+        }
+        if (residence.address?.toString().trim()) {
+            address.userInput = residence.address;
+        }
+
+        if (data.placeDetails?.latitude || data.placeDetails?.longitude) {
+            const location: any = {};
+            if (data.placeDetails.latitude) {
+                location.lat = data.placeDetails.latitude;
+            }
+            if (data.placeDetails.longitude) {
+                location.lng = data.placeDetails.longitude;
+            }
+            if (Object.keys(location).length > 0) {
+                address.location = location;
+            }
+        }
+
+        if (data.placeDetails?.placeId?.toString().trim()) {
+            address.placeId = data.placeDetails.placeId;
+        }
+
+        if (Object.keys(address).length > 0) {
+            baseData.address = address;
+        }
+    }
+
     return baseData;
-  }
+}
+
 
   async processResidenceScores(
     residence: Residence,
@@ -844,7 +973,7 @@ export class ResidenceSeederService {
       matchingBrandCategory.name = 'Luxury Hotel Resort Brands'
     }
     let brandCategoryDoc = await this.brandCategoryRepository.find({
-      name: { $regex: new RegExp(`^${matchingBrandCategory.name}$`, 'i') },
+      name: { $regex: new RegExp(matchingBrandCategory.name, 'i') }
     });
 
     if (!brandCategoryDoc) {
@@ -1492,7 +1621,6 @@ async processRankingCategoryImages(file: Express.Multer.File) {
 }
 
 //geographicalareas 
-
 async processGeographicalAreaImages(file: Express.Multer.File) {
   const BATCH_SIZE = 10;
   
@@ -1542,6 +1670,7 @@ async processGeographicalAreaImages(file: Express.Multer.File) {
   }
 }
 
+// brand
 async processBrandImages(file: Express.Multer.File) {
   const BATCH_SIZE = 10;
   
