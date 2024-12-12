@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CustomerSupportService } from '../customer-support/customer-support.service';
 import { CALENDLY_MESSAGE_TEMPLATES } from '../customer-support/customer-support.constant';
 import { CalendlyDetails, LocationDetails } from 'src/customer-support/type/customer-support.type';
+import { CustomerSupportSource } from 'src/customer-support/enum/customer-support-enum';
 
 interface CalendlyWebhookPayload {
   created_at: string;
@@ -13,6 +14,7 @@ interface CalendlyWebhookPayload {
   tracking: {
     utm_term?: string;
     utm_event?: string;
+    utm_source?: string;
   };
   scheduled_event: {
     start_time: string;
@@ -42,7 +44,7 @@ export class CalendlyWebhookService {
   private formatMessageFromTemplate(
     template: string,
     payload: CalendlyWebhookPayload,
-    calendlyDetails: CalendlyDetails,
+    calendlyDetails: CalendlyDetails
   ): string {
     const replacements = {
       '{{email}}': payload.email,
@@ -57,7 +59,7 @@ export class CalendlyWebhookService {
 
     return Object.entries(replacements).reduce(
       (message, [key, value]) => message.replace(key, value),
-      template,
+      template
     );
   }
 
@@ -67,21 +69,25 @@ export class CalendlyWebhookService {
       const calendlyDetails: CalendlyDetails = this.mapCalendlyDetails(payload);
 
       const customerSupport = await this.customerSupportService.getCustomerSupport(
-        payload.tracking?.utm_term,
+        payload.tracking?.utm_term
       );
 
       if (customerSupport) {
-        return await this.customerSupportService.updateCustomerSupport(
-          customerSupport.id,
-          { calendlyDetails },
-        );
+        return await this.customerSupportService.updateCustomerSupport(customerSupport.id, {
+          calendlyDetails,
+          ...(payload.tracking?.utm_source
+            ? {
+                source: payload.tracking?.utm_source as CustomerSupportSource,
+              }
+            : {}),
+        });
       }
 
       const messageTemplate = CALENDLY_MESSAGE_TEMPLATES[payload.tracking?.utm_event];
       const formattedMessage = this.formatMessageFromTemplate(
         messageTemplate,
         payload,
-        calendlyDetails,
+        calendlyDetails
       );
 
       return await this.customerSupportService.create({
