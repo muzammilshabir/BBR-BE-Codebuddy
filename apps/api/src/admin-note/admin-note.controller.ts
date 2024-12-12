@@ -34,7 +34,7 @@ export class AdminNoteController {
     return ResponseService.buildResponse({ adminNote }, 'Admin note updated successfully');
   }
 
-  @Patch(':id')
+  @Get(':id')
   @ApiOperation({ summary: 'Get admin note by id' })
   @Roles(UserRole.SELLER, UserRole.ADMIN)
   async getAdminNoteById(@Param('id') id: string) {
