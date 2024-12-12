@@ -74,19 +74,23 @@ export class InvoicePostPaymentActionService {
       | RankingRequestDetails
       | FeatureRequestDetails
       | BbrVerificationRequestDetails
-      | BespokeRequestDetails
+      | BespokeRequestDetails,
+    order: number
   ) {
     return this.invoicePostPaymentActionModel.create({
       invoiceId,
       type,
       data,
+      order,
     });
   }
 
   async performActions(invoiceId: string, amount: number) {
-    const invoicePostPaymentActions = await this.invoicePostPaymentActionModel.find({
-      invoiceId,
-    });
+    const invoicePostPaymentActions = await this.invoicePostPaymentActionModel
+      .find({
+        invoiceId,
+      })
+      .sort({ order: 1 });
 
     let user: User;
     let residence: Residence;
