@@ -1,6 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CustomerSupportRepository } from './customer-support.repository';
-import { CreateCustomerSupportDto } from './dto/create-customer-support.dto';
+import {
+  CreateCustomerSupportDto,
+  CreateCustomerSupportForGuestDto,
+} from './dto/create-customer-support.dto';
 import { CustomerSupport } from './schema/customer-support.schema';
 import { Types } from 'mongoose';
 import { ListCustomerSupportDto } from './dto/list-customer-support.dto';
@@ -88,8 +91,15 @@ export class CustomerSupportService {
     return await this.customerSupportRepository.create(transformedDto);
   }
 
+  async createForGuest(createCustomerSupportForGuestDto: CreateCustomerSupportForGuestDto) {
+    return await this.customerSupportRepository.create(createCustomerSupportForGuestDto);
+  }
+
   async getCustomerSupports(filterDto: ListCustomerSupportDto, developerId?: string) {
-    const result = await this.customerSupportRepository.findAllCustomerSupports(filterDto, developerId);
+    const result = await this.customerSupportRepository.findAllCustomerSupports(
+      filterDto,
+      developerId
+    );
     const count = result[0]?.totalCount || 0;
     const data = result[0]?.data || [];
 
@@ -212,7 +222,7 @@ export class CustomerSupportService {
     if (!customerSupport) {
       throw new NotFoundException(`Customer support with ID ${customerSupportId} not found`);
     }
-    
+
     return await this.customerSupportRepository.update(customerSupportId, { isDeleted: true });
   }
 
@@ -226,7 +236,7 @@ export class CustomerSupportService {
     }
 
     return this.customerSupportRepository.update(customerSupportId, {
-      calendlyDetails: updateCalendlyDetailsDto
+      calendlyDetails: updateCalendlyDetailsDto,
     });
   }
 }

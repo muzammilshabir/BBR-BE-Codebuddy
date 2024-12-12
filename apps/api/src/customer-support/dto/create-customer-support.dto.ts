@@ -117,10 +117,14 @@ export class CreateCustomerSupportDto {
   })
   websiteUrl?: string;
 
-  @ApiProperty({ description: 'User agreement to terms', example: true , required: false})
+  @ApiProperty({ description: 'User agreement to terms', example: true, required: false })
   agreeToTerms?: boolean;
 
-  @ApiProperty({ description: 'User preference to receive news letter ', example: true, required: false })
+  @ApiProperty({
+    description: 'User preference to receive news letter ',
+    example: true,
+    required: false,
+  })
   receiveNewsletter?: boolean;
 
   @ApiProperty({
@@ -161,6 +165,20 @@ export class CreateCustomerSupportDto {
     description: 'Calendly meeting details',
   })
   calendlyDetails?: CalendlyDetails;
+}
+
+export class CreateCustomerSupportForGuestDto {
+  @ApiProperty({ example: 'John Doe', required: true })
+  name: string;
+
+  @ApiProperty({ example: 'john@example.com', required: true })
+  email: string;
+
+  @ApiProperty({
+    description: 'The phone number of the lead, in international format.',
+    required: false,
+  })
+  phoneNumber?: PhoneNumber;
 }
 
 export const phoneSchema = Joi.object({

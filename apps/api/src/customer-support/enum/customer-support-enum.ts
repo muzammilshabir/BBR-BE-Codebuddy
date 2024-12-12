@@ -3,6 +3,13 @@ export enum CustomerSupportSource {
   CONTACT_US = 'contact us',
   SUGGEST_FEATURE = 'suggest a feature',
   REPORT_ERROR = 'report an error',
+  WELCOME_FLOW = 'welcome-flow',
+  DEV_BESPOKE_REQUEST = 'dev-bespoke-request',
+  GUEST_APPLY_FOR_RANKING = 'guest-apply-for-ranking',
+  GUEST_UPLOAD_INVENTORY = 'guest-upload-inventory',
+  GUEST_REQUEST_PREMIUM_PROFILE = 'guest-request-premium-profile',
+  GUEST_REQUEST_A_VISIT = 'guest-request-a-visit',
+  MARKETING_SOLUTION_CONTACT_US = 'marketing-solution-contact-us',
 }
 
 export enum CustomerSupportStatus {
