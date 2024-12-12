@@ -77,6 +77,9 @@ export class InvoicePostPaymentAction extends Document {
     | FeatureRequestDetails
     | BbrVerificationRequestDetails
     | BespokeRequestDetails;
+
+  @Prop({ required: true, default: 0 })
+  order: number;
 }
 
 export const InvoicePostPaymentActionSchema =

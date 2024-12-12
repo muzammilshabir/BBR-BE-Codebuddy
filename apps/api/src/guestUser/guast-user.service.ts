@@ -62,19 +62,22 @@ export class GuestUserService {
           ...body.userDetails,
           stripeCustomerId: stripeCustomer.id,
           password: await argon.hash(body.userDetails.password),
-        }
+        },
+        1
       ),
       this.invoicePostPaymentActionService.create(
         invoice.id,
         InvoicePostPaymentActionType.CREATE_RESIDENCE,
-        body.residenceDetails
+        body.residenceDetails,
+        2
       ),
       this.invoicePostPaymentActionService.create(
         invoice.id,
         InvoicePostPaymentActionType.CREATE_RANKING_REQUEST,
         {
           rankingCategoryIds: body.rankingCategoryIds,
-        }
+        },
+        3
       ),
     ]);
 
@@ -145,12 +148,14 @@ export class GuestUserService {
           ...body.userDetails,
           stripeCustomerId: stripeCustomer.id,
           password: await argon.hash(body.userDetails.password),
-        }
+        },
+        1
       ),
       this.invoicePostPaymentActionService.create(
         invoice.id,
         InvoicePostPaymentActionType.CREATE_RESIDENCE,
-        body.residenceDetails
+        body.residenceDetails,
+        2
       ),
     ]);
 
@@ -264,12 +269,14 @@ export class GuestUserService {
           ...body.userDetails,
           stripeCustomerId: stripeCustomer.id,
           password: await argon.hash(body.userDetails.password),
-        }
+        },
+        1
       ),
       this.invoicePostPaymentActionService.create(
         invoice.id,
         InvoicePostPaymentActionType.CREATE_RESIDENCE,
-        body.residenceDetails
+        body.residenceDetails,
+        2
       ),
     ]);
 
@@ -329,12 +336,14 @@ export class GuestUserService {
           ...body.userDetails,
           stripeCustomerId: stripeCustomer.id,
           password: await argon.hash(body.userDetails.password),
-        }
+        },
+        1
       ),
       this.invoicePostPaymentActionService.create(
         invoice.id,
         InvoicePostPaymentActionType.CREATE_RESIDENCE,
-        body.residenceDetails
+        body.residenceDetails,
+        2
       ),
     ]);
 
