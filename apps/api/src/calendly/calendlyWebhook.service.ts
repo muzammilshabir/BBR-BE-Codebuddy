@@ -95,6 +95,11 @@ export class CalendlyWebhookService {
         email: payload.email,
         calendlyDetails,
         message: formattedMessage,
+        ...(payload.tracking?.utm_source
+          ? {
+              source: payload.tracking?.utm_source as CustomerSupportSource,
+            }
+          : {}),
       });
     } catch (error) {
       // Log the error and rethrow or handle appropriately
