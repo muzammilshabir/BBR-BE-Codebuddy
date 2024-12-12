@@ -17,7 +17,7 @@ export class GuestApplyRankingController {
   @Public()
   @UsePipes(new JoiValidationPipe(guestApplyRankingSchema, 'body'))
   async guestApplyRanking(@Body() body: GuestApplyRankingDto) {
-    await this.guestApplyRankingService.findRankingCategory(body);
-    return ResponseService.buildResponse({}, 'Ranking applied successfully');
+    const resp = await this.guestApplyRankingService.applyRanking(body);
+    return ResponseService.buildResponse(resp, 'Ranking applied successfully');
   }
 }

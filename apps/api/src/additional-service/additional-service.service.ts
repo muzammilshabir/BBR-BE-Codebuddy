@@ -35,7 +35,7 @@ export class ApplyAdditionalServiceRequestService {
     private planModel: Model<Plan>
   ) {}
   async create(body: ApplyAdditionalServiceRequestDto) {
-    let rankingCategories: {data: RankingCategory[]};
+    let rankingCategories: { data: RankingCategory[] };
     let bbrVerificationRequest: BbrVerification;
     let featureRequest: FeatureRequest;
 
@@ -43,7 +43,7 @@ export class ApplyAdditionalServiceRequestService {
       await this.createStripeCustomerAndInvoice(body);
 
     if (body.rankingCategoryIds && body.rankingCategoryIds.length > 0) {
-      rankingCategories= await this.getRankingCategories(body.rankingCategoryIds);
+      rankingCategories = await this.getRankingCategories(body.rankingCategoryIds);
 
       const lineItems = await this.invoiceService.createLineItemsFromRankingCategories(
         invoice.id,
@@ -61,6 +61,10 @@ export class ApplyAdditionalServiceRequestService {
         InvoicePostPaymentActionType.CREATE_RANKING_REQUEST,
         {
           rankingCategoryIds: body.rankingCategoryIds,
+          userInfo: {
+            fullName: body.userDetails.fullName,
+            email: body.userDetails.email,
+          },
         }
       );
     }
@@ -89,6 +93,10 @@ export class ApplyAdditionalServiceRequestService {
         InvoicePostPaymentActionType.CREATE_BBR_VERIFICATION_REQUEST,
         {
           bbrVerificationRequestId: bbrVerificationRequest.id.toString(),
+          userInfo: {
+            fullName: body.userDetails.fullName,
+            email: body.userDetails.email,
+          },
         }
       );
     }
@@ -118,6 +126,10 @@ export class ApplyAdditionalServiceRequestService {
         InvoicePostPaymentActionType.CREATE_FEATURE_REQUEST,
         {
           featureRequestId: featureRequest.id.toString(),
+          userInfo: {
+            fullName: body.userDetails.fullName,
+            email: body.userDetails.email,
+          },
         }
       );
     }

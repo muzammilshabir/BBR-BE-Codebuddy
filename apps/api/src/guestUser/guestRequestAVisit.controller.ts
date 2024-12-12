@@ -18,7 +18,7 @@ export class GuestRequestVisitController {
   @Public()
   @UsePipes(new JoiValidationPipe(guestRequestVisitSchema, 'body'))
   async guestRequestVisit(@Body() body: GuestRequestVisitDto) {
-    await this.guestRequestVisitService.RequestVisit(body);
-    return ResponseService.buildResponse({}, 'Request a visit submitted Successfully');
+    const resp = await this.guestRequestVisitService.requestVisit(body);
+    return ResponseService.buildResponse(resp, 'Request a visit submitted Successfully');
   }
 }
