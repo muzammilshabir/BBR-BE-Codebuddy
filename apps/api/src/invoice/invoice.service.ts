@@ -130,8 +130,8 @@ export class InvoiceService {
     return await this.lineItemModel.create({
       invoiceId,
       name: subscriptionPlan.name,
-      unitAmount: subscriptionPlan.fee,
-      totalAmount: subscriptionPlan.fee,
+      unitAmount: subscriptionPlan.name === 'Bespoke Residence Profile' ? 0 : subscriptionPlan.fee,
+      totalAmount: subscriptionPlan.name === 'Bespoke Residence Profile' ? 0 : subscriptionPlan.fee,
     });
   }
 }

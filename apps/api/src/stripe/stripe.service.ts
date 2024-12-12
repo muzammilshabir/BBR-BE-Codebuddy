@@ -103,7 +103,7 @@ export class StripeService {
       customer: fInvoice.customer_name,
       customer_email: fInvoice.customer_email,
       items: this.parseInvoiceLineItems(latestInvoice.lines.data),
-      client_secret: (fInvoice.payment_intent as Stripe.PaymentIntent).client_secret,
+      client_secret: (fInvoice.payment_intent as Stripe.PaymentIntent)?.client_secret,
     };
   }
 
@@ -373,7 +373,7 @@ export class StripeService {
       customer: fInvoice.customer_name,
       customer_email: fInvoice.customer_email,
       items: this.parseInvoiceLineItems(invoice.lines.data),
-      client_secret: (fInvoice.payment_intent as Stripe.PaymentIntent).client_secret,
+      client_secret: (fInvoice.payment_intent as Stripe.PaymentIntent)?.client_secret,
     };
   }
 

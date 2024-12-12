@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
 import { GuestApplyRankingDto } from './guast-apply-ranking.dto';
 import { RankingCategoryRepository } from 'src/rankingCategory/rankingCategory.repository';
 import { InvoiceService } from 'src/invoice/invoice.service';
@@ -115,6 +120,10 @@ export class GuestUserService {
   async uploadInventory(body: GuestUploadInventoryDto) {
     const subscriptionPlan = await this.getSubsPlan(body.subscriptionPlanId);
 
+    if (subscriptionPlan.name !== 'Bespoke Residence Profile' && !body.stripePmTokenId) {
+      throw new BadRequestException('stripePmTokenId is required');
+    }
+
     const { invoice, stripeCustomer, stripeInvoice } =
       await this.createStripeCustomerAndInvoice(body);
 
@@ -199,14 +208,16 @@ export class GuestUserService {
     stripeCustomer: Stripe.Customer,
     stripeInvoice: Stripe.Invoice,
     invoice: Invoice,
-    stripePmTokenId: string
+    stripePmTokenId?: string
   ) {
-    const stripePaymentMethod = await this.stripeService.createPaymentMethod(
-      stripeCustomer.id,
-      stripePmTokenId
-    );
+    let stripePaymentMethod;
+    if (stripePmTokenId) {
+      stripePaymentMethod = await this.stripeService.createPaymentMethod(
+        stripeCustomer.id,
+        stripePmTokenId
+      );
+    }
 
-    await this.stripeService.payInvoiceUsingPaymentMethod(stripeInvoice.id, stripePaymentMethod.id);
     await this.paymentAttemptRepository.create({
       invoiceId: invoice._id,
       paymentMethodId: invoice.paymentMethodId,
@@ -216,6 +227,15 @@ export class GuestUserService {
       attemptsRemaining: 0,
       attemptsRemainingToday: 0,
     });
+
+    if (stripePaymentMethod) {
+      await this.stripeService.payInvoiceUsingPaymentMethod(
+        stripeInvoice.id,
+        stripePaymentMethod.id
+      );
+    } else {
+      await this.stripeService.finalizeInvoice(stripeInvoice);
+    }
   }
 
   async requestPremiumResidenceProfile(body: GuestPremiumResidenceProfileDto) {
