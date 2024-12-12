@@ -122,6 +122,8 @@ export class GuestUserService {
 
     if (subscriptionPlan.name !== 'Bespoke Residence Profile' && !body.stripePmTokenId) {
       throw new BadRequestException('stripePmTokenId is required');
+    } else if (subscriptionPlan.name === 'Bespoke Residence Profile' && body.stripePmTokenId) {
+      throw new BadRequestException('stripePmTokenId is not allowed');
     }
 
     const { invoice, stripeCustomer, stripeInvoice } =
