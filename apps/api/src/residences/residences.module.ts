@@ -46,6 +46,8 @@ import { BrandCategoryRepository } from 'src/brandCategory/brandCategoryReposito
 import { BrandCategory, BrandCategorySchema } from 'src/brandCategory/schema/brandCategory.schema';
 import { UploadRepository } from 'src/upload/upload.repository';
 import { Upload, UploadSchema } from 'src/upload/schema/upload.schema';
+import { State, StateSchema } from 'src/state/schema/state.schema';
+import { StateRepository } from 'src/state/state.repository';
 
 @Module({
   imports: [
@@ -66,8 +68,8 @@ import { Upload, UploadSchema } from 'src/upload/schema/upload.schema';
     MongooseModule.forFeature([{ name: RankingCategory.name, schema: RankingCategorySchema }]),
     MongooseModule.forFeature([{ name: GeographicalAreas.name, schema: GeographicalAreasSchema }]),
     MongooseModule.forFeature([{ name: BrandCategory.name, schema: BrandCategorySchema }]),
-    MongooseModule.forFeature([{ name: Upload.name, schema: UploadSchema }
-    ]),
+    MongooseModule.forFeature([{ name: Upload.name, schema: UploadSchema }]),
+    MongooseModule.forFeature([{ name: State.name, schema: StateSchema }]),
   ],
   providers: [
     ResidenceService,
@@ -76,6 +78,7 @@ import { Upload, UploadSchema } from 'src/upload/schema/upload.schema';
     ResidenceSeeder,
     ResidencesFixture,
     CityRepository,
+    StateRepository,
     ResidenceDraftRepository,
     ResidenceTypeRepository,
     BrandRepository,

@@ -6,6 +6,21 @@ export class Country extends Document {
   @Prop({ required: true })
   name: string;
 
+  @Prop({ required: false })
+  countryCode: string;
+
+  @Prop({ required: false })
+  phoneCode: string;
+
+  @Prop({ required: false })
+  capital: string;
+
+  @Prop({ required: false })
+  currency: string;
+
+  @Prop({ required: false })
+  native: string;
+
   @Prop({ type: Types.ObjectId, ref: 'GeographicalAreas', required: false })
   geographicalAreasId?: Types.ObjectId;
 
@@ -32,6 +47,9 @@ export class Country extends Document {
 
   @Prop({ default: false })
   isDeleted: boolean;
+
+  @Prop({ default: false, required: false })
+  active: boolean;
 
   createdAt: Date;
 

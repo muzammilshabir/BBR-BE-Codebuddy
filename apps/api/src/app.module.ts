@@ -64,6 +64,7 @@ import { FeatureRequestModule } from './featureRequests/featureRequests.module';
 import { BbrVerificationModule } from './bbr-verification/bbr-verification.module';
 import { MatchmakingModule } from './matchmaking/matchmaking.module';
 import { CustomerSupportConversationModule } from './customer-support-conversation/customer-support-conversation.module';
+import { StateModule } from './state/state.module';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -126,7 +127,8 @@ import { CustomerSupportConversationModule } from './customer-support-conversati
     FeatureRequestModule,
     BbrVerificationModule,
     MatchmakingModule,
-    CustomerSupportConversationModule
+    CustomerSupportConversationModule,
+    StateModule
   ],
   controllers: [AppController],
   providers: [

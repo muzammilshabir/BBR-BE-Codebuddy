@@ -2,9 +2,15 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 
 @Schema({ timestamps: true })
-export class City extends Document {
+export class State extends Document {
   @Prop({ required: true })
   name: string;
+
+  @Prop({ required: true })
+  stateCode: string;
+
+  @Prop({ required: false })
+  countryCode: string;
 
   @Prop({ required: false })
   latitude: number;
@@ -12,8 +18,8 @@ export class City extends Document {
   @Prop({ required: false })
   longitude: number;
 
-  @Prop({ type: Types.ObjectId, ref: 'State', required: false })
-  stateId: Types.ObjectId;
+  @Prop({ default: false, required: false })
+  active: boolean;
 
   @Prop({ type: Types.ObjectId, ref: 'Country', required: true })
   countryId: Types.ObjectId;
@@ -42,11 +48,8 @@ export class City extends Document {
   @Prop({ default: false })
   isDeleted: boolean;
 
-  @Prop({ default: false, required: false })
-  active: boolean;
-
   createdAt: Date;
   updatedAt: Date;
 }
 
-export const CitySchema = SchemaFactory.createForClass(City);
+export const StateSchema = SchemaFactory.createForClass(State);

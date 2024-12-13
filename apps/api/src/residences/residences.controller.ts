@@ -684,4 +684,17 @@ export class ResidenceController {
     const result = await this.residenceSeederService.processRankingCategoryImages(file);
     return ResponseService.buildResponse(result);
   }
+
+  
+  @Get('/seed-locations')
+  @ApiOperation({
+    summary: 'List Residence',
+  })
+  @Public()
+  async seedLocation() {
+    const result = await this.residenceSeederService.seedLocations();
+
+    return ResponseService.buildResponse(result, 'Seed Completed');
+  }
+  
 }
