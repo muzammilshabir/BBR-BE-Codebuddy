@@ -12,20 +12,12 @@ export class MatchmakingPreferencesDto {
   locationIds?: string[];
 
   @ApiProperty({
-    description: 'Filter by Amenity IDs',
+    description: 'Filter by Property Type IDs',
     example: ['60b6c0f53b5a5c1f88d25a1b'],
     required: false,
     type: [String],
   })
-  amenities?: string[];
-
-  @ApiProperty({
-    description: 'Filter by Brand IDs',
-    example: ['60b6c0f53b5a5c1f88d25a1b'],
-    required: false,
-    type: [String],
-  })
-  brands?: string[];
+  propertyTypes?: string[];
 
   @ApiProperty({
     description: 'Filter by Lifestyle IDs',
@@ -36,28 +28,52 @@ export class MatchmakingPreferencesDto {
   lifestyles?: string[];
 
   @ApiProperty({
-    description: 'Filter by Property Type IDs',
+    description: 'Filter by Brand IDs',
     example: ['60b6c0f53b5a5c1f88d25a1b'],
     required: false,
     type: [String],
   })
-  propertyTypes?: string[];
+  brands?: string[];
 
   @ApiProperty({
-    description: 'Minimum price',
-    example: 100000,
+    description: 'Pet policy options',
+    example: ['dogs_allowed', 'cats_allowed'],
     required: false,
-    type: Number,
+    type: [String],
   })
-  minPrice?: number;
+  petPolicy?: string[];
 
   @ApiProperty({
-    description: 'Maximum price',
-    example: 500000,
+    description: 'Floor area in square feet',
+    example: [1000, 2000],
     required: false,
-    type: Number,
+    type: [Number],
   })
-  maxPrice?: number;
+  floorAreaSqFt?: number[];
+
+  @ApiProperty({
+    description: 'Feature IDs',
+    example: ['60b6c0f53b5a5c1f88d25a1b'],
+    required: false,
+    type: [String],
+  })
+  featureIds?: string[];
+
+  @ApiProperty({
+    description: 'Year of build options',
+    example: [2020, 2023],
+    required: false,
+    type: [Number],
+  })
+  yearOfBuild?: number[];
+
+  @ApiProperty({
+    description: 'Rental potential options',
+    example: ['high', 'medium', 'low'],
+    required: false,
+    type: [String],
+  })
+  rentalPotential?: string[];
 
   @ApiProperty({
     description: 'Development status options',
@@ -68,12 +84,28 @@ export class MatchmakingPreferencesDto {
   developmentStatus?: string[];
 
   @ApiProperty({
-    description: 'Rental potential options',
-    example: ['high', 'medium', 'low'],
+    description: 'Filter by Amenity IDs',
+    example: ['60b6c0f53b5a5c1f88d25a1b'],
     required: false,
     type: [String],
   })
-  rentalPotential?: string[];
+  amenitiesList?: string[];
+
+  @ApiProperty({
+    description: 'Price range',
+    example: [{ startRange: 100000, endRange: 500000 }],
+    required: false,
+    type: [Object],
+  })
+  priceRange?: { startRange: number; endRange: number }[];
+
+  @ApiProperty({
+    description: 'Room count range',
+    example: [{ minRooms: 2, maxRooms: 4 }],
+    required: false,
+    type: [Object],
+  })
+  roomCountRange?: { minRooms: number; maxRooms: number }[];
 }
 
 export const matchmakingPreferencesSchema = Joi.object({
@@ -81,8 +113,8 @@ export const matchmakingPreferencesSchema = Joi.object({
     .items(Joi.string().custom(joiObjectIdValidator('locationIds')))
     .optional(),
 
-  amenities: Joi.array()
-    .items(Joi.string().custom(joiObjectIdValidator('amenities')))
+  amenitiesList: Joi.array()
+    .items(Joi.string().custom(joiObjectIdValidator('amenitiesList')))
     .optional(),
 
   brands: Joi.array()
@@ -97,13 +129,38 @@ export const matchmakingPreferencesSchema = Joi.object({
     .items(Joi.string().custom(joiObjectIdValidator('propertyTypes')))
     .optional(),
 
-  minPrice: Joi.number()
-    .min(0)
+  petPolicy: Joi.array()
+    .items(Joi.string())
     .optional(),
 
-  maxPrice: Joi.number()
-    .min(0)
-    .greater(Joi.ref('minPrice'))
+  floorAreaSqFt: Joi.array()
+    .items(Joi.number().min(0))
+    .optional(),
+
+  featureIds: Joi.array()
+    .items(Joi.string().custom(joiObjectIdValidator('featureIds')))
+    .optional(),
+
+  yearOfBuild: Joi.array()
+    .items(Joi.number())
+    .optional(),
+
+  priceRange: Joi.array()
+    .items(
+      Joi.object({
+        startRange: Joi.number().min(0).required(),
+        endRange: Joi.number().min(0).greater(Joi.ref('startRange')).required(),
+      })
+    )
+    .optional(),
+
+  roomCountRange: Joi.array()
+    .items(
+      Joi.object({
+        minRooms: Joi.number().min(0).required(),
+        maxRooms: Joi.number().min(0).greater(Joi.ref('minRooms')).required(),
+      })
+    )
     .optional(),
 
   developmentStatus: Joi.array()
