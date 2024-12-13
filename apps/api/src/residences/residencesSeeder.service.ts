@@ -25,6 +25,7 @@ import { S3Client, ListObjectsV2Command } from "@aws-sdk/client-s3";
 import { UploadRepository } from 'src/upload/upload.repository';
 import { StateRepository } from 'src/state/state.repository';
 import { State } from 'src/state/schema/state.schema';
+import { Location } from 'src/location/schema/location.schema';
 
 interface RankingCategory {
   ranking_category_id: string;
@@ -157,6 +158,8 @@ export class ResidenceSeederService {
     private readonly stateModel: Model<State>,
     private readonly uploadRepository: UploadRepository,
     private readonly stateRepository: StateRepository,
+    @InjectModel(Location.name)
+    private readonly locationModel: Model<Location>,
   ) {
 
     this.s3Client = new S3Client({
@@ -219,13 +222,20 @@ export class ResidenceSeederService {
               name: { $regex: new RegExp(country.name, 'i') }
             });
 
-
             if (!countryDoc) {
               const countryData: any = {
                 name: country.name,
+                active: true,
+                isDeleted: false
               };
         
               countryDoc = await this.countryModel.create(countryData);
+            } else if (countryDoc.active === false) {
+              countryDoc = await this.countryModel.findByIdAndUpdate(
+                countryDoc._id,
+                { active: true },
+                { new: true }
+              );
             }
       
           } catch (error) {
@@ -270,14 +280,21 @@ export class ResidenceSeederService {
             if (!cityDoc) {
               const cityData: any = {
                 name: city.name,
+                active: true,
+                isDeleted: false
               };
         
               if (countryId) {
                 cityData.countryId = new Types.ObjectId(countryId);
               }
         
-        
               cityDoc = await this.cityModel.create(cityData);
+            } else if (cityDoc.active === false) {
+              cityDoc = await this.cityModel.findByIdAndUpdate(
+                cityDoc._id,
+                { active: true },
+                { new: true }
+              );
             }
       
           } catch (error) {
@@ -1059,6 +1076,7 @@ export class ResidenceSeederService {
     if (!cityDoc) {
       const cityData: any = {
         name: matchingCity.name,
+        active: true
       };
 
       if (countryId) {
@@ -1067,6 +1085,12 @@ export class ResidenceSeederService {
 
 
       cityDoc = await this.cityModel.create(cityData);
+    } else if (cityDoc.active === false) {
+      cityDoc = await this.cityModel.findByIdAndUpdate(
+        cityDoc._id,
+        { active: true },
+        { new: true }
+      );
     }
     return cityDoc;
   }
@@ -1089,11 +1113,18 @@ export class ResidenceSeederService {
     if (!countryDoc) {
       const countryData: any = {
         name: matchingCountry.name,
+        active: true
       };
 
-
       countryDoc = await this.countryModel.create(countryData);
+    } else if (countryDoc.active === false) {
+      countryDoc = await this.countryModel.findByIdAndUpdate(
+        countryDoc._id,
+        { active: true },
+        { new: true }
+      );
     }
+
     return countryDoc;
   }
 
@@ -1864,7 +1895,7 @@ private async processImage(imagePath: string, imageType: string) {
 
 async seedLocations() {
   try {
-    const DELAY_MS = 500; // Increased delay for API rate limiting
+    const DELAY_MS = 500;
     const countries = await this.apiRequest('/countries');
     
     for (const country of countries) {
@@ -1887,6 +1918,19 @@ async seedLocations() {
           { upsert: true, new: true }
         );
 
+        // Create location record for country
+        await this.locationModel.findOneAndUpdate(
+          { name: country.name, type: 'country' },
+          {
+            $set: {
+              name: country.name,
+              type: 'country',
+              parentId: null
+            }
+          },
+          { upsert: true }
+        );
+
         // Fetch and process states
         const states = await this.apiRequest(`/countries/${country.iso2}/states`);
         const stateBulkOps = states.map(state => ({
@@ -1903,7 +1947,6 @@ async seedLocations() {
                 stateCode: state.iso2,
                 latitude: state.latitude,
                 longitude: state.longitude,
-                active: true
               }
             },
             upsert: true
@@ -1921,6 +1964,24 @@ async seedLocations() {
           const cities = await this.apiRequest(
             `/countries/${country.iso2}/states/${state.iso2}/cities`
           );
+
+          // Create location records for cities
+          const locationBulkOps = cities.map(city => ({
+            updateOne: {
+              filter: {
+                name: city.name,
+                type: 'city'
+              },
+              update: {
+                $set: {
+                  name: city.name,
+                  type: 'city',
+                  parentId: dbCountry._id.toString()
+                }
+              },
+              upsert: true
+            }
+          }));
 
           const cityBulkOps = cities.map(city => ({
             updateOne: {
@@ -1943,7 +2004,10 @@ async seedLocations() {
           }));
 
           if (cityBulkOps.length > 0) {
-            await this.cityModel.bulkWrite(cityBulkOps);
+            await Promise.all([
+              this.cityModel.bulkWrite(cityBulkOps),
+              this.locationModel.bulkWrite(locationBulkOps)
+            ]);
           }
         }
         

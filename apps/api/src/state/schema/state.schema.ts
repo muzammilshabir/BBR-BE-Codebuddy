@@ -18,9 +18,6 @@ export class State extends Document {
   @Prop({ required: false })
   longitude: number;
 
-  @Prop({ default: false, required: false })
-  active: boolean;
-
   @Prop({ type: Types.ObjectId, ref: 'Country', required: true })
   countryId: Types.ObjectId;
 
