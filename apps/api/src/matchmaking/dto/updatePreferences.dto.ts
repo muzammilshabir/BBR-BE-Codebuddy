@@ -4,12 +4,20 @@ import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/
 
 export class MatchmakingPreferencesDto {
   @ApiProperty({
-    description: 'Filter by Location IDs',
+    description: 'Filter by Country IDs',
     example: ['60b6c0f53b5a5c1f88d25a1b'],
     required: false,
     type: [String],
   })
-  locationIds?: string[];
+  countryId?: string[];
+
+  @ApiProperty({
+    description: 'Filter by City IDs',
+    example: ['60b6c0f53b5a5c1f88d25a1b'],
+    required: false,
+    type: [String],
+  })
+  cities?: string[];
 
   @ApiProperty({
     description: 'Filter by Property Type IDs',
@@ -109,8 +117,12 @@ export class MatchmakingPreferencesDto {
 }
 
 export const matchmakingPreferencesSchema = Joi.object({
-  locationIds: Joi.array()
-    .items(Joi.string().custom(joiObjectIdValidator('locationIds')))
+  countryId: Joi.array()
+    .items(Joi.string().custom(joiObjectIdValidator('countryId')))
+    .optional(),
+
+  cities: Joi.array()
+    .items(Joi.string().custom(joiObjectIdValidator('cities')))
     .optional(),
 
   amenitiesList: Joi.array()
@@ -129,21 +141,15 @@ export const matchmakingPreferencesSchema = Joi.object({
     .items(Joi.string().custom(joiObjectIdValidator('propertyTypes')))
     .optional(),
 
-  petPolicy: Joi.array()
-    .items(Joi.string())
-    .optional(),
+  petPolicy: Joi.array().items(Joi.string()).optional(),
 
-  floorAreaSqFt: Joi.array()
-    .items(Joi.number().min(0))
-    .optional(),
+  floorAreaSqFt: Joi.array().items(Joi.number().min(0)).optional(),
 
   featureIds: Joi.array()
     .items(Joi.string().custom(joiObjectIdValidator('featureIds')))
     .optional(),
 
-  yearOfBuild: Joi.array()
-    .items(Joi.number())
-    .optional(),
+  yearOfBuild: Joi.array().items(Joi.number()).optional(),
 
   priceRange: Joi.array()
     .items(
@@ -163,11 +169,7 @@ export const matchmakingPreferencesSchema = Joi.object({
     )
     .optional(),
 
-  developmentStatus: Joi.array()
-    .items(Joi.string())
-    .optional(),
+  developmentStatus: Joi.array().items(Joi.string()).optional(),
 
-  rentalPotential: Joi.array()
-    .items(Joi.string())
-    .optional(),
+  rentalPotential: Joi.array().items(Joi.string()).optional(),
 });

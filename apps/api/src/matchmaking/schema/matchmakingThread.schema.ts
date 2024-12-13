@@ -11,7 +11,8 @@ export class MatchmakingThread extends Document {
 
   @Prop({
     type: {
-      locationIds: [{ type: Types.ObjectId, ref: 'Location' }],
+      countryId: [{ type: Types.ObjectId, ref: 'Country' }],
+      cities: [{ type: Types.ObjectId, ref: 'City' }],
       propertyTypes: [{ type: Types.ObjectId }],
       lifestyles: [{ type: Types.ObjectId, ref: 'Lifestyle' }],
       brands: [{ type: Types.ObjectId, ref: 'Brand' }],
@@ -36,7 +37,8 @@ export class MatchmakingThread extends Document {
     default: {},
   })
   preferences?: {
-    locationIds?: Types.ObjectId[];
+    countryId?: Types.ObjectId[];
+    cities?: Types.ObjectId[];
     propertyTypes?: Types.ObjectId[];
     lifestyles?: Types.ObjectId[];
     brands?: Types.ObjectId[];
