@@ -704,26 +704,23 @@ export class ResidenceService {
     listPropsDto: ListResidenceByFiltersQueryPropsDto,
     filtersDto: ListResidenceByFiltersDto
   ) {
-    const filter: any = {};
+    const pipeline: any[] = [];
 
-    // TODO: Implement sorting by score.
+    // Match filters
+    const matchStage: any = {};
+
     if (filtersDto.cities && filtersDto.cities.length > 0) {
-      filter.cityId = { $in: filtersDto.cities.map((city) => new Types.ObjectId(city)) };
+      matchStage.cityId = { $in: filtersDto.cities.map((city) => new Types.ObjectId(city)) };
     }
 
     if (filtersDto.countryId) {
-      // Handle both string and array cases
       const countryIds = Array.isArray(filtersDto.countryId)
         ? filtersDto.countryId
         : [filtersDto.countryId];
-
-      filter.countryId = {
-        $in: countryIds.map((id) => new Types.ObjectId(id)),
-      };
+      matchStage.countryId = { $in: countryIds.map((id) => new Types.ObjectId(id)) };
     }
 
     if (filtersDto.geographicalAreasId && filtersDto.geographicalAreasId.length > 0) {
-      // Find countries that belong to any of the specified geographical areas
       const countriesInAreas = await this.countryModel
         .find({
           geographicalAreasId: {
@@ -732,132 +729,333 @@ export class ResidenceService {
         })
         .select('_id');
 
-      // If countryId filter already exists, intersect with geographical areas countries
-      if (filter.countryId) {
-        filter.countryId.$in = filter.countryId.$in.filter((countryId) =>
-          countriesInAreas.some((country) => country._id.toString() === countryId.toString())
-        );
-      } else {
-        // Otherwise, create new filter with geographical areas countries
-        filter.countryId = {
-          $in: countriesInAreas.map((country) => country._id),
-        };
-      }
+      matchStage.countryId = {
+        $in: countriesInAreas.map((country) => country._id),
+      };
     }
+
     if (filtersDto.lifestyles && filtersDto.lifestyles.length > 0) {
-      filter.lifeStyleId = {
-        $in: filtersDto.lifestyles.map((lifestyles) => new Types.ObjectId(lifestyles)),
+      matchStage.lifeStyleId = {
+        $in: filtersDto.lifestyles.map((lifestyle) => new Types.ObjectId(lifestyle)),
       };
     }
 
     if (filtersDto.status) {
-      filter.status = filtersDto.status;
+      matchStage.status = filtersDto.status;
     }
 
     if (filtersDto.brands && filtersDto.brands.length > 0) {
-      filter.associatedBrandId = {
+      matchStage.associatedBrandId = {
         $in: filtersDto.brands.map((brand) => new Types.ObjectId(brand)),
       };
     }
 
     if (filtersDto.propertyTypes && filtersDto.propertyTypes.length > 0) {
-      filter.residenceTypeIds = {
+      matchStage.residenceTypeIds = {
         $in: filtersDto.propertyTypes.map((propertyType) => new Types.ObjectId(propertyType)),
       };
     }
 
+    if (filtersDto.petPolicy && filtersDto.petPolicy.length > 0) {
+      matchStage['residenceKeyFeatures.petPolicy'] = {
+        $in: filtersDto.petPolicy.map((policy) => new RegExp(policy, 'i')),
+      };
+    }
+
+    if (filtersDto.floorAreaSqFt && filtersDto.floorAreaSqFt.length > 0) {
+      const maxFloorArea = Math.max(...filtersDto.floorAreaSqFt);
+      matchStage['residenceKeyFeatures.developmentInfo.floorAreaSqFt'] = {
+        $lte: maxFloorArea
+      };
+    }
+
+    if (filtersDto.featureIds && filtersDto.featureIds.length > 0) {
+      matchStage['residenceKeyFeatures.featureIds'] = {
+        $all: filtersDto.featureIds.map((id) => new Types.ObjectId(id)),
+      };
+    }
+
+    if (filtersDto.yearOfBuild && filtersDto.yearOfBuild.length > 0) {
+      const maxYear = Math.max(...filtersDto.yearOfBuild);
+      matchStage['residenceKeyFeatures.developmentInfo.yearOfBuild'] = {
+        $lte: maxYear
+      };
+    }
+
     if (filtersDto.developerId) {
-      filter.developerId = new Types.ObjectId(filtersDto.developerId);
+      matchStage.developerId = new Types.ObjectId(filtersDto.developerId);
     }
 
     if (listPropsDto.search) {
-      filter.$or = [{ name: { $regex: listPropsDto.search, $options: 'i' } }];
+      matchStage.$or = [{ name: { $regex: listPropsDto.search, $options: 'i' } }];
     }
 
     if (filtersDto.locationIds && filtersDto.locationIds.length > 0) {
-      filter.locationId = {
+      matchStage.locationId = {
         $in: filtersDto.locationIds.map((id) => new Types.ObjectId(id)),
       };
     }
 
-    if (filtersDto.minPrice || filtersDto.maxPrice) {
-      filter.$and = filter.$and || [];
-      
-      if (filtersDto.minPrice) {
-          filter.$and.push({ 'budgetLimitationsRange.endRange': { $gte: filtersDto.minPrice } });
-      }
-      if (filtersDto.maxPrice) {
-          filter.$and.push({ 'budgetLimitationsRange.startRange': { $lte: filtersDto.maxPrice } });
-      }
-    }
-
     if (filtersDto.developmentStatus && filtersDto.developmentStatus.length > 0) {
-      filter['residenceKeyFeatures.developmentInfo.developmentStatus'] = {
-          $in: filtersDto.developmentStatus.map(status => 
-              new RegExp(status, 'i')
-          )
+      matchStage['residenceKeyFeatures.developmentInfo.developmentStatus'] = {
+        $in: filtersDto.developmentStatus.map((status) => new RegExp(status, 'i')),
       };
     }
 
     if (filtersDto.rentalPotential && filtersDto.rentalPotential.length > 0) {
-      filter['residenceKeyFeatures.developmentInfo.rentalPotential'] = {
-          $in: filtersDto.rentalPotential.map(potential => 
-              new RegExp(potential, 'i')
-          )
+      matchStage['residenceKeyFeatures.developmentInfo.rentalPotential'] = {
+        $in: filtersDto.rentalPotential.map((potential) => new RegExp(potential, 'i')),
       };
     }
 
- 
-    if (filtersDto.amenities && filtersDto.amenities.length > 0) {
-      filter['nearbyAmenities.amenitiesList'] = {
-          $all: filtersDto.amenities.map((id) => new Types.ObjectId(id))
+    if (filtersDto.amenitiesList && filtersDto.amenitiesList.length > 0) {
+      matchStage['nearbyAmenities.amenitiesList'] = {
+        $all: filtersDto.amenitiesList.map((id) => new Types.ObjectId(id)),
       };
     }
 
+    if (filtersDto.priceRange && filtersDto.priceRange.length > 0) {
+      matchStage.$and = filtersDto.priceRange.map((range) => ({
+        $and: [
+          { 'budgetLimitationsRange.endRange': { $gte: range.startRange } },
+          { 'budgetLimitationsRange.startRange': { $lte: range.endRange } },
+        ],
+      }));
+    }
+
+    if (filtersDto.roomCountRange && filtersDto.roomCountRange.length > 0) {
+      const [roomRange] = filtersDto.roomCountRange;
+      
+      pipeline.push(
+        {
+          $lookup: {
+            from: 'units',
+            let: { residenceId: '$_id' },
+            pipeline: [
+              {
+                $match: {
+                  $expr: { $eq: ['$residenceId', '$$residenceId'] },
+                  isDeleted: { $ne: true },
+                  status: 'active'
+                }
+              },
+              { $unwind: '$rooms' },
+              {
+                $lookup: {
+                  from: 'roomtypes',
+                  let: { roomTypeId: '$rooms.roomTypeId' },
+                  pipeline: [
+                    {
+                      $match: {
+                        $expr: { $eq: ['$_id', '$$roomTypeId'] },
+                        type: 'Bedroom',
+                        isDeleted: { $ne: true }
+                      }
+                    }
+                  ],
+                  as: 'roomType'
+                }
+              },
+              {
+                $match: {
+                  'roomType.0': { $exists: true }
+                }
+              },
+              {
+                $group: {
+                  _id: '$_id',
+                  bedroomCount: { $sum: '$rooms.unit' }
+                }
+              },
+              {
+                $match: {
+                  bedroomCount: {
+                    $gte: roomRange.minRooms,
+                    $lte: roomRange.maxRooms
+                  }
+                }
+              }
+            ],
+            as: 'matchingUnits'
+          }
+        },
+        {
+          $match: {
+            'matchingUnits.0': { $exists: true }
+          }
+        }
+      );
+    }
+
+    pipeline.push({ $match: matchStage });
+
+    // Add lookups and projections as needed
+    pipeline.push(
+      {
+        $lookup: {
+          from: 'residencetypes',
+          localField: 'residenceTypeIds',
+          foreignField: '_id',
+          as: 'residenceTypes',
+        },
+      },
+      {
+        $lookup: {
+          from: 'cities',
+          localField: 'cityId',
+          foreignField: '_id',
+          as: 'city',
+        },
+      },
+      {
+        $lookup: {
+          from: 'countries',
+          localField: 'countryId',
+          foreignField: '_id',
+          as: 'country',
+        },
+      },
+      {
+        $lookup: {
+          from: 'brands',
+          localField: 'associatedBrandId',
+          foreignField: '_id',
+          as: 'associatedBrand',
+        },
+      },
+      {
+        $lookup: {
+          from: 'uploads',
+          localField: 'visuals.mainPhotos',
+          foreignField: '_id',
+          as: 'mainPhotos',
+        },
+      },
+      {
+        $lookup: {
+          from: 'uploads',
+          localField: 'visuals.mainGalleryPhotos',
+          foreignField: '_id',
+          as: 'mainGalleryPhotos',
+        },
+      },
+      {
+        $lookup: {
+          from: 'uploads',
+          localField: 'visuals.secondGalleryPhotos',
+          foreignField: '_id',
+          as: 'secondGalleryPhotos',
+        },
+      },
+      {
+        $lookup: {
+          from: 'uploads',
+          localField: 'visuals.videoTour',
+          foreignField: '_id',
+          as: 'videoTour',
+        },
+      },
+      {
+        $lookup: {
+          from: 'amenities',
+          localField: 'nearbyAmenities.amenitiesList',
+          foreignField: '_id',
+          as: 'amenitiesList',
+        },
+      },
+      {
+        $lookup: {
+          from: 'amenities',
+          localField: 'nearbyAmenities.highlightedAmenities.amenityId',
+          foreignField: '_id',
+          as: 'highlightedAmenities',
+        },
+      },
+      {
+        $lookup: {
+          from: 'uploads',
+          localField: 'nearbyAmenities.highlightedAmenities.imageId',
+          foreignField: '_id',
+          as: 'highlightedAmenitiesImage',
+        },
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'createdById',
+          foreignField: '_id',
+          as: 'createdBy',
+        },
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'developerId',
+          foreignField: '_id',
+          as: 'developer',
+        },
+      },
+     
+      
+
+      {
+        $lookup: {
+          from: 'rankingcategories',
+          localField: 'highestRankingCategoryId',
+          foreignField: '_id',
+          as: 'highestRankingCategory',
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          name: 1,
+          residenceTypes: 1,
+          city: 1,
+          country: 1,
+          associatedBrand: 1,
+          mainPhotos: 1,
+          mainGalleryPhotos: 1,
+          secondGalleryPhotos: 1,
+          videoTour: 1,
+          amenitiesList: 1,
+          highlightedAmenities: 1,
+          highlightedAmenitiesImage: 1,
+          createdBy: 1,
+          developer: 1,
+          highestRankingCategory: 1,
+          status: 1,
+          budgetLimitationsRange: 1,
+          residenceKeyFeatures: 1,
+          visuals: 1,
+          nearbyAmenities: 1,
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      }
+    );
+
+    // Pagination
     const options = PaginationService.prepareOptions(listPropsDto);
+    pipeline.push(
+      {
+        $facet: {
+          data: [{ $skip: Number(options.offset) }, { $limit: Number(options.limit) }],
+          totalCount: [{ $count: 'count' }],
+        },
+      },
+      {
+        $project: {
+          data: 1,
+          totalCount: { $arrayElemAt: ['$totalCount.count', 0] },
+        },
+      }
+    );
 
-    const { data, count } = await this.residenceRepository.findAll(filter, options, [
-      {
-        path: 'residenceTypeIds',
-        select: 'type',
-        model: 'ResidenceType',
-      },
-      { path: 'cityId', select: 'name countryId upload' },
-      { path: 'countryId', select: 'name geographicalAreasId upload' },
-      { path: 'associatedBrandId', select: 'name' },
-      {
-        path: 'visuals.mainPhotos',
-        select: 'originalFileKey fileKey url mimeType',
-        model: 'Upload',
-      },
-      {
-        path: 'visuals.mainGalleryPhotos',
-        select: 'originalFileKey fileKey url mimeType',
-        model: 'Upload',
-      },
-      {
-        path: 'visuals.secondGalleryPhotos',
-        select: 'originalFileKey fileKey url mimeType',
-        model: 'Upload',
-      },
-      {
-        path: 'visuals.videoTour',
-        select: 'originalFileKey fileKey url mimeType',
-        model: 'Upload',
-      },
-      { path: 'nearbyAmenities.amenitiesList', select: 'name', model: 'Amenity' },
-      { path: 'nearbyAmenities.highlightedAmenities.amenityId', select: 'name', model: 'Amenity' },
-      {
-        path: 'nearbyAmenities.highlightedAmenities.imageId',
-        select: 'originalFileKey fileKey url mimeType',
-        model: 'Upload',
-      },
-      { path: 'createdById', select: 'fullName email role', model: 'User' },
-      { path: 'developerId', select: 'fullName email role', model: 'User' },
-      { path: 'highestRankingCategoryId', model: 'RankingCategory', select: 'title' },
-    ]);
+    const result = await this.residenceRepository.aggregate(pipeline);
+    const { data, totalCount } = result[0];
 
-    const { pagination } = PaginationService.paginate({ rows: data, count }, listPropsDto);
+    const pagination = PaginationService.paginate({ rows: data, count: totalCount }, listPropsDto);
 
     const updatedData = [];
 
@@ -880,7 +1078,7 @@ export class ResidenceService {
         },
         {
           sort: {
-            'bbrScore': -1,
+            bbrScore: -1,
           },
         }
       );
@@ -889,7 +1087,7 @@ export class ResidenceService {
         residence?._id.toString()
       );
       updatedData.push({
-        ...residence.toObject(),
+        ...residence,
         position,
       });
     }

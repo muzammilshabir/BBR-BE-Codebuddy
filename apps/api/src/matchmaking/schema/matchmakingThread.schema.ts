@@ -12,14 +12,24 @@ export class MatchmakingThread extends Document {
   @Prop({
     type: {
       locationIds: [{ type: Types.ObjectId, ref: 'Location' }],
-      amenities: [{ type: Types.ObjectId, ref: 'Amenity' }],
-      brands: [{ type: Types.ObjectId, ref: 'Brand' }],
-      lifestyles: [{ type: Types.ObjectId, ref: 'Lifestyle' }],
       propertyTypes: [{ type: Types.ObjectId }],
-      maxPrice: { type: Number },
-      minPrice: { type: Number },
-      developmentStatus: [{ type: String }],
+      lifestyles: [{ type: Types.ObjectId, ref: 'Lifestyle' }],
+      brands: [{ type: Types.ObjectId, ref: 'Brand' }],
+      petPolicy: [{ type: String }],
+      floorAreaSqFt: [{ type: Number }],
+      featureIds: [{ type: Types.ObjectId, ref: 'ResidenceFeature' }],
+      yearOfBuild: [{ type: Number }],
       rentalPotential: [{ type: String }],
+      developmentStatus: [{ type: String }],
+      amenitiesList: [{ type: Types.ObjectId, ref: 'Amenity' }],
+      priceRange: [{
+        startRange: { type: Number },
+        endRange: { type: Number }
+      }],
+      roomCountRange: [{
+        minRooms: { type: Number },
+        maxRooms: { type: Number }
+      }]
     },
     _id: false,
     required: false,
@@ -27,14 +37,18 @@ export class MatchmakingThread extends Document {
   })
   preferences?: {
     locationIds?: Types.ObjectId[];
-    brands?: Types.ObjectId[];
+    propertyTypes?: Types.ObjectId[];
     lifestyles?: Types.ObjectId[];
-    propertyTypes: Types.ObjectId[];
-    maxPrice?: number;
-    minPrice?: number;
-    developmentStatus?: string[];
+    brands?: Types.ObjectId[];
+    petPolicy?: string[];
+    floorAreaSqFt?: number[];
+    featureIds?: Types.ObjectId[];
+    yearOfBuild?: number[],
     rentalPotential?: string[];
-    amenities?: Types.ObjectId[];
+    developmentStatus?: string[];
+    amenitiesList?: Types.ObjectId[];
+    priceRange?: { startRange: number; endRange: number }[];
+    roomCountRange?: { minRooms: number; maxRooms: number }[];
   };
 
   @Prop({
