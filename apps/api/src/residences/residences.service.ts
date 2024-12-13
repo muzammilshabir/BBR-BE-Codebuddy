@@ -1046,6 +1046,7 @@ export class ResidenceService {
       const city = await this.cityRepository.find({
         _id: residence.cityId,
         isDeleted: { $ne: DeletionStatus.DELETED },
+        active: true
       });
       if (!city) {
         throw new BadRequestException(

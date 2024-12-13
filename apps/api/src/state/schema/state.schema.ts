@@ -6,17 +6,11 @@ export class State extends Document {
   @Prop({ required: true })
   name: string;
 
-  @Prop({ required: true })
+  @Prop({ required: false })
   stateCode: string;
 
   @Prop({ required: false })
   countryCode: string;
-
-  @Prop({ required: false })
-  latitude: number;
-
-  @Prop({ required: false })
-  longitude: number;
 
   @Prop({ type: Types.ObjectId, ref: 'Country', required: true })
   countryId: Types.ObjectId;
@@ -44,6 +38,9 @@ export class State extends Document {
 
   @Prop({ default: false })
   isDeleted: boolean;
+
+  @Prop({ default: false })
+  active: boolean;
 
   createdAt: Date;
   updatedAt: Date;

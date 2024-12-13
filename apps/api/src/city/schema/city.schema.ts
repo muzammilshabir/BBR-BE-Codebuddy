@@ -7,10 +7,10 @@ export class City extends Document {
   name: string;
 
   @Prop({ required: false })
-  latitude: number;
+  stateCode: string;
 
   @Prop({ required: false })
-  longitude: number;
+  countryCode: string;
 
   @Prop({ type: Types.ObjectId, ref: 'State', required: false })
   stateId: Types.ObjectId;

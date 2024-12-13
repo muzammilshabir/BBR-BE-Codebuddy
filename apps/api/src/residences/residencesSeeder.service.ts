@@ -290,11 +290,27 @@ export class ResidenceSeederService {
         
               cityDoc = await this.cityModel.create(cityData);
             } else if (cityDoc.active === false) {
+              // Update city status
               cityDoc = await this.cityModel.findByIdAndUpdate(
                 cityDoc._id,
                 { active: true },
                 { new: true }
               );
+
+              if (cityDoc.stateCode) {
+                try {
+                  const stateDoc = await this.stateModel.findOne({ stateCode: cityDoc.stateCode });
+                  if (stateDoc && !stateDoc.active) {
+                    await this.stateModel.findOneAndUpdate(
+                      { stateCode: cityDoc.stateCode },
+                      { $set: { active: true } },
+                      { new: true }
+                    );
+                  }
+                } catch (error) {
+                  console.error(`Error updating state status for stateCode ${cityDoc.stateCode}:`, error);
+                }
+              }
             }
       
           } catch (error) {
@@ -1086,11 +1102,28 @@ export class ResidenceSeederService {
 
       cityDoc = await this.cityModel.create(cityData);
     } else if (cityDoc.active === false) {
+      // Update city status
       cityDoc = await this.cityModel.findByIdAndUpdate(
         cityDoc._id,
         { active: true },
         { new: true }
       );
+
+      // Only update state if stateCode exists
+      if (cityDoc.stateCode) {
+        try {
+          const stateDoc = await this.stateModel.findOne({ stateCode: cityDoc.stateCode });
+          if (stateDoc && !stateDoc.active) {
+            await this.stateModel.findOneAndUpdate(
+              { stateCode: cityDoc.stateCode },
+              { $set: { active: true } },
+              { new: true }
+            );
+          }
+        } catch (error) {
+          console.error(`Error updating state status for stateCode ${cityDoc.stateCode}:`, error);
+        }
+      }
     }
     return cityDoc;
   }
@@ -1798,238 +1831,5 @@ private async processImage(imagePath: string, imageType: string) {
   }
 }
 
-// private async apiRequest(endpoint: string) {
-//   try {
-//     const response = await axios.get(`${this.BASE_URL}${endpoint}`, {
-//       headers: { 'X-CSCAPI-KEY': this.API_KEY },
-//     });
-//     return response.data;
-//   } catch (error) {
-//     console.error(`API request failed for ${endpoint}:`, error.message);
-//     return [];
-//   }
-// }
-
-// async seedLocations() {
-  
-//   const countries = await this.apiRequest('/countries');
-
-//   for (const country of countries) {
-//     await new Promise(resolve => setTimeout(resolve, 100));
-
-//     const existingCountry = await this.countryModel.findOne({ 
-//       name: country.name 
-//     });
-
-//     const countryData = {
-//       name: country.name,
-//       countryCode: country.iso2,
-//       phoneCode: country.phonecode,
-//       capital: country.capital,
-//       currency: country.currency,
-//       native: country.native,
-//     };
-
-//     const dbCountry = existingCountry 
-//       ? await this.countryModel.findByIdAndUpdate(
-//           existingCountry._id,
-//           { ...countryData },
-//           { new: true }
-//         )
-//       : await this.countryModel.create(countryData);
-
-//     const states = await this.apiRequest(`/countries/${country.iso2}/states`);
-
-//     for (const state of states) {
-//       const existingState = await this.stateRepository.find({
-//         name: state.name,
-//         countryId: dbCountry._id
-//       });
-
-//       const stateData = {
-//         name: state.name,
-//         countryId: dbCountry._id,
-//         countryCode: state.country_code,
-//         stateCode: state.iso2,
-//         latitude: state.latitude,
-//         longitude: state.longitude,
-//       };
-
-//       const dbState = existingState
-//         ? await this.stateRepository.update(
-//             existingState._id.toString(),
-//             { ...stateData, active: true }
-//           )
-//         : await this.stateRepository.create(stateData);
-
-//       const cities = await this.apiRequest(
-//         `/countries/${country.iso2}/states/${state.iso2}/cities`
-//       );
-
-//       for (const city of cities) {
-//         const existingCity = await this.cityModel.findOne({
-//           name: city.name,
-//           stateId: dbState._id,
-//         });
-
-//         const cityData = {
-//           name: city.name,
-//           countryId: dbCountry._id,
-//           stateId: dbState._id,
-//           latitude: city.latitude,
-//           longitude: city.longitude,
-//         };
-
-//         if (existingCity) {
-//           await this.cityModel.findByIdAndUpdate(
-//             existingCity._id,
-//             { ...cityData }
-//           );
-//         } else {
-//           await this.cityModel.create(cityData);
-//         }
-//       }
-//     }
-//   }
-// }
-
-async seedLocations() {
-  try {
-    const DELAY_MS = 500;
-    const countries = await this.apiRequest('/countries');
-    
-    for (const country of countries) {
-      try {
-        await new Promise(resolve => setTimeout(resolve, DELAY_MS));
-        
-        // Upsert country
-        const countryData = {
-          name: country.name,
-          countryCode: country.iso2,
-          phoneCode: country.phonecode,
-          capital: country.capital,
-          currency: country.currency,
-          native: country.native,
-        };
-
-        const dbCountry = await this.countryModel.findOneAndUpdate(
-          { name: country.name },
-          { $set: countryData },
-          { upsert: true, new: true }
-        );
-
-        // Create location record for country
-        await this.locationModel.findOneAndUpdate(
-          { name: country.name, type: 'country' },
-          {
-            $set: {
-              name: country.name,
-              type: 'country',
-              parentId: null
-            }
-          },
-          { upsert: true }
-        );
-
-        // Fetch and process states
-        const states = await this.apiRequest(`/countries/${country.iso2}/states`);
-        const stateBulkOps = states.map(state => ({
-          updateOne: {
-            filter: { 
-              name: state.name,
-              countryId: dbCountry._id 
-            },
-            update: {
-              $set: {
-                name: state.name,
-                countryId: dbCountry._id,
-                countryCode: state.country_code,
-                stateCode: state.iso2,
-                latitude: state.latitude,
-                longitude: state.longitude,
-              }
-            },
-            upsert: true
-          }
-        }));
-
-        if (stateBulkOps.length > 0) {
-          await this.stateModel.bulkWrite(stateBulkOps);
-        }
-
-        // Process cities in batches
-        for (const state of states) {
-          await new Promise(resolve => setTimeout(resolve, DELAY_MS));
-          
-          const cities = await this.apiRequest(
-            `/countries/${country.iso2}/states/${state.iso2}/cities`
-          );
-
-          // Create location records for cities
-          const locationBulkOps = cities.map(city => ({
-            updateOne: {
-              filter: {
-                name: city.name,
-                type: 'city'
-              },
-              update: {
-                $set: {
-                  name: city.name,
-                  type: 'city',
-                  parentId: dbCountry._id.toString()
-                }
-              },
-              upsert: true
-            }
-          }));
-
-          const cityBulkOps = cities.map(city => ({
-            updateOne: {
-              filter: {
-                name: city.name,
-                countryId: dbCountry._id,
-                stateId: state._id
-              },
-              update: {
-                $set: {
-                  name: city.name,
-                  countryId: dbCountry._id,
-                  stateId: state._id,
-                  latitude: city.latitude,
-                  longitude: city.longitude
-                }
-              },
-              upsert: true
-            }
-          }));
-
-          if (cityBulkOps.length > 0) {
-            await Promise.all([
-              this.cityModel.bulkWrite(cityBulkOps),
-              this.locationModel.bulkWrite(locationBulkOps)
-            ]);
-          }
-        }
-        
-      } catch (error) {
-        console.error(`Error processing country ${country.name}:`, error);
-        continue; 
-      }
-    }
-  } catch (error) {
-    throw new Error(`Failed to seed locations: ${error.message}`);
-  }
-}
-
-private async apiRequest(endpoint: string) {
-  try {
-    const response = await axios.get(`${this.BASE_URL}${endpoint}`, {
-      headers: { 'X-CSCAPI-KEY': this.API_KEY }
-    });
-    return response.data;
-  } catch (error) {
-    throw new Error(`API request failed: ${error.message}`);
-  }
-}
 
 }

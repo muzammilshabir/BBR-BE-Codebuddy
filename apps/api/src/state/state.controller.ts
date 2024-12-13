@@ -1,5 +1,5 @@
-import { Body, Controller, Get, Param, Patch, Query, UsePipes } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, HttpException, HttpStatus, Param, Patch, Post, Query, UploadedFile, UseInterceptors, UsePipes } from '@nestjs/common';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { StateService } from './state.service';
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
 import { Public } from 'src/auth/decorators/public.decorator';
@@ -9,6 +9,7 @@ import { Roles } from 'src/auth/decorators/roles.decorator';
 import { ListStateDto, listStateSchema } from './dto/listState.dto';
 import { UpdateStateDto, updateStateSchema } from './dto/updateState.dto';
 import { GetByIdDto, getIdSchema } from 'src/city/dto/getById.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @ApiTags('State')
 @Controller('state')
@@ -48,6 +49,36 @@ export class StateController {
   async getResidenceById(@Param() params: GetByIdDto) {
     const state = await this.stateService.getStateById(params.id);
     return ResponseService.buildResponse({ state }, 'state retrieved successfully');
+  }
+
+  @Public()
+  @ApiOperation({
+    summary: 'Upload State Seeder',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @Post('upload-state-seeder')
+  @UseInterceptors(FileInterceptor('file'))
+  async processStateSeeder(
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+  
+    if (!file) {
+      throw new HttpException('File is required', HttpStatus.BAD_REQUEST);
+    }
+
+    const result = await this.stateService.processStateSeeder(file);
+    return ResponseService.buildResponse(result);
   }
     
 }

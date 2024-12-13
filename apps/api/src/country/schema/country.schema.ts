@@ -12,15 +12,6 @@ export class Country extends Document {
   @Prop({ required: false })
   phoneCode: string;
 
-  @Prop({ required: false })
-  capital: string;
-
-  @Prop({ required: false })
-  currency: string;
-
-  @Prop({ required: false })
-  native: string;
-
   @Prop({ type: Types.ObjectId, ref: 'GeographicalAreas', required: false })
   geographicalAreasId?: Types.ObjectId;
 
