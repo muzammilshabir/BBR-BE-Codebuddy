@@ -834,17 +834,41 @@ export class ResidenceService {
               {
                 $match: {
                   $expr: { $eq: ['$residenceId', '$$residenceId'] },
-                  isDeleted: { $ne: true }
+                  isDeleted: { $ne: true },
+                  status: 'active'
                 }
               },
+              { $unwind: '$rooms' },
               {
-                $project: {
-                  totalRooms: { $sum: '$rooms.unit' }
+                $lookup: {
+                  from: 'roomtypes',
+                  let: { roomTypeId: '$rooms.roomTypeId' },
+                  pipeline: [
+                    {
+                      $match: {
+                        $expr: { $eq: ['$_id', '$$roomTypeId'] },
+                        type: 'Bedroom',
+                        isDeleted: { $ne: true }
+                      }
+                    }
+                  ],
+                  as: 'roomType'
                 }
               },
               {
                 $match: {
-                  totalRooms: {
+                  'roomType.0': { $exists: true }
+                }
+              },
+              {
+                $group: {
+                  _id: '$_id',
+                  bedroomCount: { $sum: '$rooms.unit' }
+                }
+              },
+              {
+                $match: {
+                  bedroomCount: {
                     $gte: roomRange.minRooms,
                     $lte: roomRange.maxRooms
                   }
