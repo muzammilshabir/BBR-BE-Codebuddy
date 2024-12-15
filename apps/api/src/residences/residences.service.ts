@@ -707,7 +707,10 @@ export class ResidenceService {
     const pipeline: any[] = [];
 
     // Match filters
-    const matchStage: any = {};
+    const matchStage: any = {
+      isDeleted: false,
+      status: 'active'
+    };
 
     if (filtersDto.cities && filtersDto.cities.length > 0) {
       matchStage.cityId = { $in: filtersDto.cities.map((city) => new Types.ObjectId(city)) };
@@ -815,18 +818,22 @@ export class ResidenceService {
     }
 
     if (filtersDto.priceRange && filtersDto.priceRange.length > 0) {
-      matchStage.$and = filtersDto.priceRange.map((range) => ({
+      matchStage.$or = filtersDto.priceRange.map((range) => ({
         $and: [
-          { 'budgetLimitationsRange.endRange': { $gte: range.startRange } },
           { 'budgetLimitationsRange.startRange': { $lte: range.endRange } },
-        ],
+          { 'budgetLimitationsRange.endRange': { $gte: range.startRange } }
+        ]
       }));
     }
 
     if (filtersDto.roomCountRange && filtersDto.roomCountRange.length > 0) {
-      const [roomRange] = filtersDto.roomCountRange;
-      
       pipeline.push(
+        {
+          $match: {
+            isDeleted: false,
+            status: 'active'
+          }
+        },
         {
           $lookup: {
             from: 'units',
@@ -869,10 +876,12 @@ export class ResidenceService {
               },
               {
                 $match: {
-                  bedroomCount: {
-                    $gte: roomRange.minRooms,
-                    $lte: roomRange.maxRooms
-                  }
+                  $or: filtersDto.roomCountRange.map(range => ({
+                    bedroomCount: {
+                      $gte: range.minRooms,
+                      $lte: range.maxRooms
+                    }
+                  }))
                 }
               }
             ],
