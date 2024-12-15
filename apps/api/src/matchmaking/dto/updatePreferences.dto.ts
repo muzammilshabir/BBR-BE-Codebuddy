@@ -20,6 +20,14 @@ export class MatchmakingPreferencesDto {
   cities?: string[];
 
   @ApiProperty({
+    description: 'Filter by geographical area IDs',
+    example: ['60b6c0f53b5a5c1f88d25a1b'],
+    required: false,
+    type: [String],
+  })
+  geographicalAreasId?: string[];
+
+  @ApiProperty({
     description: 'Filter by Property Type IDs',
     example: ['60b6c0f53b5a5c1f88d25a1b'],
     required: false,
@@ -135,6 +143,10 @@ export const matchmakingPreferencesSchema = Joi.object({
 
   lifestyles: Joi.array()
     .items(Joi.string().custom(joiObjectIdValidator('lifestyles')))
+    .optional(),
+
+  geographicalAreasId: Joi.array()
+    .items(Joi.string().custom(joiObjectIdValidator('geographicalAreasId')))
     .optional(),
 
   propertyTypes: Joi.array()
