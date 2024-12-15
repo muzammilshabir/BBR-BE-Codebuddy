@@ -13,6 +13,7 @@ export class MatchmakingThread extends Document {
     type: {
       countryId: [{ type: Types.ObjectId, ref: 'Country' }],
       cities: [{ type: Types.ObjectId, ref: 'City' }],
+      geographicalAreasId: [{ type: Types.ObjectId }],
       propertyTypes: [{ type: Types.ObjectId }],
       lifestyles: [{ type: Types.ObjectId, ref: 'Lifestyle' }],
       brands: [{ type: Types.ObjectId, ref: 'Brand' }],
@@ -39,6 +40,7 @@ export class MatchmakingThread extends Document {
   preferences?: {
     countryId?: Types.ObjectId[];
     cities?: Types.ObjectId[];
+    geographicalAreasId: Types.ObjectId[];
     propertyTypes?: Types.ObjectId[];
     lifestyles?: Types.ObjectId[];
     brands?: Types.ObjectId[];
