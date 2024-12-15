@@ -31,6 +31,11 @@ export class RankingCategoryRepository extends BaseRepository<RankingCategory> {
         model: 'Country',
       })
       .populate({
+        path: 'stateId',
+        select: 'name stateCode',
+        model: 'State',
+      })
+      .populate({
         path: 'cityId',
         select: 'name state',
         model: 'City',

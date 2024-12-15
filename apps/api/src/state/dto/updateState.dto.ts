@@ -29,22 +29,6 @@ export class UpdateStateDto {
   countryCode?: string;
 
   @ApiProperty({
-    description: 'Latitude of the state',
-    example: 36.7783,
-    required: false,
-    type: Number,
-  })
-  latitude?: number;
-
-  @ApiProperty({
-    description: 'Longitude of the state',
-    example: -119.4179,
-    required: false,
-    type: Number,
-  })
-  longitude?: number;
-
-  @ApiProperty({
     description: 'Active status of the state',
     example: true,
     required: false,
@@ -79,8 +63,6 @@ export const updateStateSchema = Joi.object({
   name: Joi.string().trim().optional(),
   stateCode: Joi.string().trim().optional(),
   countryCode: Joi.string().trim().optional(),
-  latitude: Joi.number().optional(),
-  longitude: Joi.number().optional(),
   active: Joi.boolean().optional(),
   countryId: Joi.string().optional().custom(joiObjectIdValidator('countryId')),
   upload: Joi.array()

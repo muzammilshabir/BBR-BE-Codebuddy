@@ -12,7 +12,7 @@ export class State extends Document {
   @Prop({ required: false })
   countryCode: string;
 
-  @Prop({ type: Types.ObjectId, ref: 'Country', required: true })
+  @Prop({ type: Types.ObjectId, ref: 'Country', required: false })
   countryId: Types.ObjectId;
 
   @Prop({

@@ -73,11 +73,17 @@ export class CountryService {
               isDeleted: false
             };
           
-            const foundCountry = await this.countryRepository.find({ name: { $regex: new RegExp(countryData.name, 'i') }, isDeleted: false });
+            const foundCountry = await this.countryRepository.find({ 
+              name: { 
+                  $regex: `^${countryData.name.replace(/[()]/g, '\\$&')}$`, 
+                  $options: 'i' 
+              },
+              isDeleted: false 
+          });
             if(foundCountry){
-              await this.countryRepository.updateWithFilter(
-                { name: countryData.name, isDeleted: false },
-                { $set: countryData }
+              await this.countryRepository.update(
+                foundCountry._id,
+                countryData
               );
             }
 
@@ -154,7 +160,7 @@ export class CountryService {
     
       for (const country of countries) {
         await this.countryRepository.updateWithFilter(
-          { name: { $regex: new RegExp(country.name, 'i') }, isDeleted: false },
+          { name: { $regex: `^${country.name.replace(/[()]/g, '\\$&')}$` }, isDeleted: false },
           { $set: { active: true } }
         );
       }

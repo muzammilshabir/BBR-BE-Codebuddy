@@ -9,6 +9,7 @@ import { Country, CountrySchema } from '../country/schema/country.schema';
 import { CountryRepository } from '../country/country.repository';
 import { State, StateSchema } from 'src/state/schema/state.schema';
 import { StateRepository } from 'src/state/state.repository';
+import { ActivateCitySeeder } from './activatecity.seeder';
 
 @Module({
   imports: [
@@ -16,7 +17,7 @@ import { StateRepository } from 'src/state/state.repository';
     MongooseModule.forFeature([{ name: Country.name, schema: CountrySchema }]),
     MongooseModule.forFeature([{ name: State.name, schema: StateSchema }]),
   ],
-  providers: [CityService, CityRepository, CitySeeder, CountryRepository, StateRepository],
+  providers: [CityService, CityRepository, CitySeeder, CountryRepository, StateRepository, ActivateCitySeeder],
   exports: [CitySeeder],
   controllers: [CityController],
 })

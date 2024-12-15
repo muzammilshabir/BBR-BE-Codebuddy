@@ -108,6 +108,7 @@ export class ResidenceService {
 
       transformedDto.cityId = new Types.ObjectId(cityDetails.id);
       transformedDto.countryId = new Types.ObjectId(cityDetails.countryId);
+      transformedDto.stateId = new Types.ObjectId(cityDetails.stateId);
       transformedDto.address = createResidenceDto.address;
     }
 
@@ -158,6 +159,7 @@ export class ResidenceService {
 
         transformedDto.cityId = new Types.ObjectId(cityDetails.id);
         transformedDto.countryId = new Types.ObjectId(cityDetails.countryId);
+        transformedDto.stateId = new Types.ObjectId(cityDetails.stateId);
         transformedDto.address = updateResidenceDto.address;
       }
       const residenceDraft = await this.checkResidenceDraft(id);
@@ -473,6 +475,7 @@ export class ResidenceService {
       },
       { path: 'cityId', select: 'name countryId upload' },
       { path: 'countryId', select: 'name geographicalAreasId upload' },
+      { path: 'stateId', select: 'name stateCode upload' },
       { path: 'associatedBrandId', select: 'name' },
       {
         path: 'visuals.mainPhotos',
@@ -722,6 +725,17 @@ export class ResidenceService {
       };
     }
 
+    if (filtersDto.stateId) {
+      // Handle both string and array cases
+      const stateIds = Array.isArray(filtersDto.stateId)
+        ? filtersDto.stateId
+        : [filtersDto.stateId];
+
+      filter.stateId = {
+        $in: stateIds.map((id) => new Types.ObjectId(id)),
+      };
+    }
+
     if (filtersDto.geographicalAreasId && filtersDto.geographicalAreasId.length > 0) {
       // Find countries that belong to any of the specified geographical areas
       const countriesInAreas = await this.countryModel
@@ -824,6 +838,7 @@ export class ResidenceService {
       },
       { path: 'cityId', select: 'name countryId upload' },
       { path: 'countryId', select: 'name geographicalAreasId upload' },
+      { path: 'stateId', select: 'name upload' },
       { path: 'associatedBrandId', select: 'name' },
       {
         path: 'visuals.mainPhotos',
@@ -1086,9 +1101,13 @@ export class ResidenceService {
       city: {
         name: item.city[0]?.name[0] || null, // Extracts the first element from name array, or null if not present
         countryId: item.city[0]?.countryId[0] || null, // Extracts the first element from countryId array, or null if not present
+        stateId: item.city[0]?.stateId[0] || null
       },
       country: {
         name: item.country[0]?.name[0] || null, // Extracts the first element from name array, or null if not present
+      },
+      state:{
+        name: item.state[0].name[0] || null,
       },
       associatedBrand: item.associatedBrand[0] || null,
     }));
@@ -1133,6 +1152,7 @@ export class ResidenceService {
       },
       { path: 'cityId', select: 'name countryId upload' },
       { path: 'countryId', select: 'name geographicalAreasId upload' },
+      { path: 'stateId', select: 'name stateCode' },
       { path: 'associatedBrandId', select: 'name' },
       {
         path: 'visuals.mainPhotos',
@@ -1305,6 +1325,7 @@ export class ResidenceService {
 
         transformedDto.cityId = new Types.ObjectId(cityDetails.id);
         transformedDto.countryId = new Types.ObjectId(cityDetails.countryId);
+        transformedDto.stateId = new Types.ObjectId(cityDetails.stateId);
         transformedDto.address = updateResidenceDto.address;
       }
       const residenceDraft = await this.checkResidenceDraft(foundResidence._id.toString());
@@ -1511,6 +1532,7 @@ export class ResidenceService {
           'Unique URL': residence?.uniqueUrl || '-',
           'City': residence.city?.[0]?.name || '-',
           'Country': residence.country?.[0]?.name || '-',
+          'State': residence.state?.[0]?.name || '-',
           'Last Updated': residence.lastUpdated
             ? new Date(residence.lastUpdated).toLocaleString()
             : '-',
@@ -1535,6 +1557,7 @@ export class ResidenceService {
         'Developer Contact': '-',
         'City': '-',
         'Country': '-',
+        'State': '-',
         'Last Updated': '-',
         'Created At': '-',
       });
@@ -1621,6 +1644,7 @@ export class ResidenceService {
 
       transformedDto.cityId = new Types.ObjectId(cityDetails.id);
       transformedDto.countryId = new Types.ObjectId(cityDetails.countryId);
+      transformedDto.stateId = new Types.ObjectId(cityDetails.stateId);
       transformedDto.address = patchResidenceDto.address;
     }
 

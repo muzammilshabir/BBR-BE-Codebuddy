@@ -219,7 +219,11 @@ export class ResidenceSeederService {
             const country = singleCountry as any;
 
             let countryDoc = await this.countryModel.findOne({
-              name: { $regex: new RegExp(country.name, 'i') }
+              name: { 
+                $regex: `^${country.name.replace(/[()]/g, '\\$&')}$`, 
+                $options: 'i' 
+              },
+              isDeleted: false 
             });
 
             if (!countryDoc) {
@@ -268,8 +272,12 @@ export class ResidenceSeederService {
             }
         
             const searchQuery: any = {
-              name: { $regex: new RegExp(city.name, 'i') }
-            };
+              name: { 
+                $regex: `^${city.name.replace(/[()]/g, '\\$&')}$`, 
+                $options: 'i' 
+              },
+              isDeleted: false
+              };
         
             if (countryId) {
               searchQuery.countryId = new Types.ObjectId(countryId);
@@ -299,16 +307,46 @@ export class ResidenceSeederService {
 
               if (cityDoc.stateCode) {
                 try {
-                  const stateDoc = await this.stateModel.findOne({ stateCode: cityDoc.stateCode });
-                  if (stateDoc && !stateDoc.active) {
-                    await this.stateModel.findOneAndUpdate(
-                      { stateCode: cityDoc.stateCode },
-                      { $set: { active: true } },
+                  let stateDoc = await this.stateModel.findOne({ 
+                    stateCode: cityDoc.stateCode,
+                    countryId: cityDoc.countryId,
+                    isDeleted: false
+                  });
+
+                  if (!stateDoc) {
+                    stateDoc = await this.stateModel.create({
+                      stateCode: cityDoc.stateCode,
+                      countryId: cityDoc.countryId,
+                      countryCode: cityDoc.countryCode,
+                      name: cityDoc.state || cityDoc.stateCode,
+                      active: true
+                    });
+                  } else if (!stateDoc.active) {
+                    stateDoc = await this.stateModel.findByIdAndUpdate(
+                      stateDoc._id,
+                      { 
+                        $set: { 
+                          active: true,
+                          countryId: cityDoc.countryId
+                        } 
+                      },
                       { new: true }
                     );
                   }
+
+                  await this.cityModel.findByIdAndUpdate(
+                    cityDoc._id,
+                    { 
+                      $set: { 
+                        stateId: stateDoc._id,
+                        countryId: cityDoc.countryId
+                      } 
+                    },
+                    { new: true }
+                  );
+
                 } catch (error) {
-                  console.error(`Error updating state status for stateCode ${cityDoc.stateCode}:`, error);
+                  console.error(`Error updating state/city relationships for stateCode ${cityDoc.stateCode}:`, error);
                 }
               }
             }
@@ -1080,7 +1118,11 @@ export class ResidenceSeederService {
     }
 
     const searchQuery: any = {
-      name: { $regex: new RegExp(`^${matchingCity.name}$`, 'i') },
+      name: { 
+        $regex: `^${matchingCity.name.replace(/[()]/g, '\\$&')}$`, 
+        $options: 'i' 
+      },
+      isDeleted: false 
     };
 
     if (countryId) {
@@ -1112,16 +1154,46 @@ export class ResidenceSeederService {
       // Only update state if stateCode exists
       if (cityDoc.stateCode) {
         try {
-          const stateDoc = await this.stateModel.findOne({ stateCode: cityDoc.stateCode });
-          if (stateDoc && !stateDoc.active) {
-            await this.stateModel.findOneAndUpdate(
-              { stateCode: cityDoc.stateCode },
-              { $set: { active: true } },
+          let stateDoc = await this.stateModel.findOne({ 
+            stateCode: cityDoc.stateCode,
+            countryId: cityDoc.countryId,
+            isDeleted: false
+          });
+
+          if (!stateDoc) {
+            stateDoc = await this.stateModel.create({
+              stateCode: cityDoc.stateCode,
+              countryId: cityDoc.countryId,
+              countryCode: cityDoc.countryCode,
+              name: cityDoc.state || cityDoc.stateCode,
+              active: true
+            });
+          } else if (!stateDoc.active) {
+            stateDoc = await this.stateModel.findByIdAndUpdate(
+              stateDoc._id,
+              { 
+                $set: { 
+                  active: true,
+                  countryId: cityDoc.countryId
+                } 
+              },
               { new: true }
             );
           }
+
+          await this.cityModel.findByIdAndUpdate(
+            cityDoc._id,
+            { 
+              $set: { 
+                stateId: stateDoc._id,
+                countryId: cityDoc.countryId
+              } 
+            },
+            { new: true }
+          );
+
         } catch (error) {
-          console.error(`Error updating state status for stateCode ${cityDoc.stateCode}:`, error);
+          console.error(`Error updating state/city relationships for stateCode ${cityDoc.stateCode}:`, error);
         }
       }
     }
@@ -1140,7 +1212,11 @@ export class ResidenceSeederService {
     }
 
     let countryDoc = await this.countryModel.findOne({
-      name: { $regex: new RegExp(`^${matchingCountry.name}$`, 'i') },
+      name: { 
+        $regex: `^${matchingCountry.name.replace(/[()]/g, '\\$&')}$`, 
+        $options: 'i' 
+      },
+      isDeleted: false 
     });
 
     if (!countryDoc) {

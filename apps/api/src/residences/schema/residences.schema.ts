@@ -184,6 +184,9 @@ export class Residence extends Document {
   @Prop({ type: Types.ObjectId, ref: 'Country' })
   countryId: Types.ObjectId;
 
+  @Prop({ type: Types.ObjectId, ref: 'State' })
+  stateId: Types.ObjectId;
+
   @Prop({ type: Types.ObjectId, ref: 'LifeStyle' })
   lifeStyleId: Types.ObjectId;
 

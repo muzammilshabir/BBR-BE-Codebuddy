@@ -73,7 +73,7 @@ export class StateService {
             const statePromises = batch.map(async row => {
               // Find the corresponding country first
               const country = await this.countryRepository.find({ 
-                countryCode: row['country_code']?.toString(),
+                countryCode: row['country_code'],
                 isDeleted: false 
               });
     
@@ -83,29 +83,29 @@ export class StateService {
               }
     
               const stateData = {
-                name: row['name']?.toString(),
-                stateCode: row['state_code']?.toString() || "",
-                countryCode: row['country_code']?.toString(),
+                name: row['name'],
+                stateCode: row['state_code'] || "",
+                countryCode: row['country_code'],
                 countryId: country._id,
                 isDeleted: false
               };
             // console.log(stateData)
               const foundState = await this.stateRepository.find({ 
-                name: { $regex: new RegExp(stateData.name, 'i') },
+                name: { 
+                  $regex: `^${stateData.name.replace(/[()]/g, '\\$&')}$`, 
+                  $options: 'i' 
+              },
                 countryId: country._id,
                 isDeleted: false 
               });
     
               if (foundState) {
-                await this.stateRepository.updateWithFilter(
-                  { 
-                    name: stateData.name,
-                    countryId: country._id,
-                    isDeleted: false 
-                  },
-                  { $set: stateData }
+                await this.stateRepository.update(
+                  foundState._id.toString(),
+                  stateData 
                 );
               } else {
+                console.log(stateData.name)
                 await this.stateRepository.create(stateData);
               }
             });
