@@ -2,6 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import * as Joi from 'joi';
 import { ListPropsDto, PaginationSchema } from '@bbr/api-core/modules/dto/listProps.dto';
 import { LeadSource, LeadStatus } from '../enum/lead-enum';
+import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
 
 export class ListLeadDto extends ListPropsDto {
   @ApiProperty({
@@ -50,6 +51,13 @@ export class ListLeadDto extends ListPropsDto {
     required: false,
   })
   isRegistered?: boolean;
+
+  @ApiProperty({
+    description: 'Filter leads by residence id',
+    example: "666666666666666666666666",
+    required: false,
+  })
+  residenceId?: string;
 }
 
 export const listListSchema = PaginationSchema.append({
@@ -63,4 +71,5 @@ export const listListSchema = PaginationSchema.append({
   endDate: Joi.date().iso().optional(),
   search: Joi.string().optional(),
   isRegistered: Joi.boolean().optional(),
+  residenceId: Joi.string().custom(joiObjectIdValidator('residenceId')).optional(),
 });

@@ -64,6 +64,9 @@ import { FeatureRequestModule } from './featureRequests/featureRequests.module';
 import { BbrVerificationModule } from './bbr-verification/bbr-verification.module';
 import { MatchmakingModule } from './matchmaking/matchmaking.module';
 import { CustomerSupportConversationModule } from './customer-support-conversation/customer-support-conversation.module';
+import { AdditionalServiceModule } from './additional-service/additional-service.module';
+import { EditorNoteModule } from './editor-note/editor-note.module';
+import { BespokeRequestModule } from './bespokeRequests/bespokeRequests.module';
 import { StateModule } from './state/state.module';
 @Module({
   imports: [
@@ -128,6 +131,9 @@ import { StateModule } from './state/state.module';
     BbrVerificationModule,
     MatchmakingModule,
     CustomerSupportConversationModule,
+    AdditionalServiceModule,
+    EditorNoteModule,
+    BespokeRequestModule,
     StateModule
   ],
   controllers: [AppController],

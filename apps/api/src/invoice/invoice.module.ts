@@ -27,11 +27,25 @@ import {
 import { Transaction, TransactionSchema } from 'src/stripe/schema/transaction.schema';
 import { AuthModule } from 'src/auth/auth.module';
 import { UserModule } from 'src/users/user.module';
+import {
+  FeatureRequest,
+  FeatureRequestSchema,
+} from 'src/featureRequests/schema/featureRequest.schema';
+import {
+  BbrVerification,
+  BbrVerificationSchema,
+} from 'src/bbr-verification/schema/bbr-verification.schema';
+import { CustomerSupportModule } from 'src/customer-support/customer-support.module';
+import {
+  BespokeRequest,
+  BespokeRequestSchema,
+} from '../bespokeRequests/schema/bespokeRequests.schema';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: Invoice.name, schema: InvoiceSchema }]),
     MongooseModule.forFeature([{ name: InvoiceItem.name, schema: InvoiceItemSchema }]),
+    CustomerSupportModule,
     MongooseModule.forFeature([
       {
         name: InvoicePostPaymentAction.name,
@@ -45,6 +59,9 @@ import { UserModule } from 'src/users/user.module';
     MongooseModule.forFeature([{ name: Country.name, schema: CountrySchema }]),
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
     MongooseModule.forFeature([{ name: RankingRequest.name, schema: RankingRequestSchema }]),
+    MongooseModule.forFeature([{ name: FeatureRequest.name, schema: FeatureRequestSchema }]),
+    MongooseModule.forFeature([{ name: BbrVerification.name, schema: BbrVerificationSchema }]),
+    MongooseModule.forFeature([{ name: BespokeRequest.name, schema: BespokeRequestSchema }]),
     MongooseModule.forFeature([
       { name: RankingRequestDraft.name, schema: RankingRequestDraftSchema },
     ]),

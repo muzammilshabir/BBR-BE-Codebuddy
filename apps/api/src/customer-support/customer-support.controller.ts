@@ -53,7 +53,7 @@ export class CustomerSupportController {
       user
     );
     return ResponseService.buildResponse(
-      { customerSupports },
+      customerSupports,
       'Customer supports retrieved successfully'
     );
   }

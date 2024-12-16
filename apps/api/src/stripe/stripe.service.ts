@@ -91,6 +91,22 @@ export class StripeService {
     };
   }
 
+  async finalizeInvoice(invoice: Stripe.Invoice) {
+    const latestInvoice = await this.stripe.invoices.retrieve(invoice.id);
+    const fInvoice = await this.stripe.invoices.finalizeInvoice(latestInvoice.id, {
+      expand: ['payment_intent'],
+    });
+
+    return {
+      id: fInvoice.id,
+      total: fInvoice.amount_due,
+      customer: fInvoice.customer_name,
+      customer_email: fInvoice.customer_email,
+      items: this.parseInvoiceLineItems(latestInvoice.lines.data),
+      client_secret: (fInvoice.payment_intent as Stripe.PaymentIntent)?.client_secret,
+    };
+  }
+
   async getInvoiceFull(invoiceId: string) {
     return await this.stripe.invoices.retrieve(invoiceId);
   }
@@ -196,6 +212,10 @@ export class StripeService {
 
   async getPrice(priceId: string): Promise<Stripe.Price> {
     return this.stripe.prices.retrieve(priceId);
+  }
+
+  async delLineItem(lineItemId: string) {
+    return this.stripe.invoiceItems.del(lineItemId);
   }
 
   async getProduct(id: string): Promise<Stripe.Product> {
@@ -353,7 +373,7 @@ export class StripeService {
       customer: fInvoice.customer_name,
       customer_email: fInvoice.customer_email,
       items: this.parseInvoiceLineItems(invoice.lines.data),
-      client_secret: (fInvoice.payment_intent as Stripe.PaymentIntent).client_secret,
+      client_secret: (fInvoice.payment_intent as Stripe.PaymentIntent)?.client_secret,
     };
   }
 
