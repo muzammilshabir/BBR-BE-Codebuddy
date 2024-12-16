@@ -60,9 +60,10 @@ export class CityService {
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-      const BATCH_SIZE = 1000;
+      const BATCH_SIZE = 100;
+      const DELAY_BETWEEN_BATCHES = 500;
+
       let processedCount = 0;
-      let savedCount = 0;
 
       for (let i = 0; i < jsonData.length; i += BATCH_SIZE) {
         const batch = jsonData.slice(i, i + BATCH_SIZE);
@@ -138,18 +139,19 @@ export class CityService {
             }
           });
 
-          const savedBatch = await Promise.all(cityPromises);
+           await Promise.all(cityPromises);
           
-          const validSaves = savedBatch.filter(result => result !== undefined);
           
           processedCount += batch.length;
-          savedCount += validSaves.length;
+          
 
-          console.log(`Saved ${validSaves.length} cities. Total processed: ${processedCount}`);
-          await new Promise(resolve => setTimeout(resolve, 100));
+          console.log(` Total processed: ${processedCount}`);
+          await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_BATCHES));
 
         } catch (error) {
           console.error(`Error in batch ${i / BATCH_SIZE + 1}:`, error);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          i -= BATCH_SIZE;
           continue;
         }
       }
@@ -257,9 +259,8 @@ export class CityService {
 
       return {
         success: true,
-        message: `Successfully processed ${processedCount} rows and saved ${savedCount} cities`,
-        totalProcessed: processedCount,
-        savedCount: savedCount
+        message: `Successfully processed ${processedCount} rows `,
+        totalProcessed: processedCount
       };
 
     } catch (error) {
