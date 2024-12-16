@@ -86,8 +86,8 @@ export class LeadService {
   async updateLead(leadId: string, updateLeadDto: UpdateLeadDto, userId?: string): Promise<any> {
     const existingLead = userId
       ? await this.leadRepository.find({
-          _id: leadId,
-          developerId: userId,
+          _id: new Types.ObjectId(leadId),
+          developerId: new Types.ObjectId(userId),
         })
       : await this.leadRepository.findById(leadId);
     if (!existingLead) {
@@ -128,8 +128,8 @@ export class LeadService {
   async getLead(leadId: string, userId?: string): Promise<Lead> {
     return userId
       ? await this.leadRepository.find({
-          _id: leadId,
-          developerId: userId,
+          _id: new Types.ObjectId(leadId),
+          developerId: new Types.ObjectId(userId),
         })
       : await this.leadRepository.findById(leadId);
   }
@@ -510,8 +510,8 @@ export class LeadService {
   async deleteLead(leadId: string, userId?: string): Promise<Lead> {
     const existingLead = userId
       ? await this.leadRepository.find({
-          _id: leadId,
-          developerId: userId,
+          _id: new Types.ObjectId(leadId),
+          developerId: new Types.ObjectId(userId),
         })
       : await this.leadRepository.findById(leadId);
 

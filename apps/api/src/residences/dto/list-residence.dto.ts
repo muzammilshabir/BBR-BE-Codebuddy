@@ -136,6 +136,14 @@ export class ListResidenceByFiltersDto {
   brands?: string[];
 
   @ApiProperty({
+    description: 'Filter by Pet Policy',
+    example: ['No Pets Allowed', 'Pet Friendly'],
+    required: false,
+    type: [String],
+  })
+  petPolicy?: string[];
+
+  @ApiProperty({
     description: 'Filter by Property Type IDs',
     example: ['60b6c0f53b5a5c1f88d25a1b'],
     required: false,
@@ -160,28 +168,20 @@ export class ListResidenceByFiltersDto {
   developerId?: string;
 
   @ApiProperty({
+    description: 'Filter by Feature ID',
+    example: ['60b6c0f53b5a5c1f88d25a1b'],
+    required: false,
+    type: [String],
+  })
+  featureIds?: string[];
+
+  @ApiProperty({
     description: 'Filter by Location IDs',
     example: ['60b6c0f53b5a5c1f88d25a1b'],
     required: false,
     type: [String],
   })
   locationIds?: string[];
-
-  @ApiProperty({
-    description: 'Filter by minimum price',
-    example: 100000,
-    required: false,
-    type: Number,
-  })
-  minPrice?: number;
-
-  @ApiProperty({
-    description: 'Filter by maximum price',
-    example: 500000,
-    required: false,
-    type: Number,
-  })
-  maxPrice?: number;
 
   @ApiProperty({
     description: 'Filter by development status',
@@ -205,10 +205,49 @@ export class ListResidenceByFiltersDto {
     required: false,
     type: [String],
   })
-  amenities?: string[];
+  amenitiesList?: string[];
+
+  @ApiProperty({
+    description: 'Filter by Floor Area SqFt',
+    example: [50000, 60000],
+    required: false,
+    type: [Number],
+  })
+  floorAreaSqFt?: number[];
+
+  @ApiProperty({
+    description: 'Filter by Year of Build',
+    example: [2010, 2022],
+    required: false,
+    type: [Number],
+  })
+  yearOfBuild?: number[];
+
+
+  @ApiProperty({
+    description: 'Filter by price ranges',
+    example: [{ startRange: 100000, endRange: 500000 }],
+    required: false,
+    type: [Object],
+  })
+  priceRange?: { startRange: number; endRange: number }[];
+
+  @ApiProperty({
+    description: 'Filter by Room Count Range',
+    example: [{ minRooms: 2, maxRooms: 4 }],
+    required: false,
+    type: [Object],
+  })
+  roomCountRange?: { minRooms: number; maxRooms: number }[];
 }
 
 export const listResidenceByFiltersSchema = Joi.object({
+  roomCountRange: Joi.array()
+    .items(Joi.object({
+      minRooms: Joi.number().required(),
+      maxRooms: Joi.number().required()
+    }))
+    .optional(),
   cities: Joi.array()
     .items(Joi.string().custom(joiObjectIdValidator('cities')))
     .optional(),
@@ -237,12 +276,8 @@ export const listResidenceByFiltersSchema = Joi.object({
   locationIds: Joi.array()
     .items(Joi.string().custom(joiObjectIdValidator('locationIds')))
     .optional(),
-  minPrice: Joi.number()
-    .min(0)
-    .optional(),
-  maxPrice: Joi.number()
-    .min(0)
-    .greater(Joi.ref('minPrice'))
+  featureIds: Joi.array()
+    .items(Joi.string().custom(joiObjectIdValidator('featureIds')))
     .optional(),
   developmentStatus: Joi.array()
     .items(Joi.string())
@@ -250,9 +285,24 @@ export const listResidenceByFiltersSchema = Joi.object({
   rentalPotential: Joi.array()
     .items(Joi.string())
     .optional(),
-    amenities: Joi.array()
-    .items(Joi.string().custom(joiObjectIdValidator('amenities')))
+  petPolicy: Joi.array()
+    .items(Joi.string())
     .optional(),
+  floorAreaSqFt: Joi.array()
+    .items(Joi.number())
+    .optional(),
+  amenitiesList: Joi.array()
+    .items(Joi.string().custom(joiObjectIdValidator('amenitiesList')))
+    .optional(),
+  yearOfBuild: Joi.array()
+    .items(Joi.number())
+    .optional(),
+  priceRange: Joi.array().items(
+    Joi.object({
+      startRange: Joi.number().min(0).required(),
+      endRange: Joi.number().min(0).greater(Joi.ref('startRange')).required()
+    })
+  ).optional(),
 });
 
 export class ListResidenceWithDraftDto extends ListPropsDto {

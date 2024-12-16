@@ -75,7 +75,7 @@ export const createUserSchema = Joi.object({
     .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?])/)
     .messages({
       'string.pattern.base':
-        'password must be contain at least 1 uppercase letter, 1 lowercase letter, 1 digit and 1 special character',
+        'Password must be contain at least 1 uppercase letter, 1 lowercase letter, 1 digit and 1 special character',
     }),
   signupMethod: Joi.string().valid(...Object.values(SignupMethod)),
   role: Joi.string().valid(...Object.values(UserRole)),

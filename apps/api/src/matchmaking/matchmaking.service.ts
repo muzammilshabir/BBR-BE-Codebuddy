@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { MatchmakingThreadRepository } from './matchmakingThread.repository';
 import OpenAI from 'openai';
 import { MatchmakingPreferencesDto } from './dto/updatePreferences.dto';
@@ -35,6 +35,10 @@ export class MatchmakingService {
       sessionId,
       isDeleted: false,
     });
+
+    if (!thread) {
+      throw new NotFoundException('Session not found');
+    }
 
     const filter = { sessionId };
     const updateDto = {

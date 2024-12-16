@@ -4,36 +4,28 @@ import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/
 
 export class MatchmakingPreferencesDto {
   @ApiProperty({
-    description: 'Filter by Location IDs',
+    description: 'Filter by Country IDs',
     example: ['60b6c0f53b5a5c1f88d25a1b'],
     required: false,
     type: [String],
   })
-  locationIds?: string[];
+  countryId?: string[];
 
   @ApiProperty({
-    description: 'Filter by Amenity IDs',
+    description: 'Filter by City IDs',
     example: ['60b6c0f53b5a5c1f88d25a1b'],
     required: false,
     type: [String],
   })
-  amenities?: string[];
+  cities?: string[];
 
   @ApiProperty({
-    description: 'Filter by Brand IDs',
+    description: 'Filter by geographical area IDs',
     example: ['60b6c0f53b5a5c1f88d25a1b'],
     required: false,
     type: [String],
   })
-  brands?: string[];
-
-  @ApiProperty({
-    description: 'Filter by Lifestyle IDs',
-    example: ['60b6c0f53b5a5c1f88d25a1b'],
-    required: false,
-    type: [String],
-  })
-  lifestyles?: string[];
+  geographicalAreasId?: string[];
 
   @ApiProperty({
     description: 'Filter by Property Type IDs',
@@ -44,20 +36,60 @@ export class MatchmakingPreferencesDto {
   propertyTypes?: string[];
 
   @ApiProperty({
-    description: 'Minimum price',
-    example: 100000,
+    description: 'Filter by Lifestyle IDs',
+    example: ['60b6c0f53b5a5c1f88d25a1b'],
     required: false,
-    type: Number,
+    type: [String],
   })
-  minPrice?: number;
+  lifestyles?: string[];
 
   @ApiProperty({
-    description: 'Maximum price',
-    example: 500000,
+    description: 'Filter by Brand IDs',
+    example: ['60b6c0f53b5a5c1f88d25a1b'],
     required: false,
-    type: Number,
+    type: [String],
   })
-  maxPrice?: number;
+  brands?: string[];
+
+  @ApiProperty({
+    description: 'Pet policy options',
+    example: ['dogs_allowed', 'cats_allowed'],
+    required: false,
+    type: [String],
+  })
+  petPolicy?: string[];
+
+  @ApiProperty({
+    description: 'Floor area in square feet',
+    example: [1000, 2000],
+    required: false,
+    type: [Number],
+  })
+  floorAreaSqFt?: number[];
+
+  @ApiProperty({
+    description: 'Feature IDs',
+    example: ['60b6c0f53b5a5c1f88d25a1b'],
+    required: false,
+    type: [String],
+  })
+  featureIds?: string[];
+
+  @ApiProperty({
+    description: 'Year of build options',
+    example: [2020, 2023],
+    required: false,
+    type: [Number],
+  })
+  yearOfBuild?: number[];
+
+  @ApiProperty({
+    description: 'Rental potential options',
+    example: ['high', 'medium', 'low'],
+    required: false,
+    type: [String],
+  })
+  rentalPotential?: string[];
 
   @ApiProperty({
     description: 'Development status options',
@@ -68,21 +100,41 @@ export class MatchmakingPreferencesDto {
   developmentStatus?: string[];
 
   @ApiProperty({
-    description: 'Rental potential options',
-    example: ['high', 'medium', 'low'],
+    description: 'Filter by Amenity IDs',
+    example: ['60b6c0f53b5a5c1f88d25a1b'],
     required: false,
     type: [String],
   })
-  rentalPotential?: string[];
+  amenitiesList?: string[];
+
+  @ApiProperty({
+    description: 'Price range',
+    example: [{ startRange: 100000, endRange: 500000 }],
+    required: false,
+    type: [Object],
+  })
+  priceRange?: { startRange: number; endRange: number }[];
+
+  @ApiProperty({
+    description: 'Room count range',
+    example: [{ minRooms: 2, maxRooms: 4 }],
+    required: false,
+    type: [Object],
+  })
+  roomCountRange?: { minRooms: number; maxRooms: number }[];
 }
 
 export const matchmakingPreferencesSchema = Joi.object({
-  locationIds: Joi.array()
-    .items(Joi.string().custom(joiObjectIdValidator('locationIds')))
+  countryId: Joi.array()
+    .items(Joi.string().custom(joiObjectIdValidator('countryId')))
     .optional(),
 
-  amenities: Joi.array()
-    .items(Joi.string().custom(joiObjectIdValidator('amenities')))
+  cities: Joi.array()
+    .items(Joi.string().custom(joiObjectIdValidator('cities')))
+    .optional(),
+
+  amenitiesList: Joi.array()
+    .items(Joi.string().custom(joiObjectIdValidator('amenitiesList')))
     .optional(),
 
   brands: Joi.array()
@@ -93,24 +145,43 @@ export const matchmakingPreferencesSchema = Joi.object({
     .items(Joi.string().custom(joiObjectIdValidator('lifestyles')))
     .optional(),
 
+  geographicalAreasId: Joi.array()
+    .items(Joi.string().custom(joiObjectIdValidator('geographicalAreasId')))
+    .optional(),
+
   propertyTypes: Joi.array()
     .items(Joi.string().custom(joiObjectIdValidator('propertyTypes')))
     .optional(),
 
-  minPrice: Joi.number()
-    .min(0)
+  petPolicy: Joi.array().items(Joi.string()).optional(),
+
+  floorAreaSqFt: Joi.array().items(Joi.number().min(0)).optional(),
+
+  featureIds: Joi.array()
+    .items(Joi.string().custom(joiObjectIdValidator('featureIds')))
     .optional(),
 
-  maxPrice: Joi.number()
-    .min(0)
-    .greater(Joi.ref('minPrice'))
+  yearOfBuild: Joi.array().items(Joi.number()).optional(),
+
+  priceRange: Joi.array()
+    .items(
+      Joi.object({
+        startRange: Joi.number().min(0).required(),
+        endRange: Joi.number().min(0).greater(Joi.ref('startRange')).required(),
+      })
+    )
     .optional(),
 
-  developmentStatus: Joi.array()
-    .items(Joi.string())
+  roomCountRange: Joi.array()
+    .items(
+      Joi.object({
+        minRooms: Joi.number().min(0).required(),
+        maxRooms: Joi.number().min(0).greater(Joi.ref('minRooms')).required(),
+      })
+    )
     .optional(),
 
-  rentalPotential: Joi.array()
-    .items(Joi.string())
-    .optional(),
+  developmentStatus: Joi.array().items(Joi.string()).optional(),
+
+  rentalPotential: Joi.array().items(Joi.string()).optional(),
 });

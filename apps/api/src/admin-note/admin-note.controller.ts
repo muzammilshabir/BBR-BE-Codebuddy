@@ -34,6 +34,14 @@ export class AdminNoteController {
     return ResponseService.buildResponse({ adminNote }, 'Admin note updated successfully');
   }
 
+  @Get(':id')
+  @ApiOperation({ summary: 'Get admin note by id' })
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  async getAdminNoteById(@Param('id') id: string) {
+    const adminNote = await this.adminNoteService.getAdminNoteById(id);
+    return ResponseService.buildResponse({ adminNote }, 'Admin note retrieved successfully');
+  }
+
   @Delete(':id')
   @ApiOperation({ summary: 'Delete admin note' })
   @Roles(UserRole.ADMIN)

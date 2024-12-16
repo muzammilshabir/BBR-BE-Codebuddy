@@ -11,6 +11,7 @@ import { Plan, PlanSchema } from 'src/subscription-plan/schema/plan.schema';
 import { GuestUploadInventoryController } from './guestUploadInventory.controller';
 import { GuestPremiumResidenceProfileController } from './guestPremiumResidenceProfile.controller';
 import { GuestRequestVisitController } from './guestRequestAVisit.controller';
+import { CustomerSupportModule } from 'src/customer-support/customer-support.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { GuestRequestVisitController } from './guestRequestAVisit.controller';
     StripeModule,
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
     MongooseModule.forFeature([{ name: Plan.name, schema: PlanSchema }]),
+    CustomerSupportModule,
   ],
   controllers: [
     GuestApplyRankingController,
