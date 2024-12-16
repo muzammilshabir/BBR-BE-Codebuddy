@@ -736,6 +736,7 @@ export class ResidenceService {
         $in: stateIds.map((id) => new Types.ObjectId(id)),
       };
     }
+  
 
     if (filtersDto.geographicalAreasId && filtersDto.geographicalAreasId.length > 0) {
       const countriesInAreas = await this.countryModel
@@ -750,6 +751,7 @@ export class ResidenceService {
         $in: countriesInAreas.map((country) => country._id),
       };
     }
+   
 
     if (filtersDto.lifestyles && filtersDto.lifestyles.length > 0) {
       matchStage.lifeStyleId = {
