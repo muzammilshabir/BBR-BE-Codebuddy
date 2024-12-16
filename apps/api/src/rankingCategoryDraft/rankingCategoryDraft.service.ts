@@ -147,6 +147,10 @@ export class RankingCategoryDraftService {
       return true;
     }
 
+    if (!this.compareObjectIds(rankingCategory.stateId?._id, rankingCategoryDraft.stateId)) {
+      return true;
+    }
+
     if (!this.compareObjectIds(rankingCategory.cityId?._id, rankingCategoryDraft.cityId)) {
       return true;
     }
