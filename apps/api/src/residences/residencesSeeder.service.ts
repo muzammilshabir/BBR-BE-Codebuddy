@@ -92,35 +92,6 @@ interface Residence {
   amenity_ids: string;
 }
 
-interface CityInterface {
-  city_id: string;
-  name: string;
-  country_id: string;
-  logo: string;
-}
-
-interface CountryInterface{
-  logo:string
-  name:string
-}
-
-interface PropertyTypeInterface{
-  image_path: string;
-  name:string;
-
-}
-
-interface LifeStyleInterface{
-  image_path: string;
-  name:string;
-  
-}
-
-interface GeographicalAreasInterface{
-  image_path: string;
-  name:string;
-}
-
 const categoryTypeMapping = {
   'country': CategoryType.COUNTRY,
   'city': CategoryType.CITY,
@@ -175,8 +146,6 @@ export class ResidenceSeederService {
   });
   }
 
-  private readonly API_KEY = 'YOUR_API_KEY';
-  private readonly BASE_URL = 'https://api.countrystatecity.in/v1';
 
   async processUploadedFile(file: Express.Multer.File) {
     const BATCH_SIZE = 10;
@@ -209,6 +178,12 @@ export class ResidenceSeederService {
       for (let i = 0; i < sheets.countries.length; i += BATCH_SIZE) {
         const batch = sheets.countries.slice(i, i + BATCH_SIZE);
         
+        if (i === 0) {
+          await this.countryModel.updateMany(
+            { isDeleted: false },
+            { $set: { active: false } }
+          );
+        }
         
         if (i > 0) {
           await new Promise(resolve => setTimeout(resolve, 100));
@@ -255,6 +230,13 @@ export class ResidenceSeederService {
       for (let i = 0; i < sheets.cities.length; i += BATCH_SIZE) {
         const batch = sheets.cities.slice(i, i + BATCH_SIZE);
         
+        // Set all cities to inactive on first batch
+        if (i === 0) {
+          await this.cityModel.updateMany(
+            { isDeleted: false },
+            { $set: { active: false } }
+          );
+        }
         
         if (i > 0) {
           await new Promise(resolve => setTimeout(resolve, 100));
@@ -411,7 +393,6 @@ export class ResidenceSeederService {
         for (const rankingCategory of batch) {
           try {
             await new Promise(resolve => setTimeout(resolve, 500));
-      
             const rankingCategoryTyped = rankingCategory as RankingCategory;
             let criteria;
       
@@ -446,13 +427,12 @@ export class ResidenceSeederService {
             }
       
             const categoryType = foundIdField.replace('_id', '');
-            const mappedCategoryType = categoryTypeMapping[categoryType];
-      
+            const mappedCategoryType = categoryTypeMapping[rankingCategoryTyped.category_type];
+            
             if (!mappedCategoryType) {
               throw new Error(`Invalid category type mapping for: ${categoryType}`);
             }
-      
-            const doc = await this.processCategoryType(categoryType, rankingCategoryTyped, {
+            const doc = await this.processCategoryType(mappedCategoryType, rankingCategoryTyped, {
               countries: sheets.countries,
               cities: sheets.cities,
               lifestyles: sheets.lifestyles,
@@ -461,22 +441,28 @@ export class ResidenceSeederService {
               geographicalType: sheets.geographicalArea,
               brandCategories: sheets.brandCategories
             });
+            const rankingCategoryData = this.createRankingCategoryData(rankingCategoryTyped, {
+              doc,
+              mappedCategoryType,
+              criteria,
+              foundIdField
+            });
+
+            const foundRankingCategory = await this.rankingCategoryRepository.find({
+              title: new RegExp(`^${rankingCategoryData.title}$`, 'i')
+            });
+            if (!foundRankingCategory) {
+              await this.rankingCategoryRepository.create(rankingCategoryData);
+            } else {
+              const plainRankingCategory = foundRankingCategory.toJSON();
+              delete plainRankingCategory._id;
+
+              await this.rankingCategoryRepository.update(
+                foundRankingCategory._id.toString(),
+                { ...plainRankingCategory, ...rankingCategoryData }
+              );
+            }
       
-            const rankingCategoryData = {
-              title: rankingCategoryTyped?.title || '',
-              description: rankingCategoryTyped?.description || '',
-              categoryType: mappedCategoryType,
-              residenceLimitation: Number(rankingCategoryTyped?.residence_limitation) || null,
-              price: Number(rankingCategoryTyped?.ranking_price) || null,
-              criteria: criteria || [],
-              status: RankingCategoryStatus.ACTIVE,
-              isDeleted: false,
-              totalRequests: 0,
-              [this.getSchemaField(foundIdField)]: new Types.ObjectId(doc._id),
-            };
-      
-            await this.rankingCategoryRepository.create(rankingCategoryData);
-            
           } catch (error) {
             errors.rankingCategories.push({
               id: (rankingCategory as RankingCategory).ranking_category_id,
@@ -885,7 +871,7 @@ export class ResidenceSeederService {
         return await this.processBrand(rankingCategory, dataSources.brands, dataSources.brandCategories);
       case 'property_type':
         return await this.processProperty(rankingCategory, dataSources.propertyTypes);
-      case 'geographical_area':
+      case 'geography':
         return await this.processGeographicalArea(rankingCategory, dataSources.geographicalType);
       default:
         throw new Error(`Unsupported category type: ${categoryType}`);
@@ -894,9 +880,8 @@ export class ResidenceSeederService {
 
   private async processProperty(model: any, properties: any[]) {
     const matchingPropertyType = properties.find(
-      (property) => property.property_id === model.property_id
+      (property) => property.property_type_id === model.property_type_id
     );
-
     if (!matchingPropertyType) {
       throw new Error(`Property with property_id ${model.property_id} not found`);
     }
@@ -1490,17 +1475,16 @@ async processCityImages(file: Express.Multer.File) {
 
   for (let i = 0; i < sheets.cities.length; i += BATCH_SIZE) {
     const batch = sheets.cities.slice(i, i + BATCH_SIZE);
-    
     if (i > 0) {
       await new Promise(resolve => setTimeout(resolve, 500));
     }
   
     for (const singleCity of batch) {
-      const city = singleCity as CityInterface;
-      
-      if (city.logo) {
-        const imagePath = `${process.env.CITY_SEEDER_FOLDER}/${city.logo}`;
-        
+      const city = singleCity as any;
+      if (city.home_page_image) {
+        const lastValue = city.home_page_image_path.split('/')[city.home_page_image_path.split('/').length - 1];
+        const imagePath = `${lastValue}/${city.home_page_image}`;
+    
         try {
           const s3Object = await this.listS3Object(imagePath);
           
@@ -1584,14 +1568,16 @@ async processCountryImages(file: Express.Multer.File) {
     }
   
     for (const singleCountry of batch) {
-      const country = singleCountry as CountryInterface;
-      
+      const country = singleCountry as any;
+
       if (country.logo) {
         try {
-          const imagePath = `${process.env.COUNTRY_SEEDER_FOLDER}/${country.logo}`;
+         
+          const lastValue = country.logo_path.split('/').filter(Boolean).pop()
+          const imagePath = `${lastValue}/${country.logo}`;
 
           const s3Object = await this.listS3Object(imagePath);
-          
+
           if (s3Object.length > 0) {
             const uploadRecord = await this.createUploadRecord(s3Object[0]);
             
@@ -1635,14 +1621,16 @@ async processPropertyTypeImages(file: Express.Multer.File) {
     }
   
     for (const singlePropertyType of batch) {
-      const propertyType = singlePropertyType as PropertyTypeInterface;
+      const propertyType = singlePropertyType as any;
       
-      if (propertyType.image_path) {
-        const imagePath = `${process.env.PROPERTY_TYPE_SEEDER_FOLDER}/${propertyType.image_path}`;
+      if (propertyType.logo) {
+
+        const lastValue = propertyType.logo_path.split('/')[propertyType.logo_path.split('/').length - 1];
+        const imagePath = `${lastValue}/${propertyType.logo}`;
         
         try {
           const s3Object = await this.listS3Object(imagePath);
-          
+
           if (s3Object.length > 0) {
             const uploadRecord = await this.createUploadRecord(s3Object[0]);
             
@@ -1685,14 +1673,16 @@ async processLifestyleImages(file: Express.Multer.File) {
     }
   
     for (const singleLifestyle of batch) {
-      const lifestyle = singleLifestyle as LifeStyleInterface;
+      const lifestyle = singleLifestyle as any;
       
-      if (lifestyle.image_path) {
-        const imagePath = `${process.env.LIFESTYLE_SEEDER_FOLDER}/${lifestyle.image_path}`;
+      if (lifestyle.logo) {
+
+        const lastValue = lifestyle.image_path.split('/')[lifestyle.image_path.split('/').length - 1];
+        const imagePath = `${lastValue}/${lifestyle.logo}`;
         
         try {
           const s3Object = await this.listS3Object(imagePath);
-          
+
           if (s3Object.length > 0) {
             const uploadRecord = await this.createUploadRecord(s3Object[0]);
             
@@ -1718,8 +1708,6 @@ async processLifestyleImages(file: Express.Multer.File) {
   }
 }
 
-
-
 async processRankingCategoryImages(file: Express.Multer.File) {
   const BATCH_SIZE = 10;
   
@@ -1738,15 +1726,17 @@ async processRankingCategoryImages(file: Express.Multer.File) {
     for (const singleRankingCategory of batch) {
       const rankingCategory = singleRankingCategory as any;
       
-      if (rankingCategory.image_folder_name && rankingCategory.image_name) {
-        const imagePath = `${rankingCategory.image_folder_name}/${rankingCategory.image_name}`;
+      if (rankingCategory.image && rankingCategory.image_path) {
+
+        const lastValue = rankingCategory.image_path.split('/').filter(Boolean).pop()
+        const imagePath = `${lastValue}/${rankingCategory.image}`.trim();
         
         try {
           const s3Object = await this.listS3Object(imagePath);
           
           if (s3Object.length > 0) {
             const uploadRecord = await this.createUploadRecord(s3Object[0]);
-            
+
             if (uploadRecord) {
               await this.rankingCategoryRepository.updateWithFilter(
                 { title: rankingCategory.title, isDeleted: false },
@@ -1786,14 +1776,16 @@ async processGeographicalAreaImages(file: Express.Multer.File) {
     }
   
     for (const singleArea of batch) {
-      const geographicalArea = singleArea as GeographicalAreasInterface;
+      const geographicalArea = singleArea as any;
       
-      if (geographicalArea.image_path) {
-        const imagePath = `${process.env.GEOGRAPHICAL_AREAS_SEEDER_FOLDER}/${geographicalArea.image_path}`;
+      if (geographicalArea.logo) {
+
+        const lastValue = geographicalArea.logo_path.split('/')[geographicalArea.logo_path.split('/').length - 1];
+        const imagePath = `${lastValue}/${geographicalArea.logo}`;
         
         try {
           const s3Object = await this.listS3Object(imagePath);
-          
+
           if (s3Object.length > 0) {
             const uploadRecord = await this.createUploadRecord(s3Object[0]);
             
@@ -1841,29 +1833,38 @@ async processBrandImages(file: Express.Multer.File) {
       
       try {
         // Process logo image
-        if (brand.image1_path) {
-          const logoPath = `${process.env.BRAND_SEEDER_LOGO_FOLDER}/${brand.image1_path}`;
+        if (brand.logo) {
+
+          const lastValue = brand.logo_path.split('/').pop();
+          const logoPath = `${lastValue}/${brand.logo}`.trim();
           const logoUpload = await this.processImage(logoPath, 'logo');
           if (logoUpload) uploadArray.push(logoUpload);
         }
 
         // Process logo directory image
-        if (brand.image2_path) {
-          const logoDirectoryPath = `${process.env.BRAND_SEEDER_DIRECTORY_FOLDER}/${brand.image2_path}`;
+        if (brand.directory_logo) {
+
+          const lastValue = brand.directory_logo_path.split('/').pop();
+          const logoDirectoryPath = `${lastValue}/${brand.directory_logo}`;
           const logoDirectoryUpload = await this.processImage(logoDirectoryPath, 'logoDirectory');
           if (logoDirectoryUpload) uploadArray.push(logoDirectoryUpload);
         }
 
         // Process preview image
-        if (brand.image3_path) {
-          const previewPath = `${process.env.BRAND_SEEDER_PREVIEW_FOLDER}/${brand.image3_path}`;
+        if (brand.preview_image) {
+
+          
+          const lastValue = brand.preview_image_path.split('/').pop();
+          const previewPath = `${lastValue}/${brand.preview_image}`;
           const previewUpload = await this.processImage(previewPath, 'preview');
           if (previewUpload) uploadArray.push(previewUpload);
         }
 
         // Process background image
-        if (brand.image4_path) {
-          const backgroundPath = `${process.env.BRAND_SEEDER_BG_FOLDER}/${brand.image4_path}`;
+        if (brand.backgroung_image) {
+
+          const lastValue = brand.backgroung_image_path.split('/').pop();
+          const backgroundPath = `${lastValue}/${brand.backgroung_image}`;
           const backgroundUpload = await this.processImage(backgroundPath, 'backgroundImage');
           if (backgroundUpload) uploadArray.push(backgroundUpload);
         }
@@ -1907,5 +1908,61 @@ private async processImage(imagePath: string, imageType: string) {
   }
 }
 
+private createRankingCategoryData(rankingCategory: RankingCategory, data: {
+    doc: any;
+    mappedCategoryType: string;
+    criteria: any[];
+    foundIdField: string;
+}) {
+    const baseData: any = {
+        isDeleted: false,
+        status: RankingCategoryStatus.ACTIVE,
+        totalRequests: 0,
+        createdAt: new Date(),
+        updatedAt: new Date()
+    };
+
+    // Handle basic fields
+    if (rankingCategory.title?.toString().trim()) {
+        baseData.title = rankingCategory.title;
+    }
+
+    if (rankingCategory.description?.toString().trim()) {
+        baseData.description = rankingCategory.description;
+    }
+
+    // Handle category type
+    if (data.mappedCategoryType) {
+        baseData.categoryType = data.mappedCategoryType;
+    }
+
+    // Handle residence limitation
+    if (rankingCategory.residence_limitation?.toString().trim()) {
+        const residenceLimitation = Number(rankingCategory.residence_limitation);
+        if (!isNaN(residenceLimitation)) {
+            baseData.residenceLimitation = residenceLimitation;
+        }
+    }
+
+    // Handle ranking price
+    if (rankingCategory.ranking_price?.toString().trim()) {
+        const price = Number(rankingCategory.ranking_price);
+        if (!isNaN(price)) {
+            baseData.price = price;
+        }
+    }
+
+    // Handle criteria
+    if (data.criteria?.length > 0) {
+        baseData.criteria = data.criteria;
+    }
+
+    // Handle document ID reference
+    if (data.doc?._id && data.foundIdField) {
+        baseData[this.getSchemaField(data.foundIdField)] = new Types.ObjectId(data.doc._id);
+    }
+
+    return baseData;
+}
 
 }
