@@ -30,7 +30,7 @@ export class CustomerSupportConversationService {
     return conversation;
   }
 
-  async getConversations(filterDto:ListConversationDto) {
+  async getConversations(filterDto: ListConversationDto) {
     const result = await this.conversationRepository.findAllConversations(filterDto);
     const count = result[0]?.totalCount || 0;
     const data = result[0]?.data || [];
