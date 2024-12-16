@@ -3,8 +3,12 @@ import * as Joi from 'joi';
 import { LeadSource, LeadStatus } from '../enum/lead-enum';
 import { Types } from 'mongoose';
 import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
-import { UserContactInfo } from 'src/users/types/user.type';
-import { contactInfoSchema, preferencesSchema, LeadUserPreferences } from './create-lead.dto';
+import {
+  contactInfoSchema,
+  preferencesSchema,
+  LeadUserPreferences,
+  LeadUserContactInfo,
+} from './create-lead.dto';
 
 export class PhoneNumber {
   @ApiProperty({ description: 'Country code of the phone number', example: '+1' })
@@ -25,21 +29,21 @@ export class UpdateLeadDto {
   country?: string;
 
   @ApiProperty({
-    example: "10000000 - 15000000",
-    required: false
+    example: '10000000 - 15000000',
+    required: false,
   })
   budget?: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     example: 13400000,
-    description: "Price of the unit entered by the developer for this lead",
+    description: 'Price of the unit entered by the developer for this lead',
     required: false,
   })
   unitPrice?: number;
 
-  @ApiProperty({ 
+  @ApiProperty({
     example: 15,
-    description: "n/a",
+    description: 'n/a',
     required: false,
   })
   dealPercentage?: number;
@@ -61,16 +65,16 @@ export class UpdateLeadDto {
   })
   status?: LeadStatus;
 
-  @ApiProperty({ example: new Date, required: false })
+  @ApiProperty({ example: new Date(), required: false })
   convertedAt?: Date;
 
-  @ApiProperty({ example: new Date, required: false })
+  @ApiProperty({ example: new Date(), required: false })
   contactedAt?: Date;
 
-  @ApiProperty({ example: new Date, required: false })
+  @ApiProperty({ example: new Date(), required: false })
   lastContactedAt?: Date;
 
-  @ApiProperty({ example: new Date, required: false })
+  @ApiProperty({ example: new Date(), required: false })
   expectedCloseDate?: Date;
 
   @ApiProperty({
@@ -83,20 +87,23 @@ export class UpdateLeadDto {
   email?: string;
 
   @ApiProperty({ example: 'company name', required: false })
-  companyName?: string
+  companyName?: string;
 
-  @ApiProperty({ example:"https://www.google.com/",description: 'company or organization website link', required: false })
-  companyOrOrgLink?: string
+  @ApiProperty({
+    example: 'https://www.google.com/',
+    description: 'company or organization website link',
+    required: false,
+  })
+  companyOrOrgLink?: string;
 
   @ApiProperty({ example: '60d9c6a0a11c3c6c6a9a1a2b', required: false, type: String })
   unitId?: Types.ObjectId;
 
-  @ApiProperty({ description: 'Contact information', type: UserContactInfo, required: false })
-  contactInfo?: UserContactInfo;
+  @ApiProperty({ description: 'Contact information', type: LeadUserContactInfo, required: false })
+  contactInfo?: LeadUserContactInfo;
 
   @ApiProperty({ description: 'User preferences', type: LeadUserPreferences, required: false })
   preferences?: LeadUserPreferences;
-
 }
 
 const phoneSchema = Joi.object({
@@ -152,8 +159,8 @@ export const updateLeadSchema = Joi.object({
   expectedCloseDate: Joi.date().iso().optional(),
   phoneNumber: phoneSchema.optional(),
   email: Joi.string().email().optional(),
-  companyName:Joi.string().optional(),
-  companyOrOrgLink:Joi.string().uri().optional(),
+  companyName: Joi.string().optional(),
+  companyOrOrgLink: Joi.string().uri().optional(),
   unitId: Joi.string().optional().custom(joiObjectIdValidator('unitId')),
   contactInfo: contactInfoSchema.optional(),
   preferences: preferencesSchema.optional(),

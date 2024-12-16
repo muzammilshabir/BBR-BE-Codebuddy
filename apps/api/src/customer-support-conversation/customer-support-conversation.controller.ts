@@ -14,9 +14,7 @@ import { listConversationSchema } from './dto/list-conversation.dto';
 @ApiTags('CustomerSupportConversation')
 @Controller('customer-support-conversation')
 export class CustomerSupportConversationController {
-  constructor(
-    private readonly conversationService: CustomerSupportConversationService,
-  ) {}
+  constructor(private readonly conversationService: CustomerSupportConversationService) {}
 
   @Post()
   @ApiOperation({ summary: 'Create conversation reply' })
@@ -25,30 +23,19 @@ export class CustomerSupportConversationController {
   @UsePipes(new JoiValidationPipe(createConversationSchema, 'body'))
   async create(
     @Body() createConversationDto: CreateConversationDto,
-    @GetCurrentUser() user: JwtPayloadType,
+    @GetCurrentUser() user: JwtPayloadType
   ) {
-    const conversation = await this.conversationService.create(
-      createConversationDto,
-      user.sub,
-    );
-    return ResponseService.buildResponse(
-      { conversation },
-      'Conversation created successfully',
-    );
+    const conversation = await this.conversationService.create(createConversationDto, user.sub);
+    return ResponseService.buildResponse({ conversation }, 'Conversation created successfully');
   }
 
-  @Get('/:customerSupportId')
+  @Get()
   @ApiOperation({ summary: 'Get conversations for a customer support ticket' })
   @ApiBearerAuth()
   @Roles(UserRole.ADMIN, UserRole.SELLER)
   @UsePipes(new JoiValidationPipe(listConversationSchema, 'query'))
   async getConversations(@Query() listConversationDto: ListConversationDto) {
-    const conversations = await this.conversationService.getConversations(
-      listConversationDto,
-    );
-    return ResponseService.buildResponse(
-      { conversations },
-      'Conversations retrieved successfully',
-    );
+    const conversations = await this.conversationService.getConversations(listConversationDto);
+    return ResponseService.buildResponse(conversations, 'Conversations retrieved successfully');
   }
-} 
+}
