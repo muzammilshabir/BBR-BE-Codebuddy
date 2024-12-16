@@ -934,6 +934,14 @@ export class ResidenceService {
       },
       {
         $lookup: {
+          from: 'states',
+          localField: 'stateId',
+          foreignField: '_id',
+          as: 'state',
+        },
+      },
+      {
+        $lookup: {
           from: 'countries',
           localField: 'countryId',
           foreignField: '_id',
@@ -1038,6 +1046,7 @@ export class ResidenceService {
           residenceTypes: 1,
           city: 1,
           country: 1,
+          state: 1,
           associatedBrand: 1,
           mainPhotos: 1,
           mainGalleryPhotos: 1,
@@ -1360,7 +1369,7 @@ export class ResidenceService {
       },
       { path: 'cityId', select: 'name countryId upload' },
       { path: 'countryId', select: 'name geographicalAreasId upload' },
-      { path: 'stateId', select: 'name stateCode' },
+      { path: 'stateId', select: 'name stateCode upload' },
       { path: 'associatedBrandId', select: 'name' },
       {
         path: 'visuals.mainPhotos',
