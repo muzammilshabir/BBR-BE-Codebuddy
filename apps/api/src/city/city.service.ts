@@ -145,7 +145,6 @@ export class CityService {
           processedCount += batch.length;
           
 
-          console.log(` Total processed: ${processedCount}`);
           await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_BATCHES));
 
         } catch (error) {
