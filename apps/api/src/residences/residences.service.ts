@@ -1153,34 +1153,48 @@ export class ResidenceService {
             {
               $match: {
                 $expr: { $eq: ['$residenceId', '$$residenceId'] },
+                status: 'active',
                 isDeleted: { $ne: true },
-                bbrScore: { $exists: true },
-                status: {
-                  $in: ['active', 'draft', 'pending'],
-                },
+                bbrScore: { $exists: true }
+              }
+            },
+            {
+              $lookup: {
+                from: 'rankingcategories',
+                localField: 'rankingCategoryId',
+                foreignField: '_id',
+                as: 'rankingCategory'
+              }
+            },
+            {
+              $unwind: {
+                path: '$rankingCategory',
+                preserveNullAndEmptyArrays: true
+              }
+            },
+            {
+              $addFields: {
+                rankingCategoryId: '$rankingCategory'
               },
             },
-            {
-              $sort: { bbrScore: -1 },
-            },
-            {
-              $limit: 1,
-            },
           ],
-          as: 'rankingRequest',
-        },
+          as: 'rankings'
+        }
       },
       {
         $addFields: {
           bbrScore: {
-            $arrayElemAt: ['$rankingRequest.bbrScore', 0],
-          },
-        },
+            $ifNull: [
+              { $arrayElemAt: ['$rankings.bbrScore', 0] },
+              null
+            ]
+          }
+        }
       },
       {
         $project: {
-          rankingRequest: 0,
-        },
+          rankings: 0
+        }
       },
       {
         $project: {
@@ -1236,40 +1250,69 @@ export class ResidenceService {
     const pagination = PaginationService.paginate({ rows: data, count: totalCount }, listPropsDto);
 
     const updatedData = [];
+    const rankingMap: Map<string, RankingRequest[]> = new Map();
 
     for (let index = 0; index < data.length; index++) {
       const residence = data[index];
-      const newRankingRequests = await this.rankingRequestRepository.findAll(
-        {
-          rankingCategoryId: new Types.ObjectId(
-            residence?.highestRankingCategoryId?.['_id'].toString()
-          ),
-          isDeleted: { $ne: DeletionStatus.DELETED },
-          bbrScore: { $exists: true },
-          status: {
-            $in: [
-              RankingCategoryStatus.ACTIVE,
-              RankingCategoryStatus.DRAFT,
-              RankingCategoryStatus.PENDING,
-            ],
-          },
-        },
-        {
-          sort: {
-            bbrScore: -1,
-          },
-        }
-      );
-      const position = await this.getCurrentPosition(
-        newRankingRequests.data,
-        residence?._id.toString()
-      );
-      updatedData.push({
+      const residenceWithRankings = { 
         ...residence,
-        position,
-      });
+        rankings: []
+      };
+      
+      if (residence.rankings && residence.rankings.length > 0) {
+        const updatedRankings = await Promise.all(
+          residence.rankings.map(async (ranking) => {
+            const rankingCategoryId = ranking.rankingCategory._id.toString();
+            
+            // Get or fetch rankings for this category
+            let categoryRankings = rankingMap.get(rankingCategoryId);
+            if (!categoryRankings) {
+              const { data: newRankings } = await this.rankingRequestRepository.findAll(
+                {
+                  rankingCategoryId: new Types.ObjectId(rankingCategoryId),
+                  isDeleted: { $ne: DeletionStatus.DELETED },
+                  bbrScore: { $exists: true },
+                  status: {
+                    $in: [
+                      RankingCategoryStatus.ACTIVE,
+                      RankingCategoryStatus.DRAFT,
+                      RankingCategoryStatus.PENDING,
+                    ],
+                  },
+                },
+                {
+                  sort: { bbrScore: -1 },
+                }
+              );
+              categoryRankings = newRankings;
+              rankingMap.set(rankingCategoryId, newRankings);
+            }
+
+            // Calculate position (1-based index)
+            const position = categoryRankings.findIndex(
+              (r) => r._id.toString() === ranking._id.toString()
+            );
+
+            return {
+              ...ranking,
+              position,
+            };
+          })
+        );
+
+        residenceWithRankings.rankings = updatedRankings;
+      }
+      
+      updatedData.push(residenceWithRankings);
     }
-    return { pagination, residences: updatedData };
+
+    return { 
+      pagination, 
+      residences: updatedData.map(residence => ({
+        ...residence,
+        rankings: residence.rankings || []
+      })) 
+    };
   }
 
   private async getCurrentPosition(
