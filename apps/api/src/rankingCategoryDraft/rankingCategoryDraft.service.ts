@@ -159,15 +159,24 @@ export class RankingCategoryDraftService {
       return true;
     }
 
-    if (!this.compareObjectIds(rankingCategory.propertyTypeId?._id, rankingCategoryDraft.propertyTypeId)) {
+    if (
+      !this.compareObjectIds(
+        rankingCategory.propertyTypeId?._id,
+        rankingCategoryDraft.propertyTypeId
+      )
+    ) {
       return true;
     }
 
-    if (!this.compareObjectIds(rankingCategory.geoGraphyId?._id, rankingCategoryDraft.geoGraphyId)) {
+    if (
+      !this.compareObjectIds(rankingCategory.geoGraphyId?._id, rankingCategoryDraft.geoGraphyId)
+    ) {
       return true;
     }
 
-    if (!this.compareObjectIds(rankingCategory.lifeStyleId?._id, rankingCategoryDraft.lifeStyleId)) {
+    if (
+      !this.compareObjectIds(rankingCategory.lifeStyleId?._id, rankingCategoryDraft.lifeStyleId)
+    ) {
       return true;
     }
 
@@ -179,7 +188,12 @@ export class RankingCategoryDraftService {
       return true;
     }
 
-    if (!this.deepCompare(rankingCategory.criteria.toObject(), rankingCategoryDraft.criteria.toObject())) {
+    if (
+      !this.deepCompare(
+        rankingCategory.criteria.toObject(),
+        rankingCategoryDraft.criteria.toObject()
+      )
+    ) {
       return true;
     }
 
@@ -187,7 +201,9 @@ export class RankingCategoryDraftService {
       return true;
     }
 
-    if (!this.deepCompare(rankingCategory.upload.toObject(), rankingCategoryDraft.upload.toObject())) {
+    if (
+      !this.deepCompare(rankingCategory.upload.toObject(), rankingCategoryDraft.upload.toObject())
+    ) {
       return true;
     }
 
@@ -219,8 +235,8 @@ export class RankingCategoryDraftService {
       return obj1.every((value, index) => this.deepCompare(value, obj2[index]));
     }
 
-    const keys1 = Object.keys(obj1).filter(key => !excludedProps.includes(key));
-    const keys2 = Object.keys(obj2).filter(key => !excludedProps.includes(key));
+    const keys1 = Object.keys(obj1).filter((key) => !excludedProps.includes(key));
+    const keys2 = Object.keys(obj2).filter((key) => !excludedProps.includes(key));
     if (keys1.length !== keys2.length) return false;
 
     for (const key of keys1) {
