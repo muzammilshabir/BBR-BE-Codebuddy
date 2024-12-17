@@ -44,12 +44,14 @@ export type RankingRequestDetails = {
 };
 
 export type FeatureRequestDetails = {
-  featureRequestId: string;
+  featurePlanId: string;
+  residenceId: string;
   userInfo: UserInfo;
 };
 
 export type BbrVerificationRequestDetails = {
-  bbrVerificationRequestId: string;
+  bbrVerificationPlantId: string;
+  residenceId: string;
   userInfo: UserInfo;
 };
 

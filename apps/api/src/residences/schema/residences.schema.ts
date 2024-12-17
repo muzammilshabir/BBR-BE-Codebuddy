@@ -6,7 +6,7 @@ export class Residence extends Document {
   @Prop({ required: true })
   name: string;
 
-  @Prop({ required: true, type: [{ type: Types.ObjectId, ref: 'ResidenceType' }] })
+  @Prop({ required: false, type: [{ type: Types.ObjectId, ref: 'ResidenceType' }] })
   residenceTypeIds: Types.ObjectId[];
 
   @Prop({ required: false, type: Types.ObjectId, ref: 'Location' })
@@ -15,11 +15,11 @@ export class Residence extends Document {
   @Prop({ required: false, type: String })
   placeId: string;
 
-  @Prop({type: String, required: false})
-  uniqueUrl: string
+  @Prop({ type: String, required: false })
+  uniqueUrl: string;
 
-  @Prop({type: String, required: false})
-  key: string
+  @Prop({ type: String, required: false })
+  key: string;
 
   @Prop({ required: false })
   websiteLink?: string;
@@ -102,7 +102,7 @@ export class Residence extends Document {
       floorAreaSqFt: number;
       staffToResidenceRatio: number;
     };
-    bespokeAmenitiesAmount: number,
+    bespokeAmenitiesAmount: number;
     avgPricePerUnit: number;
     petPolicy: string;
   };

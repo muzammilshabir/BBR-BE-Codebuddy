@@ -4,12 +4,17 @@ import { Public } from '@bbr/api-core/modules/decorators';
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
 import { ApplyAdditionalServiceRequestService } from './additional-service.service';
-import { applyAdditionalServiceRequestSchema, ApplyAdditionalServiceRequestDto } from './apply-additional-service-request.dto';
+import {
+  applyAdditionalServiceRequestSchema,
+  ApplyAdditionalServiceRequestDto,
+} from './apply-additional-service-request.dto';
 
 @ApiTags('Additional Service')
 @Controller('additional-service')
 export class ApplyAdditionalServiceRequestController {
-  constructor(private readonly applyAdditionalServiceRequestService: ApplyAdditionalServiceRequestService) {}
+  constructor(
+    private readonly applyAdditionalServiceRequestService: ApplyAdditionalServiceRequestService
+  ) {}
 
   @Post()
   @ApiOperation({

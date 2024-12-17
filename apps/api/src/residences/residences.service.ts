@@ -712,7 +712,7 @@ export class ResidenceService {
     // Match filters
     const matchStage: any = {
       isDeleted: false,
-      status: 'active'
+      status: 'active',
     };
 
     if (filtersDto.cities && filtersDto.cities.length > 0) {
@@ -732,11 +732,10 @@ export class ResidenceService {
         ? filtersDto.stateId
         : [filtersDto.stateId];
 
-        matchStage.stateId = {
+      matchStage.stateId = {
         $in: stateIds.map((id) => new Types.ObjectId(id)),
       };
     }
-  
 
     if (filtersDto.geographicalAreasId && filtersDto.geographicalAreasId.length > 0) {
       const countriesInAreas = await this.countryModel
@@ -751,7 +750,6 @@ export class ResidenceService {
         $in: countriesInAreas.map((country) => country._id),
       };
     }
-   
 
     if (filtersDto.lifestyles && filtersDto.lifestyles.length > 0) {
       matchStage.lifeStyleId = {
@@ -784,7 +782,7 @@ export class ResidenceService {
     if (filtersDto.floorAreaSqFt && filtersDto.floorAreaSqFt.length > 0) {
       const maxFloorArea = Math.max(...filtersDto.floorAreaSqFt);
       matchStage['residenceKeyFeatures.developmentInfo.floorAreaSqFt'] = {
-        $lte: maxFloorArea
+        $lte: maxFloorArea,
       };
     }
 
@@ -797,7 +795,7 @@ export class ResidenceService {
     if (filtersDto.yearOfBuild && filtersDto.yearOfBuild.length > 0) {
       const maxYear = Math.max(...filtersDto.yearOfBuild);
       matchStage['residenceKeyFeatures.developmentInfo.yearOfBuild'] = {
-        $lte: maxYear
+        $lte: maxYear,
       };
     }
 
@@ -835,40 +833,40 @@ export class ResidenceService {
 
     if (filtersDto.priceRange && filtersDto.priceRange.length > 0) {
       // Create pipeline stages for type conversion
-      pipeline.unshift(
-        {
-          $addFields: {
-            startRangeNum: { $toDouble: '$budgetLimitationsRange.startRange' },
-            endRangeNum: { $toDouble: '$budgetLimitationsRange.endRange' }
-          }
-        }
-      );
+      pipeline.unshift({
+        $addFields: {
+          startRangeNum: { $toDouble: '$budgetLimitationsRange.startRange' },
+          endRangeNum: { $toDouble: '$budgetLimitationsRange.endRange' },
+        },
+      });
 
       // Calculate min start range and max end range from all provided ranges
-      const minStartRange = Math.min(...filtersDto.priceRange.map(range => Number(range.startRange)));
-      const maxEndRange = Math.max(...filtersDto.priceRange.map(range => Number(range.endRange)));
+      const minStartRange = Math.min(
+        ...filtersDto.priceRange.map((range) => Number(range.startRange))
+      );
+      const maxEndRange = Math.max(...filtersDto.priceRange.map((range) => Number(range.endRange)));
 
       // Create the match stage with single range check
       matchStage.$and = [
         { startRangeNum: { $exists: true } },
         { endRangeNum: { $exists: true } },
         { startRangeNum: { $gte: minStartRange } },
-        { endRangeNum: { $lte: maxEndRange } }
+        { endRangeNum: { $lte: maxEndRange } },
       ];
     }
 
     if (filtersDto.roomCountRange && filtersDto.roomCountRange.length > 0) {
       // Calculate min and max room counts from all provided ranges
-      const minRooms = Math.min(...filtersDto.roomCountRange.map(range => range.minRooms));
-      const maxRooms = Math.max(...filtersDto.roomCountRange.map(range => range.maxRooms));
+      const minRooms = Math.min(...filtersDto.roomCountRange.map((range) => range.minRooms));
+      const maxRooms = Math.max(...filtersDto.roomCountRange.map((range) => range.maxRooms));
 
       // Add lookup before main match stage
       pipeline.unshift(
         {
           $match: {
             isDeleted: false,
-            status: 'active'
-          }
+            status: 'active',
+          },
         },
         {
           $lookup: {
@@ -879,14 +877,14 @@ export class ResidenceService {
                 $match: {
                   $expr: { $eq: ['$residenceId', '$$residenceId'] },
                   isDeleted: { $ne: true },
-                  status: 'active'
-                }
+                  status: 'active',
+                },
               },
               {
                 $unwind: {
                   path: '$rooms',
-                  preserveNullAndEmptyArrays: true
-                }
+                  preserveNullAndEmptyArrays: true,
+                },
               },
               {
                 $lookup: {
@@ -897,40 +895,40 @@ export class ResidenceService {
                       $match: {
                         $expr: { $eq: ['$_id', '$$roomTypeId'] },
                         type: 'Bedroom',
-                        isDeleted: { $ne: true }
-                      }
-                    }
+                        isDeleted: { $ne: true },
+                      },
+                    },
                   ],
-                  as: 'roomType'
-                }
+                  as: 'roomType',
+                },
               },
               {
                 $match: {
-                  'roomType.0': { $exists: true }
-                }
+                  'roomType.0': { $exists: true },
+                },
               },
               {
                 $group: {
                   _id: '$residenceId',
-                  totalBedrooms: { $sum: '$rooms.unit' }
-                }
+                  totalBedrooms: { $sum: '$rooms.unit' },
+                },
               },
               {
                 $match: {
                   totalBedrooms: {
                     $gte: minRooms,
-                    $lte: maxRooms
-                  }
-                }
-              }
+                    $lte: maxRooms,
+                  },
+                },
+              },
             ],
-            as: 'matchingUnits'
-          }
+            as: 'matchingUnits',
+          },
         },
         {
           $match: {
-            'matchingUnits.0': { $exists: true }
-          }
+            'matchingUnits.0': { $exists: true },
+          },
         }
       );
     }
@@ -986,34 +984,37 @@ export class ResidenceService {
             mainPhotos: '$visuals.mainPhotos',
             mainGalleryPhotos: '$visuals.mainGalleryPhotos',
             secondGalleryPhotos: '$visuals.secondGalleryPhotos',
-            videoTour: '$visuals.videoTour'
+            videoTour: '$visuals.videoTour',
           },
           pipeline: [
             {
               $match: {
                 $expr: {
-                  $in: ['$_id', {
-                    $concatArrays: [
-                      { $ifNull: ['$$mainPhotos', []] },
-                      { $ifNull: ['$$mainGalleryPhotos', []] },
-                      { $ifNull: ['$$secondGalleryPhotos', []] },
-                      { $ifNull: [['$$videoTour'], []] }
-                    ]
-                  }]
-                }
-              }
+                  $in: [
+                    '$_id',
+                    {
+                      $concatArrays: [
+                        { $ifNull: ['$$mainPhotos', []] },
+                        { $ifNull: ['$$mainGalleryPhotos', []] },
+                        { $ifNull: ['$$secondGalleryPhotos', []] },
+                        { $ifNull: [['$$videoTour'], []] },
+                      ],
+                    },
+                  ],
+                },
+              },
             },
             {
               $project: {
                 originalFileKey: 1,
                 fileKey: 1,
                 url: 1,
-                mimeType: 1
-              }
-            }
+                mimeType: 1,
+              },
+            },
           ],
-          as: 'uploadedFiles'
-        }
+          as: 'uploadedFiles',
+        },
       },
       {
         $addFields: {
@@ -1022,55 +1023,58 @@ export class ResidenceService {
               $filter: {
                 input: '$uploadedFiles',
                 as: 'file',
-                cond: { $in: ['$$file._id', { $ifNull: ['$visuals.mainPhotos', []] }] }
-              }
+                cond: { $in: ['$$file._id', { $ifNull: ['$visuals.mainPhotos', []] }] },
+              },
             },
             mainGalleryPhotos: {
               $filter: {
                 input: '$uploadedFiles',
                 as: 'file',
-                cond: { $in: ['$$file._id', { $ifNull: ['$visuals.mainGalleryPhotos', []] }] }
-              }
+                cond: { $in: ['$$file._id', { $ifNull: ['$visuals.mainGalleryPhotos', []] }] },
+              },
             },
             secondGalleryPhotos: {
               $filter: {
                 input: '$uploadedFiles',
                 as: 'file',
-                cond: { $in: ['$$file._id', { $ifNull: ['$visuals.secondGalleryPhotos', []] }] }
-              }
+                cond: { $in: ['$$file._id', { $ifNull: ['$visuals.secondGalleryPhotos', []] }] },
+              },
             },
             videoTour: {
-              $arrayElemAt: [{
-                $filter: {
-                  input: '$uploadedFiles',
-                  as: 'file',
-                  cond: { $eq: ['$$file._id', '$visuals.videoTour'] }
-                }
-              }, 0]
-            }
-          }
-        }
+              $arrayElemAt: [
+                {
+                  $filter: {
+                    input: '$uploadedFiles',
+                    as: 'file',
+                    cond: { $eq: ['$$file._id', '$visuals.videoTour'] },
+                  },
+                },
+                0,
+              ],
+            },
+          },
+        },
       },
       {
         $project: {
-          uploadedFiles: 0
-        }
+          uploadedFiles: 0,
+        },
       },
       {
         $lookup: {
           from: 'amenities',
           localField: 'nearbyAmenities.amenitiesList',
           foreignField: '_id',
-          as: 'amenitiesData'
-        }
+          as: 'amenitiesData',
+        },
       },
       {
         $lookup: {
           from: 'uploads',
           localField: 'nearbyAmenities.highlightedAmenities.imageId',
           foreignField: '_id',
-          as: 'highlightedAmenitiesImages'
-        }
+          as: 'highlightedAmenitiesImages',
+        },
       },
       {
         $addFields: {
@@ -1082,34 +1086,40 @@ export class ResidenceService {
                 as: 'highlighted',
                 in: {
                   amenityId: {
-                    $arrayElemAt: [{
-                      $filter: {
-                        input: '$amenitiesData',
-                        as: 'amenity',
-                        cond: { $eq: ['$$amenity._id', '$$highlighted.amenityId'] }
-                      }
-                    }, 0]
+                    $arrayElemAt: [
+                      {
+                        $filter: {
+                          input: '$amenitiesData',
+                          as: 'amenity',
+                          cond: { $eq: ['$$amenity._id', '$$highlighted.amenityId'] },
+                        },
+                      },
+                      0,
+                    ],
                   },
                   imageId: {
-                    $arrayElemAt: [{
-                      $filter: {
-                        input: '$highlightedAmenitiesImages',
-                        as: 'image',
-                        cond: { $eq: ['$$image._id', '$$highlighted.imageId'] }
-                      }
-                    }, 0]
-                  }
-                }
-              }
-            }
-          }
-        }
+                    $arrayElemAt: [
+                      {
+                        $filter: {
+                          input: '$highlightedAmenitiesImages',
+                          as: 'image',
+                          cond: { $eq: ['$$image._id', '$$highlighted.imageId'] },
+                        },
+                      },
+                      0,
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        },
       },
       {
         $project: {
           amenitiesData: 0,
-          highlightedAmenitiesImages: 0
-        }
+          highlightedAmenitiesImages: 0,
+        },
       },
       {
         $lookup: {
@@ -1146,35 +1156,31 @@ export class ResidenceService {
                 isDeleted: { $ne: true },
                 bbrScore: { $exists: true },
                 status: {
-                  $in: [
-                    'active',
-                    'draft',
-                    'pending'
-                  ]
-                }
-              }
+                  $in: ['active', 'draft', 'pending'],
+                },
+              },
             },
             {
-              $sort: { bbrScore: -1 }
+              $sort: { bbrScore: -1 },
             },
             {
-              $limit: 1
-            }
+              $limit: 1,
+            },
           ],
-          as: 'rankingRequest'
-        }
+          as: 'rankingRequest',
+        },
       },
       {
         $addFields: {
           bbrScore: {
-            $arrayElemAt: ['$rankingRequest.bbrScore', 0]
-          }
-        }
+            $arrayElemAt: ['$rankingRequest.bbrScore', 0],
+          },
+        },
       },
       {
         $project: {
-          rankingRequest: 0
-        }
+          rankingRequest: 0,
+        },
       },
       {
         $project: {
@@ -1182,8 +1188,8 @@ export class ResidenceService {
           name: 1,
           residenceTypes: 1,
           city: 1,
-          country: 1,
           state: 1,
+          country: 1,
           associatedBrand: 1,
           mainPhotos: 1,
           mainGalleryPhotos: 1,
@@ -1202,8 +1208,8 @@ export class ResidenceService {
           nearbyAmenities: 1,
           createdAt: 1,
           updatedAt: 1,
-          bbrScore: 1
-        }
+          bbrScore: 1,
+        },
       }
     );
 
@@ -1416,7 +1422,7 @@ export class ResidenceService {
       const city = await this.cityRepository.find({
         _id: residence.cityId,
         isDeleted: { $ne: DeletionStatus.DELETED },
-        active: true
+        active: true,
       });
       if (!city) {
         throw new BadRequestException(
@@ -1460,7 +1466,7 @@ export class ResidenceService {
       country: {
         name: item.country[0]?.name[0] || null, // Extracts the first element from name array, or null if not present
       },
-      state:{
+      state: {
         name: item.state[0]?.name[0] || null,
       },
       associatedBrand: item.associatedBrand[0] || null,
@@ -1638,7 +1644,7 @@ export class ResidenceService {
     const residenceDetails = await this.residenceRepository.findByKeyInDetail(key);
     const residenceDraftDetails = await this.residenceDraftRepository.findByKeyInDetail(key);
 
-    return {residence: residenceDetails, residenceDraft: residenceDraftDetails};
+    return { residence: residenceDetails, residenceDraft: residenceDraftDetails };
   }
 
   async updateGeneralInfoByKey(
@@ -1935,8 +1941,6 @@ export class ResidenceService {
 
     await this.checkResidenceRejectedStatus(foundResidence._id.toString());
 
-    
-
     const transformedDto: any = {
       ...patchResidenceDto,
       residenceTypeIds: patchResidenceDto.residenceTypeIds
@@ -1979,16 +1983,16 @@ export class ResidenceService {
 
     if (patchResidenceDto.nearbyAmenities) {
       transformedDto.nearbyAmenities = {
-          amenitiesList: patchResidenceDto.nearbyAmenities.amenitiesList
-              ? patchResidenceDto.nearbyAmenities.amenitiesList.map(id => new Types.ObjectId(id))
-              : undefined,
-          highlightedAmenities: patchResidenceDto.nearbyAmenities.highlightedAmenities
-              ? patchResidenceDto.nearbyAmenities.highlightedAmenities.map(amenity => ({
-                  ...amenity,
-                  amenityId: new Types.ObjectId(amenity.amenityId),
-                  imageId: new Types.ObjectId(amenity.imageId)
-              }))
-              : undefined
+        amenitiesList: patchResidenceDto.nearbyAmenities.amenitiesList
+          ? patchResidenceDto.nearbyAmenities.amenitiesList.map((id) => new Types.ObjectId(id))
+          : undefined,
+        highlightedAmenities: patchResidenceDto.nearbyAmenities.highlightedAmenities
+          ? patchResidenceDto.nearbyAmenities.highlightedAmenities.map((amenity) => ({
+              ...amenity,
+              amenityId: new Types.ObjectId(amenity.amenityId),
+              imageId: new Types.ObjectId(amenity.imageId),
+            }))
+          : undefined,
       };
     }
 
@@ -2008,15 +2012,14 @@ export class ResidenceService {
 
     const residenceDraft = await this.checkResidenceDraft(foundResidence._id.toString());
 
-
     if (residenceDraft) {
       const existingData = residenceDraft.toObject();
       delete existingData._id;
       delete existingData.__v;
-      return await this.residenceDraftRepository.update(
-        residenceDraft.id, 
-        { ...existingData, ...transformedDto }
-      );
+      return await this.residenceDraftRepository.update(residenceDraft.id, {
+        ...existingData,
+        ...transformedDto,
+      });
     }
 
     const plainResidence = foundResidence.toJSON();
@@ -2029,7 +2032,5 @@ export class ResidenceService {
       residenceId: new Types.ObjectId(foundResidence._id.toString()),
       status: ResidenceStatus.DRAFT,
     });
-    
   }
-
 }
