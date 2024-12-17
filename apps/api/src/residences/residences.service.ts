@@ -1255,7 +1255,7 @@ export class ResidenceService {
             // Calculate position (1-based index)
             const position = categoryRankings.findIndex(
               (r) => r._id.toString() === ranking._id.toString()
-            ) + 1;
+            );
 
             return {
               ...ranking,
