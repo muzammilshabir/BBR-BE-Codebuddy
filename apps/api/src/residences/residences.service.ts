@@ -817,12 +817,29 @@ export class ResidenceService {
     }
 
     if (filtersDto.priceRange && filtersDto.priceRange.length > 0) {
-      matchStage.$or = filtersDto.priceRange.map((range) => ({
+
+      // Create pipeline stages for type conversion
+      pipeline.unshift(
+        {
+          $addFields: {
+            startRangeNum: { $toDouble: '$budgetLimitationsRange.startRange' },
+            endRangeNum: { $toDouble: '$budgetLimitationsRange.endRange' }
+          }
+        }
+      );
+
+      // Create the match stage
+      matchStage.$or = filtersDto.priceRange.map(range => ({
         $and: [
-          { 'budgetLimitationsRange.startRange': { $lte: range.endRange } },
-          { 'budgetLimitationsRange.endRange': { $gte: range.startRange } }
+          { startRangeNum: { $exists: true } },
+          { endRangeNum: { $exists: true } },
+          { startRangeNum: { $gte: Number(range.startRange) } },
+          { startRangeNum: { $lte: Number(range.endRange) } },
+          { endRangeNum: { $gte: Number(range.startRange) } },
+          { endRangeNum: { $lte: Number(range.endRange) } }
         ]
       }));
+
     }
 
     if (filtersDto.roomCountRange && filtersDto.roomCountRange.length > 0) {
@@ -934,58 +951,134 @@ export class ResidenceService {
       {
         $lookup: {
           from: 'uploads',
-          localField: 'visuals.mainPhotos',
-          foreignField: '_id',
-          as: 'mainPhotos',
-        },
+          let: {
+            mainPhotos: '$visuals.mainPhotos',
+            mainGalleryPhotos: '$visuals.mainGalleryPhotos',
+            secondGalleryPhotos: '$visuals.secondGalleryPhotos',
+            videoTour: '$visuals.videoTour'
+          },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $in: ['$_id', {
+                    $concatArrays: [
+                      { $ifNull: ['$$mainPhotos', []] },
+                      { $ifNull: ['$$mainGalleryPhotos', []] },
+                      { $ifNull: ['$$secondGalleryPhotos', []] },
+                      { $ifNull: [['$$videoTour'], []] }
+                    ]
+                  }]
+                }
+              }
+            },
+            {
+              $project: {
+                originalFileKey: 1,
+                fileKey: 1,
+                url: 1,
+                mimeType: 1
+              }
+            }
+          ],
+          as: 'uploadedFiles'
+        }
       },
       {
-        $lookup: {
-          from: 'uploads',
-          localField: 'visuals.mainGalleryPhotos',
-          foreignField: '_id',
-          as: 'mainGalleryPhotos',
-        },
+        $addFields: {
+          visuals: {
+            mainPhotos: {
+              $filter: {
+                input: '$uploadedFiles',
+                as: 'file',
+                cond: { $in: ['$$file._id', { $ifNull: ['$visuals.mainPhotos', []] }] }
+              }
+            },
+            mainGalleryPhotos: {
+              $filter: {
+                input: '$uploadedFiles',
+                as: 'file',
+                cond: { $in: ['$$file._id', { $ifNull: ['$visuals.mainGalleryPhotos', []] }] }
+              }
+            },
+            secondGalleryPhotos: {
+              $filter: {
+                input: '$uploadedFiles',
+                as: 'file',
+                cond: { $in: ['$$file._id', { $ifNull: ['$visuals.secondGalleryPhotos', []] }] }
+              }
+            },
+            videoTour: {
+              $arrayElemAt: [{
+                $filter: {
+                  input: '$uploadedFiles',
+                  as: 'file',
+                  cond: { $eq: ['$$file._id', '$visuals.videoTour'] }
+                }
+              }, 0]
+            }
+          }
+        }
       },
       {
-        $lookup: {
-          from: 'uploads',
-          localField: 'visuals.secondGalleryPhotos',
-          foreignField: '_id',
-          as: 'secondGalleryPhotos',
-        },
-      },
-      {
-        $lookup: {
-          from: 'uploads',
-          localField: 'visuals.videoTour',
-          foreignField: '_id',
-          as: 'videoTour',
-        },
+        $project: {
+          uploadedFiles: 0
+        }
       },
       {
         $lookup: {
           from: 'amenities',
           localField: 'nearbyAmenities.amenitiesList',
           foreignField: '_id',
-          as: 'amenitiesList',
-        },
-      },
-      {
-        $lookup: {
-          from: 'amenities',
-          localField: 'nearbyAmenities.highlightedAmenities.amenityId',
-          foreignField: '_id',
-          as: 'highlightedAmenities',
-        },
+          as: 'amenitiesData'
+        }
       },
       {
         $lookup: {
           from: 'uploads',
           localField: 'nearbyAmenities.highlightedAmenities.imageId',
           foreignField: '_id',
-          as: 'highlightedAmenitiesImage',
-        },
+          as: 'highlightedAmenitiesImages'
+        }
+      },
+      {
+        $addFields: {
+          'nearbyAmenities': {
+            amenitiesList: '$amenitiesData',
+            highlightedAmenities: {
+              $map: {
+                input: '$nearbyAmenities.highlightedAmenities',
+                as: 'highlighted',
+                in: {
+                  amenityId: {
+                    $arrayElemAt: [{
+                      $filter: {
+                        input: '$amenitiesData',
+                        as: 'amenity',
+                        cond: { $eq: ['$$amenity._id', '$$highlighted.amenityId'] }
+                      }
+                    }, 0]
+                  },
+                  imageId: {
+                    $arrayElemAt: [{
+                      $filter: {
+                        input: '$highlightedAmenitiesImages',
+                        as: 'image',
+                        cond: { $eq: ['$$image._id', '$$highlighted.imageId'] }
+                      }
+                    }, 0]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        $project: {
+          amenitiesData: 0,
+          highlightedAmenitiesImages: 0
+        }
       },
       {
         $lookup: {
@@ -1003,9 +1096,6 @@ export class ResidenceService {
           as: 'developer',
         },
       },
-     
-      
-
       {
         $lookup: {
           from: 'rankingcategories',
@@ -1013,6 +1103,47 @@ export class ResidenceService {
           foreignField: '_id',
           as: 'highestRankingCategory',
         },
+      },
+      {
+        $lookup: {
+          from: 'rankingrequests',
+          let: { residenceId: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ['$residenceId', '$$residenceId'] },
+                isDeleted: { $ne: true },
+                bbrScore: { $exists: true },
+                status: {
+                  $in: [
+                    'active',
+                    'draft',
+                    'pending'
+                  ]
+                }
+              }
+            },
+            {
+              $sort: { bbrScore: -1 }
+            },
+            {
+              $limit: 1
+            }
+          ],
+          as: 'rankingRequest'
+        }
+      },
+      {
+        $addFields: {
+          bbrScore: {
+            $arrayElemAt: ['$rankingRequest.bbrScore', 0]
+          }
+        }
+      },
+      {
+        $project: {
+          rankingRequest: 0
+        }
       },
       {
         $project: {
@@ -1039,7 +1170,8 @@ export class ResidenceService {
           nearbyAmenities: 1,
           createdAt: 1,
           updatedAt: 1,
-        },
+          bbrScore: 1
+        }
       }
     );
 
