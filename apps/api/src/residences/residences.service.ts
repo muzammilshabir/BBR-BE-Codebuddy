@@ -818,7 +818,6 @@ export class ResidenceService {
     }
 
     if (filtersDto.priceRange && filtersDto.priceRange.length > 0) {
-
       // Create pipeline stages for type conversion
       pipeline.unshift(
         {
@@ -829,22 +828,26 @@ export class ResidenceService {
         }
       );
 
-      // Create the match stage
-      matchStage.$or = filtersDto.priceRange.map(range => ({
-        $and: [
-          { startRangeNum: { $exists: true } },
-          { endRangeNum: { $exists: true } },
-          { startRangeNum: { $gte: Number(range.startRange) } },
-          { startRangeNum: { $lte: Number(range.endRange) } },
-          { endRangeNum: { $gte: Number(range.startRange) } },
-          { endRangeNum: { $lte: Number(range.endRange) } }
-        ]
-      }));
+      // Calculate min start range and max end range from all provided ranges
+      const minStartRange = Math.min(...filtersDto.priceRange.map(range => Number(range.startRange)));
+      const maxEndRange = Math.max(...filtersDto.priceRange.map(range => Number(range.endRange)));
 
+      // Create the match stage with single range check
+      matchStage.$and = [
+        { startRangeNum: { $exists: true } },
+        { endRangeNum: { $exists: true } },
+        { startRangeNum: { $gte: minStartRange } },
+        { endRangeNum: { $lte: maxEndRange } }
+      ];
     }
 
     if (filtersDto.roomCountRange && filtersDto.roomCountRange.length > 0) {
-      pipeline.push(
+      // Calculate min and max room counts from all provided ranges
+      const minRooms = Math.min(...filtersDto.roomCountRange.map(range => range.minRooms));
+      const maxRooms = Math.max(...filtersDto.roomCountRange.map(range => range.maxRooms));
+
+      // Add lookup before main match stage
+      pipeline.unshift(
         {
           $match: {
             isDeleted: false,
@@ -863,7 +866,12 @@ export class ResidenceService {
                   status: 'active'
                 }
               },
-              { $unwind: '$rooms' },
+              {
+                $unwind: {
+                  path: '$rooms',
+                  preserveNullAndEmptyArrays: true
+                }
+              },
               {
                 $lookup: {
                   from: 'roomtypes',
@@ -887,18 +895,16 @@ export class ResidenceService {
               },
               {
                 $group: {
-                  _id: '$_id',
-                  bedroomCount: { $sum: '$rooms.unit' }
+                  _id: '$residenceId',
+                  totalBedrooms: { $sum: '$rooms.unit' }
                 }
               },
               {
                 $match: {
-                  $or: filtersDto.roomCountRange.map(range => ({
-                    bedroomCount: {
-                      $gte: range.minRooms,
-                      $lte: range.maxRooms
-                    }
-                  }))
+                  totalBedrooms: {
+                    $gte: minRooms,
+                    $lte: maxRooms
+                  }
                 }
               }
             ],
