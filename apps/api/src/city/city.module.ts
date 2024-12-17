@@ -9,7 +9,7 @@ import { Country, CountrySchema } from '../country/schema/country.schema';
 import { CountryRepository } from '../country/country.repository';
 import { State, StateSchema } from 'src/state/schema/state.schema';
 import { StateRepository } from 'src/state/state.repository';
-import { ActivateCitySeeder } from './activatecity.seeder';
+import { ActivateCitySeeder } from './activateCity.seeder';
 
 @Module({
   imports: [
