@@ -83,9 +83,55 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
         ...filter,
         isDeleted: { $ne: DeletionStatus.DELETED }, // Ensure non-deleted records
       })
-      .populate({
-        path: 'rankingCategoryId', 
-      });
+      .populate([
+        {
+          path: 'residenceId',
+          populate: [
+            {
+              path: 'visuals.mainPhotos',
+            },
+            {
+              path: 'visuals.mainGalleryPhotos',
+            },
+            {
+              path: 'visuals.secondGalleryPhotos',
+            },
+            {
+              path: 'visuals.videoTour',
+            },
+            {
+              path: 'residenceKeyFeatures.featureIds',
+              model: 'ResidenceFeature',
+            },
+            {
+              path: 'countryId',
+              model: 'Country',
+            },
+            {
+              path: 'cityId',
+              model: 'City',
+            },
+            {
+              path: 'createdById',
+              model: 'User',
+              select: 'fullName email role loginAddress',
+            },
+          ],
+        },
+        {
+          path: 'rankingCategoryId',
+        },
+        {
+          path: 'developerId',
+          model: 'User',
+          select: 'fullName email role loginAddress',
+        },
+        {
+          path: 'upload.ImageId',
+          model: 'Upload',
+          select: 'originalFileKey fileKey url mimeType',
+        },
+      ]);
   }
 
   async listRankingRequestWithDraft(

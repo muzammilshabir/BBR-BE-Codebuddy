@@ -65,11 +65,15 @@ import { GetSimilarResidenceDto, getSimilarResidenceSchema } from './dto/get-sim
 import { ResidenceSeederService } from './residencesSeeder.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { PassThrough } from 'stream';
+import { PatchResidenceDto, patchResidenceSchema } from './dto/patch-update-residence.dto';
 
 @ApiTags('Residence')
 @Controller('residence')
 export class ResidenceController {
-  constructor(private readonly residenceService: ResidenceService, private readonly residenceSeederService: ResidenceSeederService) {}
+  constructor(
+    private readonly residenceService: ResidenceService,
+    private readonly residenceSeederService: ResidenceSeederService
+  ) {}
 
   @Post()
   @ApiOperation({
@@ -393,10 +397,7 @@ export class ResidenceController {
   })
   @Post('upload-bulk-data')
   @UseInterceptors(FileInterceptor('file'))
-  async uploadInventoryFile(
-    @UploadedFile() file: Express.Multer.File,
-  ) {
-  
+  async uploadInventoryFile(@UploadedFile() file: Express.Multer.File) {
     if (!file) {
       throw new HttpException('File is required', HttpStatus.BAD_REQUEST);
     }
@@ -413,72 +414,18 @@ export class ResidenceController {
   @UsePipes(new JoiValidationPipe(getResidenceByKeySchema, 'param'))
   async getResidenceByKey(@Param() params: GetResidenceByKeyDto) {
     const residence = await this.residenceService.getResidenceByKey(params.key);
-    return ResponseService.buildResponse({ residence }, 'Residence retrieved successfully');
+    return ResponseService.buildResponse( {...residence} , 'Residence retrieved successfully');
   }
 
-  @Put('/welcome-flow/:key')
-  @ApiOperation({
-    summary: 'Update Residence general info',
-  })
   @Public()
-  @UsePipes(new JoiValidationPipe(updateResidenceSchema, 'body'))
-  async updateWithKey(@Param('key') key: string, @Body() updateResidenceDto: UpdateResidenceDto) {
-    const residence = await this.residenceService.updateGeneralInfoByKey(key, updateResidenceDto);
-    return ResponseService.buildResponse(
-      { residenceDraft: residence },
-      'Residence updated successfully'
-    );
-  }
-
-  @Put('/welcome-flow/:key/key-features')
+  @Patch('/welcome-flow/update-residence/:key')
   @ApiOperation({
-    summary: 'Add Residence Key Features By key',
+    summary: 'Update Residence and Draft',
   })
-  @Public()
-  @UsePipes(new JoiValidationPipe(addKeyFeaturesSchema, 'body'))
-  async addKeyFeaturesByKey(
-    @Param('key') key: string,
-    @Body() addKeyFeaturesDto: AddKeyFeaturesDto
-  ) {
-    const residence = await this.residenceService.addKeyFeaturesByKey(key, addKeyFeaturesDto);
-    return ResponseService.buildResponse(
-      { residenceDraft: residence },
-      'Residence key features added successfully'
-    );
-  }
-
-  @Put('/welcome-flow/:key/visuals')
-  @ApiOperation({
-    summary: 'Add or update visuals for a residence By Key',
-  })
-  @Public()
-  @UsePipes(new JoiValidationPipe(addResidenceVisualsSchema, 'body'))
-  async addVisualsByKey(@Param('key') key: string, @Body() addVisualsDto: AddResidenceVisualsDto) {
-    const residence = await this.residenceService.addVisualsByKey(key, addVisualsDto);
-    return ResponseService.buildResponse(
-      { residenceDraft: residence },
-      'Residence visuals updated successfully'
-    );
-  }
-
-  @Put('/welcome-flow/:key/nearby-amenities')
-  @ApiOperation({
-    summary: 'Add or update nearby amenities for a residence By Key',
-  })
-  @Public()
-  @UsePipes(new JoiValidationPipe(updateNearbyAmenitiesSchema, 'body'))
-  async updateNearbyAmenitiesByKey(
-    @Param('key') key: string,
-    @Body() updateNearbyAmenitiesDto: UpdateNearbyAmenitiesDto
-  ) {
-    const residence = await this.residenceService.updateNearbyAmenitiesByKey(
-      key,
-      updateNearbyAmenitiesDto
-    );
-    return ResponseService.buildResponse(
-      { residenceDraft: residence },
-      'Residence nearby amenities updated successfully'
-    );
+  @UsePipes(new JoiValidationPipe(patchResidenceSchema, 'body'))
+  async patchResidence(@Param('key') key: string, @Body() patchResidenceDto: PatchResidenceDto) {
+    const residence = await this.residenceService.patchResidence(key, patchResidenceDto);
+    return ResponseService.buildResponse({ residence }, 'Residence updated successfully');
   }
 
   @Get('download/uniqueurl-csv')
@@ -497,4 +444,245 @@ export class ResidenceController {
 
     await this.residenceService.streamCsvData(stream);
   }
+
+  @Public()
+  @ApiOperation({
+    summary: 'Upload images',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @Post('upload-residence-images')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadBulkImages(
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+  
+    if (!file) {
+      throw new HttpException('File is required', HttpStatus.BAD_REQUEST);
+    }
+
+    const result = await this.residenceSeederService.processUploadedImages(file);
+    return ResponseService.buildResponse(result);
+  }
+
+  @Public()
+  @ApiOperation({
+    summary: 'Upload City images',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @Post('upload-city-images')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadBulkCityImages(
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+  
+    if (!file) {
+      throw new HttpException('File is required', HttpStatus.BAD_REQUEST);
+    }
+
+    const result = await this.residenceSeederService.processCityImages(file);
+    return ResponseService.buildResponse(result);
+  }
+
+  @Public()
+  @ApiOperation({
+    summary: 'Upload Country images',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @Post('upload-country-images')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadBulkCountryImages(
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+  
+    if (!file) {
+      throw new HttpException('File is required', HttpStatus.BAD_REQUEST);
+    }
+
+    const result = await this.residenceSeederService.processCountryImages(file);
+    return ResponseService.buildResponse(result);
+  }
+
+  @Public()
+  @ApiOperation({
+    summary: 'Upload PropertyType images',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @Post('upload-propertytype-images')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadBulkpropertyImages(
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+  
+    if (!file) {
+      throw new HttpException('File is required', HttpStatus.BAD_REQUEST);
+    }
+
+    const result = await this.residenceSeederService.processPropertyTypeImages(file);
+    return ResponseService.buildResponse(result);
+  }
+
+  @Public()
+  @ApiOperation({
+    summary: 'Upload Lifestyle images',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @Post('upload-lifestyle-images')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadBulkLifestyleImages(
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+  
+    if (!file) {
+      throw new HttpException('File is required', HttpStatus.BAD_REQUEST);
+    }
+
+    const result = await this.residenceSeederService.processLifestyleImages(file);
+    return ResponseService.buildResponse(result);
+  }
+
+  @Public()
+  @ApiOperation({
+    summary: 'Upload Geographical images',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @Post('upload-geographical-images')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadBulkGeographicalImages(
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+  
+    if (!file) {
+      throw new HttpException('File is required', HttpStatus.BAD_REQUEST);
+    }
+
+    const result = await this.residenceSeederService.processGeographicalAreaImages(file);
+    return ResponseService.buildResponse(result);
+  }
+
+  @Public()
+  @ApiOperation({
+    summary: 'Upload Brand images',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @Post('upload-brand-images')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadBulkBrandImages(
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+  
+    if (!file) {
+      throw new HttpException('File is required', HttpStatus.BAD_REQUEST);
+    }
+
+    const result = await this.residenceSeederService.processBrandImages(file);
+    return ResponseService.buildResponse(result);
+  }
+
+  @Public()
+  @ApiOperation({
+    summary: 'Upload Ranking Category images',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @Post('upload-rankingcategory-images')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadBulkRankingCategoryImages(
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+  
+    if (!file) {
+      throw new HttpException('File is required', HttpStatus.BAD_REQUEST);
+    }
+
+    const result = await this.residenceSeederService.processRankingCategoryImages(file);
+    return ResponseService.buildResponse(result);
+  }
+
 }

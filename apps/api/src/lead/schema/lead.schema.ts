@@ -2,8 +2,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { LeadSource, LeadStatus } from '../enum/lead-enum';
 import { CounterService } from '../../counter/counter.service';
-import { PhoneNumber, LeadUserPreferences } from '../dto/create-lead.dto';
-import { UserContactInfo } from 'src/users/types/user.type';
+import { PhoneNumber, LeadUserPreferences, LeadUserContactInfo } from '../dto/create-lead.dto';
 
 @Schema({
   timestamps: true,
@@ -28,7 +27,7 @@ export class Lead extends Document {
   email: string;
 
   @Prop({ required: false, type: Object })
-  contactInfo: UserContactInfo;
+  contactInfo: LeadUserContactInfo;
 
   @Prop({ type: Types.ObjectId, ref: 'Residence', required: false })
   residenceId?: Types.ObjectId;

@@ -1,6 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CustomerSupportRepository } from './customer-support.repository';
-import { CreateCustomerSupportDto } from './dto/create-customer-support.dto';
+import {
+  CreateCustomerSupportDto,
+  CreateCustomerSupportForGuestDto,
+} from './dto/create-customer-support.dto';
 import { CustomerSupport } from './schema/customer-support.schema';
 import { Types } from 'mongoose';
 import { ListCustomerSupportDto } from './dto/list-customer-support.dto';
@@ -10,6 +13,7 @@ import { UpdateCustomerSupportDto } from './dto/update-customer-support.dto';
 import { UnitRepository } from 'src/unit/unit.repository';
 import { UserRole } from '../users/enum/user.enum';
 import { JwtPayloadType } from '../auth/type/jwt-payload.type';
+import { UpdateCalendlyDetailsDto } from './dto/update-calendly-details.dto';
 
 @Injectable()
 export class CustomerSupportService {
@@ -78,13 +82,24 @@ export class CustomerSupportService {
           (document) => new Types.ObjectId(document)
         ),
       },
+      upload: createCustomerSupportDto.upload?.map((upload) => ({
+        ImageId: new Types.ObjectId(upload.ImageId),
+        type: upload.type,
+      })),
     };
 
     return await this.customerSupportRepository.create(transformedDto);
   }
 
+  async createForGuest(createCustomerSupportForGuestDto: CreateCustomerSupportForGuestDto) {
+    return await this.customerSupportRepository.create(createCustomerSupportForGuestDto);
+  }
+
   async getCustomerSupports(filterDto: ListCustomerSupportDto, developerId?: string) {
-    const result = await this.customerSupportRepository.findAllCustomerSupports(filterDto, developerId);
+    const result = await this.customerSupportRepository.findAllCustomerSupports(
+      filterDto,
+      developerId
+    );
     const count = result[0]?.totalCount || 0;
     const data = result[0]?.data || [];
 
@@ -139,6 +154,13 @@ export class CustomerSupportService {
           updateCustomerSupportDto.contactInfo.countryId
         );
       }
+    }
+
+    if (updateCustomerSupportDto.upload) {
+      transformedDto.upload = updateCustomerSupportDto.upload.map((upload) => ({
+        ImageId: new Types.ObjectId(upload.ImageId),
+        type: upload.type,
+      }));
     }
 
     if (updateCustomerSupportDto.customerSupportFeatureRequest) {
@@ -200,7 +222,21 @@ export class CustomerSupportService {
     if (!customerSupport) {
       throw new NotFoundException(`Customer support with ID ${customerSupportId} not found`);
     }
-    
+
     return await this.customerSupportRepository.update(customerSupportId, { isDeleted: true });
+  }
+
+  async updateCalendlyDetails(
+    customerSupportId: string,
+    updateCalendlyDetailsDto: UpdateCalendlyDetailsDto
+  ): Promise<CustomerSupport> {
+    const customerSupport = await this.customerSupportRepository.findById(customerSupportId);
+    if (!customerSupport) {
+      throw new NotFoundException(`Customer support with ID ${customerSupportId} not found`);
+    }
+
+    return this.customerSupportRepository.update(customerSupportId, {
+      calendlyDetails: updateCalendlyDetailsDto,
+    });
   }
 }

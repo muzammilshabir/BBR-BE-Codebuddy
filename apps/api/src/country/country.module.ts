@@ -5,10 +5,11 @@ import { CountryService } from './country.service';
 import { CountryController } from './country.controller';
 import { CountryRepository } from './country.repository';
 import { CountrySeeder } from './country.seeder';
+import { ActivateCountrySeeder } from './activateCountry.seeder';
 
 @Module({
   imports: [MongooseModule.forFeature([{ name: Country.name, schema: CountrySchema }])],
-  providers: [CountryService, CountryRepository, CountrySeeder],
+  providers: [CountryService, CountryRepository, CountrySeeder, ActivateCountrySeeder],
   exports: [CountrySeeder],
   controllers: [CountryController],
 })

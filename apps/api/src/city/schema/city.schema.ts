@@ -6,6 +6,15 @@ export class City extends Document {
   @Prop({ required: true })
   name: string;
 
+  @Prop({ required: false })
+  stateCode: string;
+
+  @Prop({ required: false })
+  countryCode: string;
+
+  @Prop({ type: Types.ObjectId, ref: 'State', required: false })
+  stateId: Types.ObjectId;
+
   @Prop({ type: Types.ObjectId, ref: 'Country', required: true })
   countryId: Types.ObjectId;
 
@@ -32,6 +41,9 @@ export class City extends Document {
 
   @Prop({ default: false })
   isDeleted: boolean;
+
+  @Prop({ default: false, required: false })
+  active: boolean;
 
   createdAt: Date;
   updatedAt: Date;

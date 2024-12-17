@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
 import { GuestApplyRankingDto } from './guast-apply-ranking.dto';
 import { RankingCategoryRepository } from 'src/rankingCategory/rankingCategory.repository';
 import { InvoiceService } from 'src/invoice/invoice.service';
@@ -17,6 +22,7 @@ import { Invoice } from 'src/stripe/schema/invoice.schema';
 import Stripe from 'stripe';
 import { GuestPremiumResidenceProfileDto } from './guest-request-premium-residence-profile.dto';
 import { GuestRequestVisitDto } from './guest-request-visit.dto';
+import { CustomerSupportService } from 'src/customer-support/customer-support.service';
 
 @Injectable()
 export class GuestUserService {
@@ -29,9 +35,10 @@ export class GuestUserService {
     @InjectModel(User.name)
     private userModel: Model<User>,
     @InjectModel(Plan.name)
-    private planModel: Model<Plan>
+    private planModel: Model<Plan>,
+    private readonly customerSupportService: CustomerSupportService
   ) {}
-  async findRankingCategory(body: GuestApplyRankingDto) {
+  async applyRanking(body: GuestApplyRankingDto) {
     const rankingCategories = await this.getRankingCategories(body.rankingCategoryIds);
 
     const { invoice, stripeCustomer, stripeInvoice } =
@@ -55,19 +62,22 @@ export class GuestUserService {
           ...body.userDetails,
           stripeCustomerId: stripeCustomer.id,
           password: await argon.hash(body.userDetails.password),
-        }
+        },
+        1
       ),
       this.invoicePostPaymentActionService.create(
         invoice.id,
         InvoicePostPaymentActionType.CREATE_RESIDENCE,
-        body.residenceDetails
+        body.residenceDetails,
+        2
       ),
       this.invoicePostPaymentActionService.create(
         invoice.id,
         InvoicePostPaymentActionType.CREATE_RANKING_REQUEST,
         {
           rankingCategoryIds: body.rankingCategoryIds,
-        }
+        },
+        3
       ),
     ]);
 
@@ -78,7 +88,16 @@ export class GuestUserService {
       body.stripePmTokenId
     );
 
-    return true;
+    const customerSupport = await this.customerSupportService.createForGuest({
+      name: body.userDetails.fullName,
+      email: body.userDetails.email,
+      phoneNumber: body.userDetails.phone,
+    });
+
+    return {
+      invoiceId: invoice.id,
+      customerSupportId: customerSupport._id,
+    };
   }
 
   private async getRankingCategories(rankingCategoryIds: string[]) {
@@ -104,6 +123,12 @@ export class GuestUserService {
   async uploadInventory(body: GuestUploadInventoryDto) {
     const subscriptionPlan = await this.getSubsPlan(body.subscriptionPlanId);
 
+    if (subscriptionPlan.name !== 'Bespoke Residence Profile' && !body.stripePmTokenId) {
+      throw new BadRequestException('stripePmTokenId is required');
+    } else if (subscriptionPlan.name === 'Bespoke Residence Profile' && body.stripePmTokenId) {
+      throw new BadRequestException('stripePmTokenId is not allowed');
+    }
+
     const { invoice, stripeCustomer, stripeInvoice } =
       await this.createStripeCustomerAndInvoice(body);
 
@@ -123,12 +148,14 @@ export class GuestUserService {
           ...body.userDetails,
           stripeCustomerId: stripeCustomer.id,
           password: await argon.hash(body.userDetails.password),
-        }
+        },
+        1
       ),
       this.invoicePostPaymentActionService.create(
         invoice.id,
         InvoicePostPaymentActionType.CREATE_RESIDENCE,
-        body.residenceDetails
+        body.residenceDetails,
+        2
       ),
     ]);
 
@@ -139,7 +166,16 @@ export class GuestUserService {
       body.stripePmTokenId
     );
 
-    return true;
+    const customerSupport = await this.customerSupportService.createForGuest({
+      name: body.userDetails.fullName,
+      email: body.userDetails.email,
+      phoneNumber: body.userDetails.phone,
+    });
+
+    return {
+      invoiceId: invoice.id,
+      customerSupportId: customerSupport._id,
+    };
   }
 
   private async getSubsPlan(subscriptionPlanId: string) {
@@ -179,14 +215,16 @@ export class GuestUserService {
     stripeCustomer: Stripe.Customer,
     stripeInvoice: Stripe.Invoice,
     invoice: Invoice,
-    stripePmTokenId: string
+    stripePmTokenId?: string
   ) {
-    const stripePaymentMethod = await this.stripeService.createPaymentMethod(
-      stripeCustomer.id,
-      stripePmTokenId
-    );
+    let stripePaymentMethod;
+    if (stripePmTokenId) {
+      stripePaymentMethod = await this.stripeService.createPaymentMethod(
+        stripeCustomer.id,
+        stripePmTokenId
+      );
+    }
 
-    await this.stripeService.payInvoiceUsingPaymentMethod(stripeInvoice.id, stripePaymentMethod.id);
     await this.paymentAttemptRepository.create({
       invoiceId: invoice._id,
       paymentMethodId: invoice.paymentMethodId,
@@ -196,6 +234,15 @@ export class GuestUserService {
       attemptsRemaining: 0,
       attemptsRemainingToday: 0,
     });
+
+    if (stripePaymentMethod) {
+      await this.stripeService.payInvoiceUsingPaymentMethod(
+        stripeInvoice.id,
+        stripePaymentMethod.id
+      );
+    } else {
+      await this.stripeService.finalizeInvoice(stripeInvoice);
+    }
   }
 
   async requestPremiumResidenceProfile(body: GuestPremiumResidenceProfileDto) {
@@ -222,12 +269,14 @@ export class GuestUserService {
           ...body.userDetails,
           stripeCustomerId: stripeCustomer.id,
           password: await argon.hash(body.userDetails.password),
-        }
+        },
+        1
       ),
       this.invoicePostPaymentActionService.create(
         invoice.id,
         InvoicePostPaymentActionType.CREATE_RESIDENCE,
-        body.residenceDetails
+        body.residenceDetails,
+        2
       ),
     ]);
 
@@ -238,7 +287,16 @@ export class GuestUserService {
       body.stripePmTokenId
     );
 
-    return true;
+    const customerSupport = await this.customerSupportService.createForGuest({
+      name: body.userDetails.fullName,
+      email: body.userDetails.email,
+      phoneNumber: body.userDetails.phone,
+    });
+
+    return {
+      invoiceId: invoice.id,
+      customerSupportId: customerSupport._id,
+    };
   }
 
   private async getPremiumResidenceProfilePlan() {
@@ -255,11 +313,11 @@ export class GuestUserService {
     return subscriptionPlan;
   }
 
-  async RequestVisit(body: GuestRequestVisitDto){
+  async requestVisit(body: GuestRequestVisitDto) {
     const subscriptionPlan = await this.getSubsPlan(body.subscriptionPlanId);
 
     const { invoice, stripeCustomer, stripeInvoice } =
-    await this.createStripeCustomerAndInvoice(body);
+      await this.createStripeCustomerAndInvoice(body);
 
     const lineItems = await this.invoiceService.createLineItemsFromSubscriptionPlan(
       invoice.id,
@@ -278,12 +336,14 @@ export class GuestUserService {
           ...body.userDetails,
           stripeCustomerId: stripeCustomer.id,
           password: await argon.hash(body.userDetails.password),
-        }
+        },
+        1
       ),
       this.invoicePostPaymentActionService.create(
         invoice.id,
         InvoicePostPaymentActionType.CREATE_RESIDENCE,
-        body.residenceDetails
+        body.residenceDetails,
+        2
       ),
     ]);
 
@@ -294,6 +354,15 @@ export class GuestUserService {
       body.stripePmTokenId
     );
 
-    return true;
+    const customerSupport = await this.customerSupportService.createForGuest({
+      name: body.userDetails.fullName,
+      email: body.userDetails.email,
+      phoneNumber: body.userDetails.phone,
+    });
+
+    return {
+      invoiceId: invoice.id,
+      customerSupportId: customerSupport.id,
+    };
   }
 }

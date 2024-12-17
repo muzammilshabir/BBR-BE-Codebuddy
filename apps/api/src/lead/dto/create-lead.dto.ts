@@ -7,6 +7,28 @@ import { UserBudget, UserContactInfo } from 'src/users/types/user.type';
 import { UserContactMethod } from 'src/users/enum/user.enum';
 import { budgetSchema } from 'src/users/dto/createUser.dto';
 
+export class PhoneNumber {
+  @ApiProperty({ description: 'Country code of the phone number', example: '+1' })
+  countryCode: string;
+
+  @ApiProperty({ description: 'Phone number', example: '1234567890' })
+  number: string;
+}
+
+export class LeadUserContactInfo {
+  @ApiProperty({
+    description: 'Location ID associated with the contact',
+    example: '66acda8b857c576159b74da4',
+    required: false,
+  })
+  countryId?: string;
+
+  @ApiProperty({ description: 'Phone information', type: PhoneNumber, required: false })
+  phone?: PhoneNumber;
+
+  @ApiProperty({ description: 'Preferred contact methods', enum: UserContactMethod, isArray: true })
+  preferredContactMethods: UserContactMethod[];
+}
 
 export class LeadUserPreferences {
   @ApiProperty({
@@ -42,13 +64,6 @@ export class LeadUserPreferences {
   @ApiProperty({ description: 'Budget preferences', type: UserBudget })
   budget: UserBudget;
 }
-export class PhoneNumber {
-  @ApiProperty({ description: 'Country code of the phone number', example: '+1' })
-  countryCode: string;
-
-  @ApiProperty({ description: 'Phone number', example: '1234567890' })
-  number: string;
-}
 
 export class CreateLeadDto {
   @ApiProperty({ example: 'John Doe', required: true })
@@ -66,17 +81,17 @@ export class CreateLeadDto {
   @ApiProperty({ example: '60d9c6a0a11c3c6c6a9a1a2a', required: false, type: String })
   residenceId?: Types.ObjectId;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Price of the unit',
     example: 1000000,
-    required: false 
+    required: false,
   })
   unitPrice?: number;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Percentage of the deal',
     example: 25,
-    required: false 
+    required: false,
   })
   dealPercentage?: number;
 
@@ -92,8 +107,8 @@ export class CreateLeadDto {
   @ApiProperty({ example: 'USA', required: false })
   country?: string;
 
-  @ApiProperty({ description: 'Contact information', type: UserContactInfo, required: false })
-  contactInfo?: UserContactInfo;
+  @ApiProperty({ description: 'Contact information', type: LeadUserContactInfo, required: false })
+  contactInfo?: LeadUserContactInfo;
 
   @ApiProperty({ example: '100000-200000', required: false })
   budget?: string;
@@ -105,10 +120,14 @@ export class CreateLeadDto {
   note?: string;
 
   @ApiProperty({ example: 'company name', required: false })
-  companyName?: string
+  companyName?: string;
 
-  @ApiProperty({ example:"https://www.google.com/",description: 'company or organization website link', required: false })
-  companyOrOrgLink?: string
+  @ApiProperty({
+    example: 'https://www.google.com/',
+    description: 'company or organization website link',
+    required: false,
+  })
+  companyOrOrgLink?: string;
 
   @ApiProperty({ description: 'User agreement to terms', example: true })
   agreeToTerms?: boolean;
@@ -125,7 +144,7 @@ export class CreateLeadDto {
   source?: LeadSource;
 
   @ApiProperty({ example: '2024-11-28', description: 'Expected close date', required: false })
-  expectedCloseDate?: Date;   
+  expectedCloseDate?: Date;
 }
 
 export const phoneSchema = Joi.object({
@@ -144,8 +163,8 @@ export const phoneSchema = Joi.object({
 });
 
 export const contactInfoSchema = Joi.object({
-  countryId: Joi.string().required(),
-  phone: phoneSchema.required(),
+  countryId: Joi.string().optional(),
+  phone: phoneSchema.optional(),
   preferredContactMethods: Joi.array()
     .items(Joi.string().valid(...Object.values(UserContactMethod)))
     .required(),
@@ -170,8 +189,8 @@ export const createLeadSchema = Joi.object({
   preferences: preferencesSchema.optional(),
   agreeToTerms: Joi.boolean().valid(true),
   receiveNewsletter: Joi.boolean(),
-  companyName:Joi.string().optional(),
-  companyOrOrgLink:Joi.string().uri().optional(),
+  companyName: Joi.string().optional(),
+  companyOrOrgLink: Joi.string().uri().optional(),
   unitPrice: Joi.number().optional(),
   dealPercentage: Joi.number().optional(),
   expectedCloseDate: Joi.date().optional(),

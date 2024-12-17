@@ -10,6 +10,7 @@ import {
 export const guestUploadInventorySchema = guestApplyRankingSchema
   .append({
     subscriptionPlanId: Joi.string().custom(joiObjectIdValidator('subscriptionPlanId')).required(),
+    stripePmTokenId: Joi.string().optional(),
   })
   .fork(['rankingCategoryIds'], (schema) => schema.forbidden());
 
@@ -29,8 +30,9 @@ export class GuestUploadInventoryDto {
   @ApiProperty({
     description: 'Stripe payment method token ID',
     type: String,
+    required: false,
   })
-  stripePmTokenId: string;
+  stripePmTokenId?: string;
 
   @ApiProperty({
     description: 'Subscription plan ID',

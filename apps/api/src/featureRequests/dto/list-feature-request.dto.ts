@@ -34,7 +34,7 @@ export class ListFeatureRequestDto extends ListPropsDto {
     description: 'Filter by payment status',
     example: PaymentStatus.PAID,
     required: false,
-    type: String,
+    enum: PaymentStatus,
   })
   paymentStatus?: PaymentStatus;
 }

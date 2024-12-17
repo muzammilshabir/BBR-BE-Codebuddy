@@ -18,6 +18,8 @@ import {
 } from './dto/update-customer-support.dto';
 import { Permissions } from 'src/auth/decorators/permissions.decorator';
 import { PermissionLevel } from 'src/modulePolicy/enum/permission-enum';
+import { UpdateCalendlyDetailsDto, updateCalendlyDetailsSchema } from './dto/update-calendly-details.dto';
+import { Public } from 'src/auth/decorators/public.decorator';
 
 @ApiTags('CustomerSupport')
 @Controller('customer-support')
@@ -26,9 +28,7 @@ export class CustomerSupportController {
 
   @Post()
   @ApiOperation({ summary: 'Create Customer Support' })
-  @Roles(UserRole.SELLER, UserRole.ADMIN)
-  @ApiBearerAuth()
-  @Permissions('customer-support', PermissionLevel.EDIT)
+  @Public()
   @UsePipes(new JoiValidationPipe(createCustomerSupportSchema, 'body'))
   async create(@Body() createCustomerSupportDto: CreateCustomerSupportDto) {
     const customerSupport = await this.customerSupportService.create(createCustomerSupportDto);
@@ -53,7 +53,7 @@ export class CustomerSupportController {
       user
     );
     return ResponseService.buildResponse(
-      { customerSupports },
+      customerSupports,
       'Customer supports retrieved successfully'
     );
   }
@@ -107,6 +107,26 @@ export class CustomerSupportController {
     return ResponseService.buildResponse(
       { customerSupport },
       'Customer support deleted successfully'
+    );
+  }
+
+  @Patch('/:id/calendly-details')
+  @ApiOperation({ summary: 'Update Calendly Details for Customer Support' })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN, UserRole.SELLER)
+  @Permissions('customer-support', PermissionLevel.EDIT)
+  @UsePipes(new JoiValidationPipe(updateCalendlyDetailsSchema, 'body'))
+  async updateCalendlyDetails(
+    @Param('id') customerSupportId: string,
+    @Body() updateCalendlyDetailsDto: UpdateCalendlyDetailsDto
+  ) {
+    const customerSupport = await this.customerSupportService.updateCalendlyDetails(
+      customerSupportId,
+      updateCalendlyDetailsDto
+    );
+    return ResponseService.buildResponse(
+      { customerSupport },
+      'Calendly details updated successfully'
     );
   }
 }
