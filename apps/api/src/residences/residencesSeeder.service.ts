@@ -483,7 +483,6 @@ export class ResidenceSeederService {
         for (const singleResidence of batch) {
           try {
             const residence = singleResidence as Residence;
-            
             await new Promise(resolve => setTimeout(resolve, 200));
       
             const residenceTypeDoc = await this.processResidence(residence, sheets.residenceTypes);
@@ -491,6 +490,7 @@ export class ResidenceSeederService {
             const brandDoc = residence.brand_id ? await this.processBrand(residence, sheets.brands, sheets.brandCategories) : null;
             
             const cityDoc = await this.processCity(residence, sheets.cities, sheets.countries);
+      
             const countryDoc = await this.processCountry(residence, sheets.countries);
             await new Promise(resolve => setTimeout(resolve, 100));
             const lifeStyleDoc = residence.lifestyle_id 
@@ -530,8 +530,10 @@ export class ResidenceSeederService {
               lifeStyleDoc,
               placeDetails
             });
+
             const foundResidence = await this.residenceRepository.find({
-              name: new RegExp(`^${residenceData.name}$`, 'i') 
+              name: new RegExp(`^${residenceData.name}$`, 'i'),
+              cityId: residenceData.cityId
             })
             
             if(!foundResidence) {
@@ -607,6 +609,19 @@ export class ResidenceSeederService {
         eVerification: true,
         verifiedOn: new Date()
     };
+
+    // Add required reference IDs
+    if (data.cityDoc?._id) {
+        baseData.cityId = new Types.ObjectId(data.cityDoc._id);
+    }
+
+    if (data.countryDoc?._id) {
+        baseData.countryId = new Types.ObjectId(data.countryDoc._id);
+    }
+
+    if (data.lifeStyleDoc?._id) {
+        baseData.lifeStyleId = new Types.ObjectId(data.lifeStyleDoc._id);
+    }
 
     // Handle required IDs and basic fields
     if (data.residenceTypeDoc?._id) {
