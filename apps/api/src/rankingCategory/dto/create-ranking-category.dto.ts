@@ -129,6 +129,13 @@ export class CreateRankingCategoryDto {
   countryId?: string;
 
   @ApiProperty({
+    description: 'ID for State-based category type',
+    example: '60d7fe6f9eb1f24a04d65634',
+    required: false,
+  })
+  stateId?: string;
+
+  @ApiProperty({
     description: 'ID for City-based category type',
     example: '60d7fe6f9eb1f24a04d65635',
     required: false,
@@ -218,6 +225,10 @@ export const createRankingCategorySchema = Joi.object({
   countryId: Joi.string()
     .custom(joiObjectIdValidator('countryId'))
     .when('categoryType', { is: CategoryType.COUNTRY, then: Joi.required() }),
+
+    stateId: Joi.string()
+    .custom(joiObjectIdValidator('stateId'))
+    .when('categoryType', { is: CategoryType.STATE, then: Joi.required() }),
 
   cityId: Joi.string()
     .custom(joiObjectIdValidator('cityId'))

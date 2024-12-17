@@ -23,6 +23,9 @@ import { PaymentStatus } from 'src/rankingRequest/enum/payment-status.enum';
 import { RankingRequestStatus } from 'src/rankingRequest/enum/rankingRequest-status.enum';
 import { S3Client, ListObjectsV2Command } from "@aws-sdk/client-s3";
 import { UploadRepository } from 'src/upload/upload.repository';
+import { StateRepository } from 'src/state/state.repository';
+import { State } from 'src/state/schema/state.schema';
+import { Location } from 'src/location/schema/location.schema';
 
 interface RankingCategory {
   ranking_category_id: string;
@@ -122,7 +125,12 @@ export class ResidenceSeederService {
     private readonly residenceTypeModel: Model<ResidenceType>,
     @InjectModel(Country.name)
     private readonly countryModel: Model<Country>,
-    private readonly uploadRepository: UploadRepository
+    @InjectModel(State.name)
+    private readonly stateModel: Model<State>,
+    private readonly uploadRepository: UploadRepository,
+    private readonly stateRepository: StateRepository,
+    @InjectModel(Location.name)
+    private readonly locationModel: Model<Location>,
   ) {
 
     this.s3Client = new S3Client({
@@ -137,6 +145,7 @@ export class ResidenceSeederService {
       },
   });
   }
+
 
   async processUploadedFile(file: Express.Multer.File) {
     const BATCH_SIZE = 10;
@@ -169,6 +178,12 @@ export class ResidenceSeederService {
       for (let i = 0; i < sheets.countries.length; i += BATCH_SIZE) {
         const batch = sheets.countries.slice(i, i + BATCH_SIZE);
         
+        if (i === 0) {
+          await this.countryModel.updateMany(
+            { isDeleted: false },
+            { $set: { active: false } }
+          );
+        }
         
         if (i > 0) {
           await new Promise(resolve => setTimeout(resolve, 100));
@@ -179,16 +194,27 @@ export class ResidenceSeederService {
             const country = singleCountry as any;
 
             let countryDoc = await this.countryModel.findOne({
-              name: { $regex: new RegExp(`^${country.name}$`, 'i') },
+              name: { 
+                $regex: `^${country.name.replace(/[()]/g, '\\$&')}$`, 
+                $options: 'i' 
+              },
+              isDeleted: false 
             });
-
 
             if (!countryDoc) {
               const countryData: any = {
                 name: country.name,
+                active: true,
+                isDeleted: false
               };
         
               countryDoc = await this.countryModel.create(countryData);
+            } else if (countryDoc.active === false) {
+              countryDoc = await this.countryModel.findByIdAndUpdate(
+                countryDoc._id,
+                { active: true },
+                { new: true }
+              );
             }
       
           } catch (error) {
@@ -204,6 +230,13 @@ export class ResidenceSeederService {
       for (let i = 0; i < sheets.cities.length; i += BATCH_SIZE) {
         const batch = sheets.cities.slice(i, i + BATCH_SIZE);
         
+        // Set all cities to inactive on first batch
+        if (i === 0) {
+          await this.cityModel.updateMany(
+            { isDeleted: false },
+            { $set: { active: false } }
+          );
+        }
         
         if (i > 0) {
           await new Promise(resolve => setTimeout(resolve, 100));
@@ -212,10 +245,6 @@ export class ResidenceSeederService {
         for (const singleCity of batch) {
           try {
             const city = singleCity as any;
-
-            if (city.logo) {
-              city.logo = city.logo.replace(/^"|"$/g, '').trim();
-            }
         
             let cityDoc;
             let countryId;
@@ -225,8 +254,12 @@ export class ResidenceSeederService {
             }
         
             const searchQuery: any = {
-              name: { $regex: new RegExp(`^${city.name}$`, 'i') },
-            };
+              name: { 
+                $regex: `^${city.name.replace(/[()]/g, '\\$&')}$`, 
+                $options: 'i' 
+              },
+              isDeleted: false
+              };
         
             if (countryId) {
               searchQuery.countryId = new Types.ObjectId(countryId);
@@ -237,14 +270,67 @@ export class ResidenceSeederService {
             if (!cityDoc) {
               const cityData: any = {
                 name: city.name,
+                active: true,
+                isDeleted: false
               };
         
               if (countryId) {
                 cityData.countryId = new Types.ObjectId(countryId);
               }
         
-        
               cityDoc = await this.cityModel.create(cityData);
+            } else if (cityDoc.active === false) {
+              // Update city status
+              cityDoc = await this.cityModel.findByIdAndUpdate(
+                cityDoc._id,
+                { active: true },
+                { new: true }
+              );
+
+              if (cityDoc.stateCode) {
+                try {
+                  let stateDoc = await this.stateModel.findOne({ 
+                    stateCode: cityDoc.stateCode,
+                    countryId: cityDoc.countryId,
+                    isDeleted: false
+                  });
+
+                  if (!stateDoc) {
+                    stateDoc = await this.stateModel.create({
+                      stateCode: cityDoc.stateCode,
+                      countryId: cityDoc.countryId,
+                      countryCode: cityDoc.countryCode,
+                      name: cityDoc.state || cityDoc.stateCode,
+                      active: true
+                    });
+                  } else if (!stateDoc.active) {
+                    stateDoc = await this.stateModel.findByIdAndUpdate(
+                      stateDoc._id,
+                      { 
+                        $set: { 
+                          active: true,
+                          countryId: cityDoc.countryId
+                        } 
+                      },
+                      { new: true }
+                    );
+                  }
+
+                  await this.cityModel.findByIdAndUpdate(
+                    cityDoc._id,
+                    { 
+                      $set: { 
+                        stateId: stateDoc._id,
+                        countryId: cityDoc.countryId
+                      } 
+                    },
+                    { new: true }
+                  );
+
+                } catch (error) {
+                  console.error(`Error updating state/city relationships for stateCode ${cityDoc.stateCode}:`, error);
+                }
+              }
             }
       
           } catch (error) {
@@ -270,7 +356,7 @@ export class ResidenceSeederService {
             const brand = singleBrand as any;
             
             let brandDoc = await this.brandRepository.find({
-              name: { $regex: new RegExp(`^${brand.name}$`, 'i') },
+              name: { $regex: new RegExp(brand.name, 'i') }
             });
 
 
@@ -307,7 +393,6 @@ export class ResidenceSeederService {
         for (const rankingCategory of batch) {
           try {
             await new Promise(resolve => setTimeout(resolve, 500));
-      
             const rankingCategoryTyped = rankingCategory as RankingCategory;
             let criteria;
       
@@ -342,13 +427,12 @@ export class ResidenceSeederService {
             }
       
             const categoryType = foundIdField.replace('_id', '');
-            const mappedCategoryType = categoryTypeMapping[categoryType];
-      
+            const mappedCategoryType = categoryTypeMapping[rankingCategoryTyped.category_type];
+            
             if (!mappedCategoryType) {
               throw new Error(`Invalid category type mapping for: ${categoryType}`);
             }
-      
-            const doc = await this.processCategoryType(categoryType, rankingCategoryTyped, {
+            const doc = await this.processCategoryType(mappedCategoryType, rankingCategoryTyped, {
               countries: sheets.countries,
               cities: sheets.cities,
               lifestyles: sheets.lifestyles,
@@ -357,22 +441,28 @@ export class ResidenceSeederService {
               geographicalType: sheets.geographicalArea,
               brandCategories: sheets.brandCategories
             });
+            const rankingCategoryData = this.createRankingCategoryData(rankingCategoryTyped, {
+              doc,
+              mappedCategoryType,
+              criteria,
+              foundIdField
+            });
+
+            const foundRankingCategory = await this.rankingCategoryRepository.find({
+              title: new RegExp(`^${rankingCategoryData.title}$`, 'i')
+            });
+            if (!foundRankingCategory) {
+              await this.rankingCategoryRepository.create(rankingCategoryData);
+            } else {
+              const plainRankingCategory = foundRankingCategory.toJSON();
+              delete plainRankingCategory._id;
+
+              await this.rankingCategoryRepository.update(
+                foundRankingCategory._id.toString(),
+                { ...plainRankingCategory, ...rankingCategoryData }
+              );
+            }
       
-            const rankingCategoryData = {
-              title: rankingCategoryTyped.title,
-              description: rankingCategoryTyped?.description || '',
-              categoryType: mappedCategoryType,
-              residenceLimitation: rankingCategoryTyped?.residence_limitation || null,
-              price: rankingCategoryTyped?.ranking_price || null,
-              criteria: criteria || [],
-              status: RankingCategoryStatus.ACTIVE,
-              isDeleted: false,
-              totalRequests: 0,
-              [this.getSchemaField(foundIdField)]: new Types.ObjectId(doc._id),
-            };
-      
-            await this.rankingCategoryRepository.create(rankingCategoryData);
-            
           } catch (error) {
             errors.rankingCategories.push({
               id: (rankingCategory as RankingCategory).ranking_category_id,
@@ -397,7 +487,9 @@ export class ResidenceSeederService {
             await new Promise(resolve => setTimeout(resolve, 200));
       
             const residenceTypeDoc = await this.processResidence(residence, sheets.residenceTypes);
-            const brandDoc = await this.processBrand(residence, sheets.brands, sheets.brandCategories);
+            
+            const brandDoc = residence.brand_id ? await this.processBrand(residence, sheets.brands, sheets.brandCategories) : null;
+            
             const cityDoc = await this.processCity(residence, sheets.cities, sheets.countries);
             const countryDoc = await this.processCountry(residence, sheets.countries);
             await new Promise(resolve => setTimeout(resolve, 100));
@@ -427,7 +519,6 @@ export class ResidenceSeederService {
               sheets.rankingCategories, 
               sheets.residenceScores
             );
-      console.log("processing going for residence --->", i)
             const residenceData = this.createResidenceData(residence, {
               residenceTypeDoc,
               brandDoc,
@@ -439,19 +530,22 @@ export class ResidenceSeederService {
               lifeStyleDoc,
               placeDetails
             });
-
-            await this.residenceRepository.updateMany(
-              { 
-                name: { 
-                  $regex: new RegExp(`^${residenceData.name}$`, 'i') 
-                }
-              }, 
-              { 
-                $set: { isDeleted: true } 
-              }
-            );
+            const foundResidence = await this.residenceRepository.find({
+              name: new RegExp(`^${residenceData.name}$`, 'i') 
+            })
             
-            await this.residenceRepository.create(residenceData);
+            if(!foundResidence) {
+              await this.residenceRepository.create(residenceData);
+            }else{
+              const plainResidence = foundResidence.toJSON();
+              delete plainResidence._id;
+
+              await this.residenceRepository.update(
+                foundResidence._id.toString(),
+                {...plainResidence,...residenceData}
+              );
+            }
+            
             
             if (rankingScoreDocArray?.length) {
               await this.rankingRequestRepository.createMany(rankingScoreDocArray);
@@ -502,83 +596,211 @@ export class ResidenceSeederService {
     highlightedAmenities: any[];
     lifeStyleDoc: any;
     placeDetails: any;
-  }) {
+}) {
     const baseData: any = {
-      name: residence.name,
-      residenceTypeIds: [new Types.ObjectId(data.residenceTypeDoc._id)],
-      websiteLink: residence.website_link || undefined,
-      associatedBrandId: data.brandDoc ? new Types.ObjectId(data.brandDoc._id) : undefined,
-      placeId: data.placeDetails?.placeId,
-      briefOverview: {
-        subtitle: residence?.subtitle,
-        briefDescription: residence?.brief_description,
-      },
-      comprehensiveOverview: {
-        subtitle: residence?.subtitle,
-        generalDescription: residence?.general_description,
-        community: residence?.community,
-        recentRenovation: residence?.recent_renovation,
-        localAttractions: residence?.local_attractions,
-        futureDevelopmentPlans: residence?.future_development,
-      },
-      residenceKeyFeatures: {
-        featureIds: data?.residenceFeatureIds,
-        developmentInfo: {
-          yearOfBuild: Number(residence?.build_year),
-          rentalPotential: residence?.rental_potential,
-          developmentStatus: residence?.development_status,
-        },
-        petPolicy: residence?.pet_policy,
-      },
-      nearbyAmenities: {
-        amenitiesList: data.amenityIds || [],
-        highlightedAmenities: data.highlightedAmenities || [],
-      },
-      status: 'active',
-      cityId: new Types.ObjectId(data.cityDoc._id),
-      countryId: new Types.ObjectId(data.countryDoc._id),
-      lifeStyleId: data.lifeStyleDoc ? new Types.ObjectId(data.lifeStyleDoc._id) : undefined,
-      address: {
-        country: data.countryDoc?.name,
-        state: residence?.state,
-        city: data.cityDoc?.name,
-        userInput: residence?.address,
-        location: {
-          lat: data.placeDetails?.latitude,
-          lng: data.placeDetails?.longitude,
-        },
-        placeId: data.placeDetails?.placeId,
-      },
-      isDeleted: false,
-      featured: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+        name: residence.name,
+        isDeleted: false,
+        featured: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        status: 'active',
+        eVerification: true,
+        verifiedOn: new Date()
     };
 
-    if (residence.start_range?.toString().trim() || residence.end_range?.toString().trim()) {
-      const budgetLimitationsRange: any = {};
-      
-      if (residence.start_range?.toString().trim()) {
-        const startRange = Number(residence.start_range);
-        if (!isNaN(startRange)) {
-          budgetLimitationsRange.startRange = startRange;
-        }
-      }
-      
-      if (residence.end_range?.toString().trim()) {
-        const endRange = Number(residence.end_range);
-        if (!isNaN(endRange)) {
-          budgetLimitationsRange.endRange = endRange;
-        }
-      }
-  
-      if (Object.keys(budgetLimitationsRange).length > 0) {
-        baseData.budgetLimitationsRange = budgetLimitationsRange;
-      }
+    // Handle required IDs and basic fields
+    if (data.residenceTypeDoc?._id) {
+        baseData.residenceTypeIds = [new Types.ObjectId(data.residenceTypeDoc._id)];
     }
-  
+
+    if (residence.website_link?.toString().trim()) {
+        baseData.websiteLink = residence.website_link;
+    }
+
+    if (data.brandDoc?._id) {
+        baseData.associatedBrandId = new Types.ObjectId(data.brandDoc._id);
+    }
+
+    if (data.placeDetails?.placeId?.toString().trim()) {
+        baseData.placeId = data.placeDetails.placeId;
+    }
+
+    // Handle briefOverview
+    if (residence.subtitle?.toString().trim() || residence.brief_description?.toString().trim()) {
+        const briefOverview: any = {};
+        
+        if (residence.subtitle?.toString().trim()) {
+            briefOverview.subtitle = residence.subtitle;
+        }
+        if (residence.brief_description?.toString().trim()) {
+            briefOverview.briefDescription = residence.brief_description;
+        }
+
+        if (Object.keys(briefOverview).length > 0) {
+            baseData.briefOverview = briefOverview;
+        }
+    }
+
+    // Handle comprehensiveOverview
+    if (residence.subtitle?.toString().trim() || residence.general_description?.toString().trim() || 
+        residence.community?.toString().trim() || residence.recent_renovation?.toString().trim() || 
+        residence.local_attractions?.toString().trim() || residence.future_development?.toString().trim()) {
+        
+        const comprehensiveOverview: any = {};
+        
+        if (residence.subtitle?.toString().trim()) {
+            comprehensiveOverview.subtitle = residence.subtitle;
+        }
+        if (residence.general_description?.toString().trim()) {
+            comprehensiveOverview.generalDescription = residence.general_description;
+        }
+        if (residence.community?.toString().trim()) {
+            comprehensiveOverview.community = residence.community;
+        }
+        if (residence.recent_renovation?.toString().trim()) {
+            comprehensiveOverview.recentRenovation = residence.recent_renovation;
+        }
+        if (residence.local_attractions?.toString().trim()) {
+            comprehensiveOverview.localAttractions = residence.local_attractions;
+        }
+        if (residence.future_development?.toString().trim()) {
+            comprehensiveOverview.futureDevelopmentPlans = residence.future_development;
+        }
+
+        if (Object.keys(comprehensiveOverview).length > 0) {
+            baseData.comprehensiveOverview = comprehensiveOverview;
+        }
+    }
+
+    // Handle residenceKeyFeatures
+    if (data?.residenceFeatureIds?.length > 0 || residence.build_year?.toString().trim() || 
+        residence.rental_potential?.toString().trim() || residence.development_status?.toString().trim() || 
+        residence.pet_policy?.toString().trim() || residence.floor_area_sqft?.toString().trim()) {
+        
+        const residenceKeyFeatures: any = {};
+        
+        if (data?.residenceFeatureIds?.length > 0) {
+            residenceKeyFeatures.featureIds = data.residenceFeatureIds;
+        }
+
+        const developmentInfo: any = {};
+        
+        if (residence.build_year?.toString().trim()) {
+            const yearOfBuild = Number(residence.build_year);
+            if (!isNaN(yearOfBuild)) {
+                developmentInfo.yearOfBuild = yearOfBuild;
+            }
+        }
+        if (residence.rental_potential?.toString().trim()) {
+            developmentInfo.rentalPotential = residence.rental_potential;
+        }
+        if (residence.development_status?.toString().trim()) {
+            developmentInfo.developmentStatus = residence.development_status;
+        }
+
+        if (Object.keys(developmentInfo).length > 0) {
+            residenceKeyFeatures.developmentInfo = developmentInfo;
+        }
+
+        if (residence.pet_policy?.toString().trim()) {
+            residenceKeyFeatures.petPolicy = residence.pet_policy;
+        }
+
+        if (residence.floor_area_sqft?.toString().trim()) {
+            const floorArea = Number(residence.floor_area_sqft.split('k')[0]) * 1000;
+            if (!isNaN(floorArea)) {
+                residenceKeyFeatures.floorAreaSqFt = floorArea;
+            }
+        }
+
+        if (Object.keys(residenceKeyFeatures).length > 0) {
+            baseData.residenceKeyFeatures = residenceKeyFeatures;
+        }
+    }
+
+    // Handle nearbyAmenities
+    if (data.amenityIds?.length > 0 || data.highlightedAmenities?.length > 0) {
+        const nearbyAmenities: any = {};
+        
+        if (data.amenityIds?.length > 0) {
+            nearbyAmenities.amenitiesList = data.amenityIds;
+        }
+        if (data.highlightedAmenities?.length > 0) {
+            nearbyAmenities.highlightedAmenities = data.highlightedAmenities;
+        }
+
+        if (Object.keys(nearbyAmenities).length > 0) {
+            baseData.nearbyAmenities = nearbyAmenities;
+        }
+    }
+
+    if (residence.start_range?.toString().trim() || residence.end_range?.toString().trim()) {
+        const budgetLimitationsRange: any = {};
+        
+        if (residence.start_range?.toString().trim()) {
+            const startRange = Number(residence.start_range);
+            if (!isNaN(startRange)) {
+                budgetLimitationsRange.startRange = startRange;
+            }
+        }
+        
+        if (residence.end_range?.toString().trim()) {
+            const endRange = Number(residence.end_range);
+            if (!isNaN(endRange)) {
+                budgetLimitationsRange.endRange = endRange;
+            }
+        }
+
+        if (Object.keys(budgetLimitationsRange).length > 0) {
+            baseData.budgetLimitationsRange = budgetLimitationsRange;
+        }
+    }
+
+    // Handle address
+    if (data.countryDoc?.name?.toString().trim() || residence.state?.toString().trim() || 
+        data.cityDoc?.name?.toString().trim() || residence.address?.toString().trim() || 
+        data.placeDetails?.latitude || data.placeDetails?.longitude) {
+        
+        const address: any = {};
+        
+        if (data.countryDoc?.name?.toString().trim()) {
+            address.country = data.countryDoc.name;
+        }
+        if (residence.state?.toString().trim()) {
+            address.state = residence.state;
+        }
+        if (data.cityDoc?.name?.toString().trim()) {
+            address.city = data.cityDoc.name;
+        }
+        if (residence.address?.toString().trim()) {
+            address.userInput = residence.address;
+        }
+
+        if (data.placeDetails?.latitude || data.placeDetails?.longitude) {
+            const location: any = {};
+            if (data.placeDetails.latitude) {
+                location.lat = data.placeDetails.latitude;
+            }
+            if (data.placeDetails.longitude) {
+                location.lng = data.placeDetails.longitude;
+            }
+            if (Object.keys(location).length > 0) {
+                address.location = location;
+            }
+        }
+
+        if (data.placeDetails?.placeId?.toString().trim()) {
+            address.placeId = data.placeDetails.placeId;
+        }
+
+        if (Object.keys(address).length > 0) {
+            baseData.address = address;
+        }
+    }
+
     return baseData;
-  }
+}
+
 
   async processResidenceScores(
     residence: Residence,
@@ -649,7 +871,7 @@ export class ResidenceSeederService {
         return await this.processBrand(rankingCategory, dataSources.brands, dataSources.brandCategories);
       case 'property_type':
         return await this.processProperty(rankingCategory, dataSources.propertyTypes);
-      case 'geographical_area':
+      case 'geography':
         return await this.processGeographicalArea(rankingCategory, dataSources.geographicalType);
       default:
         throw new Error(`Unsupported category type: ${categoryType}`);
@@ -658,9 +880,8 @@ export class ResidenceSeederService {
 
   private async processProperty(model: any, properties: any[]) {
     const matchingPropertyType = properties.find(
-      (property) => property.property_id === model.property_id
+      (property) => property.property_type_id === model.property_type_id
     );
-
     if (!matchingPropertyType) {
       throw new Error(`Property with property_id ${model.property_id} not found`);
     }
@@ -817,7 +1038,7 @@ export class ResidenceSeederService {
       matchingBrandCategory.name = 'Luxury Hotel Resort Brands'
     }
     let brandCategoryDoc = await this.brandCategoryRepository.find({
-      name: { $regex: new RegExp(`^${matchingBrandCategory.name}$`, 'i') },
+      name: { $regex: new RegExp(matchingBrandCategory.name, 'i') }
     });
 
     if (!brandCategoryDoc) {
@@ -882,7 +1103,11 @@ export class ResidenceSeederService {
     }
 
     const searchQuery: any = {
-      name: { $regex: new RegExp(`^${matchingCity.name}$`, 'i') },
+      name: { 
+        $regex: `^${matchingCity.name.replace(/[()]/g, '\\$&')}$`, 
+        $options: 'i' 
+      },
+      isDeleted: false 
     };
 
     if (countryId) {
@@ -894,6 +1119,7 @@ export class ResidenceSeederService {
     if (!cityDoc) {
       const cityData: any = {
         name: matchingCity.name,
+        active: true
       };
 
       if (countryId) {
@@ -902,6 +1128,59 @@ export class ResidenceSeederService {
 
 
       cityDoc = await this.cityModel.create(cityData);
+    } else if (cityDoc.active === false) {
+      // Update city status
+      cityDoc = await this.cityModel.findByIdAndUpdate(
+        cityDoc._id,
+        { active: true },
+        { new: true }
+      );
+
+      // Only update state if stateCode exists
+      if (cityDoc.stateCode) {
+        try {
+          let stateDoc = await this.stateModel.findOne({ 
+            stateCode: cityDoc.stateCode,
+            countryId: cityDoc.countryId,
+            isDeleted: false
+          });
+
+          if (!stateDoc) {
+            stateDoc = await this.stateModel.create({
+              stateCode: cityDoc.stateCode,
+              countryId: cityDoc.countryId,
+              countryCode: cityDoc.countryCode,
+              name: cityDoc.state || cityDoc.stateCode,
+              active: true
+            });
+          } else if (!stateDoc.active) {
+            stateDoc = await this.stateModel.findByIdAndUpdate(
+              stateDoc._id,
+              { 
+                $set: { 
+                  active: true,
+                  countryId: cityDoc.countryId
+                } 
+              },
+              { new: true }
+            );
+          }
+
+          await this.cityModel.findByIdAndUpdate(
+            cityDoc._id,
+            { 
+              $set: { 
+                stateId: stateDoc._id,
+                countryId: cityDoc.countryId
+              } 
+            },
+            { new: true }
+          );
+
+        } catch (error) {
+          console.error(`Error updating state/city relationships for stateCode ${cityDoc.stateCode}:`, error);
+        }
+      }
     }
     return cityDoc;
   }
@@ -918,17 +1197,28 @@ export class ResidenceSeederService {
     }
 
     let countryDoc = await this.countryModel.findOne({
-      name: { $regex: new RegExp(`^${matchingCountry.name}$`, 'i') },
+      name: { 
+        $regex: `^${matchingCountry.name.replace(/[()]/g, '\\$&')}$`, 
+        $options: 'i' 
+      },
+      isDeleted: false 
     });
 
     if (!countryDoc) {
       const countryData: any = {
         name: matchingCountry.name,
+        active: true
       };
 
-
       countryDoc = await this.countryModel.create(countryData);
+    } else if (countryDoc.active === false) {
+      countryDoc = await this.countryModel.findByIdAndUpdate(
+        countryDoc._id,
+        { active: true },
+        { new: true }
+      );
     }
+
     return countryDoc;
   }
 
@@ -1108,12 +1398,11 @@ export class ResidenceSeederService {
                   visualsUpdate.visuals.secondGalleryPhotos = secondGalleryUploads.map(upload => upload._id);
               }
       
-              const check = await this.residenceRepository.updateWithFilter(
+              await this.residenceRepository.updateWithFilter(
                   { name: residence.name,  isDeleted: false },
                   { $set: visualsUpdate }
               );
 
-              console.log(check)
             }
         }
       }
@@ -1175,5 +1464,505 @@ private getContentType(filename: string): string {
     return contentTypes[ext] || 'application/octet-stream';
 }
 
+/// city
+async processCityImages(file: Express.Multer.File) {
+  const BATCH_SIZE = 10;
+  
+  const workbook = XLSX.read(file.buffer, { type: 'buffer' });
+  const sheets = {
+    cities: XLSX.utils.sheet_to_json(workbook.Sheets['Cities']),
+  };
+
+  for (let i = 0; i < sheets.cities.length; i += BATCH_SIZE) {
+    const batch = sheets.cities.slice(i, i + BATCH_SIZE);
+    if (i > 0) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+  
+    for (const singleCity of batch) {
+      const city = singleCity as any;
+      if (city.home_page_image) {
+        const lastValue = city.home_page_image_path.split('/')[city.home_page_image_path.split('/').length - 1];
+        const imagePath = `${lastValue}/${city.home_page_image}`;
+    
+        try {
+          const s3Object = await this.listS3Object(imagePath);
+          
+          if (s3Object.length > 0) {
+            const uploadRecord = await this.createUploadRecord(s3Object[0]);
+            
+            if (uploadRecord) {
+              await this.cityModel.updateOne(
+                { name: city.name, isDeleted: false },
+                { 
+                  $set: { 
+                    upload: [{
+                      ImageId: uploadRecord._id,
+                      type: 'main'
+                    }]
+                  } 
+                }
+              );
+            }
+          }
+        } catch (error) {
+          console.error(`Error processing image for city ${city.name}:`, error);
+        }
+      }
+    }
+  }
+}
+
+private async listS3Object(prefix: string) {
+  try {
+    const params = {
+      Bucket: process.env.AWS_S3_BUCKET_NAME,
+      Prefix: prefix,
+      MaxKeys: 1
+    };
+
+    const command = new ListObjectsV2Command(params);
+    const response = await this.s3Client.send(command);
+    
+    return response.Contents || [];
+  } catch (error) {
+    console.error(`Error listing S3 object for prefix ${prefix}:`, error);
+    return [];
+  }
+}
+
+private async createUploadRecord(s3Object: any) {
+  try {
+    const url = `https://${process.env.CDN_URL}/${s3Object.Key}`;
+    
+    const uploadRecord = {
+      originalFileKey: s3Object.Key,
+      size: s3Object.Size,
+      mimeType: this.getContentType(s3Object.Key),
+      url: url,
+      fileKey: s3Object.ETag,
+      driver: 'S3'
+    };
+
+    return await this.uploadRepository.create(uploadRecord);
+  } catch (error) {
+    console.error(`Error creating upload record for ${s3Object.Key}:`, error);
+    return null;
+  }
+}
+
+// countries 
+async processCountryImages(file: Express.Multer.File) {
+  const BATCH_SIZE = 10;
+  
+  const workbook = XLSX.read(file.buffer, { type: 'buffer' });
+  const sheets = {
+    countries: XLSX.utils.sheet_to_json(workbook.Sheets['Countries']),
+  };
+
+  for (let i = 0; i < sheets.countries.length; i += BATCH_SIZE) {
+    const batch = sheets.countries.slice(i, i + BATCH_SIZE);
+    
+    if (i > 0) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+  
+    for (const singleCountry of batch) {
+      const country = singleCountry as any;
+
+      if (country.logo) {
+        try {
+         
+          const lastValue = country.logo_path.split('/').filter(Boolean).pop()
+          const imagePath = `${lastValue}/${country.logo}`;
+
+          const s3Object = await this.listS3Object(imagePath);
+
+          if (s3Object.length > 0) {
+            const uploadRecord = await this.createUploadRecord(s3Object[0]);
+            
+            if (uploadRecord) {
+              await this.countryModel.updateOne(
+                { name: country.name, isDeleted: false },
+                { 
+                  $set: { 
+                    upload: [{
+                      ImageId: uploadRecord._id,
+                      type: 'main'
+                    }]
+                  } 
+                }
+              );
+            }
+          }
+        } catch (error) {
+          console.error(`Error processing image for country ${country.name}:`, error);
+        }
+      }
+    }
+  }
+}
+
+
+//PropertyType
+async processPropertyTypeImages(file: Express.Multer.File) {
+  const BATCH_SIZE = 10;
+  
+  const workbook = XLSX.read(file.buffer, { type: 'buffer' });
+  const sheets = {
+    propertyTypes: XLSX.utils.sheet_to_json(workbook.Sheets['PropertyTypes']),
+  };
+
+  for (let i = 0; i < sheets.propertyTypes.length; i += BATCH_SIZE) {
+    const batch = sheets.propertyTypes.slice(i, i + BATCH_SIZE);
+    
+    if (i > 0) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+  
+    for (const singlePropertyType of batch) {
+      const propertyType = singlePropertyType as any;
+      
+      if (propertyType.logo) {
+
+        const lastValue = propertyType.logo_path.split('/')[propertyType.logo_path.split('/').length - 1];
+        const imagePath = `${lastValue}/${propertyType.logo}`;
+        
+        try {
+          const s3Object = await this.listS3Object(imagePath);
+
+          if (s3Object.length > 0) {
+            const uploadRecord = await this.createUploadRecord(s3Object[0]);
+            
+            if (uploadRecord) {
+              await this.propertyTypeRepository.updateWithFilter(
+                { name: propertyType.name, isDeleted: false },
+                { 
+                  $set: { 
+                    upload: [{
+                      ImageId: uploadRecord._id,
+                      type: 'main'
+                    }]
+                  } 
+                }
+              );
+            }
+          }
+        } catch (error) {
+          console.error(`Error processing image for property type ${propertyType.name}:`, error);
+        }
+      }
+    }
+  }
+}
+
+///Lifestyle 
+async processLifestyleImages(file: Express.Multer.File) {
+  const BATCH_SIZE = 10;
+  
+  const workbook = XLSX.read(file.buffer, { type: 'buffer' });
+  const sheets = {
+    lifestyles: XLSX.utils.sheet_to_json(workbook.Sheets['Lifestyles']),
+  };
+
+  for (let i = 0; i < sheets.lifestyles.length; i += BATCH_SIZE) {
+    const batch = sheets.lifestyles.slice(i, i + BATCH_SIZE);
+    
+    if (i > 0) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+  
+    for (const singleLifestyle of batch) {
+      const lifestyle = singleLifestyle as any;
+      
+      if (lifestyle.logo) {
+
+        const lastValue = lifestyle.image_path.split('/')[lifestyle.image_path.split('/').length - 1];
+        const imagePath = `${lastValue}/${lifestyle.logo}`;
+        
+        try {
+          const s3Object = await this.listS3Object(imagePath);
+
+          if (s3Object.length > 0) {
+            const uploadRecord = await this.createUploadRecord(s3Object[0]);
+            
+            if (uploadRecord) {
+              await this.lifeStyleRepository.updateWithFilter(
+                { name: lifestyle.name, isDeleted: false },
+                { 
+                  $set: { 
+                    upload: [{
+                      ImageId: uploadRecord._id,
+                      type: 'main'
+                    }]
+                  } 
+                }
+              );
+            }
+          }
+        } catch (error) {
+          console.error(`Error processing image for lifestyle ${lifestyle.name}:`, error);
+        }
+      }
+    }
+  }
+}
+
+async processRankingCategoryImages(file: Express.Multer.File) {
+  const BATCH_SIZE = 10;
+  
+  const workbook = XLSX.read(file.buffer, { type: 'buffer' });
+  const sheets = {
+    rankingCategories: XLSX.utils.sheet_to_json(workbook.Sheets['RankingCategories']),
+  };
+
+  for (let i = 0; i < sheets.rankingCategories.length; i += BATCH_SIZE) {
+    const batch = sheets.rankingCategories.slice(i, i + BATCH_SIZE);
+    
+    if (i > 0) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+  
+    for (const singleRankingCategory of batch) {
+      const rankingCategory = singleRankingCategory as any;
+      
+      if (rankingCategory.image && rankingCategory.image_path) {
+
+        const lastValue = rankingCategory.image_path.split('/').filter(Boolean).pop()
+        const imagePath = `${lastValue}/${rankingCategory.image}`.trim();
+        
+        try {
+          const s3Object = await this.listS3Object(imagePath);
+          
+          if (s3Object.length > 0) {
+            const uploadRecord = await this.createUploadRecord(s3Object[0]);
+
+            if (uploadRecord) {
+              await this.rankingCategoryRepository.updateWithFilter(
+                { title: rankingCategory.title, isDeleted: false },
+                { 
+                  $set: { 
+                    upload: [{
+                      ImageId: uploadRecord._id,
+                      type: 'Picture'
+                    }]
+                  } 
+                }
+              );
+            }
+          }
+        } catch (error) {
+          console.error(`Error processing image for lifestyle ${rankingCategory.title}:`, error);
+        }
+      }
+    }
+  }
+}
+
+//geographicalareas 
+async processGeographicalAreaImages(file: Express.Multer.File) {
+  const BATCH_SIZE = 10;
+  
+  const workbook = XLSX.read(file.buffer, { type: 'buffer' });
+  const sheets = {
+    geographicalAreas: XLSX.utils.sheet_to_json(workbook.Sheets['GeographicalArea']),
+  };
+
+  for (let i = 0; i < sheets.geographicalAreas.length; i += BATCH_SIZE) {
+    const batch = sheets.geographicalAreas.slice(i, i + BATCH_SIZE);
+    
+    if (i > 0) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+  
+    for (const singleArea of batch) {
+      const geographicalArea = singleArea as any;
+      
+      if (geographicalArea.logo) {
+
+        const lastValue = geographicalArea.logo_path.split('/')[geographicalArea.logo_path.split('/').length - 1];
+        const imagePath = `${lastValue}/${geographicalArea.logo}`;
+        
+        try {
+          const s3Object = await this.listS3Object(imagePath);
+
+          if (s3Object.length > 0) {
+            const uploadRecord = await this.createUploadRecord(s3Object[0]);
+            
+            if (uploadRecord) {
+              await this.geographicalAreasRepository.updateWithFilter(
+                { name: geographicalArea.name, isDeleted: false },
+                { 
+                  $set: { 
+                    upload: [{
+                      ImageId: uploadRecord._id,
+                      type: 'main'
+                    }]
+                  } 
+                }
+              );
+            }
+          }
+        } catch (error) {
+          console.error(`Error processing image for geographical area ${geographicalArea.name}:`, error);
+        }
+      }
+    }
+  }
+}
+
+// brand
+async processBrandImages(file: Express.Multer.File) {
+  const BATCH_SIZE = 10;
+  
+  const workbook = XLSX.read(file.buffer, { type: 'buffer' });
+  const sheets = {
+    brands: XLSX.utils.sheet_to_json(workbook.Sheets['Brands']),
+  };
+
+  for (let i = 0; i < sheets.brands.length; i += BATCH_SIZE) {
+    const batch = sheets.brands.slice(i, i + BATCH_SIZE);
+    
+    if (i > 0) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+  
+    for (const singleBrand of batch) {
+      const brand = singleBrand as any;
+      const uploadArray = [];
+      
+      try {
+        // Process logo image
+        if (brand.logo) {
+
+          const lastValue = brand.logo_path.split('/').pop();
+          const logoPath = `${lastValue}/${brand.logo}`.trim();
+          const logoUpload = await this.processImage(logoPath, 'logo');
+          if (logoUpload) uploadArray.push(logoUpload);
+        }
+
+        // Process logo directory image
+        if (brand.directory_logo) {
+
+          const lastValue = brand.directory_logo_path.split('/').pop();
+          const logoDirectoryPath = `${lastValue}/${brand.directory_logo}`;
+          const logoDirectoryUpload = await this.processImage(logoDirectoryPath, 'logoDirectory');
+          if (logoDirectoryUpload) uploadArray.push(logoDirectoryUpload);
+        }
+
+        // Process preview image
+        if (brand.preview_image) {
+
+          
+          const lastValue = brand.preview_image_path.split('/').pop();
+          const previewPath = `${lastValue}/${brand.preview_image}`;
+          const previewUpload = await this.processImage(previewPath, 'preview');
+          if (previewUpload) uploadArray.push(previewUpload);
+        }
+
+        // Process background image
+        if (brand.backgroung_image) {
+
+          const lastValue = brand.backgroung_image_path.split('/').pop();
+          const backgroundPath = `${lastValue}/${brand.backgroung_image}`;
+          const backgroundUpload = await this.processImage(backgroundPath, 'backgroundImage');
+          if (backgroundUpload) uploadArray.push(backgroundUpload);
+        }
+
+        // Update brand document if any images were processed
+        if (uploadArray.length > 0) {
+          await this.brandRepository.updateWithFilter(
+            { name: brand.name, isDeleted: false },
+            { 
+              $set: { 
+                upload: uploadArray
+              } 
+            }
+          );
+        }
+      } catch (error) {
+        console.error(`Error processing images for brand ${brand.name}:`, error);
+      }
+    }
+  }
+}
+
+private async processImage(imagePath: string, imageType: string) {
+  try {
+    const s3Object = await this.listS3Object(imagePath);
+    
+    if (s3Object.length > 0) {
+      const uploadRecord = await this.createUploadRecord(s3Object[0]);
+      
+      if (uploadRecord) {
+        return {
+          ImageId: uploadRecord._id,
+          type: imageType
+        };
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error(`Error processing ${imageType} image at path ${imagePath}:`, error);
+    return null;
+  }
+}
+
+private createRankingCategoryData(rankingCategory: RankingCategory, data: {
+    doc: any;
+    mappedCategoryType: string;
+    criteria: any[];
+    foundIdField: string;
+}) {
+    const baseData: any = {
+        isDeleted: false,
+        status: RankingCategoryStatus.ACTIVE,
+        totalRequests: 0,
+        createdAt: new Date(),
+        updatedAt: new Date()
+    };
+
+    // Handle basic fields
+    if (rankingCategory.title?.toString().trim()) {
+        baseData.title = rankingCategory.title;
+    }
+
+    if (rankingCategory.description?.toString().trim()) {
+        baseData.description = rankingCategory.description;
+    }
+
+    // Handle category type
+    if (data.mappedCategoryType) {
+        baseData.categoryType = data.mappedCategoryType;
+    }
+
+    // Handle residence limitation
+    if (rankingCategory.residence_limitation?.toString().trim()) {
+        const residenceLimitation = Number(rankingCategory.residence_limitation);
+        if (!isNaN(residenceLimitation)) {
+            baseData.residenceLimitation = residenceLimitation;
+        }
+    }
+
+    // Handle ranking price
+    if (rankingCategory.ranking_price?.toString().trim()) {
+        const price = Number(rankingCategory.ranking_price);
+        if (!isNaN(price)) {
+            baseData.price = price;
+        }
+    }
+
+    // Handle criteria
+    if (data.criteria?.length > 0) {
+        baseData.criteria = data.criteria;
+    }
+
+    // Handle document ID reference
+    if (data.doc?._id && data.foundIdField) {
+        baseData[this.getSchemaField(data.foundIdField)] = new Types.ObjectId(data.doc._id);
+    }
+
+    return baseData;
+}
 
 }

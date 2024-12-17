@@ -33,6 +33,7 @@ import { RankingRequestStatus } from '../rankingRequest/enum/rankingRequest-stat
 import { GeographicalAreasRepository } from '../geographicalAreas/geographicalAreas.repository';
 import { BrandRepository } from '../brand/brand.repository';
 import { InjectModel } from '@nestjs/mongoose';
+import { StateRepository } from 'src/state/state.repository';
 
 @Injectable()
 export class RankingCategoryService {
@@ -42,6 +43,7 @@ export class RankingCategoryService {
     private readonly lifeStyleRepository: LifeStyleRepository,
     private readonly cityRepository: CityRepository,
     private readonly countryRepository: CountryRepository,
+    private readonly stateRepository: StateRepository,
     private readonly locationRepository: LocationRepository,
     private readonly propertyTypeRepository: PropertyTypeRepository,
     private readonly geographicalAreasRepository: GeographicalAreasRepository,
@@ -56,6 +58,7 @@ export class RankingCategoryService {
       createdById,
       categoryType,
       countryId,
+      stateId,
       cityId,
       locationId,
       propertyTypeId,
@@ -100,6 +103,10 @@ export class RankingCategoryService {
       query.cityId = new Types.ObjectId(cityId);
     }
 
+    if (stateId) {
+      query.stateId = new Types.ObjectId(stateId);
+    }
+
     if (locationId) {
       query.locationId = new Types.ObjectId(locationId);
     }
@@ -137,6 +144,11 @@ export class RankingCategoryService {
         path: 'countryId',
         select: 'name code',
         model: 'Country',
+      },
+      {
+        path: 'stateId',
+        select: 'name stateCode',
+        model: 'State',
       },
       {
         path: 'cityId',
@@ -213,6 +225,7 @@ export class RankingCategoryService {
       const city = await this.cityRepository.find({
         _id: new Types.ObjectId(createRankingCategoryDto.cityId),
         isDeleted: { $ne: DeletionStatus.DELETED },
+        active: true
       });
       if (!city) {
         throw new BadRequestException(
@@ -220,6 +233,20 @@ export class RankingCategoryService {
         );
       }
       transformedDto.cityId = new Types.ObjectId(createRankingCategoryDto.cityId);
+    }
+
+    if (createRankingCategoryDto?.stateId) {
+      const state = await this.stateRepository.find({
+        _id: new Types.ObjectId(createRankingCategoryDto.stateId),
+        isDeleted: { $ne: DeletionStatus.DELETED },
+        active: true
+      });
+      if (!state) {
+        throw new BadRequestException(
+          `State with ID ${createRankingCategoryDto.stateId} does not exist or is deleted`
+        );
+      }
+      transformedDto.stateId = new Types.ObjectId(createRankingCategoryDto.stateId);
     }
 
     if (createRankingCategoryDto?.lifeStyleId) {
@@ -239,6 +266,7 @@ export class RankingCategoryService {
       const country = await this.countryRepository.find({
         _id: new Types.ObjectId(createRankingCategoryDto.countryId),
         isDeleted: { $ne: DeletionStatus.DELETED },
+        active: true
       });
       if (!country) {
         throw new BadRequestException(
@@ -347,6 +375,7 @@ export class RankingCategoryService {
       const city = await this.cityRepository.find({
         _id: new Types.ObjectId(updateRankingCategoryDto.cityId),
         isDeleted: { $ne: DeletionStatus.DELETED },
+        active: true
       });
       if (!city) {
         throw new BadRequestException(
@@ -354,6 +383,20 @@ export class RankingCategoryService {
         );
       }
       transformedDto.cityId = new Types.ObjectId(updateRankingCategoryDto.cityId);
+    }
+
+    if (updateRankingCategoryDto?.stateId) {
+      const state = await this.stateRepository.find({
+        _id: new Types.ObjectId(updateRankingCategoryDto.stateId),
+        isDeleted: { $ne: DeletionStatus.DELETED },
+        active: true
+      });
+      if (!state) {
+        throw new BadRequestException(
+          `State with ID ${updateRankingCategoryDto.stateId} does not exist or is deleted`
+        );
+      }
+      transformedDto.stateId = new Types.ObjectId(updateRankingCategoryDto.stateId);
     }
 
     if (updateRankingCategoryDto?.lifeStyleId) {
@@ -373,6 +416,7 @@ export class RankingCategoryService {
       const country = await this.countryRepository.find({
         _id: new Types.ObjectId(updateRankingCategoryDto.countryId),
         isDeleted: { $ne: DeletionStatus.DELETED },
+        active: true
       });
       if (!country) {
         throw new BadRequestException(
