@@ -1464,7 +1464,7 @@ private async processImagesInBackground(file: Express.Multer.File) {
               }
       
               await this.residenceRepository.updateWithFilter(
-                  { name: residence.name,  isDeleted: false },
+                  { name: residence.name, cityId: residence.city_id, isDeleted: false },
                   { $set: visualsUpdate }
               );
             }
