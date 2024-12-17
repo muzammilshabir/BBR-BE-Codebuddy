@@ -8,16 +8,16 @@ import { InvoicePostPaymentActionType } from 'src/stripe/schema/invoice-post-pay
 import { PaymentAttemptRepository } from 'src/stripe/payment-attempt.repository';
 import { PaymentAttemptStatus } from 'src/stripe/enum/payment-attempt-status.enum';
 import { User } from 'src/users/schema/user.schema';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { Plan } from 'src/subscription-plan/schema/plan.schema';
 import { Invoice } from 'src/stripe/schema/invoice.schema';
 import Stripe from 'stripe';
-import { BbrVerificationRepository } from 'src/bbr-verification/bbr-verification.repository';
-import { FeatureRequestRepository } from 'src/featureRequests/featureRequests.repository';
 import { RankingCategory } from 'src/rankingCategory/schema/rankingCategory.schema';
-import { BbrVerification } from 'src/bbr-verification/schema/bbr-verification.schema';
-import { FeatureRequest } from 'src/featureRequests/schema/featureRequest.schema';
+import { ResidenceRepository } from '../residences/residences.repository';
+import { ResidenceDraftRepository } from '../residencesDraft/residencesDraft.repository';
+import { DeletionStatus } from '../unit/enum/unit-enum';
+import { ResidenceStatus } from '../residences/enum/residence-enum';
 
 @Injectable()
 export class ApplyAdditionalServiceRequestService {
@@ -27,8 +27,8 @@ export class ApplyAdditionalServiceRequestService {
     private readonly stripeService: StripeService,
     private readonly invoicePostPaymentActionService: InvoicePostPaymentActionService,
     private readonly paymentAttemptRepository: PaymentAttemptRepository,
-    private readonly bbrVerificationRepository: BbrVerificationRepository,
-    private readonly featureRequestRepository: FeatureRequestRepository,
+    private readonly residenceRepository: ResidenceRepository,
+    private readonly residenceDraftRepository: ResidenceDraftRepository,
     @InjectModel(User.name)
     private userModel: Model<User>,
     @InjectModel(Plan.name)
@@ -36,8 +36,27 @@ export class ApplyAdditionalServiceRequestService {
   ) {}
   async create(body: ApplyAdditionalServiceRequestDto) {
     let rankingCategories: { data: RankingCategory[] };
-    let bbrVerificationRequest: BbrVerification;
-    let featureRequest: FeatureRequest;
+
+    let residence = await this.residenceRepository.find({
+      _id: new Types.ObjectId(body?.residenceId),
+      isDeleted: { $ne: DeletionStatus.DELETED },
+      status: ResidenceStatus.ACTIVE,
+    });
+
+    if (!body.residenceId) {
+      residence = await this.residenceRepository.create({
+        name: 'Draft residence',
+      });
+
+      await this.residenceDraftRepository.create({
+        residenceId: new Types.ObjectId(residence.id),
+        name: 'Draft residence',
+      });
+    }
+
+    if (!residence) {
+      throw new NotFoundException('Residence request not found');
+    }
 
     const { invoice, stripeCustomer, stripeInvoice } =
       await this.createStripeCustomerAndInvoice(body);
@@ -70,15 +89,8 @@ export class ApplyAdditionalServiceRequestService {
       );
     }
 
-    if (body.bbrVerificationRequestId) {
-      bbrVerificationRequest = await this.bbrVerificationRepository.findById(
-        body.bbrVerificationRequestId.toString()
-      );
-
-      if (!bbrVerificationRequest) {
-        throw new NotFoundException('BBR verification request not found');
-      }
-      const plan = await this.getSubsPlan(bbrVerificationRequest.planId.toString());
+    if (body.bbrVerificationPlanId) {
+      const plan = await this.getSubsPlan(body.bbrVerificationPlanId.toString());
       const lineItems = await this.invoiceService.createLineItemsFromSubscriptionPlan(
         invoice.id,
         plan
@@ -93,7 +105,8 @@ export class ApplyAdditionalServiceRequestService {
         invoice.id,
         InvoicePostPaymentActionType.CREATE_BBR_VERIFICATION_REQUEST,
         {
-          bbrVerificationRequestId: bbrVerificationRequest.id.toString(),
+          bbrVerificationPlantId: body.bbrVerificationPlanId.toString(),
+          residenceId: residence.id,
           userInfo: {
             fullName: body.userDetails.fullName,
             email: body.userDetails.email,
@@ -103,16 +116,8 @@ export class ApplyAdditionalServiceRequestService {
       );
     }
 
-    if (body.featureRequestId) {
-      featureRequest = await this.featureRequestRepository.findById(
-        body.featureRequestId.toString()
-      );
-
-      if (!featureRequest) {
-        throw new NotFoundException('Feature request not found');
-      }
-
-      const plan = await this.getSubsPlan(featureRequest.planId.toString());
+    if (body.featurePlanId) {
+      const plan = await this.getSubsPlan(body.featurePlanId.toString());
       const lineItems = await this.invoiceService.createLineItemsFromSubscriptionPlan(
         invoice.id,
         plan
@@ -127,7 +132,8 @@ export class ApplyAdditionalServiceRequestService {
         invoice.id,
         InvoicePostPaymentActionType.CREATE_FEATURE_REQUEST,
         {
-          featureRequestId: featureRequest.id.toString(),
+          featurePlanId: body.featurePlanId.toString(),
+          residenceId: residence.id,
           userInfo: {
             fullName: body.userDetails.fullName,
             email: body.userDetails.email,

@@ -9,7 +9,7 @@ export class BbrVerification extends Document {
   @Prop({ type: Types.ObjectId, ref: 'Residence', required: true })
   residenceId: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  @Prop({ type: Types.ObjectId, ref: 'User', required: false })
   createdBy: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'Plan', required: true })
