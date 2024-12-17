@@ -5,8 +5,8 @@ import { MongoMemoryReplSet } from 'mongodb-memory-server';
     binary: {
       version: '7.0.11',
     },
-    replSet: { count: 2, storageEngine: 'wiredTiger' },
-    instanceOpts: [{ port: 27017 }, { port: 27018 }],
+    replSet: { count: 1, storageEngine: 'wiredTiger' },
+    instanceOpts: [{ port: 27017 }],
   });
   const uri = replSet.getUri();
   const dbName = 'test';
