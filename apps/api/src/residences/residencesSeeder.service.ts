@@ -148,6 +148,20 @@ export class ResidenceSeederService {
 
 
   async processUploadedFile(file: Express.Multer.File) {
+    console.log('Starting file processing:', file.originalname);
+    
+    // Return immediately that processing has started
+    setTimeout(() => {
+      this.processFileInBackground(file);
+    }, 0);
+
+    return {
+      success: true,
+      message: 'File processing started',
+    };
+  }
+
+  private async processFileInBackground(file: Express.Multer.File) {
     const BATCH_SIZE = 10;
     const errors = {
       rankingCategories: [],
@@ -155,8 +169,8 @@ export class ResidenceSeederService {
     };
 
     try {
+      console.log('Processing file in background:', file.originalname);
       
-
       const workbook = XLSX.read(file.buffer, { type: 'buffer' });
       const sheets = {
         residences: XLSX.utils.sheet_to_json(workbook.Sheets['Residences']),
@@ -175,7 +189,10 @@ export class ResidenceSeederService {
         brandCategories: XLSX.utils.sheet_to_json(workbook.Sheets['BrandCategory']),
       };
 
+      // Countries processing
+      console.log('Processing Countries...');
       for (let i = 0; i < sheets.countries.length; i += BATCH_SIZE) {
+        console.log(`Processing Countries batch ${i/BATCH_SIZE + 1} of ${Math.ceil(sheets.countries.length/BATCH_SIZE)}`);
         const batch = sheets.countries.slice(i, i + BATCH_SIZE);
         
         if (i === 0) {
@@ -227,7 +244,10 @@ export class ResidenceSeederService {
         }
       }
 
+      // Cities processing
+      console.log('Processing Cities...');
       for (let i = 0; i < sheets.cities.length; i += BATCH_SIZE) {
+        console.log(`Processing Cities batch ${i/BATCH_SIZE + 1} of ${Math.ceil(sheets.cities.length/BATCH_SIZE)}`);
         const batch = sheets.cities.slice(i, i + BATCH_SIZE);
         
         // Set all cities to inactive on first batch
@@ -343,7 +363,10 @@ export class ResidenceSeederService {
         }
       }
 
+      // Brands processing
+      console.log('Processing Brands...');
       for (let i = 0; i < sheets.brands.length; i += BATCH_SIZE) {
+        console.log(`Processing Brands batch ${i/BATCH_SIZE + 1} of ${Math.ceil(sheets.brands.length/BATCH_SIZE)}`);
         const batch = sheets.brands.slice(i, i + BATCH_SIZE);
         
         
@@ -383,7 +406,10 @@ export class ResidenceSeederService {
         }
       }
 
+      // Ranking categories processing
+      console.log('Processing Ranking Categories...');
       for (let i = 0; i < sheets.rankingCategories.length; i += BATCH_SIZE) {
+        console.log(`Processing Ranking Categories batch ${i/BATCH_SIZE + 1} of ${Math.ceil(sheets.rankingCategories.length/BATCH_SIZE)}`);
         if (i > 0) {
           await new Promise(resolve => setTimeout(resolve, 2000)); 
         }
@@ -473,7 +499,10 @@ export class ResidenceSeederService {
         }
       }
 
+      // Residences processing
+      console.log('Processing Residences...');
       for (let i = 0; i < sheets.residences.length; i += BATCH_SIZE) {
+        console.log(`Processing Residences batch ${i/BATCH_SIZE + 1} of ${Math.ceil(sheets.residences.length/BATCH_SIZE)}`);
         const batch = sheets.residences.slice(i, i + BATCH_SIZE);
         
         if (i > 0) {
@@ -563,11 +592,14 @@ export class ResidenceSeederService {
         }
       }
 
+      console.log('File processing completed:', file.originalname);
+
       return {
         success: true,
         errors,
       };
     } catch (error) {
+      console.error('Error processing file:', file.originalname, error);
       return {
         success: false,
         error: error.message,
@@ -1365,14 +1397,33 @@ export class ResidenceSeederService {
 
 
    async processUploadedImages(file: Express.Multer.File) {
+    console.log('Starting image processing:', file.originalname);
+    
+    // Return immediately that processing has started
+    setTimeout(() => {
+      this.processImagesInBackground(file);
+    }, 0);
+
+    return {
+      success: true,
+      message: 'Image processing started',
+    };
+}
+
+private async processImagesInBackground(file: Express.Multer.File) {
     const BATCH_SIZE = 10;
 
+    try {
+      console.log('Processing images in background:');
+      
       const workbook = XLSX.read(file.buffer, { type: 'buffer' });
       const sheets = {
         residences: XLSX.utils.sheet_to_json(workbook.Sheets['Residences']),
       };
 
+      console.log('Processing Residence Images...');
       for (let i = 0; i < sheets.residences.length; i += BATCH_SIZE) {
+        console.log(`Processing Images batch ${i/BATCH_SIZE + 1} of ${Math.ceil(sheets.residences.length/BATCH_SIZE)}`);
         const batch = sheets.residences.slice(i, i + BATCH_SIZE);
         
         if (i > 0) {
@@ -1380,7 +1431,6 @@ export class ResidenceSeederService {
         }
       
         for (const singleResidence of batch) {
-        
             const residence = singleResidence as Residence;
             
             const mainGalleryPath = residence.main_gallery_path 
@@ -1417,11 +1467,15 @@ export class ResidenceSeederService {
                   { name: residence.name,  isDeleted: false },
                   { $set: visualsUpdate }
               );
-
             }
         }
       }
-  }
+
+      console.log('Image processing completed:', file.originalname);
+    } catch (error) {
+      console.error('Error processing images:', file.originalname, error);
+    }
+}
 
   private async listS3Objects(prefix: string) {
     try {
@@ -1481,14 +1535,28 @@ private getContentType(filename: string): string {
 
 /// city
 async processCityImages(file: Express.Multer.File) {
+  console.log('Starting city image processing:', file.originalname);
+  
+  // Return immediately that processing has started
+  setTimeout(() => {
+    this.processCityImagesInBackground(file);
+  }, 0);
+
+  return {
+    success: true,
+    message: 'Image processing started',
+  };
+}
+async processCityImagesInBackground(file: Express.Multer.File) {
   const BATCH_SIZE = 10;
   
   const workbook = XLSX.read(file.buffer, { type: 'buffer' });
   const sheets = {
     cities: XLSX.utils.sheet_to_json(workbook.Sheets['Cities']),
   };
-
+  console.log('Processing City Images...');
   for (let i = 0; i < sheets.cities.length; i += BATCH_SIZE) {
+    console.log(`Processing Images batch ${i/BATCH_SIZE + 1} of ${Math.ceil(sheets.cities.length/BATCH_SIZE)}`);
     const batch = sheets.cities.slice(i, i + BATCH_SIZE);
     if (i > 0) {
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -1568,14 +1636,28 @@ private async createUploadRecord(s3Object: any) {
 
 // countries 
 async processCountryImages(file: Express.Multer.File) {
+  console.log('Starting city image processing:', file.originalname);
+  
+  // Return immediately that processing has started
+  setTimeout(() => {
+    this.processCountryImagesInBackground(file);
+  }, 0);
+
+  return {
+    success: true,
+    message: 'Image processing started',
+  };
+}
+async processCountryImagesInBackground(file: Express.Multer.File) {
   const BATCH_SIZE = 10;
   
   const workbook = XLSX.read(file.buffer, { type: 'buffer' });
   const sheets = {
     countries: XLSX.utils.sheet_to_json(workbook.Sheets['Countries']),
   };
-
+  console.log('Processing Country Images...');
   for (let i = 0; i < sheets.countries.length; i += BATCH_SIZE) {
+    console.log(`Processing Images batch ${i/BATCH_SIZE + 1} of ${Math.ceil(sheets.countries.length/BATCH_SIZE)}`);
     const batch = sheets.countries.slice(i, i + BATCH_SIZE);
     
     if (i > 0) {
@@ -1620,7 +1702,21 @@ async processCountryImages(file: Express.Multer.File) {
 
 
 //PropertyType
+
 async processPropertyTypeImages(file: Express.Multer.File) {
+  console.log('Starting PropertyType image processing:', file.originalname);
+  
+  // Return immediately that processing has started
+  setTimeout(() => {
+    this.processPropertyTypeImagesInBackground(file);
+  }, 0);
+
+  return {
+    success: true,
+    message: 'Image processing started',
+  };
+}
+async processPropertyTypeImagesInBackground(file: Express.Multer.File) {
   const BATCH_SIZE = 10;
   
   const workbook = XLSX.read(file.buffer, { type: 'buffer' });
@@ -1628,7 +1724,9 @@ async processPropertyTypeImages(file: Express.Multer.File) {
     propertyTypes: XLSX.utils.sheet_to_json(workbook.Sheets['PropertyTypes']),
   };
 
+  console.log('Processing Property Type Images...');
   for (let i = 0; i < sheets.propertyTypes.length; i += BATCH_SIZE) {
+    console.log(`Processing Images batch ${i/BATCH_SIZE + 1} of ${Math.ceil(sheets.propertyTypes.length/BATCH_SIZE)}`);
     const batch = sheets.propertyTypes.slice(i, i + BATCH_SIZE);
     
     if (i > 0) {
@@ -1672,15 +1770,30 @@ async processPropertyTypeImages(file: Express.Multer.File) {
 }
 
 ///Lifestyle 
+
 async processLifestyleImages(file: Express.Multer.File) {
+  console.log('Starting Lifestyle image processing:', file.originalname);
+  
+  // Return immediately that processing has started
+  setTimeout(() => {
+    this.processLifestyleImagesInBackground(file);
+  }, 0);
+
+  return {
+    success: true,
+    message: 'Image processing started',
+  };
+}
+async processLifestyleImagesInBackground(file: Express.Multer.File) {
   const BATCH_SIZE = 10;
   
   const workbook = XLSX.read(file.buffer, { type: 'buffer' });
   const sheets = {
     lifestyles: XLSX.utils.sheet_to_json(workbook.Sheets['Lifestyles']),
   };
-
+ console.log('Processing Lifestyle Images...');
   for (let i = 0; i < sheets.lifestyles.length; i += BATCH_SIZE) {
+    console.log(`Processing Images batch ${i/BATCH_SIZE + 1} of ${Math.ceil(sheets.lifestyles.length/BATCH_SIZE)}`);
     const batch = sheets.lifestyles.slice(i, i + BATCH_SIZE);
     
     if (i > 0) {
@@ -1723,7 +1836,21 @@ async processLifestyleImages(file: Express.Multer.File) {
   }
 }
 
+
 async processRankingCategoryImages(file: Express.Multer.File) {
+  console.log('Starting Ranking Category image processing:', file.originalname);
+  
+  // Return immediately that processing has started
+  setTimeout(() => {
+    this.processRankingImagesInBackground(file);
+  }, 0);
+
+  return {
+    success: true,
+    message: 'Image processing started',
+  };
+}
+async processRankingImagesInBackground(file: Express.Multer.File) {
   const BATCH_SIZE = 10;
   
   const workbook = XLSX.read(file.buffer, { type: 'buffer' });
@@ -1731,7 +1858,9 @@ async processRankingCategoryImages(file: Express.Multer.File) {
     rankingCategories: XLSX.utils.sheet_to_json(workbook.Sheets['RankingCategories']),
   };
 
+  console.log('Processing Ranking Category Images...');
   for (let i = 0; i < sheets.rankingCategories.length; i += BATCH_SIZE) {
+    console.log(`Processing Images batch ${i/BATCH_SIZE + 1} of ${Math.ceil(sheets.rankingCategories.length/BATCH_SIZE)}`);
     const batch = sheets.rankingCategories.slice(i, i + BATCH_SIZE);
     
     if (i > 0) {
@@ -1775,7 +1904,21 @@ async processRankingCategoryImages(file: Express.Multer.File) {
 }
 
 //geographicalareas 
+
 async processGeographicalAreaImages(file: Express.Multer.File) {
+  console.log('Starting Geographical Area image processing:', file.originalname);
+  
+  // Return immediately that processing has started
+  setTimeout(() => {
+    this.processGeographicalAreaImagesInBackground(file);
+  }, 0);
+
+  return {
+    success: true,
+    message: 'Image processing started',
+  };
+}
+async processGeographicalAreaImagesInBackground(file: Express.Multer.File) {
   const BATCH_SIZE = 10;
   
   const workbook = XLSX.read(file.buffer, { type: 'buffer' });
@@ -1783,7 +1926,9 @@ async processGeographicalAreaImages(file: Express.Multer.File) {
     geographicalAreas: XLSX.utils.sheet_to_json(workbook.Sheets['GeographicalArea']),
   };
 
+  console.log('Processing Geographical Area Images...');
   for (let i = 0; i < sheets.geographicalAreas.length; i += BATCH_SIZE) {
+    console.log(`Processing Images batch ${i/BATCH_SIZE + 1} of ${Math.ceil(sheets.geographicalAreas.length/BATCH_SIZE)}`);
     const batch = sheets.geographicalAreas.slice(i, i + BATCH_SIZE);
     
     if (i > 0) {
@@ -1828,6 +1973,19 @@ async processGeographicalAreaImages(file: Express.Multer.File) {
 
 // brand
 async processBrandImages(file: Express.Multer.File) {
+  console.log('Starting Brand image processing:', file.originalname);
+  
+  // Return immediately that processing has started
+  setTimeout(() => {
+    this.processBrandImagesInBackground(file);
+  }, 0);
+
+  return {
+    success: true,
+    message: 'Image processing started',
+  };
+}
+async processBrandImagesInBackground(file: Express.Multer.File) {
   const BATCH_SIZE = 10;
   
   const workbook = XLSX.read(file.buffer, { type: 'buffer' });
@@ -1835,7 +1993,9 @@ async processBrandImages(file: Express.Multer.File) {
     brands: XLSX.utils.sheet_to_json(workbook.Sheets['Brands']),
   };
 
+  console.log('Processing Brand Images...');
   for (let i = 0; i < sheets.brands.length; i += BATCH_SIZE) {
+    console.log(`Processing Images batch ${i/BATCH_SIZE + 1} of ${Math.ceil(sheets.brands.length/BATCH_SIZE)}`);
     const batch = sheets.brands.slice(i, i + BATCH_SIZE);
     
     if (i > 0) {

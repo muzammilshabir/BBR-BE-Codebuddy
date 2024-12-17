@@ -105,7 +105,6 @@ export class StateService {
                   stateData 
                 );
               } else {
-                console.log(stateData.name)
                 await this.stateRepository.create(stateData);
               }
             });
