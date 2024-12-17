@@ -4,13 +4,14 @@ import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/
 import { Types } from 'mongoose';
 
 export const applyAdditionalServiceRequestSchema = Joi.object({
-  bbrVerificationRequestId: Joi.string()
-    .custom(joiObjectIdValidator('bbrVerificationRequestId'))
+  bbrVerificationPlanId: Joi.string()
+    .custom(joiObjectIdValidator('bbrVerificationPlanId'))
     .optional(),
+  residenceId: Joi.string().custom(joiObjectIdValidator('residenceId')).optional(),
   rankingCategoryIds: Joi.array()
     .items(Joi.string().custom(joiObjectIdValidator('rankingCategoryId')))
     .optional(),
-  featureRequestId: Joi.string().custom(joiObjectIdValidator('featureRequestId')).optional(),
+  featurePlanId: Joi.string().custom(joiObjectIdValidator('featurePlanId')).optional(),
   // TODO: May be used later
   // stripePmTokenId: Joi.string().required(),
   userDetails: Joi.object({
@@ -32,7 +33,6 @@ export class UserInfoForAdditionalServiceDto {
     example: 'test@test.com',
   })
   email: string;
-
 }
 
 export class ApplyAdditionalServiceRequestDto {
@@ -42,7 +42,7 @@ export class ApplyAdditionalServiceRequestDto {
     required: false,
     example: '60d5f485f7c6a4b2b8e8b623',
   })
-  bbrVerificationRequestId?: Types.ObjectId;
+  bbrVerificationPlanId?: Types.ObjectId;
 
   @ApiProperty({
     description: 'Ranking category IDs',
@@ -58,7 +58,15 @@ export class ApplyAdditionalServiceRequestDto {
     required: false,
     example: '60d5f485f7c6a4b2b8e8b623',
   })
-  featureRequestId?: Types.ObjectId;
+  featurePlanId?: Types.ObjectId;
+
+  @ApiProperty({
+    description: 'Residence ID',
+    type: Types.ObjectId,
+    required: false,
+    example: '60d5f485f7c6a4b2b8e8b623',
+  })
+  residenceId?: Types.ObjectId;
 
   @ApiProperty({
     description: 'User details',
@@ -74,4 +82,3 @@ export class ApplyAdditionalServiceRequestDto {
   // })
   // stripePmTokenId: string;
 }
-

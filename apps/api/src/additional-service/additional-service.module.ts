@@ -8,13 +8,23 @@ import { User } from 'src/users/schema/user.schema';
 import { Plan, PlanSchema } from 'src/subscription-plan/schema/plan.schema';
 import { ApplyAdditionalServiceRequestController } from './apply-additional.controller';
 import { ApplyAdditionalServiceRequestService } from './additional-service.service';
-import { BbrVerification, BbrVerificationSchema } from 'src/bbr-verification/schema/bbr-verification.schema';
+import {
+  BbrVerification,
+  BbrVerificationSchema,
+} from 'src/bbr-verification/schema/bbr-verification.schema';
 import { FeatureRequestSchema } from 'src/featureRequests/schema/featureRequest.schema';
 import { FeatureRequest } from 'src/featureRequests/schema/featureRequest.schema';
 import { InvoicePostPaymentAction } from 'src/stripe/schema/invoice-post-payment-action.schema';
 import { InvoicePostPaymentActionSchema } from 'src/stripe/schema/invoice-post-payment-action.schema';
 import { BbrVerificationRepository } from 'src/bbr-verification/bbr-verification.repository';
 import { FeatureRequestRepository } from 'src/featureRequests/featureRequests.repository';
+import { Residence, ResidenceSchema } from '../residences/schema/residences.schema';
+import {
+  ResidenceDraft,
+  ResidenceDraftSchema,
+} from '../residencesDraft/schema/residencesDraft.schema';
+import { ResidenceDraftRepository } from '../residencesDraft/residencesDraft.repository';
+import { ResidenceRepository } from '../residences/residences.repository';
 
 @Module({
   imports: [
@@ -25,13 +35,19 @@ import { FeatureRequestRepository } from 'src/featureRequests/featureRequests.re
     MongooseModule.forFeature([{ name: Plan.name, schema: PlanSchema }]),
     MongooseModule.forFeature([{ name: BbrVerification.name, schema: BbrVerificationSchema }]),
     MongooseModule.forFeature([{ name: FeatureRequest.name, schema: FeatureRequestSchema }]),
-    MongooseModule.forFeature([{ name: InvoicePostPaymentAction.name, schema: InvoicePostPaymentActionSchema }]),
+    MongooseModule.forFeature([
+      { name: InvoicePostPaymentAction.name, schema: InvoicePostPaymentActionSchema },
+    ]),
+    MongooseModule.forFeature([{ name: Residence.name, schema: ResidenceSchema }]),
+    MongooseModule.forFeature([{ name: ResidenceDraft.name, schema: ResidenceDraftSchema }]),
   ],
   controllers: [ApplyAdditionalServiceRequestController],
   providers: [
     ApplyAdditionalServiceRequestService,
     FeatureRequestRepository,
     BbrVerificationRepository,
+    ResidenceDraftRepository,
+    ResidenceRepository,
   ],
 })
 export class AdditionalServiceModule {}

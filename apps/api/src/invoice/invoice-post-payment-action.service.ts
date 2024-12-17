@@ -183,14 +183,17 @@ export class InvoicePostPaymentActionService {
 
       if (action.type === InvoicePostPaymentActionType.CREATE_FEATURE_REQUEST) {
         const featureRequestDetails = action.data as FeatureRequestDetails;
-        await this.featureRequestModel.findByIdAndUpdate(featureRequestDetails.featureRequestId, {
-          status: PaymentStatus.PAID,
-        });
+        const bodyData = {
+          planId: featureRequestDetails.featurePlanId,
+          residenceId: featureRequestDetails.residenceId,
+          paymentStatus: PaymentStatus.PAID,
+        };
+        const featureRequest = await this.featureRequestModel.create(bodyData);
 
         await this.customerSupportService.create({
           name: featureRequestDetails.userInfo.fullName,
           email: featureRequestDetails.userInfo.email,
-          message: `Payment for feature request with id:${featureRequestDetails.featureRequestId} and invoice id:${invoiceId} is Paid`,
+          message: `Payment for feature request with id:${featureRequest.id} and invoice id:${invoiceId} is Paid`,
         });
       }
 
@@ -209,17 +212,18 @@ export class InvoicePostPaymentActionService {
 
       if (action.type === InvoicePostPaymentActionType.CREATE_BBR_VERIFICATION_REQUEST) {
         const bbrVerificationRequestDetails = action.data as BbrVerificationRequestDetails;
-        await this.bbrVerificationModel.findByIdAndUpdate(
-          bbrVerificationRequestDetails.bbrVerificationRequestId,
-          {
-            status: PaymentStatus.PAID,
-          }
-        );
+        const bodyData = {
+          planId: bbrVerificationRequestDetails.bbrVerificationPlantId,
+          residenceId: bbrVerificationRequestDetails.residenceId,
+          paymentStatus: PaymentStatus.PAID,
+        };
+
+        const bbrVerificationRequest = await this.bbrVerificationModel.create(bodyData);
 
         await this.customerSupportService.create({
           name: bbrVerificationRequestDetails.userInfo.fullName,
           email: bbrVerificationRequestDetails.userInfo.email,
-          message: `Payment for bbr verification request with id:${bbrVerificationRequestDetails.bbrVerificationRequestId} and invoice id:${invoiceId} is Paid`,
+          message: `Payment for bbr verification request with id:${bbrVerificationRequest.id} and invoice id:${invoiceId} is Paid`,
         });
       }
     }
