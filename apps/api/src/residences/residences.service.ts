@@ -1318,13 +1318,12 @@ export class ResidenceService {
       city: {
         name: item.city[0]?.name[0] || null, // Extracts the first element from name array, or null if not present
         countryId: item.city[0]?.countryId[0] || null, // Extracts the first element from countryId array, or null if not present
-        stateId: item.city[0]?.stateId[0] || null
       },
       country: {
         name: item.country[0]?.name[0] || null, // Extracts the first element from name array, or null if not present
       },
       state:{
-        name: item.state[0].name[0] || null,
+        name: item.state[0]?.name[0] || null,
       },
       associatedBrand: item.associatedBrand[0] || null,
     }));
