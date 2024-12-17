@@ -18,6 +18,9 @@ export class RankingCategory extends Document {
   @Prop({ type: Types.ObjectId, ref: 'City', required: false })
   cityId: Types.ObjectId;
 
+  @Prop({ type: Types.ObjectId, ref: 'State', required: false })
+  stateId: Types.ObjectId;
+
   @Prop({ type: Types.ObjectId, ref: 'Location', required: false })
   locationId: Types.ObjectId;
 

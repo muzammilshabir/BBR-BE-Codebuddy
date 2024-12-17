@@ -28,6 +28,15 @@ export class AdminNoteService {
     return this.adminNoteRepository.update(id, updateData);
   }
 
+  async getAdminNoteById(id: string) {
+    const adminNote = await this.adminNoteRepository.findById(id);
+    if (!adminNote) {
+      throw new NotFoundException(`Admin note with ID ${id} not found`);
+    }
+
+    return adminNote;
+  }
+
   async delete(id: string) {
     const adminNote = await this.adminNoteRepository.findById(id);
     if (!adminNote) {

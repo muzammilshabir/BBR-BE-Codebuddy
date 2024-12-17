@@ -19,7 +19,10 @@ export async function bootstrap(appModule: any) {
   app.use(
     json({
       verify: (req: any, res, buf) => {
-        if (req.headers['calendly-webhook-signature'] && Buffer.isBuffer(buf)) {
+        if (
+          (req.headers['calendly-webhook-signature'] || req.headers['stripe-signature']) &&
+          Buffer.isBuffer(buf)
+        ) {
           req.rawBody = cloneBuffer(buf);
         }
         return true;

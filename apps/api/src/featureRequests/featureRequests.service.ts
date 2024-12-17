@@ -3,21 +3,21 @@ import { FeatureRequestRepository } from './featureRequests.repository';
 import { CreateFeatureRequestDto } from './dto/create-feature-request.dto';
 import { UpdateFeatureRequestDto } from './dto/update-feature-request.dto';
 import { Types } from 'mongoose';
-import { CustomerSupportService } from 'src/customer-support/customer-support.service';
 import { UserRepository } from 'src/users/user.repository';
-import { UserRole } from 'src/users/enum/user.enum';
 import { ListFeatureRequestDto } from './dto/list-feature-request.dto';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
 import { UpdatePaymentInfoDto } from './dto/update-payment-info.dto';
 import { ResidenceRepository } from 'src/residences/residences.repository';
+import { FeatureRequestStatus } from './enum/feature-request-status';
+import { PlanRepository } from 'src/subscription-plan/plan.repository';
 
 @Injectable()
 export class FeatureRequestService {
   constructor(
     private readonly featureRequestRepository: FeatureRequestRepository,
-    private readonly customerSupportService: CustomerSupportService,
     private readonly userRepository: UserRepository,
-    private readonly residenceRepository: ResidenceRepository
+    private readonly residenceRepository: ResidenceRepository,
+    private readonly subscriptionPlanRepository: PlanRepository
   ) {}
 
   async create(createFeatureRequestDto: CreateFeatureRequestDto, userId: string) {
@@ -42,23 +42,17 @@ export class FeatureRequestService {
       throw new BadRequestException('User not found');
     }
 
-    if (
-      user.role !== UserRole.ADMIN &&
-      (!createFeatureRequestDto.transactionId || !createFeatureRequestDto.paymentStatus)
-    ) {
-      throw new BadRequestException('Payment details are required');
+    const plan = await this.subscriptionPlanRepository.findById(createFeatureRequestDto.planId.toString());
+
+    if (!plan) {
+      throw new BadRequestException('Plan not found');
     }
 
     const featureRequest = await this.featureRequestRepository.create({
       ...createFeatureRequestDto,
       createdBy: new Types.ObjectId(userId),
       residenceId: new Types.ObjectId(createFeatureRequestDto.residenceId),
-    });
-
-    await this.customerSupportService.create({
-      name: 'New Feature Request',
-      message: `New feature request created for residence ${createFeatureRequestDto.residenceId} with id ${featureRequest._id.toString()}`,
-      email: 'test@test.com',
+      planId: new Types.ObjectId(createFeatureRequestDto.planId),
     });
 
     return featureRequest;
@@ -69,6 +63,25 @@ export class FeatureRequestService {
 
     if (!featureRequest) {
       throw new BadRequestException('Feature request not found');
+    }
+
+    if (
+      updateFeatureRequestDto.status &&
+      updateFeatureRequestDto.status === FeatureRequestStatus.APPROVED
+    ) {
+      await this.residenceRepository.update(featureRequest.residenceId.toString(), {
+        isFeatured: true,
+      });
+    }
+
+    if (
+      updateFeatureRequestDto.status &&
+      updateFeatureRequestDto.status === FeatureRequestStatus.WITHDRAWN &&
+      updateFeatureRequestDto.withdrawnOn
+    ) {
+      await this.residenceRepository.update(featureRequest.residenceId.toString(), {
+        isFeatured: false,
+      });
     }
 
     return this.featureRequestRepository.update(id, {
@@ -106,7 +119,7 @@ export class FeatureRequestService {
     if (!featureRequest) {
       throw new BadRequestException('Feature request not found');
     }
-    return featureRequest;
+    return featureRequest?.[0];
   }
 
   async delete(id: string, userId: string) {
@@ -114,7 +127,16 @@ export class FeatureRequestService {
     if (!featureRequest) {
       throw new BadRequestException('Feature request not found');
     }
-
+    const currentDate = new Date();
+    if (
+      featureRequest.status === FeatureRequestStatus.APPROVED &&
+      currentDate > featureRequest.featuredFrom &&
+      currentDate < featureRequest.featuredTo
+    ) {
+      await this.residenceRepository.update(featureRequest.residenceId.toString(), {
+        isFeatured: false,
+      });
+    }
     return this.featureRequestRepository.update(id, {
       isDeleted: true,
       updatedBy: new Types.ObjectId(userId),

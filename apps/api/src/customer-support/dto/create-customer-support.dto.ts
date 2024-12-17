@@ -9,6 +9,7 @@ import { budgetSchema } from 'src/users/dto/createUser.dto';
 import {
   CustomerSupportFeatureRequest,
   CustomerSupportErrorReport,
+  CalendlyDetails,
 } from '../type/customer-support.type';
 
 export class CustomerSupportUserPreferences {
@@ -60,7 +61,7 @@ export class CreateCustomerSupportDto {
 
   @ApiProperty({
     description: 'The phone number of the lead, in international format.',
-    required: true,
+    required: false,
   })
   phoneNumber?: PhoneNumber;
 
@@ -81,6 +82,17 @@ export class CreateCustomerSupportDto {
 
   @ApiProperty({ example: 'USA', required: false })
   country?: string;
+
+  @ApiProperty({
+    description: 'Array of upload objects',
+    example: [{ ImageId: '60d7fe6f9eb1f24a04d65633', type: 'docs' }],
+    required: false,
+    type: Array,
+  })
+  upload?: Array<{
+    ImageId: Types.ObjectId;
+    type?: string;
+  }>;
 
   @ApiProperty({ description: 'Contact information', type: UserContactInfo, required: false })
   contactInfo?: UserContactInfo;
@@ -105,10 +117,14 @@ export class CreateCustomerSupportDto {
   })
   websiteUrl?: string;
 
-  @ApiProperty({ description: 'User agreement to terms', example: true })
+  @ApiProperty({ description: 'User agreement to terms', example: true, required: false })
   agreeToTerms?: boolean;
 
-  @ApiProperty({ description: 'User preference to receive news letter ', example: true })
+  @ApiProperty({
+    description: 'User preference to receive news letter ',
+    example: true,
+    required: false,
+  })
   receiveNewsletter?: boolean;
 
   @ApiProperty({
@@ -142,6 +158,27 @@ export class CreateCustomerSupportDto {
     required: false,
   })
   customerSupportErrorReport?: CustomerSupportErrorReport;
+
+  @ApiProperty({
+    type: CalendlyDetails,
+    required: false,
+    description: 'Calendly meeting details',
+  })
+  calendlyDetails?: CalendlyDetails;
+}
+
+export class CreateCustomerSupportForGuestDto {
+  @ApiProperty({ example: 'John Doe', required: true })
+  name: string;
+
+  @ApiProperty({ example: 'john@example.com', required: true })
+  email: string;
+
+  @ApiProperty({
+    description: 'The phone number of the lead, in international format.',
+    required: false,
+  })
+  phoneNumber?: PhoneNumber;
 }
 
 export const phoneSchema = Joi.object({
@@ -190,9 +227,9 @@ export const customerSupportFeatureRequestSchema = Joi.object({
   featureDescription: Joi.string().required().messages({
     'any.required': 'Feature description is required',
   }),
-  documents: Joi.array().items(
-    Joi.string().custom(joiObjectIdValidator('documents'))
-  ).optional(),
+  documents: Joi.array()
+    .items(Joi.string().custom(joiObjectIdValidator('documents')))
+    .optional(),
 });
 
 export const customerSupportErrorReportSchema = Joi.object({
@@ -210,9 +247,28 @@ export const customerSupportErrorReportSchema = Joi.object({
   errorDescription: Joi.string().required().messages({
     'any.required': 'Error description is required',
   }),
-  documents: Joi.array().items(
-    Joi.string().custom(joiObjectIdValidator('documents'))
-  ).optional(),
+  documents: Joi.array()
+    .items(Joi.string().custom(joiObjectIdValidator('documents')))
+    .optional(),
+});
+
+export const locationDetailsSchema = Joi.object({
+  location: Joi.string().uri().required().messages({
+    'string.uri': 'Location must be a valid URL',
+    'any.required': 'Location is required',
+  }),
+  type: Joi.string().required().messages({
+    'any.required': 'Type is required',
+  }),
+});
+
+export const calendlyDetailsSchema = Joi.object({
+  createdAt: Joi.date().iso().required(),
+  meetingStart: Joi.date().iso().required(),
+  meetingName: Joi.string().optional(),
+  location: locationDetailsSchema.optional(),
+  cancelUrl: Joi.string().uri().optional(),
+  rescheduleUrl: Joi.string().uri().optional(),
 });
 
 export const createCustomerSupportSchema = Joi.object({
@@ -225,9 +281,19 @@ export const createCustomerSupportSchema = Joi.object({
   contactInfo: contactInfoSchema.optional(),
   preferences: preferencesSchema.optional(),
   agreeToTerms: Joi.boolean().valid(true),
-  receiveNewsletter: Joi.boolean(),
+  receiveNewsletter: Joi.boolean().optional(),
   companyName: Joi.string().optional(),
   websiteUrl: Joi.string().uri().optional(),
+  upload: Joi.array()
+    .items(
+      Joi.object({
+        ImageId: Joi.string()
+          .pattern(/^[0-9a-fA-F]{24}$/)
+          .required(),
+        type: Joi.string().optional(),
+      })
+    )
+    .optional(),
   pageUrl: Joi.string().optional().uri(),
   country: Joi.string().optional(),
   note: Joi.string().optional(),
@@ -240,4 +306,5 @@ export const createCustomerSupportSchema = Joi.object({
     .optional(),
   customerSupportFeatureRequest: customerSupportFeatureRequestSchema.optional(),
   customerSupportErrorReport: customerSupportErrorReportSchema.optional(),
+  calendlyDetails: calendlyDetailsSchema.optional(),
 }).options({ stripUnknown: true });

@@ -1,5 +1,5 @@
-import { Body, Controller, Get, Param, Patch, Query, UsePipes } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, HttpException, HttpStatus, Param, Patch, Post, Query, UploadedFile, UseInterceptors, UsePipes } from '@nestjs/common';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CountryService } from './country.service';
 import { Public } from '../auth/decorators/public.decorator';
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
@@ -9,6 +9,7 @@ import { UserRole } from '../users/enum/user.enum';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UpdateCountryDto, updateCountrySchema } from './dto/updateCountry.dto';
 import { GetByIdDto, getIdSchema } from '../city/dto/getById.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @ApiTags('Country')
 @Controller('country')
@@ -48,4 +49,35 @@ export class CountryController {
     const country = await this.countryService.getCountryById(params.id);
     return ResponseService.buildResponse({ country }, 'country retrieved successfully');
   }
+
+  @Public()
+  @ApiOperation({
+    summary: 'Upload Country Seeder',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @Post('upload-country-seeder')
+  @UseInterceptors(FileInterceptor('file'))
+  async processCountrySeeder(
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+  
+    if (!file) {
+      throw new HttpException('File is required', HttpStatus.BAD_REQUEST);
+    }
+
+    const result = await this.countryService.processCountrySeeder(file);
+    return ResponseService.buildResponse(result);
+  }
+
 }

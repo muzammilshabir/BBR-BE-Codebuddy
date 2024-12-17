@@ -19,7 +19,8 @@ export class GuestPremiumResidenceProfileController {
   @Public()
   @UsePipes(new JoiValidationPipe(guestPremiumResidenceProfileSchema, 'body'))
   async guestPremiumResidenceProfile(@Body() body: GuestPremiumResidenceProfileDto) {
-    await this.guestPremiumResidenceProfileService.requestPremiumResidenceProfile(body);
-    return ResponseService.buildResponse({}, 'Premium residence profile requested successfully');
+    const resp =
+      await this.guestPremiumResidenceProfileService.requestPremiumResidenceProfile(body);
+    return ResponseService.buildResponse(resp, 'Premium residence profile requested successfully');
   }
 }

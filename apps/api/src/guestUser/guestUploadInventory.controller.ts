@@ -18,7 +18,7 @@ export class GuestUploadInventoryController {
   @Public()
   @UsePipes(new JoiValidationPipe(guestUploadInventorySchema, 'body'))
   async guestUploadInventory(@Body() body: GuestUploadInventoryDto) {
-    await this.guestUploadInventoryService.uploadInventory(body);
-    return ResponseService.buildResponse({}, 'Inventory uploaded successfully');
+    const resp = await this.guestUploadInventoryService.uploadInventory(body);
+    return ResponseService.buildResponse(resp, 'Inventory uploaded successfully');
   }
 }

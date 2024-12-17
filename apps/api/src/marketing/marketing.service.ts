@@ -9,6 +9,7 @@ import { Types } from 'mongoose';
 import { RankingRequestStatus } from 'src/rankingRequest/enum/rankingRequest-status.enum';
 import { RankingCategoryStatus } from 'src/rankingCategory/enum/rankingCategory-status.enum';
 import { PlanRepository } from 'src/subscription-plan/plan.repository';
+import { PaymentStatus } from 'src/rankingRequest/enum/payment-status.enum';
 
 @Injectable()
 export class MarketingService {
@@ -34,57 +35,21 @@ export class MarketingService {
                 `Residence with id:${residenceIdDto.residenceId} is not active`
             );
         }
-
-        let currentPlan = null;
-        let availablePlans ;
-
-        if (residence?.planId) {
-          
-            currentPlan = await this.planRepository.findById(residence.planId.toString());
-
-            if (!currentPlan) {
-            throw new NotFoundException(`Plan with id:${residence.planId} not found`);
-            }
-
-            availablePlans = await this.planRepository.find({
-            fee: { $gte: currentPlan.fee },
-            isDeleted: false,
-            });
-
-        } else {
-       
-            availablePlans = await this.planRepository.find({ isDeleted: false });
-        }
             
         const currentRankings = await this.rankingRequestRepository.findRankings({
             residenceId: new Types.ObjectId(residenceIdDto.residenceId),
             status: RankingRequestStatus.ACTIVE ,
+            paymentStatus: PaymentStatus.PAID
         });
 
         const rankingOpportunities = await this.rankingCategoryRepository.findAll({
             status: RankingCategoryStatus.ACTIVE,
             _id: { $nin: currentRankings?.map((ranking) => ranking?.rankingCategoryId?._id) },
-            countryId: residence.countryId,
             isDeleted: false,
         });
-    
-        const planDetails = {
-            currentPlan: currentPlan
-              ? {
-                  id: currentPlan._id,
-                  name: currentPlan.name,
-                  fee: currentPlan.fee,
-                  billingCycle: currentPlan.billingCycle,
-                }
-              : null,
-            availablePlans: availablePlans?.map((plan) => ({
-              id: plan?._id,
-              name: plan.name,
-              fee: plan.fee,
-              billingCycle: plan.billingCycle,
-            })),
-        };
 
+        const planDetails = await this.getResidencePlans(residence.planId);
+    
         return {
             currentRankings,
             rankingOpportunities,
@@ -92,4 +57,51 @@ export class MarketingService {
           };
 
     }
+
+    private async getResidencePlans(planId: Types.ObjectId | null) {
+        let currentPlan = null;
+        let availablePlans = [];
+    
+        if (planId) {
+            currentPlan = await this.planRepository.findById(planId.toString());
+            
+            if (!currentPlan) {
+                throw new NotFoundException(`Plan with id:${planId} not found`);
+            }
+        
+            const plansResult = await this.planRepository.findAllExpanded({
+                $and: [
+                    { fee: { $gt: currentPlan.fee } }, 
+                    { _id: { $ne: currentPlan._id } },  
+                    { isDeleted: false },
+                    { active: true }
+                ]
+            });
+            availablePlans = plansResult || [];
+        } else {
+            const plansResult = await this.planRepository.findAllExpanded({ 
+                isDeleted: false,
+                active: true
+            });
+            availablePlans = plansResult || [];
+        }
+    
+        return {
+            currentPlan: currentPlan ? {
+                id: currentPlan._id,
+                name: currentPlan.name,
+                fee: currentPlan.fee,
+                billingCycle: currentPlan.billingCycle,
+                features: currentPlan.features
+            } : null,
+            availablePlans: availablePlans.map(plan => ({
+                id: plan._id,
+                name: plan.name,
+                fee: plan.fee,
+                billingCycle: plan.billingCycle,
+                features: plan.features
+            }))
+        };
+    }
+    
 }

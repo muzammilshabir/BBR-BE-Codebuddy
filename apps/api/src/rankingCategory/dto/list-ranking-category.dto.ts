@@ -15,6 +15,7 @@ export const rankingCategorySchema = PaginationSchema.append({
     .optional(),
   createdById: Joi.string().custom(joiObjectIdValidator('createdById')).optional(),
   countryId: Joi.string().custom(joiObjectIdValidator('countryId')).optional(),
+  stateId: Joi.string().custom(joiObjectIdValidator('stateId')).optional(),
   cityId: Joi.string().custom(joiObjectIdValidator('cityId')).optional(),
   locationId: Joi.string().custom(joiObjectIdValidator('locationId')).optional(),
   propertyTypeId: Joi.string().custom(joiObjectIdValidator('propertyTypeId')).optional(),
@@ -67,6 +68,14 @@ export class RankingCategoryListDto extends ListPropsDto {
     type: String,
   })
   countryId?: string;
+
+  @ApiProperty({
+    description: 'Filter by State ID',
+    example: '60b6c0f53b5a5c1f88d25a1c',
+    required: false,
+    type: String,
+  })
+  stateId?: string;
 
   @ApiProperty({
     description: 'Filter by city ID',

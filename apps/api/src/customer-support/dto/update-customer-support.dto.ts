@@ -14,10 +14,12 @@ import {
   CustomerSupportUserPreferences,
   customerSupportFeatureRequestSchema,
   customerSupportErrorReportSchema,
+  calendlyDetailsSchema,
 } from './create-customer-support.dto';
 import {
   CustomerSupportFeatureRequest,
   CustomerSupportErrorReport,
+  CalendlyDetails,
 } from '../type/customer-support.type';
 
 export class PhoneNumber {
@@ -121,6 +123,18 @@ export class UpdateCustomerSupportDto {
   priority?: Priority;
 
   @ApiProperty({
+    description: 'Array of upload objects',
+    example: [{ ImageId: '60d7fe6f9eb1f24a04d65633', type: 'docs' }],
+    required: false,
+    type: Array,
+  })
+  upload?: Array<{
+    ImageId: Types.ObjectId;
+    type?: string;
+  }>;
+
+  
+  @ApiProperty({
     type: CustomerSupportFeatureRequest,
     description: 'Feature request details',
     required: false,
@@ -136,6 +150,13 @@ export class UpdateCustomerSupportDto {
 
   @ApiProperty({ example: ['60d9c6a0a11c3c6c6a9a1a2b'], required: false })
   assignedTo?: Types.ObjectId[];
+
+  @ApiProperty({
+    type: CalendlyDetails,
+    required: false,
+    description: 'Calendly meeting details',
+  })
+  calendlyDetails?: CalendlyDetails;
 }
 
 const phoneSchema = Joi.object({
@@ -170,6 +191,16 @@ export const updateCustomerSupportSchema = Joi.object({
   contactedAt: Joi.date().iso().optional(),
   lastContactedAt: Joi.date().iso().optional(),
   expectedCloseDate: Joi.date().iso().optional(),
+  upload: Joi.array()
+    .items(
+      Joi.object({
+        ImageId: Joi.string()
+          .pattern(/^[0-9a-fA-F]{24}$/)
+          .required(),
+        type: Joi.string().optional(),
+      })
+    )
+    .optional(),
   phoneNumber: phoneSchema.optional(),
   email: Joi.string().email().optional(),
   companyName: Joi.string().optional(),
@@ -177,10 +208,13 @@ export const updateCustomerSupportSchema = Joi.object({
   unitId: Joi.string().optional().custom(joiObjectIdValidator('unitId')),
   contactInfo: contactInfoSchema.optional(),
   preferences: preferencesSchema.optional(),
-  assignedTo: Joi.array().items(Joi.string().custom(joiObjectIdValidator('assignedTo'))).optional(),
+  assignedTo: Joi.array()
+    .items(Joi.string().custom(joiObjectIdValidator('assignedTo')))
+    .optional(),
   priority: Joi.string()
     .valid(...Object.values(Priority))
     .optional(),
   customerSupportFeatureRequest: customerSupportFeatureRequestSchema.optional(),
   customerSupportErrorReport: customerSupportErrorReportSchema.optional(),
+  calendlyDetails: calendlyDetailsSchema.optional(),
 }).min(1);

@@ -6,6 +6,9 @@ import { Brand } from '../../brand/schema/brand.schema';
 export class BrandDraft extends Brand {
   @Prop({ required: true, type: Types.ObjectId, ref: 'Brand' })
   brandId: Types.ObjectId;
+
+  @Prop({ required: true, unique: false })
+  name: string;
 }
 
 export const BrandDraftSchema = SchemaFactory.createForClass(BrandDraft);
