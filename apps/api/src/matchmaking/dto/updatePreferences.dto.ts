@@ -12,6 +12,14 @@ export class MatchmakingPreferencesDto {
   countryId?: string[];
 
   @ApiProperty({
+    description: 'Filter by State IDs',
+    example: ['60b6c0f53b5a5c1f88d25a1b'],
+    required: false,
+    type: [String],
+  })
+  stateId?: string[];
+
+  @ApiProperty({
     description: 'Filter by City IDs',
     example: ['60b6c0f53b5a5c1f88d25a1b'],
     required: false,
@@ -127,6 +135,10 @@ export class MatchmakingPreferencesDto {
 export const matchmakingPreferencesSchema = Joi.object({
   countryId: Joi.array()
     .items(Joi.string().custom(joiObjectIdValidator('countryId')))
+    .optional(),
+
+  stateId: Joi.array()
+    .items(Joi.string().custom(joiObjectIdValidator('stateId')))
     .optional(),
 
   cities: Joi.array()

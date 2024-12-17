@@ -108,6 +108,7 @@ export class ResidenceService {
 
       transformedDto.cityId = new Types.ObjectId(cityDetails.id);
       transformedDto.countryId = new Types.ObjectId(cityDetails.countryId);
+      transformedDto.stateId = new Types.ObjectId(cityDetails.stateId);
       transformedDto.address = createResidenceDto.address;
     }
 
@@ -158,6 +159,7 @@ export class ResidenceService {
 
         transformedDto.cityId = new Types.ObjectId(cityDetails.id);
         transformedDto.countryId = new Types.ObjectId(cityDetails.countryId);
+        transformedDto.stateId = new Types.ObjectId(cityDetails.stateId);
         transformedDto.address = updateResidenceDto.address;
       }
       const residenceDraft = await this.checkResidenceDraft(id);
@@ -473,6 +475,7 @@ export class ResidenceService {
       },
       { path: 'cityId', select: 'name countryId upload' },
       { path: 'countryId', select: 'name geographicalAreasId upload' },
+      { path: 'stateId', select: 'name stateCode upload' },
       { path: 'associatedBrandId', select: 'name' },
       {
         path: 'visuals.mainPhotos',
@@ -723,6 +726,18 @@ export class ResidenceService {
       matchStage.countryId = { $in: countryIds.map((id) => new Types.ObjectId(id)) };
     }
 
+    if (filtersDto.stateId) {
+      // Handle both string and array cases
+      const stateIds = Array.isArray(filtersDto.stateId)
+        ? filtersDto.stateId
+        : [filtersDto.stateId];
+
+        matchStage.stateId = {
+        $in: stateIds.map((id) => new Types.ObjectId(id)),
+      };
+    }
+  
+
     if (filtersDto.geographicalAreasId && filtersDto.geographicalAreasId.length > 0) {
       const countriesInAreas = await this.countryModel
         .find({
@@ -736,6 +751,7 @@ export class ResidenceService {
         $in: countriesInAreas.map((country) => country._id),
       };
     }
+   
 
     if (filtersDto.lifestyles && filtersDto.lifestyles.length > 0) {
       matchStage.lifeStyleId = {
@@ -937,6 +953,14 @@ export class ResidenceService {
           localField: 'cityId',
           foreignField: '_id',
           as: 'city',
+        },
+      },
+      {
+        $lookup: {
+          from: 'states',
+          localField: 'stateId',
+          foreignField: '_id',
+          as: 'state',
         },
       },
       {
@@ -1158,6 +1182,7 @@ export class ResidenceService {
           name: 1,
           residenceTypes: 1,
           city: 1,
+          state: 1,
           country: 1,
           associatedBrand: 1,
           mainPhotos: 1,
@@ -1391,6 +1416,7 @@ export class ResidenceService {
       const city = await this.cityRepository.find({
         _id: residence.cityId,
         isDeleted: { $ne: DeletionStatus.DELETED },
+        active: true
       });
       if (!city) {
         throw new BadRequestException(
@@ -1430,9 +1456,13 @@ export class ResidenceService {
       city: {
         name: item.city[0]?.name[0] || null, // Extracts the first element from name array, or null if not present
         countryId: item.city[0]?.countryId[0] || null, // Extracts the first element from countryId array, or null if not present
+        stateId: item.city[0]?.stateId[0] || null
       },
       country: {
         name: item.country[0]?.name[0] || null, // Extracts the first element from name array, or null if not present
+      },
+      state:{
+        name: item.state[0].name[0] || null,
       },
       associatedBrand: item.associatedBrand[0] || null,
     }));
@@ -1477,6 +1507,7 @@ export class ResidenceService {
       },
       { path: 'cityId', select: 'name countryId upload' },
       { path: 'countryId', select: 'name geographicalAreasId upload' },
+      { path: 'stateId', select: 'name stateCode upload' },
       { path: 'associatedBrandId', select: 'name' },
       {
         path: 'visuals.mainPhotos',
@@ -1651,6 +1682,7 @@ export class ResidenceService {
 
         transformedDto.cityId = new Types.ObjectId(cityDetails.id);
         transformedDto.countryId = new Types.ObjectId(cityDetails.countryId);
+        transformedDto.stateId = new Types.ObjectId(cityDetails.stateId);
         transformedDto.address = updateResidenceDto.address;
       }
       const residenceDraft = await this.checkResidenceDraft(foundResidence._id.toString());
@@ -1857,6 +1889,7 @@ export class ResidenceService {
           'Unique URL': residence?.uniqueUrl || '-',
           'City': residence.city?.[0]?.name || '-',
           'Country': residence.country?.[0]?.name || '-',
+          'State': residence.state?.[0]?.name || '-',
           'Last Updated': residence.lastUpdated
             ? new Date(residence.lastUpdated).toLocaleString()
             : '-',
@@ -1881,6 +1914,7 @@ export class ResidenceService {
         'Developer Contact': '-',
         'City': '-',
         'Country': '-',
+        'State': '-',
         'Last Updated': '-',
         'Created At': '-',
       });
@@ -1969,6 +2003,7 @@ export class ResidenceService {
 
       transformedDto.cityId = new Types.ObjectId(cityDetails.id);
       transformedDto.countryId = new Types.ObjectId(cityDetails.countryId);
+      transformedDto.stateId = new Types.ObjectId(cityDetails.stateId);
       transformedDto.address = patchResidenceDto.address;
     }
 

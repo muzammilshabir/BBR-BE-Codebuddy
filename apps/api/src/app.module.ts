@@ -67,6 +67,7 @@ import { CustomerSupportConversationModule } from './customer-support-conversati
 import { AdditionalServiceModule } from './additional-service/additional-service.module';
 import { EditorNoteModule } from './editor-note/editor-note.module';
 import { BespokeRequestModule } from './bespokeRequests/bespokeRequests.module';
+import { StateModule } from './state/state.module';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -133,6 +134,7 @@ import { BespokeRequestModule } from './bespokeRequests/bespokeRequests.module';
     AdditionalServiceModule,
     EditorNoteModule,
     BespokeRequestModule,
+    StateModule
   ],
   controllers: [AppController],
   providers: [

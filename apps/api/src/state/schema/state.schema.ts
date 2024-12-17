@@ -2,18 +2,18 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 
 @Schema({ timestamps: true })
-export class Country extends Document {
+export class State extends Document {
   @Prop({ required: true })
   name: string;
 
   @Prop({ required: false })
-  countryCode: string;
+  stateCode: string;
 
   @Prop({ required: false })
-  phoneCode: string;
+  countryCode: string;
 
-  @Prop({ type: Types.ObjectId, ref: 'GeographicalAreas', required: false })
-  geographicalAreasId?: Types.ObjectId;
+  @Prop({ type: Types.ObjectId, ref: 'Country', required: false })
+  countryId: Types.ObjectId;
 
   @Prop({
     type: [
@@ -39,12 +39,11 @@ export class Country extends Document {
   @Prop({ default: false })
   isDeleted: boolean;
 
-  @Prop({ default: false, required: false })
+  @Prop({ default: false })
   active: boolean;
 
   createdAt: Date;
-
   updatedAt: Date;
 }
 
-export const CountrySchema = SchemaFactory.createForClass(Country);
+export const StateSchema = SchemaFactory.createForClass(State);

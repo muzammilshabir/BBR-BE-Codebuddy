@@ -1,5 +1,5 @@
-import { Body, Controller, Get, Param, Patch, Query, UsePipes } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, HttpException, HttpStatus, Param, Patch, Post, Query, UploadedFile, UseInterceptors, UsePipes } from '@nestjs/common';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CityService } from './city.service';
 import { Public } from '../auth/decorators/public.decorator';
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
@@ -9,6 +9,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/enum/user.enum';
 import { UpdateCityDto, updateCitySchema } from './dto/updateCity.dto';
 import { GetByIdDto, getIdSchema } from './dto/getById.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @ApiTags('City')
 @Controller('city')
@@ -47,5 +48,35 @@ export class CityController {
   async getResidenceById(@Param() params: GetByIdDto) {
     const city = await this.cityService.getCityById(params.id);
     return ResponseService.buildResponse({ city }, 'city retrieved successfully');
+  }
+
+  @Public()
+  @ApiOperation({
+    summary: 'Upload Cities Seeder',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @Post('upload-cities-seeder')
+  @UseInterceptors(FileInterceptor('file'))
+  async processCitiesSeeder(
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+  
+    if (!file) {
+      throw new HttpException('File is required', HttpStatus.BAD_REQUEST);
+    }
+
+    const result = await this.cityService.processCitySeeder(file);
+    return ResponseService.buildResponse(result);
   }
 }
