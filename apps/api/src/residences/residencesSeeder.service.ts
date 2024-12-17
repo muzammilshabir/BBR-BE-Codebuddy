@@ -1419,6 +1419,8 @@ private async processImagesInBackground(file: Express.Multer.File) {
       const workbook = XLSX.read(file.buffer, { type: 'buffer' });
       const sheets = {
         residences: XLSX.utils.sheet_to_json(workbook.Sheets['Residences']),
+        cities: XLSX.utils.sheet_to_json(workbook.Sheets['Cities']),
+        countries: XLSX.utils.sheet_to_json(workbook.Sheets['Countries']),
       };
 
       console.log('Processing Residence Images...');
@@ -1463,8 +1465,10 @@ private async processImagesInBackground(file: Express.Multer.File) {
                   visualsUpdate.visuals.secondGalleryPhotos = secondGalleryUploads.map(upload => upload._id);
               }
       
+              const cityDoc = await this.processCity(residence, sheets.cities, sheets.countries);
+
               await this.residenceRepository.updateWithFilter(
-                  { name: residence.name, cityId: residence.city_id, isDeleted: false },
+                  { name: residence.name, cityId: new Types.ObjectId(cityDoc._id) , isDeleted: false },
                   { $set: visualsUpdate }
               );
             }
