@@ -454,7 +454,7 @@ export class ResidenceSeederService {
               'geographical_area_id',
             ];
             //Todo: check this logic
-            const foundIdField = idFields.find((field) => rankingCategoryTyped[field] === 1);
+            const foundIdField = idFields.find((field) => rankingCategoryTyped[field] >= 1);
 
             if (!foundIdField) {
               throw new Error(
