@@ -26,28 +26,9 @@ import { UploadRepository } from 'src/upload/upload.repository';
 import { StateRepository } from 'src/state/state.repository';
 import { State } from 'src/state/schema/state.schema';
 import { Location } from 'src/location/schema/location.schema';
+import { RankingCategory } from 'src/rankingCategory/schema/rankingCategory.schema';
 
-interface RankingCategory {
-  ranking_category_id: string;
-  image_path?: string;
-  title: string;
-  description?: string;
-  category_type: string;
-  residence_limitation?: string;
-  ranking_price?: number;
-  geographical_area_id?: string;
-  country_id?: string;
-  city_id?: string;
-  lifestyle_id?: string;
-  brand_id?: string;
-  property_type_id?: string;
-  criteria_id1?: string;
-  criteria_id2?: string;
-  criteria_id3?: string;
-  criteria_id4?: string;
-  criteria_id5?: string;
-  criteria_id6?: string;
-}
+
 
 interface Residence {
   residence_id: string;
@@ -101,6 +82,8 @@ const categoryTypeMapping = {
   'geographical_area': CategoryType.GEOGRAPHY,
 };
 
+
+
 @Injectable()
 export class ResidenceSeederService {
   private readonly logger = new Logger(ResidenceSeederService.name);
@@ -131,6 +114,8 @@ export class ResidenceSeederService {
     private readonly stateRepository: StateRepository,
     @InjectModel(Location.name)
     private readonly locationModel: Model<Location>,
+    @InjectModel(RankingCategory.name)
+    private readonly rankingCategoryModel: Model<RankingCategory>,
   ) {
 
     this.s3Client = new S3Client({
@@ -419,7 +404,7 @@ export class ResidenceSeederService {
         for (const rankingCategory of batch) {
           try {
             await new Promise(resolve => setTimeout(resolve, 500));
-            const rankingCategoryTyped = rankingCategory as RankingCategory;
+            const rankingCategoryTyped = rankingCategory as any;
             let criteria;
       
             if (
@@ -491,8 +476,8 @@ export class ResidenceSeederService {
       
           } catch (error) {
             errors.rankingCategories.push({
-              id: (rankingCategory as RankingCategory).ranking_category_id,
-              name: (rankingCategory as RankingCategory).title,
+              id: (rankingCategory as any).ranking_category_id,
+              name: (rankingCategory as any).title,
               error: error.message,
             });
           }
@@ -543,11 +528,7 @@ export class ResidenceSeederService {
               ? await this.findAmenities(residence, sheets.amenities)
               : [];
               
-            const rankingScoreDocArray = await this.processResidenceScores(
-              residence, 
-              sheets.rankingCategories, 
-              sheets.residenceScores
-            );
+            
             const residenceData = this.createResidenceData(residence, {
               residenceTypeDoc,
               brandDoc,
@@ -560,27 +541,57 @@ export class ResidenceSeederService {
               placeDetails
             });
 
-            const foundResidence = await this.residenceRepository.find({
+            let foundResidence = await this.residenceRepository.find({
               name: new RegExp(`^${residenceData.name}$`, 'i'),
               cityId: residenceData.cityId
             })
             
             if(!foundResidence) {
-              await this.residenceRepository.create(residenceData);
+              foundResidence = await this.residenceRepository.create(residenceData);
             }else{
               const plainResidence = foundResidence.toJSON();
               delete plainResidence._id;
 
-              await this.residenceRepository.update(
+              foundResidence = await this.residenceRepository.update(
                 foundResidence._id.toString(),
                 {...plainResidence,...residenceData}
               );
             }
             
-            
+           
+            const rankingScoreDocArray = await this.processResidenceScores(
+              foundResidence._id.toString(),
+              residence, 
+              sheets.rankingCategories, 
+              sheets.residenceScores
+            );
+
             if (rankingScoreDocArray?.length) {
-              await this.rankingRequestRepository.createMany(rankingScoreDocArray);
-            }
+              for (const scoreDoc of rankingScoreDocArray) {
+                  const existingRequest = await this.rankingRequestRepository.find({
+                      rankingCategoryId: scoreDoc.rankingCategoryId,
+                      residenceId: scoreDoc.residenceId
+                  });
+          
+                  if (existingRequest) {
+
+                    const plainResidencExistingRequest = existingRequest.toJSON();
+                    delete plainResidencExistingRequest._id;
+                      await this.rankingRequestRepository.update(
+                          existingRequest._id.toString(),
+                          {
+                             ...plainResidencExistingRequest,
+                                  criteriaScores: scoreDoc.criteriaScores,
+                                  bbrScore: scoreDoc.bbrScore,
+                                  updatedAt: new Date()
+                          }
+                      );
+                  } else {
+
+                      await this.rankingRequestRepository.create(scoreDoc);
+                  }
+              }
+          }
       
           } catch (error) {
             errors.residences.push({
@@ -850,6 +861,7 @@ export class ResidenceSeederService {
 
 
   async processResidenceScores(
+    residenceId: any,
     residence: Residence,
     rankingCategories: any[],
     residenceScores: any[]
@@ -858,21 +870,28 @@ export class ResidenceSeederService {
         const matchingScores = residenceScores.filter(
             (score) => score.residence_id == residence.residence_id
         );
+        // console.log("matchingScores",matchingScores)
 
         const processedScores = [];
 
         for (const score of matchingScores) {
             const rankingCategory = rankingCategories.find(
-                (rc) => rc.ranking_category_id === score.ranking_category_id
+                (rc) => rc["ranking_ category_id"] === score["ranking_ category_id"]
             );
 
             if (!rankingCategory) continue;
+
+            const foundRankingCategory = await this.rankingCategoryModel.findOne({
+                title: { $regex: new RegExp(`^${rankingCategory.title}$`, 'i') },
+              })
+            // Type assertion to tell TypeScript about the structure
+            const criteriaIds = (foundRankingCategory as any)?.criteria?.map(criterion => criterion._id) || [];
 
             const criteriaScores = [];
             for (let i = 1; i <= 6; i++) {
                 const criteriaFeedback = score[`criteria${i}_feedback`];
                 const criteriaScore = score[`criteria${i}_score`];
-                const criteriaId = rankingCategory[`criteria_id${i}`];
+                const criteriaId = new Types.ObjectId(criteriaIds[i-1]);
 
                
                 if (criteriaFeedback && criteriaScore && criteriaId) {
@@ -885,8 +904,8 @@ export class ResidenceSeederService {
             }
 
             const residenceScoreDoc = {
-                rankingCategoryId: new Types.ObjectId(rankingCategory._id),
-                residenceId: new Types.ObjectId(residence.residence_id),
+                rankingCategoryId: foundRankingCategory._id,
+                residenceId: residenceId,
                 paymentStatus: PaymentStatus.PAID,
                 upload: [],
                 status: RankingRequestStatus.ACTIVE,
@@ -896,6 +915,7 @@ export class ResidenceSeederService {
                 createdAt: new Date(),
                 updatedAt: new Date()
             };
+
 
             processedScores.push(residenceScoreDoc);
         }
@@ -2087,7 +2107,7 @@ private async processImage(imagePath: string, imageType: string) {
   }
 }
 
-private createRankingCategoryData(rankingCategory: RankingCategory, data: {
+private createRankingCategoryData(rankingCategory: any, data: {
     doc: any;
     mappedCategoryType: string;
     criteria: any[];
