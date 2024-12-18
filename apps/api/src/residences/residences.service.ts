@@ -1110,42 +1110,34 @@ export class ResidenceService {
           as: 'highestRankingCategory',
         },
       },
-      {
-        $lookup: {
-          from: 'rankingrequests',
-          let: { residenceId: '$_id' },
-          pipeline: [
-            {
-              $match: {
-                $expr: { $eq: ['$residenceId', '$$residenceId'] },
-                status: 'active',
-                isDeleted: { $ne: true },
-                bbrScore: { $exists: true }
-              }
-            },
-            {
-              $lookup: {
-                from: 'rankingcategories',
-                localField: 'rankingCategoryId',
-                foreignField: '_id',
-                as: 'rankingCategory'
-              }
-            },
-            {
-              $unwind: {
-                path: '$rankingCategory',
-                preserveNullAndEmptyArrays: true
-              }
-            },
-            {
-              $addFields: {
-                rankingCategoryId: '$rankingCategory'
-              }
+      { $lookup: {
+        from: 'rankingrequests',
+        let: { residenceId: '$_id' },
+        pipeline: [
+          {
+            $match: {
+              $expr: { $eq: ['$residenceId', '$$residenceId'] },
+              status: 'active',
+              isDeleted: false
             }
-          ],
-          as: 'rankings'
-        }
-      },
+          },
+          {
+            $lookup: {
+              from: 'rankingcategories',
+              localField: 'rankingCategoryId',
+              foreignField: '_id',
+              as: 'rankingCategory'
+            }
+          },
+          {
+            $addFields: {
+              rankingCategory: { $arrayElemAt: ['$rankingCategory', 0] }
+            }
+          }
+        ],
+        as: 'activeRankingRequests'
+      }},
+      // Keep existing bbrScore addFields
       {
         $addFields: {
           bbrScore: {
@@ -1186,7 +1178,8 @@ export class ResidenceService {
           nearbyAmenities: 1,
           createdAt: 1,
           updatedAt: 1,
-          bbrScore: 1
+          bbrScore: 1,
+          activeRankingRequests: 1
         }
       }
     );
@@ -1216,24 +1209,17 @@ export class ResidenceService {
     const updatedData = [];
     const rankingMap: Map<string, RankingRequest[]> = new Map();
 
-    for (let index = 0; index < data.length; index++) {
-      const residence = data[index];
-      const residenceWithRankings = { 
-        ...residence,
-        rankings: []
-      };
-      
-      if (residence.rankings && residence.rankings.length > 0) {
-        const updatedRankings = await Promise.all(
-          residence.rankings.map(async (ranking) => {
-            const rankingCategoryId = ranking.rankingCategory._id.toString();
+    for (const residence of data) {
+      if (residence.activeRankingRequests?.length) {
+        const updatedRankingRequests = await Promise.all(
+          residence.activeRankingRequests.map(async (request) => {
+            const categoryId = request.rankingCategoryId.toString();
+            let categoryRankings = rankingMap.get(categoryId);
             
-            // Get or fetch rankings for this category
-            let categoryRankings = rankingMap.get(rankingCategoryId);
             if (!categoryRankings) {
-              const { data: newRankings } = await this.rankingRequestRepository.findAll(
+              const { data: rankings } = await this.rankingRequestRepository.findAll(
                 {
-                  rankingCategoryId: new Types.ObjectId(rankingCategoryId),
+                  rankingCategoryId: new Types.ObjectId(categoryId),
                   isDeleted: { $ne: DeletionStatus.DELETED },
                   bbrScore: { $exists: true },
                   status: {
@@ -1244,38 +1230,35 @@ export class ResidenceService {
                     ],
                   },
                 },
-                {
-                  sort: { bbrScore: -1 },
-                }
+                { sort: { bbrScore: -1 } }
               );
-              categoryRankings = newRankings;
-              rankingMap.set(rankingCategoryId, newRankings);
+              categoryRankings = rankings;
+              rankingMap.set(categoryId, rankings);
             }
-
-            // Calculate position (1-based index)
+  
             const position = categoryRankings.findIndex(
-              (r) => r._id.toString() === ranking._id.toString()
-            );
-
+              (r) => r._id.toString() === request._id.toString()
+            ) + 1;
+  
             return {
-              ...ranking,
-              position,
+              ...request,
+              position
             };
           })
         );
-
-        residenceWithRankings.rankings = updatedRankings;
+        
+        updatedData.push({
+          ...residence,
+          activeRankingRequests: updatedRankingRequests
+        });
+      } else {
+        updatedData.push(residence);
       }
-      
-      updatedData.push(residenceWithRankings);
     }
 
-    return { 
-      pagination, 
-      residences: updatedData.map(residence => ({
-        ...residence,
-        rankings: residence.rankings || []
-      })) 
+    return {
+      pagination,
+      residences: updatedData
     };
   }
 
