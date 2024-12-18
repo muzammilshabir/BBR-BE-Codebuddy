@@ -1017,7 +1017,7 @@ export class ResidenceSeederService {
 
         const residenceScoreDoc = {
           rankingCategoryId: foundRankingCategory._id,
-          residenceId: residenceId,
+          residenceId: new Types.ObjectId(residenceId),
           paymentStatus: PaymentStatus.PAID,
           upload: [],
           status: RankingRequestStatus.ACTIVE,
