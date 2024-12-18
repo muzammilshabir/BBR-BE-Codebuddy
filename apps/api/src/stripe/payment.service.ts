@@ -51,7 +51,7 @@ export class PaymentService {
     private readonly paymentAttemptRepository: PaymentAttemptRepository,
     private readonly eventEmitter: EventEmitter2,
     private pdfService: PdfService,
-    private uploadService: UploadService,
+    private uploadService: UploadService
   ) {}
 
   private convertPaymentItemsToLineItems(
@@ -98,7 +98,10 @@ export class PaymentService {
     return this.invoiceRepository.create(transformedDto);
   }
 
-  async createManualPaymentForInvoice(invoiceId: string, userId?: string): Promise<{
+  async createManualPaymentForInvoice(
+    invoiceId: string,
+    userId?: string
+  ): Promise<{
     invoice: Invoice;
     stripeInvoice: {
       id: string;
@@ -183,17 +186,17 @@ export class PaymentService {
 
   async generateRefundReceipt(refundId: string, userId?: string): Promise<string> {
     const refund = userId
-       ? await this.refundRepository.findExpanded({ _id: refundId, developerId: userId })
-       : await this.refundRepository.findOneExpanded(refundId);
+      ? await this.refundRepository.findExpanded({ _id: refundId, developerId: userId })
+      : await this.refundRepository.findOneExpanded(refundId);
 
     if (!refund) {
       throw new Error('Refund not found');
     }
-    if(refund.receiptUrl) {
+    if (refund.receiptUrl) {
       return refund.receiptUrl;
     }
 
-    if(refund.status !== RefundStatus.REFUNDED) {
+    if (refund.status !== RefundStatus.REFUNDED) {
       throw new Error('Refund has not been processed');
     }
 
@@ -577,7 +580,7 @@ export class PaymentService {
       ip,
       userAgent
     );
-    return { id: intent.id, client_secret: intent.client_secret };
+    return { id: intent.id, client_secret: intent?.client_secret };
   }
 
   async deletePaymentMethod(userId: string, methodId: string) {

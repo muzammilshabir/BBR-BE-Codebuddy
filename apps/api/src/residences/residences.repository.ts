@@ -28,6 +28,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
         { path: 'residenceTypeIds', select: 'type', model: 'ResidenceType' },
         { path: 'cityId', select: 'name type countryId' },
         { path: 'countryId', select: 'name type' },
+        { path: 'stateId', select: 'name stateCode' },
         { path: 'associatedBrandId', select: 'name' },
         { path: 'residenceKeyFeatures.featureIds', select: 'name', model: 'ResidenceFeature' },
         {
@@ -118,6 +119,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
         { path: 'residenceTypeIds', select: 'type', model: 'ResidenceType' },
         { path: 'cityId', select: 'name type countryId' },
         { path: 'countryId', select: 'name type' },
+        { path: 'stateId', select: 'name' },
         { path: 'associatedBrandId', select: 'name' },
         { path: 'residenceKeyFeatures.featureIds', select: 'name', model: 'ResidenceFeature' },
         {
@@ -302,6 +304,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
                     { 'latestDraft.name': { $regex: search, $options: 'i' } },
                     { 'latestDraft.address.city': { $regex: search, $options: 'i' } },
                     { 'latestDraft.address.country': { $regex: search, $options: 'i' } },
+                    { 'latestDraft.address.state': { $regex: search, $options: 'i' } },
                     { 'developerData.fullName': { $regex: search, $options: 'i' } },
                   ],
                 }
@@ -334,6 +337,14 @@ export class ResidenceRepository extends BaseRepository<Residence> {
             localField: 'latestDraft.countryId',
             foreignField: '_id',
             as: 'country',
+          },
+        },
+        {
+          $lookup: {
+            from: 'states',
+            localField: 'latestDraft.stateId',
+            foreignField: '_id',
+            as: 'state',
           },
         },
         {
@@ -476,6 +487,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
             rejectionReason: '$latestDraft.rejectionReason',
             city: { name: '$city.name', type: '$city.type', countryId: '$city.countryId' },
             country: { name: '$country.name', type: '$country.type' },
+            state: { name: '$state.name' },
             lifeStyleId: '$latestDraft.lifeStyleId',
             createdById: {
               fullName: { $arrayElemAt: ['$createdBy.fullName', 0] },
@@ -606,6 +618,12 @@ export class ResidenceRepository extends BaseRepository<Residence> {
               },
               {
                 $and: [
+                  { stateId: { $exists: true } },
+                  { stateId: selectedResidence.stateId },
+                ],
+              },
+              {
+                $and: [
                   { highestBbrScore: { $exists: true } },
                   {
                     highestBbrScore: {
@@ -640,6 +658,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
             subscriptionId: { $first: '$subscriptionId' },
             cityId: { $first: '$cityId' },
             countryId: { $first: '$countryId' },
+            stateId: { $first: '$stateId' },
             lifeStyleId: { $first: '$lifeStyleId' },
             createdById: { $first: '$createdById' },
             developerId: { $first: '$developerId' },
@@ -683,6 +702,14 @@ export class ResidenceRepository extends BaseRepository<Residence> {
             localField: 'countryId',
             foreignField: '_id',
             as: 'country',
+          },
+        },
+        {
+          $lookup: {
+            from: 'states',
+            localField: 'stateId',
+            foreignField: '_id',
+            as: 'state',
           },
         },
         {
@@ -795,6 +822,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
             rejectionReason: 1,
             city: { name: '$city.name', type: '$city.type', countryId: '$city.countryId' },
             country: { name: '$country.name', type: '$country.type' },
+            state: { name: '$state.name', countryId: '$state.countryId' },
             lifeStyleId: 1,
             rankingRequests: 1,
             createdById: {
@@ -1057,6 +1085,14 @@ export class ResidenceRepository extends BaseRepository<Residence> {
         }
       },
       {
+        $lookup: {
+          from: 'states',
+          localField: 'residenceData.stateId',
+          foreignField: '_id',
+          as: 'state'
+        }
+      },
+      {
         $project: {
           _id: 1,
           name: { $ifNull: ['$latestDraft.name', '$residenceData.name'] },
@@ -1067,6 +1103,9 @@ export class ResidenceRepository extends BaseRepository<Residence> {
           },
           country: {
             name: { $arrayElemAt: ['$country.name', 0] }
+          },
+          state: {
+            name: { $arrayElemAt: ['$state.name', 0] }
           },
           developer: {
             fullName: '$developer.fullName',

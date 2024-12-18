@@ -50,9 +50,10 @@ import { InjectModel } from '@nestjs/mongoose';
 import { RankingCategoryStatus } from 'src/rankingCategory/enum/rankingCategory-status.enum';
 import { RankingRequest } from 'src/rankingRequest/schema/rankingRequest.schema';
 import { RankingRequestRepository } from 'src/rankingRequest/rankingRequest.repository';
-import crypto from 'crypto';
 import { PassThrough } from 'stream';
 import * as fastcsv from 'fast-csv';
+import { v4 as uuidv4 } from 'uuid';
+import { PatchResidenceDto } from './dto/patch-update-residence.dto';
 
 @Injectable()
 export class ResidenceService {
@@ -92,7 +93,7 @@ export class ResidenceService {
       transformedDto.developerId = new Types.ObjectId(user.sub);
     }
     if (user.role === UserRole.ADMIN) {
-      const key = crypto.randomUUID();
+      const key = uuidv4();
       transformedDto.key = key;
       transformedDto.uniqueUrl = `${process.env.FRONTEND_BASE_URL}?key=${key}`;
     }
@@ -107,6 +108,7 @@ export class ResidenceService {
 
       transformedDto.cityId = new Types.ObjectId(cityDetails.id);
       transformedDto.countryId = new Types.ObjectId(cityDetails.countryId);
+      transformedDto.stateId = new Types.ObjectId(cityDetails.stateId);
       transformedDto.address = createResidenceDto.address;
     }
 
@@ -157,6 +159,7 @@ export class ResidenceService {
 
         transformedDto.cityId = new Types.ObjectId(cityDetails.id);
         transformedDto.countryId = new Types.ObjectId(cityDetails.countryId);
+        transformedDto.stateId = new Types.ObjectId(cityDetails.stateId);
         transformedDto.address = updateResidenceDto.address;
       }
       const residenceDraft = await this.checkResidenceDraft(id);
@@ -472,6 +475,7 @@ export class ResidenceService {
       },
       { path: 'cityId', select: 'name countryId upload' },
       { path: 'countryId', select: 'name geographicalAreasId upload' },
+      { path: 'stateId', select: 'name stateCode upload' },
       { path: 'associatedBrandId', select: 'name' },
       {
         path: 'visuals.mainPhotos',
@@ -708,7 +712,7 @@ export class ResidenceService {
     // Match filters
     const matchStage: any = {
       isDeleted: false,
-      status: 'active'
+      status: 'active',
     };
 
     if (filtersDto.cities && filtersDto.cities.length > 0) {
@@ -720,6 +724,17 @@ export class ResidenceService {
         ? filtersDto.countryId
         : [filtersDto.countryId];
       matchStage.countryId = { $in: countryIds.map((id) => new Types.ObjectId(id)) };
+    }
+
+    if (filtersDto.stateId) {
+      // Handle both string and array cases
+      const stateIds = Array.isArray(filtersDto.stateId)
+        ? filtersDto.stateId
+        : [filtersDto.stateId];
+
+      matchStage.stateId = {
+        $in: stateIds.map((id) => new Types.ObjectId(id)),
+      };
     }
 
     if (filtersDto.geographicalAreasId && filtersDto.geographicalAreasId.length > 0) {
@@ -767,7 +782,7 @@ export class ResidenceService {
     if (filtersDto.floorAreaSqFt && filtersDto.floorAreaSqFt.length > 0) {
       const maxFloorArea = Math.max(...filtersDto.floorAreaSqFt);
       matchStage['residenceKeyFeatures.developmentInfo.floorAreaSqFt'] = {
-        $lte: maxFloorArea
+        $lte: maxFloorArea,
       };
     }
 
@@ -780,7 +795,7 @@ export class ResidenceService {
     if (filtersDto.yearOfBuild && filtersDto.yearOfBuild.length > 0) {
       const maxYear = Math.max(...filtersDto.yearOfBuild);
       matchStage['residenceKeyFeatures.developmentInfo.yearOfBuild'] = {
-        $lte: maxYear
+        $lte: maxYear,
       };
     }
 
@@ -818,40 +833,40 @@ export class ResidenceService {
 
     if (filtersDto.priceRange && filtersDto.priceRange.length > 0) {
       // Create pipeline stages for type conversion
-      pipeline.unshift(
-        {
-          $addFields: {
-            startRangeNum: { $toDouble: '$budgetLimitationsRange.startRange' },
-            endRangeNum: { $toDouble: '$budgetLimitationsRange.endRange' }
-          }
-        }
-      );
+      pipeline.unshift({
+        $addFields: {
+          startRangeNum: { $toDouble: '$budgetLimitationsRange.startRange' },
+          endRangeNum: { $toDouble: '$budgetLimitationsRange.endRange' },
+        },
+      });
 
       // Calculate min start range and max end range from all provided ranges
-      const minStartRange = Math.min(...filtersDto.priceRange.map(range => Number(range.startRange)));
-      const maxEndRange = Math.max(...filtersDto.priceRange.map(range => Number(range.endRange)));
+      const minStartRange = Math.min(
+        ...filtersDto.priceRange.map((range) => Number(range.startRange))
+      );
+      const maxEndRange = Math.max(...filtersDto.priceRange.map((range) => Number(range.endRange)));
 
       // Create the match stage with single range check
       matchStage.$and = [
         { startRangeNum: { $exists: true } },
         { endRangeNum: { $exists: true } },
         { startRangeNum: { $gte: minStartRange } },
-        { endRangeNum: { $lte: maxEndRange } }
+        { endRangeNum: { $lte: maxEndRange } },
       ];
     }
 
     if (filtersDto.roomCountRange && filtersDto.roomCountRange.length > 0) {
       // Calculate min and max room counts from all provided ranges
-      const minRooms = Math.min(...filtersDto.roomCountRange.map(range => range.minRooms));
-      const maxRooms = Math.max(...filtersDto.roomCountRange.map(range => range.maxRooms));
+      const minRooms = Math.min(...filtersDto.roomCountRange.map((range) => range.minRooms));
+      const maxRooms = Math.max(...filtersDto.roomCountRange.map((range) => range.maxRooms));
 
       // Add lookup before main match stage
       pipeline.unshift(
         {
           $match: {
             isDeleted: false,
-            status: 'active'
-          }
+            status: 'active',
+          },
         },
         {
           $lookup: {
@@ -862,14 +877,14 @@ export class ResidenceService {
                 $match: {
                   $expr: { $eq: ['$residenceId', '$$residenceId'] },
                   isDeleted: { $ne: true },
-                  status: 'active'
-                }
+                  status: 'active',
+                },
               },
               {
                 $unwind: {
                   path: '$rooms',
-                  preserveNullAndEmptyArrays: true
-                }
+                  preserveNullAndEmptyArrays: true,
+                },
               },
               {
                 $lookup: {
@@ -880,40 +895,40 @@ export class ResidenceService {
                       $match: {
                         $expr: { $eq: ['$_id', '$$roomTypeId'] },
                         type: 'Bedroom',
-                        isDeleted: { $ne: true }
-                      }
-                    }
+                        isDeleted: { $ne: true },
+                      },
+                    },
                   ],
-                  as: 'roomType'
-                }
+                  as: 'roomType',
+                },
               },
               {
                 $match: {
-                  'roomType.0': { $exists: true }
-                }
+                  'roomType.0': { $exists: true },
+                },
               },
               {
                 $group: {
                   _id: '$residenceId',
-                  totalBedrooms: { $sum: '$rooms.unit' }
-                }
+                  totalBedrooms: { $sum: '$rooms.unit' },
+                },
               },
               {
                 $match: {
                   totalBedrooms: {
                     $gte: minRooms,
-                    $lte: maxRooms
-                  }
-                }
-              }
+                    $lte: maxRooms,
+                  },
+                },
+              },
             ],
-            as: 'matchingUnits'
-          }
+            as: 'matchingUnits',
+          },
         },
         {
           $match: {
-            'matchingUnits.0': { $exists: true }
-          }
+            'matchingUnits.0': { $exists: true },
+          },
         }
       );
     }
@@ -940,6 +955,14 @@ export class ResidenceService {
       },
       {
         $lookup: {
+          from: 'states',
+          localField: 'stateId',
+          foreignField: '_id',
+          as: 'state',
+        },
+      },
+      {
+        $lookup: {
           from: 'countries',
           localField: 'countryId',
           foreignField: '_id',
@@ -961,34 +984,37 @@ export class ResidenceService {
             mainPhotos: '$visuals.mainPhotos',
             mainGalleryPhotos: '$visuals.mainGalleryPhotos',
             secondGalleryPhotos: '$visuals.secondGalleryPhotos',
-            videoTour: '$visuals.videoTour'
+            videoTour: '$visuals.videoTour',
           },
           pipeline: [
             {
               $match: {
                 $expr: {
-                  $in: ['$_id', {
-                    $concatArrays: [
-                      { $ifNull: ['$$mainPhotos', []] },
-                      { $ifNull: ['$$mainGalleryPhotos', []] },
-                      { $ifNull: ['$$secondGalleryPhotos', []] },
-                      { $ifNull: [['$$videoTour'], []] }
-                    ]
-                  }]
-                }
-              }
+                  $in: [
+                    '$_id',
+                    {
+                      $concatArrays: [
+                        { $ifNull: ['$$mainPhotos', []] },
+                        { $ifNull: ['$$mainGalleryPhotos', []] },
+                        { $ifNull: ['$$secondGalleryPhotos', []] },
+                        { $ifNull: [['$$videoTour'], []] },
+                      ],
+                    },
+                  ],
+                },
+              },
             },
             {
               $project: {
                 originalFileKey: 1,
                 fileKey: 1,
                 url: 1,
-                mimeType: 1
-              }
-            }
+                mimeType: 1,
+              },
+            },
           ],
-          as: 'uploadedFiles'
-        }
+          as: 'uploadedFiles',
+        },
       },
       {
         $addFields: {
@@ -997,55 +1023,58 @@ export class ResidenceService {
               $filter: {
                 input: '$uploadedFiles',
                 as: 'file',
-                cond: { $in: ['$$file._id', { $ifNull: ['$visuals.mainPhotos', []] }] }
-              }
+                cond: { $in: ['$$file._id', { $ifNull: ['$visuals.mainPhotos', []] }] },
+              },
             },
             mainGalleryPhotos: {
               $filter: {
                 input: '$uploadedFiles',
                 as: 'file',
-                cond: { $in: ['$$file._id', { $ifNull: ['$visuals.mainGalleryPhotos', []] }] }
-              }
+                cond: { $in: ['$$file._id', { $ifNull: ['$visuals.mainGalleryPhotos', []] }] },
+              },
             },
             secondGalleryPhotos: {
               $filter: {
                 input: '$uploadedFiles',
                 as: 'file',
-                cond: { $in: ['$$file._id', { $ifNull: ['$visuals.secondGalleryPhotos', []] }] }
-              }
+                cond: { $in: ['$$file._id', { $ifNull: ['$visuals.secondGalleryPhotos', []] }] },
+              },
             },
             videoTour: {
-              $arrayElemAt: [{
-                $filter: {
-                  input: '$uploadedFiles',
-                  as: 'file',
-                  cond: { $eq: ['$$file._id', '$visuals.videoTour'] }
-                }
-              }, 0]
-            }
-          }
-        }
+              $arrayElemAt: [
+                {
+                  $filter: {
+                    input: '$uploadedFiles',
+                    as: 'file',
+                    cond: { $eq: ['$$file._id', '$visuals.videoTour'] },
+                  },
+                },
+                0,
+              ],
+            },
+          },
+        },
       },
       {
         $project: {
-          uploadedFiles: 0
-        }
+          uploadedFiles: 0,
+        },
       },
       {
         $lookup: {
           from: 'amenities',
           localField: 'nearbyAmenities.amenitiesList',
           foreignField: '_id',
-          as: 'amenitiesData'
-        }
+          as: 'amenitiesData',
+        },
       },
       {
         $lookup: {
           from: 'uploads',
           localField: 'nearbyAmenities.highlightedAmenities.imageId',
           foreignField: '_id',
-          as: 'highlightedAmenitiesImages'
-        }
+          as: 'highlightedAmenitiesImages',
+        },
       },
       {
         $addFields: {
@@ -1057,34 +1086,40 @@ export class ResidenceService {
                 as: 'highlighted',
                 in: {
                   amenityId: {
-                    $arrayElemAt: [{
-                      $filter: {
-                        input: '$amenitiesData',
-                        as: 'amenity',
-                        cond: { $eq: ['$$amenity._id', '$$highlighted.amenityId'] }
-                      }
-                    }, 0]
+                    $arrayElemAt: [
+                      {
+                        $filter: {
+                          input: '$amenitiesData',
+                          as: 'amenity',
+                          cond: { $eq: ['$$amenity._id', '$$highlighted.amenityId'] },
+                        },
+                      },
+                      0,
+                    ],
                   },
                   imageId: {
-                    $arrayElemAt: [{
-                      $filter: {
-                        input: '$highlightedAmenitiesImages',
-                        as: 'image',
-                        cond: { $eq: ['$$image._id', '$$highlighted.imageId'] }
-                      }
-                    }, 0]
-                  }
-                }
-              }
-            }
-          }
-        }
+                    $arrayElemAt: [
+                      {
+                        $filter: {
+                          input: '$highlightedAmenitiesImages',
+                          as: 'image',
+                          cond: { $eq: ['$$image._id', '$$highlighted.imageId'] },
+                        },
+                      },
+                      0,
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        },
       },
       {
         $project: {
           amenitiesData: 0,
-          highlightedAmenitiesImages: 0
-        }
+          highlightedAmenitiesImages: 0,
+        },
       },
       {
         $lookup: {
@@ -1159,6 +1194,7 @@ export class ResidenceService {
           name: 1,
           residenceTypes: 1,
           city: 1,
+          state: 1,
           country: 1,
           associatedBrand: 1,
           mainPhotos: 1,
@@ -1412,6 +1448,7 @@ export class ResidenceService {
       const city = await this.cityRepository.find({
         _id: residence.cityId,
         isDeleted: { $ne: DeletionStatus.DELETED },
+        active: true,
       });
       if (!city) {
         throw new BadRequestException(
@@ -1454,6 +1491,9 @@ export class ResidenceService {
       },
       country: {
         name: item.country[0]?.name[0] || null, // Extracts the first element from name array, or null if not present
+      },
+      state: {
+        name: item.state[0]?.name[0] || null,
       },
       associatedBrand: item.associatedBrand[0] || null,
     }));
@@ -1498,6 +1538,7 @@ export class ResidenceService {
       },
       { path: 'cityId', select: 'name countryId upload' },
       { path: 'countryId', select: 'name geographicalAreasId upload' },
+      { path: 'stateId', select: 'name stateCode upload' },
       { path: 'associatedBrandId', select: 'name' },
       {
         path: 'visuals.mainPhotos',
@@ -1627,7 +1668,9 @@ export class ResidenceService {
     }
 
     const residenceDetails = await this.residenceRepository.findByKeyInDetail(key);
-    return residenceDetails;
+    const residenceDraftDetails = await this.residenceDraftRepository.findByKeyInDetail(key);
+
+    return { residence: residenceDetails, residenceDraft: residenceDraftDetails };
   }
 
   async updateGeneralInfoByKey(
@@ -1670,6 +1713,7 @@ export class ResidenceService {
 
         transformedDto.cityId = new Types.ObjectId(cityDetails.id);
         transformedDto.countryId = new Types.ObjectId(cityDetails.countryId);
+        transformedDto.stateId = new Types.ObjectId(cityDetails.stateId);
         transformedDto.address = updateResidenceDto.address;
       }
       const residenceDraft = await this.checkResidenceDraft(foundResidence._id.toString());
@@ -1847,64 +1891,172 @@ export class ResidenceService {
   }
 
   async streamCsvData(stream: PassThrough) {
-    const csvStream = fastcsv.format({ 
+    const csvStream = fastcsv.format({
       headers: true,
-      quoteColumns: true
+      quoteColumns: true,
     });
     csvStream.pipe(stream);
-  
+
     const batchSize = 100;
     let skip = 0;
     let hasMoreData = true;
     let hasWrittenAnyData = false;
-  
-      while (hasMoreData) {
-        const residences = await this.residenceRepository.listResidenceWithUniqueUrl(skip, batchSize);
-  
-        if (residences.length < batchSize) {
-          hasMoreData = false;
-        }
-  
-        if (residences.length > 0) {
-          const flattenedData = residences.map((residence) => ({
-            'Residence Name': residence.latestDraft?.name || residence.residenceData?.name || '-',
-            'Status': residence.latestDraft?.status || residence.residenceData?.status || '-',
-            'Unique URL': residence.residenceData?.uniqueUrl || '-',
-            'Developer Name': residence.developer?.fullName || '-',
-            'Developer Email': residence.developer?.email || '-',
-            'Developer Contact': residence.developer?.contactInfo?.phone || '-',
-            'City': residence.city?.[0]?.name || '-',
-            'Country': residence.country?.[0]?.name || '-',
-            'Last Updated': residence.lastUpdated ? 
-              new Date(residence.lastUpdated).toLocaleString() : '-',
-            'Created At': residence.createdAt ? 
-              new Date(residence.createdAt).toLocaleString() : '-'
-          }));
-  
-          flattenedData.forEach((row) => csvStream.write(row));
-          hasWrittenAnyData = true;
-        }
-        
-        skip += batchSize;
+
+    while (hasMoreData) {
+      const residences = await this.residenceRepository.listResidenceWithUniqueUrl(skip, batchSize);
+
+      if (residences.length < batchSize) {
+        hasMoreData = false;
       }
-  
-      if (!hasWrittenAnyData) {
-        // Write at least one row to ensure headers are present
-        csvStream.write({
-          'Residence Name': '-',
-          'Status': '-',
-          'Unique URL': '-',
-          'Developer Name': '-',
-          'Developer Email': '-',
-          'Developer Contact': '-',
-          'City': '-',
-          'Country': '-',
-          'Last Updated': '-',
-          'Created At': '-'
+
+      if (residences.length > 0) {
+        residences.forEach((residence) => {
+          console.log('Current residence object:', JSON.stringify(residence, null, 2));
         });
+
+        const flattenedData = residences.map((residence) => ({
+          'Residence Name': residence?.name || '-',
+          'Status': residence?.status || '-',
+          'Unique URL': residence?.uniqueUrl || '-',
+          'City': residence.city?.[0]?.name || '-',
+          'Country': residence.country?.[0]?.name || '-',
+          'State': residence.state?.[0]?.name || '-',
+          'Last Updated': residence.lastUpdated
+            ? new Date(residence.lastUpdated).toLocaleString()
+            : '-',
+          'Created At': residence.createdAt ? new Date(residence.createdAt).toLocaleString() : '-',
+        }));
+
+        flattenedData.forEach((row) => csvStream.write(row));
+        hasWrittenAnyData = true;
       }
-  
-      csvStream.end();
-    
+
+      skip += batchSize;
+    }
+
+    if (!hasWrittenAnyData) {
+      // Write at least one row to ensure headers are present
+      csvStream.write({
+        'Residence Name': '-',
+        'Status': '-',
+        'Unique URL': '-',
+        'Developer Name': '-',
+        'Developer Email': '-',
+        'Developer Contact': '-',
+        'City': '-',
+        'Country': '-',
+        'State': '-',
+        'Last Updated': '-',
+        'Created At': '-',
+      });
+    }
+
+    csvStream.end();
+  }
+
+  async patchResidence(key: string, patchResidenceDto: PatchResidenceDto): Promise<Residence> {
+    if (!process.env.WELCOME_FLOW_ENABLED || process.env.WELCOME_FLOW_ENABLED === 'false') {
+      throw new ForbiddenException('Welcome Flow Disabled');
+    }
+
+    const foundResidence = await this.residenceRepository.find({ key });
+
+    if (!foundResidence) {
+      throw new NotFoundException(`Residence with Key ${key} not found`);
+    }
+
+    await this.checkResidenceRejectedStatus(foundResidence._id.toString());
+
+    const transformedDto: any = {
+      ...patchResidenceDto,
+      residenceTypeIds: patchResidenceDto.residenceTypeIds
+        ? patchResidenceDto.residenceTypeIds.map((typeId) => new Types.ObjectId(typeId))
+        : undefined,
+      locationId: patchResidenceDto.locationId
+        ? new Types.ObjectId(patchResidenceDto.locationId)
+        : undefined,
+      associatedBrandId: patchResidenceDto.associatedBrandId
+        ? new Types.ObjectId(patchResidenceDto.associatedBrandId)
+        : undefined,
+    };
+
+    if (patchResidenceDto.visuals) {
+      transformedDto.visuals = {
+        ...patchResidenceDto.visuals,
+        mainPhotos: patchResidenceDto.visuals.mainPhotos
+          ? patchResidenceDto.visuals.mainPhotos.map((id) => new Types.ObjectId(id))
+          : undefined,
+        mainGalleryPhotos: patchResidenceDto.visuals.mainGalleryPhotos
+          ? patchResidenceDto.visuals.mainGalleryPhotos.map((id) => new Types.ObjectId(id))
+          : undefined,
+        secondGalleryPhotos: patchResidenceDto.visuals.secondGalleryPhotos
+          ? patchResidenceDto.visuals.secondGalleryPhotos.map((id) => new Types.ObjectId(id))
+          : undefined,
+        videoTour: patchResidenceDto.visuals.videoTour
+          ? new Types.ObjectId(patchResidenceDto.visuals.videoTour)
+          : undefined,
+      };
+    }
+
+    if (patchResidenceDto.residenceKeyFeatures?.featureIds) {
+      transformedDto.residenceKeyFeatures = {
+        ...patchResidenceDto.residenceKeyFeatures,
+        featureIds: patchResidenceDto.residenceKeyFeatures.featureIds.map(
+          (id) => new Types.ObjectId(id)
+        ),
+      };
+    }
+
+    if (patchResidenceDto.nearbyAmenities) {
+      transformedDto.nearbyAmenities = {
+        amenitiesList: patchResidenceDto.nearbyAmenities.amenitiesList
+          ? patchResidenceDto.nearbyAmenities.amenitiesList.map((id) => new Types.ObjectId(id))
+          : undefined,
+        highlightedAmenities: patchResidenceDto.nearbyAmenities.highlightedAmenities
+          ? patchResidenceDto.nearbyAmenities.highlightedAmenities.map((amenity) => ({
+              ...amenity,
+              amenityId: new Types.ObjectId(amenity.amenityId),
+              imageId: new Types.ObjectId(amenity.imageId),
+            }))
+          : undefined,
+      };
+    }
+
+    if (patchResidenceDto.address?.city) {
+      const cityName = patchResidenceDto.address.city.trim();
+      const cityDetails = await this.cityRepository.findByCityName(cityName);
+
+      if (!cityDetails) {
+        throw new NotFoundException(`Unsupported city ${cityName}`);
+      }
+
+      transformedDto.cityId = new Types.ObjectId(cityDetails.id);
+      transformedDto.countryId = new Types.ObjectId(cityDetails.countryId);
+      transformedDto.stateId = new Types.ObjectId(cityDetails.stateId);
+      transformedDto.address = patchResidenceDto.address;
+    }
+
+    const residenceDraft = await this.checkResidenceDraft(foundResidence._id.toString());
+
+    if (residenceDraft) {
+      const existingData = residenceDraft.toObject();
+      delete existingData._id;
+      delete existingData.__v;
+      return await this.residenceDraftRepository.update(residenceDraft.id, {
+        ...existingData,
+        ...transformedDto,
+      });
+    }
+
+    const plainResidence = foundResidence.toJSON();
+    delete plainResidence._id;
+    delete plainResidence.status;
+
+    return await this.residenceDraftRepository.create({
+      ...plainResidence,
+      ...transformedDto,
+      residenceId: new Types.ObjectId(foundResidence._id.toString()),
+      status: ResidenceStatus.DRAFT,
+    });
   }
 }

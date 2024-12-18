@@ -6,7 +6,7 @@ import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/
 export class UpdateNearbyAmenitiesDto {
   @ApiProperty({
     example: ['66ab4bd5161117eabe919e57', '66ab4bd5161117eabe919e61'],
-    required: true,
+    required: false,
   })
   amenitiesList: Types.ObjectId[];
 
@@ -18,7 +18,7 @@ export class UpdateNearbyAmenitiesDto {
         imageId: '66acda8b857c576159b74da4',
       },
     ],
-    required: true,
+    required: false,
   })
   highlightedAmenities: {
     amenityId: Types.ObjectId;
@@ -30,14 +30,14 @@ export class UpdateNearbyAmenitiesDto {
 export const updateNearbyAmenitiesSchema = Joi.object({
   amenitiesList: Joi.array()
     .items(Joi.string().custom(joiObjectIdValidator('amenitiesList')))
-    .required(),
+    .optional(),
   highlightedAmenities: Joi.array()
     .items(
       Joi.object({
-        amenityId: Joi.string().custom(joiObjectIdValidator('amenityId')).required(),
-        generalDescription: Joi.string().required(),
+        amenityId: Joi.string().custom(joiObjectIdValidator('amenityId')).optional(),
+        generalDescription: Joi.string().optional(),
         imageId: Joi.string().optional().custom(joiObjectIdValidator('imageId')),
       })
     )
-    .required(),
+    .optional(),
 });

@@ -6,7 +6,7 @@ export class Residence extends Document {
   @Prop({ required: true })
   name: string;
 
-  @Prop({ required: true, type: [{ type: Types.ObjectId, ref: 'ResidenceType' }] })
+  @Prop({ required: false, type: [{ type: Types.ObjectId, ref: 'ResidenceType' }] })
   residenceTypeIds: Types.ObjectId[];
 
   @Prop({ required: false, type: Types.ObjectId, ref: 'Location' })
@@ -15,11 +15,11 @@ export class Residence extends Document {
   @Prop({ required: false, type: String })
   placeId: string;
 
-  @Prop({type: String, required: false})
-  uniqueUrl: string
+  @Prop({ type: String, required: false })
+  uniqueUrl: string;
 
-  @Prop({type: String, required: false})
-  key: string
+  @Prop({ type: String, required: false })
+  key: string;
 
   @Prop({ required: false })
   websiteLink?: string;
@@ -87,6 +87,8 @@ export class Residence extends Document {
         floorAreaSqFt: Number,
         staffToResidenceRatio: Number,
       },
+      bespokeAmenitiesAmount: Number,
+      avgPricePerUnit: Number,
       petPolicy: String, // Enum values: "petFriendly", "No pet Allowed"
     },
     _id: false,
@@ -100,6 +102,8 @@ export class Residence extends Document {
       floorAreaSqFt: number;
       staffToResidenceRatio: number;
     };
+    bespokeAmenitiesAmount: number;
+    avgPricePerUnit: number;
     petPolicy: string;
   };
 
@@ -184,6 +188,9 @@ export class Residence extends Document {
   @Prop({ type: Types.ObjectId, ref: 'Country' })
   countryId: Types.ObjectId;
 
+  @Prop({ type: Types.ObjectId, ref: 'State' })
+  stateId: Types.ObjectId;
+
   @Prop({ type: Types.ObjectId, ref: 'LifeStyle' })
   lifeStyleId: Types.ObjectId;
 
@@ -236,6 +243,18 @@ export class Residence extends Document {
 
   @Prop({ type: Boolean, default: false })
   featured: boolean;
+
+  @Prop({ type: Boolean, default: false })
+  eVerification: boolean;
+
+  @Prop({ type: Boolean, default: false })
+  onsiteVerification: boolean;
+
+  @Prop({ type: Date, default: null })
+  verifiedOn: Date;
+
+  @Prop({ type: Boolean, default: false })
+  isFeatured: boolean;
 }
 
 export const ResidenceSchema = SchemaFactory.createForClass(Residence);

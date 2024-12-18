@@ -12,14 +12,14 @@ export const guestRequestVisitSchema = Joi.object({
     phone: Joi.object({
       countryCode: Joi.string().required(),
       number: Joi.string().required(),
-    }).required(),
+    }).optional(),
   }),
   subscriptionPlanId: Joi.string().custom(joiObjectIdValidator('subscriptionPlanId')).required(),
   residenceDetails: Joi.object({
     name: Joi.string().required(),
     countryId: Joi.string().custom(joiObjectIdValidator('countryId')).required(),
     cityId: Joi.string().custom(joiObjectIdValidator('cityId')).required(),
-    zipCode: Joi.string().required(),
+    zipCode: Joi.string().optional(),
     address1: Joi.string().required(),
     location: Joi.object({
       lat: Joi.number().required(),

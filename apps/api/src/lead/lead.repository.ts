@@ -346,7 +346,7 @@ export class LeadRepository extends BaseRepository<Lead> {
   }
 
   async findAllLeads(filterDto: ListLeadDto, developerId?: string) {
-    const { status, source, search, startDate, endDate, isRegistered } = filterDto;
+    const { status, source, search, startDate, endDate, isRegistered , residenceId } = filterDto;
 
     const paginationOptions = PaginationService.prepareOptions(filterDto);
     const sortObject = paginationOptions.sort.reduce((acc, [field, order]) => {
@@ -364,22 +364,7 @@ export class LeadRepository extends BaseRepository<Lead> {
           ...(startDate && endDate
             ? { createdAt: { $gte: startDate, $lte: endDate } }
             : {}),
-        },
-      },
-      {
-        $match: {
-          ...(search
-            ? {
-                $or: [
-                  { name: { $regex: search, $options: 'i' } },
-                  { email: { $regex: search, $options: 'i' } },
-                  { country: { $regex: search, $options: 'i' } },
-                  { displayId: { $regex: search, $options: 'i' } },
-                  { unitId: { $regex: search, $options: 'i' } },
-                  { residenceId: { $regex: search, $options: 'i' } },
-                ],
-              }
-            : {}),
+          ...(residenceId ? { residenceId: new Types.ObjectId(residenceId) } : {}),
         },
       },
       {
@@ -395,6 +380,24 @@ export class LeadRepository extends BaseRepository<Lead> {
           path: '$residenceId',
           preserveNullAndEmptyArrays: true
         }
+      },
+      {
+        $match: {
+          ...(search
+            ? {
+                $or: [
+                  { name: { $regex: search, $options: 'i' } },
+                  { email: { $regex: search, $options: 'i' } },
+                  { country: { $regex: search, $options: 'i' } },
+                  { displayId: { $regex: search, $options: 'i' } },
+                  { unitId: { $regex: search, $options: 'i' } },
+                  { residenceId: { $regex: search, $options: 'i' } },
+                  { 'phoneNumber.number': { $regex: search, $options: 'i' } },
+                  { 'residenceId.name': { $regex: search, $options: 'i' } },
+                ],
+              }
+            : {}),
+        },
       },
       {
         $lookup: {

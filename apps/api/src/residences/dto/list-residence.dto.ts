@@ -110,6 +110,14 @@ export class ListResidenceByFiltersDto {
     type: [String],
   })
   countryId?: string;
+  
+  @ApiProperty({
+    description: 'Filter by state IDs',
+    example: ['60b6c0f53b5a5c1f88d25a1b'],
+    required: false,
+    type: [String],
+  })
+  stateId?: string;
 
   @ApiProperty({
     description: 'Filter by lifestyle IDs',
@@ -248,6 +256,9 @@ export const listResidenceByFiltersSchema = Joi.object({
     .optional(),
   countryId: Joi.array()
     .items(Joi.string().custom(joiObjectIdValidator('countryId')))
+    .optional(),
+  stateId: Joi.array()
+    .items(Joi.string().custom(joiObjectIdValidator('stateId')))
     .optional(),
   lifestyles: Joi.array()
     .items(Joi.string().custom(joiObjectIdValidator('lifestyles')))

@@ -26,6 +26,8 @@ import {
 import { GeographicalAreasRepository } from '../geographicalAreas/geographicalAreas.repository';
 import { Brand, BrandSchema } from '../brand/schema/brand.schema';
 import { BrandRepository } from '../brand/brand.repository';
+import { State, StateSchema } from 'src/state/schema/state.schema';
+import { StateRepository } from 'src/state/state.repository';
 
 @Module({
   imports: [
@@ -34,6 +36,7 @@ import { BrandRepository } from '../brand/brand.repository';
     MongooseModule.forFeature([{ name: PropertyType.name, schema: PropertyTypeSchema }]),
     MongooseModule.forFeature([{ name: Location.name, schema: LocationSchema }]),
     MongooseModule.forFeature([{ name: Country.name, schema: CountrySchema }]),
+    MongooseModule.forFeature([{ name: State.name, schema: StateSchema }]),
     MongooseModule.forFeature([{ name: City.name, schema: CitySchema }]),
     MongooseModule.forFeature([{ name: GeographicalAreas.name, schema: GeographicalAreasSchema }]),
 
@@ -51,6 +54,7 @@ import { BrandRepository } from '../brand/brand.repository';
     RankingCategoryDraftRepository,
     LocationRepository,
     CountryRepository,
+    StateRepository,
     CityRepository,
     GeographicalAreasRepository,
     BrandRepository,
