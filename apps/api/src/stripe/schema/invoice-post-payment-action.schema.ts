@@ -6,6 +6,7 @@ export enum InvoicePostPaymentActionType {
   CREATE_RESIDENCE = 'create_residence',
   CREATE_RANKING_REQUEST = 'create_ranking_request',
   CREATE_FEATURE_REQUEST = 'create_feature_request',
+  CREATE_RESIDENCE_PLAN_REQUEST = 'create_residence_plan_request',
   CREATE_BESPOKE_REQUEST = 'create_bespoke_request',
   CREATE_BBR_VERIFICATION_REQUEST = 'create_bbr_verification_request',
 }
@@ -49,6 +50,12 @@ export type FeatureRequestDetails = {
   userInfo: UserInfo;
 };
 
+export type ResidencePlanDetails = {
+  residencePlanId: string;
+  residenceId: string;
+  userInfo: UserInfo;
+};
+
 export type BbrVerificationRequestDetails = {
   bbrVerificationPlantId: string;
   residenceId: string;
@@ -78,6 +85,7 @@ export class InvoicePostPaymentAction extends Document {
     | RankingRequestDetails
     | FeatureRequestDetails
     | BbrVerificationRequestDetails
+    | ResidencePlanDetails
     | BespokeRequestDetails;
 
   @Prop({ required: true, default: 0 })
