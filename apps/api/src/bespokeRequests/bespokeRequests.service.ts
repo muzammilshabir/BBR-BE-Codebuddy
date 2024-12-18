@@ -95,7 +95,7 @@ export class BespokeRequestService {
       name: user.fullName,
       email: user.email,
       message,
-      calendlyDetails: createBespokeRequestDto.calendlyDetails,
+      calendlyDetails: createBespokeRequestDto.calendlyDetails ?? null,
     });
 
     bespokeRequest = await this.bespokeRequestRepository.update(bespokeRequest.id, {
@@ -277,15 +277,23 @@ export class BespokeRequestService {
   }
 
   private async createStripeCustomerAndInvoice(body: CreateBespokeRequestFeatureDto) {
-    const stripeCustomer = await this.stripeService.createCustomer({
-      name: body.userDetails.fullName,
-      email: body.userDetails.email,
-    });
+    const { email, fullName } = body.userDetails;
+
+    const stripeCustomer = await this.getOrCreateStripeCustomer(email, fullName);
 
     const invoice = await this.invoiceService.createInvoice();
     const stripeInvoice = await this.stripeService.createInvoiceV2(stripeCustomer.id);
     await this.invoiceService.attachStripeInvoice(invoice.id, stripeInvoice.id);
 
     return { invoice, stripeCustomer, stripeInvoice };
+  }
+  private async getOrCreateStripeCustomer(email: string, fullName: string) {
+    const user = await this.userModel.findOne({ email });
+    if (user?.stripeCustomerId) {
+      return this.stripeService.retrieveCustomer(user.stripeCustomerId);
+    }
+    const stripeCustomer = await this.stripeService.createCustomer({ name: fullName, email });
+    await this.userModel.findByIdAndUpdate(user?._id, { stripeCustomerId: stripeCustomer.id });
+    return stripeCustomer;
   }
 }
