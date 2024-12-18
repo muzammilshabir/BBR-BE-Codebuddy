@@ -35,6 +35,14 @@ export class UpdateLeadDto {
   budget?: string;
 
   @ApiProperty({
+    type: Object,
+    description: 'Extra details',
+    required: false,
+    example: { key: 'value' },
+  })
+  other?: Object;
+
+  @ApiProperty({
     example: 13400000,
     description: 'Price of the unit entered by the developer for this lead',
     required: false,
@@ -157,6 +165,7 @@ export const updateLeadSchema = Joi.object({
   contactedAt: Joi.date().iso().optional(),
   lastContactedAt: Joi.date().iso().optional(),
   expectedCloseDate: Joi.date().iso().optional(),
+  other: Joi.object().optional(),
   phoneNumber: phoneSchema.optional(),
   email: Joi.string().email().optional(),
   companyName: Joi.string().optional(),

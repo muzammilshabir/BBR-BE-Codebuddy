@@ -79,6 +79,10 @@ export class StripeService {
     return this.stripe.customers.create(customer);
   }
 
+  async retrieveCustomer(customerId: string): Promise<Stripe.Customer | Stripe.DeletedCustomer> {
+    return this.stripe.customers.retrieve(customerId);
+  }
+
   async listCustomers(): Promise<Stripe.Customer[]> {
     return (await this.stripe.customers.list()).data;
   }

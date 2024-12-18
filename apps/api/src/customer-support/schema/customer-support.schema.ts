@@ -6,8 +6,11 @@ import {
   Priority,
 } from '../enum/customer-support-enum';
 import { CounterService } from '../../counter/counter.service';
-import { CustomerSupportUserPreferences, PhoneNumber } from '../dto/create-customer-support.dto';
-import { UserContactInfo } from 'src/users/types/user.type';
+import {
+  CustomerSupportUserContactInfo,
+  CustomerSupportUserPreferences,
+  PhoneNumber,
+} from '../dto/create-customer-support.dto';
 import {
   CustomerSupportErrorReport,
   CustomerSupportFeatureRequest,
@@ -40,7 +43,10 @@ export class CustomerSupport extends Document {
   message: string;
 
   @Prop({ required: false, type: Object })
-  contactInfo: UserContactInfo;
+  contactInfo: CustomerSupportUserContactInfo;
+
+  @Prop({ required: false, type: Object })
+  other: Object;
 
   @Prop({ type: Types.ObjectId, ref: 'Residence', required: false })
   residenceId?: Types.ObjectId;

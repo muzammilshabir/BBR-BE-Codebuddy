@@ -143,6 +143,14 @@ export class CreateLeadDto {
   })
   source?: LeadSource;
 
+  @ApiProperty({
+    type: Object,
+    description: 'Extra details',
+    required: false,
+    example: { key: 'value' },
+  })
+  other?: Object;
+
   @ApiProperty({ example: '2024-11-28', description: 'Expected close date', required: false })
   expectedCloseDate?: Date;
 }
@@ -182,6 +190,7 @@ export const createLeadSchema = Joi.object({
   name: Joi.string().required(),
   phoneNumber: phoneSchema.required(),
   email: Joi.string().required().email(),
+  other: Joi.object().optional(),
   residenceId: Joi.string().optional().custom(joiObjectIdValidator('residenceId')),
   unitId: Joi.string().optional().custom(joiObjectIdValidator('unitId')),
   developerId: Joi.string().optional().custom(joiObjectIdValidator('developerId')),

@@ -3,7 +3,7 @@ import * as Joi from 'joi';
 import { Types } from 'mongoose';
 import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
 import { CustomerSupportSource, Priority, Role } from '../enum/customer-support-enum';
-import { UserBudget, UserContactInfo } from 'src/users/types/user.type';
+import { UserBudget } from 'src/users/types/user.type';
 import { UserContactMethod } from 'src/users/enum/user.enum';
 import { budgetSchema } from 'src/users/dto/createUser.dto';
 import {
@@ -11,6 +11,29 @@ import {
   CustomerSupportErrorReport,
   CalendlyDetails,
 } from '../type/customer-support.type';
+
+export class PhoneNumber {
+  @ApiProperty({ description: 'Country code of the phone number', example: '+1' })
+  countryCode: string;
+
+  @ApiProperty({ description: 'Phone number', example: '1234567890' })
+  number: string;
+}
+
+export class CustomerSupportUserContactInfo {
+  @ApiProperty({
+    description: 'Location ID associated with the contact',
+    example: '66acda8b857c576159b74da4',
+    required: false,
+  })
+  countryId?: string;
+
+  @ApiProperty({ description: 'Phone information', type: PhoneNumber, required: false })
+  phone?: PhoneNumber;
+
+  @ApiProperty({ description: 'Preferred contact methods', enum: UserContactMethod, isArray: true })
+  preferredContactMethods: UserContactMethod[];
+}
 
 export class CustomerSupportUserPreferences {
   @ApiProperty({
@@ -45,14 +68,6 @@ export class CustomerSupportUserPreferences {
 
   @ApiProperty({ description: 'Budget preferences', type: UserBudget })
   budget: UserBudget;
-}
-
-export class PhoneNumber {
-  @ApiProperty({ description: 'Country code of the phone number', example: '+1' })
-  countryCode: string;
-
-  @ApiProperty({ description: 'Phone number', example: '1234567890' })
-  number: string;
 }
 
 export class CreateCustomerSupportDto {
@@ -94,8 +109,12 @@ export class CreateCustomerSupportDto {
     type?: string;
   }>;
 
-  @ApiProperty({ description: 'Contact information', type: UserContactInfo, required: false })
-  contactInfo?: UserContactInfo;
+  @ApiProperty({
+    description: 'Contact information',
+    type: CustomerSupportUserContactInfo,
+    required: false,
+  })
+  contactInfo?: CustomerSupportUserContactInfo;
 
   @ApiProperty({
     description: 'User preferences',
@@ -160,6 +179,14 @@ export class CreateCustomerSupportDto {
   customerSupportErrorReport?: CustomerSupportErrorReport;
 
   @ApiProperty({
+    type: Object,
+    description: 'Extra details',
+    required: false,
+    example: { key: 'value' },
+  })
+  other?: Object;
+
+  @ApiProperty({
     type: CalendlyDetails,
     required: false,
     description: 'Calendly meeting details',
@@ -197,8 +224,8 @@ export const phoneSchema = Joi.object({
 });
 
 export const contactInfoSchema = Joi.object({
-  countryId: Joi.string().required(),
-  phone: phoneSchema.required(),
+  countryId: Joi.string().optional(),
+  phone: phoneSchema.optional(),
   preferredContactMethods: Joi.array()
     .items(Joi.string().valid(...Object.values(UserContactMethod)))
     .required(),
@@ -283,6 +310,7 @@ export const createCustomerSupportSchema = Joi.object({
   agreeToTerms: Joi.boolean().valid(true),
   receiveNewsletter: Joi.boolean().optional(),
   companyName: Joi.string().optional(),
+  other: Joi.object().optional(),
   websiteUrl: Joi.string().uri().optional(),
   upload: Joi.array()
     .items(

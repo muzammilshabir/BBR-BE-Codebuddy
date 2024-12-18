@@ -18,7 +18,10 @@ import {
 } from './dto/update-customer-support.dto';
 import { Permissions } from 'src/auth/decorators/permissions.decorator';
 import { PermissionLevel } from 'src/modulePolicy/enum/permission-enum';
-import { UpdateCalendlyDetailsDto, updateCalendlyDetailsSchema } from './dto/update-calendly-details.dto';
+import {
+  UpdateCalendlyDetailsDto,
+  updateCalendlyDetailsSchema,
+} from './dto/update-calendly-details.dto';
 import { Public } from 'src/auth/decorators/public.decorator';
 
 @ApiTags('CustomerSupport')
@@ -103,7 +106,8 @@ export class CustomerSupportController {
   @Roles(UserRole.SELLER, UserRole.ADMIN)
   @Permissions('customer-support', PermissionLevel.DELETE)
   async deleteCustomerSupport(@Param('id') customerSupportId: string) {
-    const customerSupport = await this.customerSupportService.deleteCustomerSupport(customerSupportId);
+    const customerSupport =
+      await this.customerSupportService.deleteCustomerSupport(customerSupportId);
     return ResponseService.buildResponse(
       { customerSupport },
       'Customer support deleted successfully'
