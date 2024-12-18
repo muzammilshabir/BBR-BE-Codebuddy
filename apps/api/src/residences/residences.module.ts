@@ -34,14 +34,23 @@ import { Unit, UnitSchema } from '../unit/schema/unit.schema';
 import { UnitRepository } from '../unit/unit.repository';
 import { Country, CountrySchema } from '../country/schema/country.schema';
 import { RankingRequestRepository } from 'src/rankingRequest/rankingRequest.repository';
-import { RankingRequest, RankingRequestSchema } from 'src/rankingRequest/schema/rankingRequest.schema';
+import {
+  RankingRequest,
+  RankingRequestSchema,
+} from 'src/rankingRequest/schema/rankingRequest.schema';
 import { ResidenceSeederService } from './residencesSeeder.service';
 import { PropertyTypeRepository } from 'src/propertyType/propertyType.repository';
 import { PropertyType, PropertyTypeSchema } from 'src/propertyType/schema/propertyType.schema';
 import { RankingCategoryRepository } from 'src/rankingCategory/rankingCategory.repository';
-import { RankingCategory, RankingCategorySchema } from 'src/rankingCategory/schema/rankingCategory.schema';
+import {
+  RankingCategory,
+  RankingCategorySchema,
+} from 'src/rankingCategory/schema/rankingCategory.schema';
 import { GeographicalAreasRepository } from 'src/geographicalAreas/geographicalAreas.repository';
-import { GeographicalAreas, GeographicalAreasSchema } from 'src/geographicalAreas/schema/geographicalAreas.schema';
+import {
+  GeographicalAreas,
+  GeographicalAreasSchema,
+} from 'src/geographicalAreas/schema/geographicalAreas.schema';
 import { BrandCategoryRepository } from 'src/brandCategory/brandCategoryRepository.repository';
 import { BrandCategory, BrandCategorySchema } from 'src/brandCategory/schema/brandCategory.schema';
 import { UploadRepository } from 'src/upload/upload.repository';
@@ -49,6 +58,18 @@ import { Upload, UploadSchema } from 'src/upload/schema/upload.schema';
 import { State, StateSchema } from 'src/state/schema/state.schema';
 import { StateRepository } from 'src/state/state.repository';
 import { Location, LocationSchema } from 'src/location/schema/location.schema';
+import { BrandDraft, BrandDraftSchema } from '../brandDraft/schema/brandDraft.schema';
+import {
+  RankingCategoryDraft,
+  RankingCategoryDraftSchema,
+} from '../rankingCategoryDraft/schema/rankingCategoryDraft.schema';
+import {
+  RankingRequestDraft,
+  RankingRequestDraftSchema,
+} from '../rankingRequestDraft/schema/rankingRequestDraft.schema';
+import { RankingRequestDraftRepository } from '../rankingRequestDraft/rankingRequestDraft.repository';
+import { RankingCategoryDraftRepository } from '../rankingCategoryDraft/rankingCategoryDraft.repository';
+import { BrandDraftRepository } from '../brandDraft/brandDraft.repository';
 
 @Module({
   imports: [
@@ -72,6 +93,13 @@ import { Location, LocationSchema } from 'src/location/schema/location.schema';
     MongooseModule.forFeature([{ name: Upload.name, schema: UploadSchema }]),
     MongooseModule.forFeature([{ name: State.name, schema: StateSchema }]),
     MongooseModule.forFeature([{ name: Location.name, schema: LocationSchema }]),
+    MongooseModule.forFeature([{ name: BrandDraft.name, schema: BrandDraftSchema }]),
+    MongooseModule.forFeature([
+      { name: RankingCategoryDraft.name, schema: RankingCategoryDraftSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: RankingRequestDraft.name, schema: RankingRequestDraftSchema },
+    ]),
   ],
   providers: [
     ResidenceService,
@@ -95,9 +123,18 @@ import { Location, LocationSchema } from 'src/location/schema/location.schema';
     RankingCategoryRepository,
     GeographicalAreasRepository,
     BrandCategoryRepository,
-    UploadRepository
+    UploadRepository,
+    RankingRequestDraftRepository,
+    RankingCategoryDraftRepository,
+    BrandDraftRepository,
   ],
-  exports: [ResidenceSeeder, ResidencesFixture, ResidenceService, ResidenceSeederService, ResidenceRepository],
+  exports: [
+    ResidenceSeeder,
+    ResidencesFixture,
+    ResidenceService,
+    ResidenceSeederService,
+    ResidenceRepository,
+  ],
   controllers: [ResidenceController],
 })
 export class ResidenceModule {}
