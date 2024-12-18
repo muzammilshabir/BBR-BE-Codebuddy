@@ -8,6 +8,7 @@ export const applyAdditionalServiceRequestSchema = Joi.object({
     .custom(joiObjectIdValidator('bbrVerificationPlanId'))
     .optional(),
   residenceId: Joi.string().custom(joiObjectIdValidator('residenceId')).optional(),
+  residencePlanId: Joi.string().custom(joiObjectIdValidator('residencePlanId')).optional(),
   rankingCategoryIds: Joi.array()
     .items(Joi.string().custom(joiObjectIdValidator('rankingCategoryId')))
     .optional(),
@@ -43,6 +44,14 @@ export class ApplyAdditionalServiceRequestDto {
     example: '60d5f485f7c6a4b2b8e8b623',
   })
   bbrVerificationPlanId?: Types.ObjectId;
+
+  @ApiProperty({
+    description: 'Residence plan ID',
+    type: Types.ObjectId,
+    required: false,
+    example: '60d5f485f7c6a4b2b8e8b623',
+  })
+  residencePlanId?: Types.ObjectId;
 
   @ApiProperty({
     description: 'Ranking category IDs',

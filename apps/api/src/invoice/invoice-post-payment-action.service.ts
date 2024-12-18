@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Residence } from 'src/residences/schema/residences.schema';
 import { City } from 'src/city/schema/city.schema';
 import { Country } from 'src/country/schema/country.schema';
@@ -13,6 +13,7 @@ import {
   InvoicePostPaymentActionType,
   RankingRequestDetails,
   ResidenceDetails,
+  ResidencePlanDetails,
   UserDetails,
 } from 'src/stripe/schema/invoice-post-payment-action.schema';
 import { UserRole } from 'src/users/enum/user.enum';
@@ -74,7 +75,8 @@ export class InvoicePostPaymentActionService {
       | RankingRequestDetails
       | FeatureRequestDetails
       | BbrVerificationRequestDetails
-      | BespokeRequestDetails,
+      | BespokeRequestDetails
+      | ResidencePlanDetails,
     order: number
   ) {
     return this.invoicePostPaymentActionModel.create({
@@ -200,7 +202,7 @@ export class InvoicePostPaymentActionService {
       if (action.type === InvoicePostPaymentActionType.CREATE_BESPOKE_REQUEST) {
         const featureRequestDetails = action.data as BespokeRequestDetails;
         await this.bespokeRequestModel.findByIdAndUpdate(featureRequestDetails.bespokeRequestId, {
-          status: PaymentStatus.PAID,
+          paymentStatus: PaymentStatus.PAID,
         });
 
         await this.customerSupportService.create({
@@ -224,6 +226,23 @@ export class InvoicePostPaymentActionService {
           name: bbrVerificationRequestDetails.userInfo.fullName,
           email: bbrVerificationRequestDetails.userInfo.email,
           message: `Payment for bbr verification request with id:${bbrVerificationRequest.id} and invoice id:${invoiceId} is Paid`,
+        });
+      }
+
+      if (action.type === InvoicePostPaymentActionType.CREATE_RESIDENCE_PLAN_REQUEST) {
+        const residencePlanDetails = action.data as ResidencePlanDetails;
+
+        const residencePlanRequest = await this.residenceModel.findByIdAndUpdate(
+          residencePlanDetails.residenceId,
+          {
+            planId: new Types.ObjectId(residencePlanDetails.residencePlanId),
+          }
+        );
+
+        await this.customerSupportService.create({
+          name: residencePlanDetails.userInfo.fullName,
+          email: residencePlanDetails.userInfo.email,
+          message: `Payment for residence plan request with id:${residencePlanRequest.id} and invoice id:${invoiceId} is Paid`,
         });
       }
     }

@@ -34,7 +34,7 @@ export class ApplyAdditionalServiceRequestService {
     @InjectModel(Plan.name)
     private planModel: Model<Plan>
   ) {}
-  async create(body: ApplyAdditionalServiceRequestDto) {
+  async create(body: ApplyAdditionalServiceRequestDto, userId: string) {
     let rankingCategories: { data: RankingCategory[] };
 
     let residence = await this.residenceRepository.find({
@@ -46,11 +46,13 @@ export class ApplyAdditionalServiceRequestService {
     if (!body.residenceId) {
       residence = await this.residenceRepository.create({
         name: 'Draft residence',
+        developerId: new Types.ObjectId(userId),
       });
 
       await this.residenceDraftRepository.create({
         residenceId: new Types.ObjectId(residence.id),
         name: 'Draft residence',
+        developerId: new Types.ObjectId(userId),
       });
     }
 
@@ -133,6 +135,33 @@ export class ApplyAdditionalServiceRequestService {
         InvoicePostPaymentActionType.CREATE_FEATURE_REQUEST,
         {
           featurePlanId: body.featurePlanId.toString(),
+          residenceId: residence.id,
+          userInfo: {
+            fullName: body.userDetails.fullName,
+            email: body.userDetails.email,
+          },
+        },
+        1
+      );
+    }
+
+    if (body.residencePlanId) {
+      const plan = await this.getSubsPlan(body.residencePlanId.toString());
+      const lineItems = await this.invoiceService.createLineItemsFromSubscriptionPlan(
+        invoice.id,
+        plan
+      );
+      await this.invoiceService.attachLineItemsToStripeInvoice(
+        stripeCustomer.id,
+        stripeInvoice.id,
+        [lineItems]
+      );
+
+      await this.invoicePostPaymentActionService.create(
+        invoice.id,
+        InvoicePostPaymentActionType.CREATE_RESIDENCE_PLAN_REQUEST,
+        {
+          residencePlanId: body.residencePlanId.toString(),
           residenceId: residence.id,
           userInfo: {
             fullName: body.userDetails.fullName,
