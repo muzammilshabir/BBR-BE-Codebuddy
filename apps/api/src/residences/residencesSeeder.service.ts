@@ -367,37 +367,30 @@ export class ResidenceSeederService {
             const brand = singleBrand as any;
 
             let brandDoc = await this.brandRepository.find({
-              name: { $regex: new RegExp(brand.name, 'i') },
+              name: { $regex: new RegExp(`^${brand.name}$`, 'i') },
             });
 
-            const brandDraftDoc = await this.brandDraftRepository.findLatest({
-              brandId: new Types.ObjectId(brandDoc.id),
-            });
-
-            if (!brandDraftDoc) {
-              const plainBrand = brandDoc.toJSON();
-              delete plainBrand._id;
-              await this.brandDraftRepository.create({
-                ...plainBrand.toObject(),
+            if (brandDoc) {
+              const brandDraftDoc = await this.brandDraftRepository.findLatest({
                 brandId: new Types.ObjectId(brandDoc.id),
               });
-            } else {
+
               const plainBrand = brandDoc.toJSON();
               delete plainBrand._id;
-              await this.brandDraftRepository.updateWithFilter(
-                {
-                  brandId: new Types.ObjectId(brandDoc.id),
-                },
-                {
-                  $set: {
-                    ...plainBrand,
-                  },
-                }
-              );
-            }
 
-            if (!brandDoc) {
-              const brandData: any = {
+              if (!brandDraftDoc) {
+                await this.brandDraftRepository.create({
+                  ...plainBrand,
+                  brandId: new Types.ObjectId(brandDoc.id),
+                });
+              } else {
+                await this.brandDraftRepository.updateWithFilter(
+                  { brandId: new Types.ObjectId(brandDoc.id) },
+                  { $set: { ...plainBrand } }
+                );
+              }
+            } else {
+              const brandData = {
                 name: brand.name,
                 description: brand.description || '',
                 registeredDate: new Date(),
@@ -406,6 +399,8 @@ export class ResidenceSeederService {
               };
 
               brandDoc = await this.brandRepository.create(brandData);
+
+              // Create a draft document for the new brand
               await this.brandDraftRepository.create({
                 brandId: new Types.ObjectId(brandDoc.id),
                 ...brandData,
@@ -1195,34 +1190,30 @@ export class ResidenceSeederService {
       name: { $regex: new RegExp(`^${matchingBrand.name}$`, 'i') },
     });
 
-    const brandDraftDoc = await this.brandDraftRepository.findLatest({
-      brandId: new Types.ObjectId(brandDoc.id),
-    });
-
-    if (!brandDraftDoc) {
-      const plainBrand = brandDoc.toJSON();
-      delete plainBrand._id;
-      await this.brandDraftRepository.create({
-        ...plainBrand.toObject(),
+    if (brandDoc) {
+      const brandDraftDoc = await this.brandDraftRepository.findLatest({
         brandId: new Types.ObjectId(brandDoc.id),
       });
-    } else {
+
       const plainBrand = brandDoc.toJSON();
       delete plainBrand._id;
-      await this.brandDraftRepository.updateWithFilter(
-        {
-          brandId: new Types.ObjectId(brandDoc.id),
-        },
-        {
-          $set: {
-            ...plainBrand,
-          },
-        }
-      );
-    }
 
-    if (!brandDoc) {
-      const brandData: any = {
+      if (!brandDraftDoc) {
+        // Create a new draft document
+        await this.brandDraftRepository.create({
+          ...plainBrand,
+          brandId: new Types.ObjectId(brandDoc.id),
+        });
+      } else {
+        // Update the existing draft document
+        await this.brandDraftRepository.updateWithFilter(
+          { brandId: new Types.ObjectId(brandDoc.id) },
+          { $set: { ...plainBrand } }
+        );
+      }
+    } else {
+      // If the brand does not exist, create it
+      const brandData = {
         name: matchingBrand.name,
         description: matchingBrand.description || '',
         registeredDate: new Date(),
@@ -1231,11 +1222,14 @@ export class ResidenceSeederService {
       };
 
       brandDoc = await this.brandRepository.create(brandData);
+
+      // Create a draft document for the new brand
       await this.brandDraftRepository.create({
         brandId: new Types.ObjectId(brandDoc.id),
         ...brandData,
       });
     }
+
     return brandDoc;
   }
 
