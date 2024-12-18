@@ -1,4 +1,4 @@
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Controller, Body, Post, UsePipes } from '@nestjs/common';
 import { Public } from '@bbr/api-core/modules/decorators';
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
@@ -8,6 +8,7 @@ import {
   applyAdditionalServiceRequestSchema,
   ApplyAdditionalServiceRequestDto,
 } from './apply-additional-service-request.dto';
+import { GetCurrentUserId } from '../auth/decorators/getCurrentUserId.decorator';
 
 @ApiTags('Additional Service')
 @Controller('additional-service')
@@ -20,10 +21,13 @@ export class ApplyAdditionalServiceRequestController {
   @ApiOperation({
     summary: 'Apply Additional Service Request',
   })
-  @Public()
+  @ApiBearerAuth()
   @UsePipes(new JoiValidationPipe(applyAdditionalServiceRequestSchema, 'body'))
-  async applyAdditionalServiceRequest(@Body() body: ApplyAdditionalServiceRequestDto) {
-    const paymentIntent = await this.applyAdditionalServiceRequestService.create(body);
+  async applyAdditionalServiceRequest(
+    @Body() body: ApplyAdditionalServiceRequestDto,
+    @GetCurrentUserId() userId: string
+  ) {
+    const paymentIntent = await this.applyAdditionalServiceRequestService.create(body, userId);
     return ResponseService.buildResponse(paymentIntent, 'Payment intent created successfully');
   }
 }

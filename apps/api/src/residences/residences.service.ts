@@ -1156,45 +1156,42 @@ export class ResidenceService {
                 status: 'active',
                 isDeleted: { $ne: true },
                 bbrScore: { $exists: true },
-              }
+              },
             },
             {
               $lookup: {
                 from: 'rankingcategories',
                 localField: 'rankingCategoryId',
                 foreignField: '_id',
-                as: 'rankingCategory'
-              }
+                as: 'rankingCategory',
+              },
             },
             {
               $unwind: {
                 path: '$rankingCategory',
-                preserveNullAndEmptyArrays: true
-              }
+                preserveNullAndEmptyArrays: true,
+              },
             },
             {
               $addFields: {
-                rankingCategoryId: '$rankingCategory'
-              }
-            }
+                rankingCategoryId: '$rankingCategory',
+              },
+            },
           ],
-          as: 'rankings'
-        }
+          as: 'rankings',
+        },
       },
       {
         $addFields: {
           bbrScore: {
-            $ifNull: [
-              { $arrayElemAt: ['$rankings.bbrScore', 0] },
-              null
-            ]
-          }
-        }
+            $ifNull: [{ $arrayElemAt: ['$rankings.bbrScore', 0] }, null],
+          },
+        },
       },
       {
         $project: {
-          rankings: 0
-        }
+          rankings: 0,
+        },
       },
       {
         $project: {
@@ -1254,16 +1251,16 @@ export class ResidenceService {
 
     for (let index = 0; index < data.length; index++) {
       const residence = data[index];
-      const residenceWithRankings = { 
+      const residenceWithRankings = {
         ...residence,
-        rankings: []
+        rankings: [],
       };
-      
+
       if (residence.rankings && residence.rankings.length > 0) {
         const updatedRankings = await Promise.all(
           residence.rankings.map(async (ranking) => {
             const rankingCategoryId = ranking.rankingCategory._id.toString();
-            
+
             // Get or fetch rankings for this category
             let categoryRankings = rankingMap.get(rankingCategoryId);
             if (!categoryRankings) {
@@ -1302,16 +1299,16 @@ export class ResidenceService {
 
         residenceWithRankings.rankings = updatedRankings;
       }
-      
+
       updatedData.push(residenceWithRankings);
     }
 
-    return { 
-      pagination, 
-      residences: updatedData.map(residence => ({
+    return {
+      pagination,
+      residences: updatedData.map((residence) => ({
         ...residence,
-        rankings: residence.rankings || []
-      })) 
+        rankings: residence.rankings || [],
+      })),
     };
   }
 
