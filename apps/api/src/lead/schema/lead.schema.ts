@@ -29,6 +29,9 @@ export class Lead extends Document {
   @Prop({ required: false, type: Object })
   contactInfo: LeadUserContactInfo;
 
+  @Prop({ required: false, type: Object })
+  other: Object;
+
   @Prop({ type: Types.ObjectId, ref: 'Residence', required: false })
   residenceId?: Types.ObjectId;
 

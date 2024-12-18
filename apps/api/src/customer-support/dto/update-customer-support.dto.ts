@@ -7,7 +7,6 @@ import {
 } from '../enum/customer-support-enum';
 import { Types } from 'mongoose';
 import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
-import { UserContactInfo } from 'src/users/types/user.type';
 import {
   contactInfoSchema,
   preferencesSchema,
@@ -15,6 +14,7 @@ import {
   customerSupportFeatureRequestSchema,
   customerSupportErrorReportSchema,
   calendlyDetailsSchema,
+  CustomerSupportUserContactInfo,
 } from './create-customer-support.dto';
 import {
   CustomerSupportFeatureRequest,
@@ -46,6 +46,14 @@ export class UpdateCustomerSupportDto {
     required: false,
   })
   unitPrice?: string;
+
+  @ApiProperty({
+    type: Object,
+    description: 'Extra details',
+    required: false,
+    example: { key: 'value' },
+  })
+  other?: Object;
 
   @ApiProperty({
     example: 15,
@@ -105,8 +113,12 @@ export class UpdateCustomerSupportDto {
   @ApiProperty({ example: '60d9c6a0a11c3c6c6a9a1a2b', required: false, type: String })
   unitId?: Types.ObjectId;
 
-  @ApiProperty({ description: 'Contact information', type: UserContactInfo, required: false })
-  contactInfo?: UserContactInfo;
+  @ApiProperty({
+    description: 'Contact information',
+    type: CustomerSupportUserContactInfo,
+    required: false,
+  })
+  contactInfo?: CustomerSupportUserContactInfo;
 
   @ApiProperty({
     description: 'User preferences',
@@ -133,7 +145,6 @@ export class UpdateCustomerSupportDto {
     type?: string;
   }>;
 
-  
   @ApiProperty({
     type: CustomerSupportFeatureRequest,
     description: 'Feature request details',
@@ -180,6 +191,7 @@ export const updateCustomerSupportSchema = Joi.object({
   country: Joi.string().optional(),
   unitPrice: Joi.number().min(0).optional(),
   dealPercentage: Joi.number().min(0).optional(),
+  other: Joi.object().optional(),
   note: Joi.string().optional(),
   source: Joi.string()
     .valid(...Object.values(CustomerSupportSource))

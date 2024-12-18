@@ -15,13 +15,13 @@ export class CreateBespokeRequestDto {
 
   @ApiProperty({
     type: CalendlyDetails,
-    required: true,
+    required: false,
     description: 'Calendly meeting details',
   })
-  calendlyDetails: CalendlyDetails;
+  calendlyDetails?: CalendlyDetails;
 }
 
 export const createBespokeRequestSchema = Joi.object({
   residenceId: Joi.string().custom(joiObjectIdValidator('residenceId')).optional(),
-  calendlyDetails: calendlyDetailsSchema.required(),
+  calendlyDetails: calendlyDetailsSchema.optional(),
 });
