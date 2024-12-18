@@ -414,7 +414,7 @@ export class ResidenceController {
   @UsePipes(new JoiValidationPipe(getResidenceByKeySchema, 'param'))
   async getResidenceByKey(@Param() params: GetResidenceByKeyDto) {
     const residence = await this.residenceService.getResidenceByKey(params.key);
-    return ResponseService.buildResponse( {...residence} , 'Residence retrieved successfully');
+    return ResponseService.buildResponse({ ...residence }, 'Residence retrieved successfully');
   }
 
   @Public()
@@ -463,10 +463,7 @@ export class ResidenceController {
   })
   @Post('upload-residence-images')
   @UseInterceptors(FileInterceptor('file'))
-  async uploadBulkImages(
-    @UploadedFile() file: Express.Multer.File,
-  ) {
-  
+  async uploadBulkImages(@UploadedFile() file: Express.Multer.File) {
     if (!file) {
       throw new HttpException('File is required', HttpStatus.BAD_REQUEST);
     }
@@ -493,10 +490,7 @@ export class ResidenceController {
   })
   @Post('upload-city-images')
   @UseInterceptors(FileInterceptor('file'))
-  async uploadBulkCityImages(
-    @UploadedFile() file: Express.Multer.File,
-  ) {
-  
+  async uploadBulkCityImages(@UploadedFile() file: Express.Multer.File) {
     if (!file) {
       throw new HttpException('File is required', HttpStatus.BAD_REQUEST);
     }
@@ -523,10 +517,7 @@ export class ResidenceController {
   })
   @Post('upload-country-images')
   @UseInterceptors(FileInterceptor('file'))
-  async uploadBulkCountryImages(
-    @UploadedFile() file: Express.Multer.File,
-  ) {
-  
+  async uploadBulkCountryImages(@UploadedFile() file: Express.Multer.File) {
     if (!file) {
       throw new HttpException('File is required', HttpStatus.BAD_REQUEST);
     }
@@ -553,10 +544,7 @@ export class ResidenceController {
   })
   @Post('upload-propertytype-images')
   @UseInterceptors(FileInterceptor('file'))
-  async uploadBulkpropertyImages(
-    @UploadedFile() file: Express.Multer.File,
-  ) {
-  
+  async uploadBulkpropertyImages(@UploadedFile() file: Express.Multer.File) {
     if (!file) {
       throw new HttpException('File is required', HttpStatus.BAD_REQUEST);
     }
@@ -583,10 +571,7 @@ export class ResidenceController {
   })
   @Post('upload-lifestyle-images')
   @UseInterceptors(FileInterceptor('file'))
-  async uploadBulkLifestyleImages(
-    @UploadedFile() file: Express.Multer.File,
-  ) {
-  
+  async uploadBulkLifestyleImages(@UploadedFile() file: Express.Multer.File) {
     if (!file) {
       throw new HttpException('File is required', HttpStatus.BAD_REQUEST);
     }
@@ -613,10 +598,7 @@ export class ResidenceController {
   })
   @Post('upload-geographical-images')
   @UseInterceptors(FileInterceptor('file'))
-  async uploadBulkGeographicalImages(
-    @UploadedFile() file: Express.Multer.File,
-  ) {
-  
+  async uploadBulkGeographicalImages(@UploadedFile() file: Express.Multer.File) {
     if (!file) {
       throw new HttpException('File is required', HttpStatus.BAD_REQUEST);
     }
@@ -643,10 +625,7 @@ export class ResidenceController {
   })
   @Post('upload-brand-images')
   @UseInterceptors(FileInterceptor('file'))
-  async uploadBulkBrandImages(
-    @UploadedFile() file: Express.Multer.File,
-  ) {
-  
+  async uploadBulkBrandImages(@UploadedFile() file: Express.Multer.File) {
     if (!file) {
       throw new HttpException('File is required', HttpStatus.BAD_REQUEST);
     }
@@ -673,10 +652,7 @@ export class ResidenceController {
   })
   @Post('upload-rankingcategory-images')
   @UseInterceptors(FileInterceptor('file'))
-  async uploadBulkRankingCategoryImages(
-    @UploadedFile() file: Express.Multer.File,
-  ) {
-  
+  async uploadBulkRankingCategoryImages(@UploadedFile() file: Express.Multer.File) {
     if (!file) {
       throw new HttpException('File is required', HttpStatus.BAD_REQUEST);
     }
@@ -684,5 +660,4 @@ export class ResidenceController {
     const result = await this.residenceSeederService.processRankingCategoryImages(file);
     return ResponseService.buildResponse(result);
   }
-
 }
