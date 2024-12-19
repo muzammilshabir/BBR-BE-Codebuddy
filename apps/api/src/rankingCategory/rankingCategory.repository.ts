@@ -193,4 +193,53 @@ export class RankingCategoryRepository extends BaseRepository<RankingCategory> {
       throw new Error(`Error while fetching ranking categories with drafts: ${error}`);
     }
   }
+
+  async rankingCategories(filter: any): Promise<any> {
+    const rankingCategories = await this.rankingCategoryModel
+    .find(filter)
+    .populate('createdById', 'fullName email role')
+    .populate({
+      path: 'upload.ImageId',
+      select: 'originalFileKey fileKey url mimeType',
+      model: 'Upload',
+    })
+    .populate({
+      path: 'countryId',
+      select: 'name code',
+      model: 'Country',
+    })
+    .populate({
+      path: 'stateId',
+      select: 'name stateCode',
+      model: 'State',
+    })
+    .populate({
+      path: 'cityId',
+      select: 'name state',
+      model: 'City',
+    })
+    .populate({
+      path: 'locationId',
+      select: 'name coordinates',
+      model: 'Location',
+    })
+    .populate({
+      path: 'propertyTypeId',
+      select: 'type description',
+      model: 'PropertyType',
+    })
+    .populate({
+      path: 'lifeStyleId',
+      select: 'name category',
+      model: 'LifeStyle',
+    })
+    .populate({
+      path: 'geoGraphyId',
+      select: 'type upload name',
+      model: 'GeographicalAreas',
+    })
+
+  return rankingCategories;
+
+  }
 }

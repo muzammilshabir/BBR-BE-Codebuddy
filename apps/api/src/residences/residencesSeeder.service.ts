@@ -31,7 +31,6 @@ import { BrandDraftRepository } from '../brandDraft/brandDraft.repository';
 import { RankingCategoryDraftRepository } from '../rankingCategoryDraft/rankingCategoryDraft.repository';
 import { ResidenceDraftRepository } from '../residencesDraft/residencesDraft.repository';
 import { RankingRequestDraftRepository } from '../rankingRequestDraft/rankingRequestDraft.repository';
-import e from 'express';
 
 interface Residence {
   residence_id: string;

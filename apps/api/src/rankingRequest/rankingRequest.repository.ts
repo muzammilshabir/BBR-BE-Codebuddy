@@ -78,60 +78,187 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
   }
 
   async findRankings(filter: any): Promise<any> {
-    return this.rankingRequestModel
-      .find({
-        ...filter,
-        isDeleted: { $ne: DeletionStatus.DELETED }, // Ensure non-deleted records
-      })
-      .populate([
-        {
-          path: 'residenceId',
-          populate: [
+    const pipeline: PipelineStage[] = [
+      // Initial match stage using the provided filter
+      {
+        $match: {
+          ...filter,
+          isDeleted: { $ne: DeletionStatus.DELETED },
+        },
+      },
+
+      // Lookup residence data
+      {
+        $lookup: {
+          from: 'residences',
+          localField: 'residenceId',
+          foreignField: '_id',
+          as: 'residence',
+        },
+      },
+      { $unwind: { path: '$residence', preserveNullAndEmptyArrays: true } },
+
+      // Lookup visuals
+      {
+        $lookup: {
+          from: 'uploads',
+          localField: 'residence.visuals.mainPhotos',
+          foreignField: '_id',
+          as: 'residence.visuals.mainPhotos',
+        },
+      },
+      {
+        $lookup: {
+          from: 'uploads',
+          localField: 'residence.visuals.mainGalleryPhotos',
+          foreignField: '_id',
+          as: 'residence.visuals.mainGalleryPhotos',
+        },
+      },
+      {
+        $lookup: {
+          from: 'uploads',
+          localField: 'residence.visuals.secondGalleryPhotos',
+          foreignField: '_id',
+          as: 'residence.visuals.secondGalleryPhotos',
+        },
+      },
+      {
+        $lookup: {
+          from: 'uploads',
+          localField: 'residence.visuals.videoTour',
+          foreignField: '_id',
+          as: 'residence.visuals.videoTour',
+        },
+      },
+
+      // Lookup residence features
+      {
+        $lookup: {
+          from: 'residencefeatures',
+          localField: 'residence.residenceKeyFeatures.featureIds',
+          foreignField: '_id',
+          as: 'residence.residenceKeyFeatures.residenceFeatures',
+        },
+      },
+
+      // Lookup country and city
+      {
+        $lookup: {
+          from: 'countries',
+          localField: 'residence.countryId',
+          foreignField: '_id',
+          as: 'residence.country',
+        },
+      },
+      { $unwind: { path: '$residence.country', preserveNullAndEmptyArrays: true } },
+
+      {
+        $lookup: {
+          from: 'cities',
+          localField: 'residence.cityId',
+          foreignField: '_id',
+          as: 'residence.city',
+        },
+      },
+      { $unwind: { path: '$residence.city', preserveNullAndEmptyArrays: true } },
+
+      // Lookup residence creator
+      {
+        $lookup: {
+          from: 'users',
+          let: { createdById: '$residence.createdById' },
+          pipeline: [
+            { $match: { $expr: { $eq: ['$_id', '$$createdById'] } } },
             {
-              path: 'visuals.mainPhotos',
-            },
-            {
-              path: 'visuals.mainGalleryPhotos',
-            },
-            {
-              path: 'visuals.secondGalleryPhotos',
-            },
-            {
-              path: 'visuals.videoTour',
-            },
-            {
-              path: 'residenceKeyFeatures.featureIds',
-              model: 'ResidenceFeature',
-            },
-            {
-              path: 'countryId',
-              model: 'Country',
-            },
-            {
-              path: 'cityId',
-              model: 'City',
-            },
-            {
-              path: 'createdById',
-              model: 'User',
-              select: 'fullName email role loginAddress',
+              $project: {
+                _id: 1,
+                fullName: 1,
+                email: 1,
+                role: 1,
+                loginAddress: 1,
+              },
             },
           ],
+          as: 'residence.createdBy',
         },
-        {
-          path: 'rankingCategoryId',
+      },
+      { $unwind: { path: '$residence.createdBy', preserveNullAndEmptyArrays: true } },
+
+      // Lookup ranking category
+      {
+        $lookup: {
+          from: 'rankingcategories',
+          localField: 'rankingCategoryId',
+          foreignField: '_id',
+          as: 'rankingCategory',
         },
-        {
-          path: 'developerId',
-          model: 'User',
-          select: 'fullName email role loginAddress',
+      },
+      { $unwind: { path: '$rankingCategory', preserveNullAndEmptyArrays: true } },
+
+      {
+        $lookup: {
+          from: 'uploads',
+          localField: 'rankingCategory.upload.ImageId',
+          foreignField: '_id',
+          pipeline: [
+            {
+              $project: {
+                originalFileKey: 1,
+                fileKey: 1,
+                url: 1,
+                mimeType: 1,
+              },
+            },
+          ],
+          as: 'rankingCategory.upload',
         },
-        {
-          path: 'upload.ImageId',
-          model: 'Upload',
-          select: 'originalFileKey fileKey url mimeType',
+      },
+
+      // Lookup developer
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'developerId',
+          foreignField: '_id',
+          pipeline: [
+            {
+              $project: {
+                _id: 1,
+                fullName: 1,
+                email: 1,
+                role: 1,
+                loginAddress: 1,
+              },
+            },
+          ],
+          as: 'developer',
         },
-      ]);
+      },
+      { $unwind: { path: '$developer', preserveNullAndEmptyArrays: true } },
+
+      // Lookup uploads for ranking request
+      {
+        $lookup: {
+          from: 'uploads',
+          localField: 'upload.ImageId',
+          foreignField: '_id',
+          pipeline: [
+            {
+              $project: {
+                originalFileKey: 1,
+                fileKey: 1,
+                url: 1,
+                mimeType: 1,
+              },
+            },
+          ],
+          as: 'uploads',
+        },
+      },
+    ];
+
+    return this.rankingRequestModel.aggregate(pipeline);
   }
 
   async listRankingRequestWithDraft(
