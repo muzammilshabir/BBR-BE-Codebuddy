@@ -1190,11 +1190,6 @@ export class ResidenceService {
       },
       {
         $project: {
-          rankings: 0,
-        },
-      },
-      {
-        $project: {
           _id: 1,
           name: 1,
           residenceTypes: 1,
@@ -1220,6 +1215,7 @@ export class ResidenceService {
           createdAt: 1,
           updatedAt: 1,
           bbrScore: 1,
+          rankings: 1,
         },
       }
     );
@@ -1242,9 +1238,13 @@ export class ResidenceService {
     );
 
     const result = await this.residenceRepository.aggregate(pipeline);
-    const { data, totalCount } = result[0];
+    const totalCount = result[0]?.totalCount || 0;
+    const data = result[0]?.data || [];
 
-    const pagination = PaginationService.paginate({ rows: data, count: totalCount }, listPropsDto);
+    const { pagination } = PaginationService.paginate(
+      { rows: data, count: totalCount },
+      listPropsDto
+    );
 
     const updatedData = [];
     const rankingMap: Map<string, RankingRequest[]> = new Map();
@@ -1253,7 +1253,6 @@ export class ResidenceService {
       const residence = data[index];
       const residenceWithRankings = {
         ...residence,
-        rankings: [],
       };
 
       if (residence.rankings && residence.rankings.length > 0) {
