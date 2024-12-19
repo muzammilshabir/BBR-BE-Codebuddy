@@ -313,10 +313,7 @@ export class ResidenceController {
       listResidenceByFiltersDto
     );
 
-    return ResponseService.buildResponse(
-      { residences: result },
-      'Residence retrieved successfully'
-    );
+    return ResponseService.buildResponse(result, 'Residence retrieved successfully');
   }
 
   @Patch('/:id/update-status')
