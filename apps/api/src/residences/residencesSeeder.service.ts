@@ -1629,8 +1629,13 @@ export class ResidenceSeederService {
 
             const cityDoc = await this.processCity(residence, sheets.cities, sheets.countries);
 
-            await this.residenceRepository.updateWithFilter(
+            const residenceDoc = await this.residenceRepository.updateWithFilter(
               { name: residence.name, cityId: new Types.ObjectId(cityDoc._id), isDeleted: false },
+              { $set: visualsUpdate }
+            );
+
+            await this.residenceDraftRepository.updateWithFilter(
+              { residenceId: new Types.ObjectId(residenceDoc?.id) },
               { $set: visualsUpdate }
             );
           }
