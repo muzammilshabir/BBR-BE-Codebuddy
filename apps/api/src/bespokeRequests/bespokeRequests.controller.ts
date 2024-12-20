@@ -34,7 +34,7 @@ export class BespokeRequestController {
 
   @Post()
   @ApiBearerAuth()
-  @Roles(UserRole.SELLER)
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
   @ApiOperation({ summary: 'Create a bespoke request' })
   @UsePipes(new JoiValidationPipe(createBespokeRequestSchema, 'body'))
   async create(

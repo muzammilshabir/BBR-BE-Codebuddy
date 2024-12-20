@@ -32,6 +32,7 @@ interface UserDetails {
 }
 
 type CreateBespokeRequestFeatureDto = {
+  planId: string;
   userDetails: UserDetails;
   bespokeRequest: BespokeRequest;
 };
@@ -162,16 +163,30 @@ export class BespokeRequestService {
     return this.stripeService.finalizeInvoice(stripeInvoice);
   }
 
-  async createManualInvoice(id: string, updatePaymentInfoDto: UpdateBespokeRequestFeatureDto) {
-    const bespokeRequest = await this.bespokeRequestRepository.findById(id);
+  async createManualInvoice(
+    residenceId: string,
+    updateBespokeRequestFeatureDto: UpdateBespokeRequestFeatureDto
+  ) {
+    let bespokeRequest = await this.bespokeRequestRepository.find({
+      residenceId: new Types.ObjectId(residenceId),
+      status: bespokeRequestStatus.PENDING,
+    });
 
     if (!bespokeRequest) {
-      throw new BadRequestException('Bespoke request not found');
+      bespokeRequest = await this.bespokeRequestRepository.create({
+        residenceId: new Types.ObjectId(residenceId),
+        status: bespokeRequestStatus.APPROVED,
+        paymentStatus: PaymentStatus.PAID,
+        features: updateBespokeRequestFeatureDto.features,
+      });
+
+      await this.residenceRepository.update(residenceId, {
+        planId: new Types.ObjectId(updateBespokeRequestFeatureDto.planId),
+      });
+
+      return bespokeRequest;
     }
 
-    if (bespokeRequest.status !== bespokeRequestStatus.APPROVED) {
-      throw new BadRequestException('Can not create invoice for not approved request');
-    }
     const user = await this.userRepository.findById(bespokeRequest.createdBy.toString());
 
     if (!user) {
@@ -181,26 +196,20 @@ export class BespokeRequestService {
     if (bespokeRequest.paymentStatus === PaymentStatus.PAID) {
       throw new BadRequestException('Can not create invoice for paid request');
     }
-    const updatedBespokeRequest = await this.bespokeRequestRepository.update(id, {
-      ...updatePaymentInfoDto,
+    const updatedBespokeRequest = await this.bespokeRequestRepository.update(bespokeRequest.id, {
+      ...updateBespokeRequestFeatureDto,
     });
 
-    if (updatedBespokeRequest.invoiceId) {
-      return await this.updateInvoice({
-        bespokeRequest: updatedBespokeRequest,
-        userDetails: {
-          fullName: user.fullName,
-          email: user.email,
-        },
-      });
-    }
-    return await this.createInvoice({
+    await this.createInvoice({
+      planId: updateBespokeRequestFeatureDto.planId.toString(),
       bespokeRequest: updatedBespokeRequest,
       userDetails: {
         fullName: user.fullName,
         email: user.email,
       },
     });
+
+    return updatedBespokeRequest;
   }
 
   async createInvoice(body: CreateBespokeRequestFeatureDto) {
@@ -222,6 +231,7 @@ export class BespokeRequestService {
       invoice.id,
       InvoicePostPaymentActionType.CREATE_BESPOKE_REQUEST,
       {
+        planId: body.planId,
         bespokeRequestId: body.bespokeRequest.id,
         userInfo: {
           fullName: body.userDetails.fullName,
@@ -242,38 +252,7 @@ export class BespokeRequestService {
     await this.bespokeRequestRepository.update(body.bespokeRequest.id, {
       invoiceId: invoice.id,
     });
-
-    return invoice;
-  }
-
-  async updateInvoice(body: CreateBespokeRequestFeatureDto) {
-    const invoice = await this.invoiceService.getInvoiceById(body.bespokeRequest.invoiceId);
-    const stripeInvoice = await this.invoiceService.getStripeInvoiceById(invoice.stripeInvoiceId);
-
-    const lineItems = await this.invoiceService.createLineItemsFromFeatures(
-      invoice.id,
-      body.bespokeRequest.features
-    );
-
-    await this.invoiceService.updateLineItemsToStripeInvoice(
-      stripeInvoice.customer as string,
-      invoice.stripeInvoiceId,
-      lineItems
-    );
-
-    // TODO: May be used later
-    // await this.createStripePaymentMethodAndPayInvoice(
-    //   stripeCustomer,
-    //   stripeInvoice,
-    //   invoice,
-    //   body.stripePmTokenId
-    // );
-
-    await this.bespokeRequestRepository.update(body.bespokeRequest.id, {
-      invoiceId: invoice.id,
-    });
-
-    return invoice;
+    return this.stripeService.finalizeInvoice(stripeInvoice);
   }
 
   private async createStripeCustomerAndInvoice(body: CreateBespokeRequestFeatureDto) {
