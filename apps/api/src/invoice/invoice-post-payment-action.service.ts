@@ -201,8 +201,14 @@ export class InvoicePostPaymentActionService {
 
       if (action.type === InvoicePostPaymentActionType.CREATE_BESPOKE_REQUEST) {
         const featureRequestDetails = action.data as BespokeRequestDetails;
-        await this.bespokeRequestModel.findByIdAndUpdate(featureRequestDetails.bespokeRequestId, {
-          paymentStatus: PaymentStatus.PAID,
+        const bespokeRequest = await this.bespokeRequestModel.findByIdAndUpdate(
+          featureRequestDetails.bespokeRequestId,
+          {
+            paymentStatus: PaymentStatus.PAID,
+          }
+        );
+        await this.residenceModel.findByIdAndUpdate(bespokeRequest.residenceId, {
+          placeId: new Types.ObjectId(featureRequestDetails.planId),
         });
 
         await this.customerSupportService.create({

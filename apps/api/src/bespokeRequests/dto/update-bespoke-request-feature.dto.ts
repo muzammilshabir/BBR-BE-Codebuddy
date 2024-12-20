@@ -5,6 +5,13 @@ import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/
 
 export class UpdateBespokeRequestFeatureDto {
   @ApiProperty({
+    example: '60d5f485f7c6a4b2b8e8b623',
+    description: 'ID of the bespoke',
+    required: true,
+  })
+  planId: Types.ObjectId;
+
+  @ApiProperty({
     type: [Object],
     required: false,
     description: 'Array of features with their details',
@@ -28,6 +35,7 @@ export class UpdateBespokeRequestFeatureDto {
 }
 
 export const updateBespokeRequestFeatureSchema = Joi.object({
+  planId: Joi.string().custom(joiObjectIdValidator('planId')).required(),
   features: Joi.array()
     .items(
       Joi.object({

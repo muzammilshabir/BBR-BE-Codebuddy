@@ -8,7 +8,7 @@ export class BespokeRequest extends Document {
   @Prop({ type: Types.ObjectId, ref: 'Residence', required: false })
   residenceId: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  @Prop({ type: Types.ObjectId, ref: 'User', required: false })
   createdBy: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User' })

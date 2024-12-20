@@ -64,6 +64,7 @@ export type BbrVerificationRequestDetails = {
 
 export type BespokeRequestDetails = {
   bespokeRequestId: string;
+  planId: string;
   userInfo: UserInfo;
 };
 
