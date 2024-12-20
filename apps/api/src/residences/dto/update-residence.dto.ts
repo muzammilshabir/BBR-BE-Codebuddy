@@ -143,3 +143,24 @@ export const updateFeaturedSchema = Joi.object({
   residenceId: Joi.string().custom(joiObjectIdValidator('residenceId')).required(),
   featured: Joi.boolean().required(),
 });
+
+export class UpdateResidenceProfileDto {
+  @ApiProperty({
+    description: 'ID of plan',
+    example: '60b6c0f53b5a5c1f88d25a1b',
+    type: String,
+  })
+  planId: string;
+
+  @ApiProperty({
+    description: 'Set subscription not',
+    example: '60b6c0f53b5a5c1f88d25a1b',
+    type: String,
+  })
+  subscriptionId?: string;
+}
+
+export const updateResidenceProfileSchema = Joi.object({
+  planId: Joi.string().custom(joiObjectIdValidator('planId')).required(),
+  subscriptionId: Joi.string().custom(joiObjectIdValidator('subscriptionId')).optional(),
+});

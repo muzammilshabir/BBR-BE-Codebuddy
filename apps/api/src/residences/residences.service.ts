@@ -351,10 +351,10 @@ export class ResidenceService {
     return residences;
   }
 
-  async upgradeResidence(residenceId: string, subscriptionId: string, planId: string) {
+  async upgradeResidence(residenceId: string, planId: string, subscriptionId?: string) {
     const residence = await this.residenceRepository.findById(residenceId);
     return this.residenceRepository.update(residence.id, {
-      subscriptionId: new Types.ObjectId(subscriptionId),
+      ...(subscriptionId ? { subscriptionId: new Types.ObjectId(subscriptionId) } : {}),
       planId: new Types.ObjectId(planId),
     });
   }

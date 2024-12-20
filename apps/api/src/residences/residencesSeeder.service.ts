@@ -31,6 +31,7 @@ import { BrandDraftRepository } from '../brandDraft/brandDraft.repository';
 import { RankingCategoryDraftRepository } from '../rankingCategoryDraft/rankingCategoryDraft.repository';
 import { ResidenceDraftRepository } from '../residencesDraft/residencesDraft.repository';
 import { RankingRequestDraftRepository } from '../rankingRequestDraft/rankingRequestDraft.repository';
+import { Plan } from '../subscription-plan/schema/plan.schema';
 
 interface Residence {
   residence_id: string;
@@ -113,6 +114,8 @@ export class ResidenceSeederService {
     private readonly residenceTypeModel: Model<ResidenceType>,
     @InjectModel(Country.name)
     private readonly countryModel: Model<Country>,
+    @InjectModel(Plan.name)
+    private readonly planModel: Model<Plan>,
     @InjectModel(State.name)
     private readonly stateModel: Model<State>,
     private readonly uploadRepository: UploadRepository,
@@ -559,6 +562,9 @@ export class ResidenceSeederService {
 
             const cityDoc = await this.processCity(residence, sheets.cities, sheets.countries);
 
+            const freePlan = await this.planModel.findOne({
+              name: 'Free Residence Profile',
+            });
             const countryDoc = await this.processCountry(residence, sheets.countries);
             await new Promise((resolve) => setTimeout(resolve, 100));
             const lifeStyleDoc = residence.lifestyle_id
@@ -597,6 +603,7 @@ export class ResidenceSeederService {
               highlightedAmenities,
               lifeStyleDoc,
               placeDetails,
+              freePlan,
             });
 
             let foundResidence = await this.residenceRepository.find({
@@ -740,6 +747,7 @@ export class ResidenceSeederService {
       highlightedAmenities: any[];
       lifeStyleDoc: any;
       placeDetails: any;
+      freePlan: any;
     }
   ) {
     const baseData: any = {
@@ -751,6 +759,7 @@ export class ResidenceSeederService {
       status: 'active',
       eVerification: true,
       verifiedOn: new Date(),
+      planId: new Types.ObjectId(data.freePlan.id),
     };
 
     // Add required reference IDs

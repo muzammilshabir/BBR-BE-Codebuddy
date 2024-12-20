@@ -508,8 +508,8 @@ export class PaymentService {
         }
         await this.residenceService.upgradeResidence(
           createSubscriptionDto.residenceId.toString(),
-          newSubscription.id,
-          planItem.plan.toString()
+          planItem.plan.toString(),
+          newSubscription.id
         );
       }
 
