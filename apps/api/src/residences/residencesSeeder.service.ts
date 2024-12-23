@@ -562,9 +562,7 @@ export class ResidenceSeederService {
 
             const cityDoc = await this.processCity(residence, sheets.cities, sheets.countries);
 
-            const freePlan = await this.planModel.findOne({
-              name: 'Free Residence Profile',
-            });
+            const freePlan = await this.planModel.findById(process.env.FREE_RESIDENCE_PLAN_ID);
             const countryDoc = await this.processCountry(residence, sheets.countries);
             await new Promise((resolve) => setTimeout(resolve, 100));
             const lifeStyleDoc = residence.lifestyle_id
