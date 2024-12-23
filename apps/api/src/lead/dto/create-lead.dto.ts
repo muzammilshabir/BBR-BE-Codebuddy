@@ -3,7 +3,7 @@ import * as Joi from 'joi';
 import { Types } from 'mongoose';
 import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
 import { LeadSource } from '../enum/lead-enum';
-import { UserBudget, UserContactInfo } from 'src/users/types/user.type';
+import { UserBudget } from 'src/users/types/user.type';
 import { UserContactMethod } from 'src/users/enum/user.enum';
 import { budgetSchema } from 'src/users/dto/createUser.dto';
 
@@ -71,9 +71,10 @@ export class CreateLeadDto {
 
   @ApiProperty({
     description: 'The phone number of the lead, in international format.',
-    required: true,
+    required: false,
+    type: PhoneNumber,
   })
-  phoneNumber: PhoneNumber;
+  phoneNumber?: PhoneNumber;
 
   @ApiProperty({ example: 'john@example.com', required: true })
   email: string;
@@ -94,6 +95,13 @@ export class CreateLeadDto {
     required: false,
   })
   dealPercentage?: number;
+
+  @ApiProperty({
+    description: 'value of the deal',
+    example: 25,
+    required: false,
+  })
+  dealValue?: number;
 
   @ApiProperty({ example: '60d9c6a0a11c3c6c6a9a1a2b', required: false, type: String })
   unitId?: Types.ObjectId;
@@ -188,7 +196,7 @@ export const preferencesSchema = Joi.object({
 
 export const createLeadSchema = Joi.object({
   name: Joi.string().required(),
-  phoneNumber: phoneSchema.required(),
+  phoneNumber: phoneSchema.optional(),
   email: Joi.string().required().email(),
   other: Joi.object().optional(),
   residenceId: Joi.string().optional().custom(joiObjectIdValidator('residenceId')),
@@ -202,6 +210,7 @@ export const createLeadSchema = Joi.object({
   companyOrOrgLink: Joi.string().uri().optional(),
   unitPrice: Joi.number().optional(),
   dealPercentage: Joi.number().optional(),
+  dealValue: Joi.number().optional(),
   expectedCloseDate: Joi.date().optional(),
   pageUrl: Joi.string().optional().uri(),
   country: Joi.string().optional(),

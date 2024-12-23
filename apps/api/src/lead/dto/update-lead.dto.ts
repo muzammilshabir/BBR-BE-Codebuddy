@@ -56,6 +56,13 @@ export class UpdateLeadDto {
   })
   dealPercentage?: number;
 
+  @ApiProperty({
+    description: 'value of the deal',
+    example: 25,
+    required: false,
+  })
+  dealValue?: number;
+
   @ApiProperty({ example: 'Interested in beachfront properties', required: false })
   note?: string;
 
@@ -154,6 +161,7 @@ export const updateLeadSchema = Joi.object({
     .optional(),
   unitPrice: Joi.number().min(0).optional(),
   dealPercentage: Joi.number().min(0).optional(),
+  dealValue: Joi.number().min(0).optional(),
   note: Joi.string().optional(),
   source: Joi.string()
     .valid(...Object.values(LeadSource))
