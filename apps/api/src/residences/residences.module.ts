@@ -70,6 +70,7 @@ import {
 import { RankingRequestDraftRepository } from '../rankingRequestDraft/rankingRequestDraft.repository';
 import { RankingCategoryDraftRepository } from '../rankingCategoryDraft/rankingCategoryDraft.repository';
 import { BrandDraftRepository } from '../brandDraft/brandDraft.repository';
+import { Plan, PlanSchema } from '../subscription-plan/schema/plan.schema';
 
 @Module({
   imports: [
@@ -94,6 +95,7 @@ import { BrandDraftRepository } from '../brandDraft/brandDraft.repository';
     MongooseModule.forFeature([{ name: State.name, schema: StateSchema }]),
     MongooseModule.forFeature([{ name: Location.name, schema: LocationSchema }]),
     MongooseModule.forFeature([{ name: BrandDraft.name, schema: BrandDraftSchema }]),
+    MongooseModule.forFeature([{ name: Plan.name, schema: PlanSchema }]),
     MongooseModule.forFeature([
       { name: RankingCategoryDraft.name, schema: RankingCategoryDraftSchema },
     ]),

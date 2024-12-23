@@ -50,6 +50,8 @@ import {
   UpdateFeaturedDto,
   updateFeaturedSchema,
   UpdateResidenceDto,
+  UpdateResidenceProfileDto,
+  updateResidenceProfileSchema,
   updateResidenceSchema,
   UpdateResidenceStatusDto,
   updateResidenceStatusSchema,
@@ -172,6 +174,30 @@ export class ResidenceController {
     return ResponseService.buildResponse(
       { residenceDraft: residence },
       'Residence nearby amenities updated successfully'
+    );
+  }
+
+  @Patch('/:id/update-plan')
+  @ApiOperation({
+    summary: 'Update residence plan',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @Permissions('residence', PermissionLevel.EDIT)
+  @UsePipes(new JoiValidationPipe(getResidenceByIdSchema, 'param'))
+  @UsePipes(new JoiValidationPipe(updateResidenceProfileSchema, 'body'))
+  async upgradeResidence(
+    @Param() params: GetResidenceByIdDto,
+    @Body() updatePlanDto: UpdateResidenceProfileDto
+  ) {
+    const residence = await this.residenceService.upgradeResidence(
+      params.id,
+      updatePlanDto.planId,
+      updatePlanDto.subscriptionId
+    );
+    return ResponseService.buildResponse(
+      { residenceDraft: residence },
+      'Residence updated successfully'
     );
   }
 
