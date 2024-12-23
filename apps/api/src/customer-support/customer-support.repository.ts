@@ -213,6 +213,7 @@ export class CustomerSupportRepository extends BaseRepository<CustomerSupport> {
           country: 1,
           budget: 1,
           note: 1,
+          priority:1,
           isDeleted: 1,
           displayId: 1,
           developerId: {
@@ -243,7 +244,6 @@ export class CustomerSupportRepository extends BaseRepository<CustomerSupport> {
           message: 1,
           contactInfo: 1,
           companyName: 1,
-          priority: 1,
           preferences: 1,
           upload: 1,
         },
@@ -729,6 +729,7 @@ export class CustomerSupportRepository extends BaseRepository<CustomerSupport> {
           contactInfo: { $first: '$contactInfo' },
           assignedTo: { $push: '$assignedTo' },
           upload: { $first: '$upload' },
+          priority: { $first: '$priority' },
         },
       },
       {
