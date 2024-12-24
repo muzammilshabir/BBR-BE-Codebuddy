@@ -2,12 +2,16 @@ import { ApiProperty } from '@nestjs/swagger';
 import * as Joi from 'joi';
 import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
 import { Types } from 'mongoose';
+import { VerificationType } from 'src/bbr-verification/enum/verification-type.enum';
 
 export const applyAdditionalServiceRequestSchema = Joi.object({
   bbrVerificationPlanId: Joi.string()
     .custom(joiObjectIdValidator('bbrVerificationPlanId'))
     .optional(),
   residenceId: Joi.string().custom(joiObjectIdValidator('residenceId')).optional(),
+  verificationType: Joi.string()
+    .valid(...Object.values(VerificationType))
+    .optional(),
   residencePlanId: Joi.string().custom(joiObjectIdValidator('residencePlanId')).optional(),
   rankingCategoryIds: Joi.array()
     .items(Joi.string().custom(joiObjectIdValidator('rankingCategoryId')))
@@ -76,6 +80,14 @@ export class ApplyAdditionalServiceRequestDto {
     example: '60d5f485f7c6a4b2b8e8b623',
   })
   residenceId?: Types.ObjectId;
+
+  @ApiProperty({
+    enum: VerificationType,
+    required: false,
+    description: 'Type of verification',
+    example: VerificationType.E_VERIFICATION,
+  })
+  verificationType?: VerificationType;
 
   @ApiProperty({
     description: 'User details',

@@ -34,7 +34,8 @@ export class BbrVerificationService {
       throw new BadRequestException('Plan not found');
     }
     const hasActiveRequest = await this.bbrVerificationRepository.hasActiveOrPendingRequest(
-      createBbrVerificationDto.residenceId.toString()
+      createBbrVerificationDto.residenceId.toString(),
+      createBbrVerificationDto.verificationType
     );
 
     if (hasActiveRequest) {

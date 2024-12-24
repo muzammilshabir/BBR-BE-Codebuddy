@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
+import { VerificationType } from 'src/bbr-verification/enum/verification-type.enum';
 
 export enum InvoicePostPaymentActionType {
   CREATE_USER = 'create_user',
@@ -60,6 +61,7 @@ export type BbrVerificationRequestDetails = {
   bbrVerificationPlantId: string;
   residenceId: string;
   userInfo: UserInfo;
+  verificationType: VerificationType;
 };
 
 export type BespokeRequestDetails = {

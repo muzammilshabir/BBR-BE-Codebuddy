@@ -571,11 +571,40 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
         },
         {
           $unwind: {
+            path: '$residence.createdBy',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $lookup: {
+            from: 'users',
+            let: { developerId: '$residence.developerId' },
+            pipeline: [
+              { $match: { $expr: { $eq: ['$_id', '$$developerId'] } } },
+              {
+                $project: {
+                  _id: 1,
+                  fullName: 1,
+                  email: 1,
+                  role: 1,
+                  loginAddress: {
+                    country: 1,
+                    state: 1,
+                    city: 1,
+                  },
+                  contactInfo: 1,
+                },
+              },
+            ],
+            as: 'residence.developer',
+          },
+        },
+        {
+          $unwind: {
             path: '$residence.developer',
             preserveNullAndEmptyArrays: true,
           },
         },
-
         {
           $lookup: {
             from: 'users',
