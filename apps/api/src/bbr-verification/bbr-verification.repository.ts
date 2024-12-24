@@ -6,6 +6,7 @@ import { BaseRepository } from '@bbr/api-core/modules/db/base.repository';
 import { BbrVerificationStatus } from './enum/bbr-verification-status';
 import { ListBbrVerificationDto } from './dto/list-bbr-verification.dto';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
+import { VerificationType } from './enum/verification-type.enum';
 
 @Injectable()
 export class BbrVerificationRepository extends BaseRepository<BbrVerification> {
@@ -396,11 +397,15 @@ export class BbrVerificationRepository extends BaseRepository<BbrVerification> {
     return await this.bbrVerificationModel.aggregate(pipeline).exec();
   }
 
-  async hasActiveOrPendingRequest(residenceId: string): Promise<boolean> {
+  async hasActiveOrPendingRequest(
+    residenceId: string,
+    verificationType: VerificationType
+  ): Promise<boolean> {
     const count = await this.bbrVerificationModel.countDocuments({
       residenceId: new Types.ObjectId(residenceId),
       isDeleted: false,
       withdrawnOn: { $exists: false },
+      verificationType,
       $or: [
         { status: BbrVerificationStatus.PENDING },
         {
