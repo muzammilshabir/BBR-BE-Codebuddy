@@ -86,9 +86,9 @@ export class RankingCategoryService {
 
     // Filter by category type
     if (categoryType) {
-      query.categoryType = categoryType;
+      const categoryTypes = Array.isArray(categoryType) ? categoryType : [categoryType];
+      query.categoryType = { $in: categoryTypes };
     }
-
     // Filter by createdById
     if (createdById) {
       query.createdById = new Types.ObjectId(createdById);
@@ -225,7 +225,7 @@ export class RankingCategoryService {
       const city = await this.cityRepository.find({
         _id: new Types.ObjectId(createRankingCategoryDto.cityId),
         isDeleted: { $ne: DeletionStatus.DELETED },
-        active: true
+        active: true,
       });
       if (!city) {
         throw new BadRequestException(
@@ -239,7 +239,7 @@ export class RankingCategoryService {
       const state = await this.stateRepository.find({
         _id: new Types.ObjectId(createRankingCategoryDto.stateId),
         isDeleted: { $ne: DeletionStatus.DELETED },
-        active: true
+        active: true,
       });
       if (!state) {
         throw new BadRequestException(
@@ -266,7 +266,7 @@ export class RankingCategoryService {
       const country = await this.countryRepository.find({
         _id: new Types.ObjectId(createRankingCategoryDto.countryId),
         isDeleted: { $ne: DeletionStatus.DELETED },
-        active: true
+        active: true,
       });
       if (!country) {
         throw new BadRequestException(
@@ -375,7 +375,7 @@ export class RankingCategoryService {
       const city = await this.cityRepository.find({
         _id: new Types.ObjectId(updateRankingCategoryDto.cityId),
         isDeleted: { $ne: DeletionStatus.DELETED },
-        active: true
+        active: true,
       });
       if (!city) {
         throw new BadRequestException(
@@ -389,7 +389,7 @@ export class RankingCategoryService {
       const state = await this.stateRepository.find({
         _id: new Types.ObjectId(updateRankingCategoryDto.stateId),
         isDeleted: { $ne: DeletionStatus.DELETED },
-        active: true
+        active: true,
       });
       if (!state) {
         throw new BadRequestException(
@@ -416,7 +416,7 @@ export class RankingCategoryService {
       const country = await this.countryRepository.find({
         _id: new Types.ObjectId(updateRankingCategoryDto.countryId),
         isDeleted: { $ne: DeletionStatus.DELETED },
-        active: true
+        active: true,
       });
       if (!country) {
         throw new BadRequestException(

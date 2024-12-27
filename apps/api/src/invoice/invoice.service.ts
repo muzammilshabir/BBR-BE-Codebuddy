@@ -79,7 +79,7 @@ export class InvoiceService {
       const stripeLineItem = await this.stripeService.createInvoiceLineItem(
         stripeCustomerId,
         stripeProduct.id,
-        lineItem.unitAmount,
+        lineItem.unitAmount * 100,
         stripeInvoiceId
       );
       await this.lineItemModel.findByIdAndUpdate(lineItem.id, {

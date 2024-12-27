@@ -8,6 +8,9 @@ export class RankingCriteria {
   @Prop({ required: true })
   weight: number;
 
+  @Prop({ required: false })
+  description: string;
+
   @Prop({ required: true })
   scoreGuide: {
     score: number;
