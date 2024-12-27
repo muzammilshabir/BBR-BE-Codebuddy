@@ -14,111 +14,111 @@ export class LeadRepository extends BaseRepository<Lead> {
   async find(filter: any) {
     const [lead] = await this.leadModel.aggregate([
       {
-        $match: filter
+        $match: filter,
       },
       {
         $lookup: {
           from: 'residences',
           localField: 'residenceId',
           foreignField: '_id',
-          as: 'residenceId'
-        }
+          as: 'residenceId',
+        },
       },
       {
         $unwind: {
           path: '$residenceId',
-          preserveNullAndEmptyArrays: true
-        }
+          preserveNullAndEmptyArrays: true,
+        },
       },
       {
         $lookup: {
           from: 'units',
           localField: 'unitId',
           foreignField: '_id',
-          as: 'unitId'
-        }
+          as: 'unitId',
+        },
       },
       {
         $unwind: {
           path: '$unitId',
-          preserveNullAndEmptyArrays: true
-        }
+          preserveNullAndEmptyArrays: true,
+        },
       },
       {
         $lookup: {
           from: 'users',
           localField: 'developerId',
           foreignField: '_id',
-          as: 'developerId'
-        }
+          as: 'developerId',
+        },
       },
       {
         $unwind: {
           path: '$developerId',
-          preserveNullAndEmptyArrays: true
-        }
+          preserveNullAndEmptyArrays: true,
+        },
       },
       {
         $lookup: {
           from: 'brands',
           localField: 'preferences.brandIds',
           foreignField: '_id',
-          as: 'preferences.brandIds'
-        }
+          as: 'preferences.brandIds',
+        },
       },
       {
         $lookup: {
           from: 'residencetypes',
           localField: 'preferences.residenceTypeIds',
           foreignField: '_id',
-          as: 'preferences.residenceTypeIds'
-        }
+          as: 'preferences.residenceTypeIds',
+        },
       },
       {
         $lookup: {
           from: 'locations',
           localField: 'preferences.locationIds',
           foreignField: '_id',
-          as: 'preferences.locationIds'
-        }
+          as: 'preferences.locationIds',
+        },
       },
       {
         $lookup: {
           from: 'lifestyles',
           localField: 'preferences.lifeStyleIds',
           foreignField: '_id',
-          as: 'preferences.lifeStyleIds'
-        }
+          as: 'preferences.lifeStyleIds',
+        },
       },
       {
         $lookup: {
           from: 'users',
           localField: 'email',
           foreignField: 'email',
-          as: 'user'
-        }
+          as: 'user',
+        },
       },
       {
         $unwind: {
           path: '$user',
-          preserveNullAndEmptyArrays: true
-        }
+          preserveNullAndEmptyArrays: true,
+        },
       },
       {
         $lookup: {
           from: 'uploads',
           localField: 'user.avatarImage',
           foreignField: '_id',
-          as: 'user.avatarImage'
-        }
+          as: 'user.avatarImage',
+        },
       },
       {
         $lookup: {
           from: 'uploads',
           localField: 'developerId.avatarImage',
           foreignField: '_id',
-          as: 'developerId.avatarImage'
-        }
+          as: 'developerId.avatarImage',
+        },
       },
       {
         $project: {
@@ -131,8 +131,9 @@ export class LeadRepository extends BaseRepository<Lead> {
           createdAt: 1,
           updatedAt: 1,
           country: 1,
-          dealValue:1,
+          dealValue: 1,
           budget: 1,
+          other: 1,
           note: 1,
           isDeleted: 1,
           displayId: 1,
@@ -143,7 +144,6 @@ export class LeadRepository extends BaseRepository<Lead> {
             avatarImage: '$developerId.avatarImage',
             createdAt: '$user.createdAt',
             _id: '$user._id',
-
           },
           user: {
             fullName: '$user.fullName',
@@ -167,8 +167,8 @@ export class LeadRepository extends BaseRepository<Lead> {
           receiveNewsletter: 1,
           companyName: 1,
           companyOrOrgLink: 1,
-        }
-      }
+        },
+      },
     ]);
 
     if (!lead) {
@@ -182,112 +182,112 @@ export class LeadRepository extends BaseRepository<Lead> {
     const [lead] = await this.leadModel.aggregate([
       {
         $match: {
-          _id: new Types.ObjectId(leadId)
-        }
+          _id: new Types.ObjectId(leadId),
+        },
       },
       {
         $lookup: {
           from: 'residences',
           localField: 'residenceId',
           foreignField: '_id',
-          as: 'residenceId'
-        }
+          as: 'residenceId',
+        },
       },
       {
         $unwind: {
           path: '$residenceId',
-          preserveNullAndEmptyArrays: true
-        }
+          preserveNullAndEmptyArrays: true,
+        },
       },
       {
         $lookup: {
           from: 'units',
           localField: 'unitId',
           foreignField: '_id',
-          as: 'unitId'
-        }
+          as: 'unitId',
+        },
       },
       {
         $unwind: {
           path: '$unitId',
-          preserveNullAndEmptyArrays: true
-        }
+          preserveNullAndEmptyArrays: true,
+        },
       },
       {
         $lookup: {
           from: 'users',
           localField: 'developerId',
           foreignField: '_id',
-          as: 'developerId'
-        }
+          as: 'developerId',
+        },
       },
       {
         $unwind: {
           path: '$developerId',
-          preserveNullAndEmptyArrays: true
-        }
+          preserveNullAndEmptyArrays: true,
+        },
       },
       {
         $lookup: {
           from: 'brands',
           localField: 'preferences.brandIds',
           foreignField: '_id',
-          as: 'preferences.brandIds'
-        }
+          as: 'preferences.brandIds',
+        },
       },
       {
         $lookup: {
           from: 'residencetypes',
           localField: 'preferences.residenceTypeIds',
           foreignField: '_id',
-          as: 'preferences.residenceTypeIds'
-        }
+          as: 'preferences.residenceTypeIds',
+        },
       },
       {
         $lookup: {
           from: 'locations',
           localField: 'preferences.locationIds',
           foreignField: '_id',
-          as: 'preferences.locationIds'
-        }
+          as: 'preferences.locationIds',
+        },
       },
       {
         $lookup: {
           from: 'lifestyles',
           localField: 'preferences.lifeStyleIds',
           foreignField: '_id',
-          as: 'preferences.lifeStyleIds'
-        }
+          as: 'preferences.lifeStyleIds',
+        },
       },
       {
         $lookup: {
           from: 'users',
           localField: 'email',
           foreignField: 'email',
-          as: 'user'
-        }
+          as: 'user',
+        },
       },
       {
         $unwind: {
           path: '$user',
-          preserveNullAndEmptyArrays: true
-        }
+          preserveNullAndEmptyArrays: true,
+        },
       },
       {
         $lookup: {
           from: 'uploads',
           localField: 'user.avatarImage',
           foreignField: '_id',
-          as: 'user.avatarImage'
-        }
+          as: 'user.avatarImage',
+        },
       },
       {
         $lookup: {
           from: 'uploads',
           localField: 'developerId.avatarImage',
           foreignField: '_id',
-          as: 'developerId.avatarImage'
-        }
+          as: 'developerId.avatarImage',
+        },
       },
       {
         $project: {
@@ -300,8 +300,9 @@ export class LeadRepository extends BaseRepository<Lead> {
           createdAt: 1,
           updatedAt: 1,
           country: 1,
-          dealValue:1,
+          dealValue: 1,
           budget: 1,
+          other: 1,
           note: 1,
           isDeleted: 1,
           displayId: 1,
@@ -312,7 +313,6 @@ export class LeadRepository extends BaseRepository<Lead> {
             avatarImage: '$developerId.avatarImage',
             createdAt: '$user.createdAt',
             _id: '$user._id',
-
           },
           user: {
             fullName: '$user.fullName',
@@ -322,7 +322,7 @@ export class LeadRepository extends BaseRepository<Lead> {
             _id: '$user._id',
             createdAt: '$user.createdAt',
           },
-          preferences:1,
+          preferences: 1,
           residenceId: 1,
           unitId: 1,
           contactedAt: 1,
@@ -336,8 +336,8 @@ export class LeadRepository extends BaseRepository<Lead> {
           receiveNewsletter: 1,
           companyName: 1,
           companyOrOrgLink: 1,
-        }
-      }
+        },
+      },
     ]);
 
     if (!lead) {
@@ -348,7 +348,7 @@ export class LeadRepository extends BaseRepository<Lead> {
   }
 
   async findAllLeads(filterDto: ListLeadDto, developerId?: string) {
-    const { status, source, search, startDate, endDate, isRegistered , residenceId } = filterDto;
+    const { status, source, search, startDate, endDate, isRegistered, residenceId } = filterDto;
 
     const paginationOptions = PaginationService.prepareOptions(filterDto);
     const sortObject = paginationOptions.sort.reduce((acc, [field, order]) => {
@@ -363,9 +363,7 @@ export class LeadRepository extends BaseRepository<Lead> {
           ...(status ? { status } : {}),
           ...(source ? { source } : {}),
           ...(developerId ? { developerId: new Types.ObjectId(developerId) } : {}),
-          ...(startDate && endDate
-            ? { createdAt: { $gte: startDate, $lte: endDate } }
-            : {}),
+          ...(startDate && endDate ? { createdAt: { $gte: startDate, $lte: endDate } } : {}),
           ...(residenceId ? { residenceId: new Types.ObjectId(residenceId) } : {}),
         },
       },
@@ -374,14 +372,14 @@ export class LeadRepository extends BaseRepository<Lead> {
           from: 'residences',
           localField: 'residenceId',
           foreignField: '_id',
-          as: 'residenceId'
-        }
+          as: 'residenceId',
+        },
       },
       {
         $unwind: {
           path: '$residenceId',
-          preserveNullAndEmptyArrays: true
-        }
+          preserveNullAndEmptyArrays: true,
+        },
       },
       {
         $match: {
@@ -406,95 +404,95 @@ export class LeadRepository extends BaseRepository<Lead> {
           from: 'units',
           localField: 'unitId',
           foreignField: '_id',
-          as: 'unitId'
-        }
+          as: 'unitId',
+        },
       },
       {
         $unwind: {
           path: '$unitId',
-          preserveNullAndEmptyArrays: true
-        }
+          preserveNullAndEmptyArrays: true,
+        },
       },
       {
         $lookup: {
           from: 'users',
           localField: 'developerId',
           foreignField: '_id',
-          as: 'developerId'
-        }
+          as: 'developerId',
+        },
       },
       {
         $unwind: {
           path: '$developerId',
-          preserveNullAndEmptyArrays: true
-        }
+          preserveNullAndEmptyArrays: true,
+        },
       },
       {
         $lookup: {
           from: 'brands',
           localField: 'preferences.brandIds',
           foreignField: '_id',
-          as: 'preferences.brandIds'
-        }
+          as: 'preferences.brandIds',
+        },
       },
       {
         $lookup: {
           from: 'residencetypes',
           localField: 'preferences.residenceTypeIds',
           foreignField: '_id',
-          as: 'preferences.residenceTypeIds'
-        }
+          as: 'preferences.residenceTypeIds',
+        },
       },
       {
         $lookup: {
           from: 'locations',
           localField: 'preferences.locationIds',
           foreignField: '_id',
-          as: 'preferences.locationIds'
-        }
+          as: 'preferences.locationIds',
+        },
       },
       {
         $lookup: {
           from: 'lifestyles',
           localField: 'preferences.lifeStyleIds',
           foreignField: '_id',
-          as: 'preferences.lifeStyleIds'
-        }
+          as: 'preferences.lifeStyleIds',
+        },
       },
       {
         $lookup: {
           from: 'users',
           localField: 'email',
           foreignField: 'email',
-          as: 'user'
-        }
+          as: 'user',
+        },
       },
       {
         $unwind: {
           path: '$user',
-          preserveNullAndEmptyArrays: true
-        }
+          preserveNullAndEmptyArrays: true,
+        },
       },
       {
         $match: {
-          ...((String(isRegistered)==='true') ? { user: { $ne: null } } : {})
-        }
+          ...(String(isRegistered) === 'true' ? { user: { $ne: null } } : {}),
+        },
       },
       {
         $lookup: {
           from: 'uploads',
           localField: 'user.avatarImage',
           foreignField: '_id',
-          as: 'user.avatarImage'
-        }
+          as: 'user.avatarImage',
+        },
       },
       {
         $lookup: {
           from: 'uploads',
           localField: 'developerId.avatarImage',
           foreignField: '_id',
-          as: 'developerId.avatarImage'
-        }
+          as: 'developerId.avatarImage',
+        },
       },
       {
         $sort: sortObject,
@@ -510,8 +508,9 @@ export class LeadRepository extends BaseRepository<Lead> {
           createdAt: 1,
           updatedAt: 1,
           priority: 1,
-          dealValue:1,
+          dealValue: 1,
           country: 1,
+          other: 1,
           budget: 1,
           note: 1,
           isDeleted: 1,
@@ -523,7 +522,6 @@ export class LeadRepository extends BaseRepository<Lead> {
             avatarImage: '$developerId.avatarImage',
             createdAt: '$user.createdAt',
             _id: '$user._id',
-
           },
           user: {
             fullName: '$user.fullName',
@@ -547,7 +545,6 @@ export class LeadRepository extends BaseRepository<Lead> {
           receiveNewsletter: 1,
           companyName: 1,
           companyOrOrgLink: 1,
-
         },
       },
       {
