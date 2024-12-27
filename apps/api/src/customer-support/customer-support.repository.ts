@@ -199,6 +199,7 @@ export class CustomerSupportRepository extends BaseRepository<CustomerSupport> {
           priority: { $first: '$priority' },
           upload: { $first: '$upload' },
           calendlyDetails: { $first: '$calendlyDetails' },
+          other: { $first: '$other' },
         },
       },
       {
@@ -208,6 +209,7 @@ export class CustomerSupportRepository extends BaseRepository<CustomerSupport> {
           phoneNumber: 1,
           status: 1,
           pageUrl: 1,
+          other: 1,
           source: 1,
           createdAt: 1,
           updatedAt: 1,
@@ -476,6 +478,7 @@ export class CustomerSupportRepository extends BaseRepository<CustomerSupport> {
           assignedTo: { $push: '$assignedTo' },
           upload: { $first: '$upload' },
           calendlyDetails: { $first: '$calendlyDetails' },
+          other: { $first: '$other' },
         },
       },
       {
@@ -489,6 +492,7 @@ export class CustomerSupportRepository extends BaseRepository<CustomerSupport> {
           status: 1,
           pageUrl: 1,
           source: 1,
+          other: 1,
           createdAt: 1,
           updatedAt: 1,
           priority: 1,
@@ -735,6 +739,7 @@ export class CustomerSupportRepository extends BaseRepository<CustomerSupport> {
           upload: { $first: '$upload' },
           priority: { $first: '$priority' },
           calendlyDetails: { $first: '$calendlyDetails' },
+          other: { $first: '$other' },
         },
       },
       {
@@ -747,6 +752,7 @@ export class CustomerSupportRepository extends BaseRepository<CustomerSupport> {
           source: 1,
           priority: 1,
           createdAt: 1,
+          other: 1,
           updatedAt: 1,
           country: 1,
           calendlyDetails: 1,
