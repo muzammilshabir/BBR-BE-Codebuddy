@@ -83,7 +83,7 @@ export class CalendlyWebhookService {
         });
       }
 
-      const messageTemplate = CALENDLY_MESSAGE_TEMPLATES[payload.tracking?.utm_event];
+      const messageTemplate = CALENDLY_MESSAGE_TEMPLATES[payload.tracking?.utm_source];
       const formattedMessage = this.formatMessageFromTemplate(
         messageTemplate,
         payload,

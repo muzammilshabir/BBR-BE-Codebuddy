@@ -198,6 +198,7 @@ export class CustomerSupportRepository extends BaseRepository<CustomerSupport> {
           assignedTo: { $push: '$assignedTo' },
           priority: { $first: '$priority' },
           upload: { $first: '$upload' },
+          calendlyDetails: { $first: '$calendlyDetails' },
         },
       },
       {
@@ -211,9 +212,10 @@ export class CustomerSupportRepository extends BaseRepository<CustomerSupport> {
           createdAt: 1,
           updatedAt: 1,
           country: 1,
+          calendlyDetails: 1,
           budget: 1,
           note: 1,
-          priority:1,
+          priority: 1,
           isDeleted: 1,
           displayId: 1,
           developerId: {
@@ -273,8 +275,8 @@ export class CustomerSupportRepository extends BaseRepository<CustomerSupport> {
           ...(status ? { status } : {}),
           ...(source ? { source } : {}),
           ...(developerId ? { developerId: new Types.ObjectId(developerId) } : {}),
-          ...(assignedTo && assignedTo.length > 0 
-            ? { assignedTo: { $in: assignedTo.map(id => new Types.ObjectId(id)) } }
+          ...(assignedTo && assignedTo.length > 0
+            ? { assignedTo: { $in: assignedTo.map((id) => new Types.ObjectId(id)) } }
             : {}),
           ...(priority ? { priority } : {}),
         },
@@ -473,6 +475,7 @@ export class CustomerSupportRepository extends BaseRepository<CustomerSupport> {
           contactInfo: { $first: '$contactInfo' },
           assignedTo: { $push: '$assignedTo' },
           upload: { $first: '$upload' },
+          calendlyDetails: { $first: '$calendlyDetails' },
         },
       },
       {
@@ -489,6 +492,7 @@ export class CustomerSupportRepository extends BaseRepository<CustomerSupport> {
           createdAt: 1,
           updatedAt: 1,
           priority: 1,
+          calendlyDetails: 1,
           country: 1,
           budget: 1,
           note: 1,
@@ -730,6 +734,7 @@ export class CustomerSupportRepository extends BaseRepository<CustomerSupport> {
           assignedTo: { $push: '$assignedTo' },
           upload: { $first: '$upload' },
           priority: { $first: '$priority' },
+          calendlyDetails: { $first: '$calendlyDetails' },
         },
       },
       {
@@ -744,6 +749,7 @@ export class CustomerSupportRepository extends BaseRepository<CustomerSupport> {
           createdAt: 1,
           updatedAt: 1,
           country: 1,
+          calendlyDetails: 1,
           budget: 1,
           note: 1,
           isDeleted: 1,
