@@ -10,8 +10,11 @@ export const rankingCategorySchema = PaginationSchema.append({
   status: Joi.string()
     .valid(...Object.values(RankingCategoryStatus))
     .optional(),
-  categoryType: Joi.string()
-    .valid(...Object.values(CategoryType))
+  categoryType: Joi.alternatives()
+    .try(
+      Joi.string().valid(...Object.values(CategoryType)),
+      Joi.array().items(Joi.string().valid(...Object.values(CategoryType)))
+    )
     .optional(),
   createdById: Joi.string().custom(joiObjectIdValidator('createdById')).optional(),
   countryId: Joi.string().custom(joiObjectIdValidator('countryId')).optional(),
@@ -46,12 +49,13 @@ export class RankingCategoryListDto extends ListPropsDto {
   status?: RankingCategoryStatus;
 
   @ApiProperty({
-    example: CategoryType.CITY,
-    enum: CategoryType,
-    description: 'Ranking category type',
+    description: 'The category types for ranking',
+    example: [CategoryType.CITY, CategoryType.COUNTRY],
     required: false,
+    enum: CategoryType,
+    isArray: true,
   })
-  categoryType?: CategoryType;
+  categoryType?: CategoryType[];
 
   @ApiProperty({
     description: 'Filter by created by ID',
