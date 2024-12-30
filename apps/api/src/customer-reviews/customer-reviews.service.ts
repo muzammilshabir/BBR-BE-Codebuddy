@@ -18,6 +18,7 @@ import { GoogleReviewRepository } from './google-reviews.repository';
 import { HttpService } from '@nestjs/axios';
 import { Cron } from '@nestjs/schedule';
 import { UserRole } from 'src/users/enum/user.enum';
+import { ResidenceActivityLogRepository } from 'src/residence-activity-log/residence-activity-log.repository';
 
 @Injectable()
 export class CustomerReviewsService {
@@ -27,7 +28,8 @@ export class CustomerReviewsService {
     private readonly eventEmitter: EventEmitter2,
     private readonly customerReviewRepository: CustomerReviewRepository,
     private readonly googleReviewRepository: GoogleReviewRepository,
-    private readonly httpService: HttpService
+    private readonly httpService: HttpService,
+    private readonly residenceActivityLogRepository: ResidenceActivityLogRepository
   ) {}
 
   @Cron('0 0 * * 0')
@@ -87,6 +89,13 @@ export class CustomerReviewsService {
     };
 
     const createdReview = await this.customerReviewRepository.create(transformedDto);
+
+    await this.residenceActivityLogRepository.create({
+      residenceId: new Types.ObjectId(residence.id),
+      activityType: 'The new review received',
+      details: { id: createdReview.id },
+      createdAt: new Date(),
+    });
 
     return createdReview;
   }

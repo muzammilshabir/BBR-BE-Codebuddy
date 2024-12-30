@@ -12,6 +12,8 @@ import { GoogleReviewRepository } from './google-reviews.repository';
 import { GoogleReviews, GoogleReviewsSchema } from './googleReviewsSchema/googleReviews.schema';
 import { HttpModule } from '@nestjs/axios';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ResidenceActivityLog, ResidenceActivityLogSchema } from 'src/residence-activity-log/schema/residence-activity-log.schema';
+import { ResidenceActivityLogRepository } from 'src/residence-activity-log/residence-activity-log.repository';
 
 @Module({
   imports: [
@@ -23,10 +25,11 @@ import { ScheduleModule } from '@nestjs/schedule';
       { name: CustomerReview.name, schema: CustomerReviewSchema },
       { name: GoogleReviews.name, schema: GoogleReviewsSchema },
     ]),
+    MongooseModule.forFeature([{ name: ResidenceActivityLog.name, schema: ResidenceActivityLogSchema }]),
     HttpModule,
     ScheduleModule.forRoot(),
   ],
   controllers: [CustomerReviewsController],
-  providers: [CustomerReviewsService, CustomerReviewRepository, GoogleReviewRepository],
+  providers: [CustomerReviewsService, CustomerReviewRepository, GoogleReviewRepository, ResidenceActivityLogRepository],
 })
 export class CustomerReviewsModule {}

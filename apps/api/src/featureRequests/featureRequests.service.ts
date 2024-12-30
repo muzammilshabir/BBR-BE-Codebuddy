@@ -10,6 +10,7 @@ import { UpdatePaymentInfoDto } from './dto/update-payment-info.dto';
 import { ResidenceRepository } from 'src/residences/residences.repository';
 import { FeatureRequestStatus } from './enum/feature-request-status';
 import { PlanRepository } from 'src/subscription-plan/plan.repository';
+import { ResidenceActivityLogRepository } from 'src/residence-activity-log/residence-activity-log.repository';
 
 @Injectable()
 export class FeatureRequestService {
@@ -17,7 +18,8 @@ export class FeatureRequestService {
     private readonly featureRequestRepository: FeatureRequestRepository,
     private readonly userRepository: UserRepository,
     private readonly residenceRepository: ResidenceRepository,
-    private readonly subscriptionPlanRepository: PlanRepository
+    private readonly subscriptionPlanRepository: PlanRepository,
+    private readonly residenceActivityLogRepository: ResidenceActivityLogRepository
   ) {}
 
   async create(createFeatureRequestDto: CreateFeatureRequestDto, userId: string) {
@@ -42,7 +44,9 @@ export class FeatureRequestService {
       throw new BadRequestException('User not found');
     }
 
-    const plan = await this.subscriptionPlanRepository.findById(createFeatureRequestDto.planId.toString());
+    const plan = await this.subscriptionPlanRepository.findById(
+      createFeatureRequestDto.planId.toString()
+    );
 
     if (!plan) {
       throw new BadRequestException('Plan not found');
@@ -53,6 +57,13 @@ export class FeatureRequestService {
       createdBy: new Types.ObjectId(userId),
       residenceId: new Types.ObjectId(createFeatureRequestDto.residenceId),
       planId: new Types.ObjectId(createFeatureRequestDto.planId),
+    });
+
+    await this.residenceActivityLogRepository.create({
+      residenceId: new Types.ObjectId(residence.id),
+      activityType: 'Added to Featured',
+      userId: new Types.ObjectId(userId),
+      createdAt: new Date(),
     });
 
     return featureRequest;
@@ -135,6 +146,13 @@ export class FeatureRequestService {
     ) {
       await this.residenceRepository.update(featureRequest.residenceId.toString(), {
         isFeatured: false,
+      });
+
+      await this.residenceActivityLogRepository.create({
+        residenceId: new Types.ObjectId(featureRequest.residenceId),
+        activityType: 'Removed from Featured',
+        userId: new Types.ObjectId(userId),
+        createdAt: new Date(),
       });
     }
     return this.featureRequestRepository.update(id, {

@@ -1,3 +1,5 @@
+import { ResidenceActivityLogRepository } from './../residence-activity-log/residence-activity-log.repository';
+import { ResidenceActivityLog, ResidenceActivityLogSchema } from './../residence-activity-log/schema/residence-activity-log.schema';
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { RankingRequestService } from './rankingRequest.service';
@@ -28,6 +30,7 @@ import {
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
     MongooseModule.forFeature([{ name: Residence.name, schema: ResidenceSchema }]),
     MongooseModule.forFeature([{ name: RankingCategory.name, schema: RankingCategorySchema }]),
+    MongooseModule.forFeature([{ name: ResidenceActivityLog.name, schema: ResidenceActivityLogSchema }]),
   ],
   controllers: [RankingRequestController],
   providers: [
@@ -37,6 +40,7 @@ import {
     UserRepository,
     ResidenceRepository,
     RankingCategoryRepository,
+    ResidenceActivityLogRepository,
   ],
 })
 export class RankingRequestModule {}
