@@ -1,3 +1,4 @@
+import { ResidenceActivityLogRepository } from './../residence-activity-log/residence-activity-log.repository';
 import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { Types } from 'mongoose';
 import { NotFoundException } from '@bbr/api-core/modules/exceptions';
@@ -40,7 +41,8 @@ export class RankingRequestService {
     private readonly rankingRequestDraftRepository: RankingRequestDraftRepository,
     private readonly userRepository: UserRepository,
     private readonly residenceRepository: ResidenceRepository,
-    private readonly rankingCategoryRepository: RankingCategoryRepository
+    private readonly rankingCategoryRepository: RankingCategoryRepository,
+    private readonly residenceActivityLogRepository: ResidenceActivityLogRepository
   ) {}
 
   async findAll(listRankingRequestDto: ListRankingRequestDto) {
@@ -188,7 +190,7 @@ export class RankingRequestService {
 
     if (isRankingRequestExist) {
       throw new BadRequestException(
-        `Ranking category with rankingCategoryId:${createRankingRequestDto.rankingCategoryId} and 
+        `Ranking category with rankingCategoryId:${createRankingRequestDto.rankingCategoryId} and
          residenceId:${createRankingRequestDto.residenceId} is already exist`
       );
     }
@@ -201,6 +203,16 @@ export class RankingRequestService {
     if (user.role == UserRole.SELLER) {
       transformedDto.developerId = new Types.ObjectId(user.sub);
     }
+
+    await this.residenceActivityLogRepository.create({
+      residenceId: new Types.ObjectId(createRankingRequestDto.residenceId),
+      activityType: 'Submitted for ranking',
+      details: {
+        name: rankingCategory.title,
+      },
+      userId: new Types.ObjectId(user.sub),
+      createdAt: new Date(),
+    });
 
     const rankingRequest = await this.rankingRequestRepository.create(transformedDto);
     await this.rankingRequestDraftRepository.create({
@@ -344,6 +356,22 @@ export class RankingRequestService {
         ...plainUpdatedDrafRequest,
         paymentStatus: PaymentStatus.PAID,
       });
+
+      const rankingCategory = await this.rankingCategoryRepository.find({
+        _id: updatedRankingRequestDraftRequest.rankingCategoryId,
+      });
+
+      await this.residenceActivityLogRepository.create({
+        residenceId: new Types.ObjectId(updatedRankingRequestDraftRequest.residenceId),
+        activityType: 'Ranked',
+        details: {
+          name: rankingCategory.title,
+          id: rankingCategory.id,
+        },
+        userId: new Types.ObjectId(userId),
+        createdAt: new Date(),
+      });
+
       return updatedRankingRequestDraftRequest;
     } catch (error) {
       throw new InternalServerErrorException(
@@ -658,10 +686,11 @@ export class RankingRequestService {
     const rankingRequest = await this.findRankingRequestById(rankingRequestId);
 
     const { data } = await this.rankingRequestRepository.findAll(
-      { rankingCategoryId: new Types.ObjectId(rankingRequest?.rankingCategoryId),
+      {
+        rankingCategoryId: new Types.ObjectId(rankingRequest?.rankingCategoryId),
         status: RankingRequestStatus.ACTIVE,
         bbrScore: { $exists: true },
-       },
+      },
       {
         sort: { bbrScore: -1 },
       }
@@ -772,10 +801,11 @@ export class RankingRequestService {
     const rankingRequest = await this.findRankingRequestById(rankingRequestId);
 
     const { data } = await this.rankingRequestRepository.findAll(
-      { rankingCategoryId: new Types.ObjectId(rankingRequest?.rankingCategoryId),
+      {
+        rankingCategoryId: new Types.ObjectId(rankingRequest?.rankingCategoryId),
         status: RankingRequestStatus.ACTIVE,
         bbrScore: { $exists: true },
-       },
+      },
       {
         sort: { bbrScore: -1 },
       }

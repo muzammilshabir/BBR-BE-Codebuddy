@@ -16,6 +16,8 @@ import { FeatureRequestCronService } from './cron/feature-request-cron.service';
 import { PlanSchema } from 'src/subscription-plan/schema/plan.schema';
 import { Plan } from 'src/subscription-plan/schema/plan.schema';
 import { PlanRepository } from 'src/subscription-plan/plan.repository';
+import { ResidenceActivityLog, ResidenceActivityLogSchema } from 'src/residence-activity-log/schema/residence-activity-log.schema';
+import { ResidenceActivityLogRepository } from 'src/residence-activity-log/residence-activity-log.repository';
 
 @Module({
   imports: [
@@ -23,6 +25,7 @@ import { PlanRepository } from 'src/subscription-plan/plan.repository';
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
     MongooseModule.forFeature([{ name: Residence.name, schema: ResidenceSchema }]),
     MongooseModule.forFeature([{ name: Plan.name, schema: PlanSchema }]),
+    MongooseModule.forFeature([{ name: ResidenceActivityLog.name, schema: ResidenceActivityLogSchema }]),
     CustomerSupportModule,
     ScheduleModule.forRoot(),
 
@@ -35,6 +38,7 @@ import { PlanRepository } from 'src/subscription-plan/plan.repository';
     ResidenceRepository,
     FeatureRequestCronService,
     PlanRepository,
+    ResidenceActivityLogRepository,
   ],
   exports: [FeatureRequestService],
 })

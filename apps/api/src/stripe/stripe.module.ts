@@ -37,6 +37,8 @@ import { Residence, ResidenceSchema } from 'src/residences/schema/residences.sch
 import { UploadModule } from 'src/upload/upload.module';
 import { PdfModule } from 'src/pdf/pdf.module';
 import { InvoiceModule } from 'src/invoice/invoice.module';
+import { ResidenceActivityLog, ResidenceActivityLogSchema } from 'src/residence-activity-log/schema/residence-activity-log.schema';
+import { ResidenceActivityLogRepository } from 'src/residence-activity-log/residence-activity-log.repository';
 
 @Module({
   imports: [
@@ -58,6 +60,7 @@ import { InvoiceModule } from 'src/invoice/invoice.module';
     MongooseModule.forFeature([{ name: Plan.name, schema: PlanSchema }]),
     MongooseModule.forFeature([{ name: Feature.name, schema: FeatureSchema }]),
     MongooseModule.forFeature([{ name: Residence.name, schema: ResidenceSchema }]),
+    MongooseModule.forFeature([{ name: ResidenceActivityLog.name, schema: ResidenceActivityLogSchema }]),
     forwardRef(() => InvoiceModule),
   ],
   controllers: [StripeController, PaymentController, PaymentAdminController],
@@ -77,6 +80,7 @@ import { InvoiceModule } from 'src/invoice/invoice.module';
     PaymentAttemptSeeder,
     RefundSeeder,
     AllInOnePaymentSeeder,
+    ResidenceActivityLogRepository,
   ],
   exports: [
     StripeService,

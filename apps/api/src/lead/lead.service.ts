@@ -12,13 +12,15 @@ import { UnitRepository } from 'src/unit/unit.repository';
 import { LeadStatus } from './enum/lead-enum';
 import { UserRole } from '../users/enum/user.enum';
 import { JwtPayloadType } from '../auth/type/jwt-payload.type';
+import { ResidenceActivityLogRepository } from 'src/residence-activity-log/residence-activity-log.repository';
 
 @Injectable()
 export class LeadService {
   constructor(
     private readonly leadRepository: LeadRepository,
     private readonly residenceRepository: ResidenceRepository,
-    private readonly unitRepository: UnitRepository
+    private readonly unitRepository: UnitRepository,
+    private readonly residenceActivityLogRepository: ResidenceActivityLogRepository,
   ) {}
   async getDeveloperId(createLeadDto: CreateLeadDto) {
     if (createLeadDto.developerId) {
@@ -36,7 +38,7 @@ export class LeadService {
     return null;
   }
 
-  async create(createLeadDto: CreateLeadDto): Promise<Lead> {
+  async create(createLeadDto: CreateLeadDto, userId: string): Promise<Lead> {
     const transformedDto = {
       ...createLeadDto,
       residenceId: createLeadDto.residenceId
@@ -70,7 +72,20 @@ export class LeadService {
       },
     };
 
-    return await this.leadRepository.create(transformedDto);
+    const result = await this.leadRepository.create(transformedDto);
+
+
+    await this.residenceActivityLogRepository.create({
+      residenceId: new Types.ObjectId(createLeadDto.residenceId),
+      activityType: 'The new lead received',
+      details: {
+        id: result.id
+      },
+      userId: new Types.ObjectId(userId),
+      createdAt: new Date(),
+    });
+
+    return result;
   }
 
   async getLeads(filterDto: ListLeadDto, developerId?: string) {

@@ -1,3 +1,4 @@
+import { ResidenceActivityLogRepository } from 'src/residence-activity-log/residence-activity-log.repository';
 import {
   Injectable,
   RawBodyRequest,
@@ -22,6 +23,7 @@ import { PaymentAttemptStatus } from './enum/payment-attempt-status.enum';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { TransactionStatus } from './enum/transaction-status.enum';
 import { InvoicePostPaymentActionService } from 'src/invoice/invoice-post-payment-action.service';
+import { Types } from 'mongoose';
 
 @Injectable()
 export class StripeWebhookService {
@@ -38,7 +40,8 @@ export class StripeWebhookService {
     private readonly invoiceItemRepository: InvoiceItemRepository,
     private readonly subscriptionRepository: SubscriptionRepository,
     private readonly paymentAttemptRepository: PaymentAttemptRepository,
-    private readonly invoicePostPaymentActionService: InvoicePostPaymentActionService
+    private readonly invoicePostPaymentActionService: InvoicePostPaymentActionService,
+    private readonly residenceActivityLogRepository: ResidenceActivityLogRepository
   ) {
     this.stripe = new Stripe(configService.stripe.secretKey, {
       apiVersion: '2024-06-20',
@@ -179,6 +182,13 @@ export class StripeWebhookService {
         stripeInvoice.total
       );
 
+      await this.residenceActivityLogRepository.create({
+        residenceId: new Types.ObjectId(internalInvoice.residenceId),
+        activityType: 'Payment completed',
+        userId: new Types.ObjectId(internalInvoice.developerId),
+        createdAt: new Date(),
+      });
+
       this.logger.log(`Successfully processed paid invoice ${internalInvoice.id}`);
       return { success: true, invoiceId: internalInvoice.id, amount: stripeInvoice.total };
     } catch (error) {
@@ -223,6 +233,13 @@ export class StripeWebhookService {
         status: TransactionStatus.FAILED,
       };
       await this.transactionRepository.create(transaction);
+
+      await this.residenceActivityLogRepository.create({
+        residenceId: new Types.ObjectId(internalInvoice.residenceId),
+        activityType: 'Payment failed',
+        userId: new Types.ObjectId(internalInvoice.developerId),
+        createdAt: new Date(),
+      });
       this.logger.log(`Successfully processed failed invoice ${internalInvoice.id}`);
       return { success: false, invoiceId: internalInvoice.id, amount: stripeInvoice.total };
     } catch (error) {
