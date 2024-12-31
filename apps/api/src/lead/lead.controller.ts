@@ -11,7 +11,6 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtPayloadType } from '../auth/type/jwt-payload.type';
 import { GetCurrentUser } from '../auth/decorators/getCurrentUser.decorator';
 import { UpdateLeadDto, updateLeadSchema } from './dto/update-lead.dto';
-import { GetCurrentUserId } from 'src/auth/decorators/getCurrentUserId.decorator';
 
 @ApiTags('Lead')
 @Controller('lead')
@@ -22,8 +21,8 @@ export class LeadController {
   @ApiOperation({ summary: 'Create Lead' })
   @Public()
   @UsePipes(new JoiValidationPipe(createLeadSchema, 'body'))
-  async create(@Body() createLeadDto: CreateLeadDto, @GetCurrentUserId() userId: string) {
-    const lead = await this.leadService.create(createLeadDto, userId);
+  async create(@Body() createLeadDto: CreateLeadDto) {
+    const lead = await this.leadService.create(createLeadDto);
     return ResponseService.buildResponse({ lead }, 'lead created successfully');
   }
 
@@ -109,7 +108,7 @@ export class LeadController {
     const counts = await this.leadService.getLeadCounts(user.sub, period, countBy);
     return ResponseService.buildResponse(counts, `Lead counts by ${countBy} retrieved successfully`);
   }
-
+  
 
   @Get('seller/conversion-by-time')
   @ApiOperation({ summary: 'Get lead conversion by time period' })

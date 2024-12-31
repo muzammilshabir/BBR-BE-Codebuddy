@@ -27,8 +27,6 @@ import {
   ResidenceDraftSchema,
 } from '../residencesDraft/schema/residencesDraft.schema';
 import { ResidenceDraftRepository } from '../residencesDraft/residencesDraft.repository';
-import { ResidenceActivityLog, ResidenceActivityLogSchema } from 'src/residence-activity-log/schema/residence-activity-log.schema';
-import { ResidenceActivityLogRepository } from 'src/residence-activity-log/residence-activity-log.repository';
 
 @Module({
   imports: [
@@ -42,7 +40,6 @@ import { ResidenceActivityLogRepository } from 'src/residence-activity-log/resid
     HttpModule,
     MongooseModule.forFeature([{ name: LoginAttempt.name, schema: LoginAttemptSchema }]),
     MongooseModule.forFeature([{ name: ResidenceDraft.name, schema: ResidenceDraftSchema }]),
-    MongooseModule.forFeature([{ name: ResidenceActivityLog.name, schema: ResidenceActivityLogSchema }]),
   ],
   providers: [
     ClaimRequestService,
@@ -58,7 +55,6 @@ import { ResidenceActivityLogRepository } from 'src/residence-activity-log/resid
     AuthService,
     LoginAttemptRepository,
     ResidenceDraftRepository,
-    ResidenceActivityLogRepository,
   ],
   exports: [],
   controllers: [ClaimRequestController],

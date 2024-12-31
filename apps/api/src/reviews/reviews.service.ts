@@ -16,14 +16,13 @@ import { JwtPayloadType } from 'src/auth/type/jwt-payload.type';
 import { RequestReviewDto } from './dto/request-review.dto';
 import { Residence } from 'src/residences/schema/residences.schema';
 import { RespondToReviewDto } from './dto/respond-review';
-import { ResidenceActivityLogRepository } from 'src/residence-activity-log/residence-activity-log.repository';
 
 @Injectable()
 export class ReviewService {
-
+  
   private convertToCSV(arr) {
     const array = [Object.keys(arr[0])].concat(arr)
-
+  
     return array.map(it => {
       return Object.values(it).toString()
     }).join('\n')
@@ -44,7 +43,6 @@ export class ReviewService {
     private readonly residenceService: ResidenceService,
     private readonly userService: UserService,
     private readonly eventEmitter: EventEmitter2,
-    private readonly residenceActivityLogRepository: ResidenceActivityLogRepository,
   ) {}
 
   async create(userFromToken: JwtPayloadType, createReviewDto: CreateReviewDto): Promise<Review> {
@@ -71,15 +69,6 @@ export class ReviewService {
     if(createReviewDto.rating == 5) {
       await this.checkAndSetHundredFiveStarReviewsBadge(residenceSeller);
     }
-
-    await this.residenceActivityLogRepository.create({
-      residenceId: new Types.ObjectId(residence.id),
-      activityType: 'The new review received',
-      details: { id: createdReview.id },
-      userId: new Types.ObjectId(userFromToken.sub),
-      createdAt: new Date(),
-    });
-
     return createdReview;
   }
 
@@ -192,7 +181,7 @@ export class ReviewService {
     for (const review of data) {
       totalRating += review.rating;
     }
-
+    
     return { averageRating: totalRating/count, totalReviews: count };
   }
 
@@ -202,7 +191,7 @@ export class ReviewService {
     const filter: any = {
       isDeleted: DeletionStatus.ACTIVE,
       created_on: {
-        $gte: oneWeekAgo,
+        $gte: oneWeekAgo, 
         $lt: new Date()
       }
     };
@@ -267,7 +256,7 @@ export class ReviewService {
       limit: 3,
       sort: [['createdAt', 1]],
     });
-
+    
     return { reviews: data };
   }
 
@@ -290,7 +279,7 @@ export class ReviewService {
       await this.reviewRepository.updateWithFilter({
         residenceId,
         reviewId,
-      }, query);
+      }, query); 
     }
     return { message: "Bulk Action Performed" };
   }

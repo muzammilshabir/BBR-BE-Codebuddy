@@ -18,7 +18,6 @@ import { RejectClaimRequestDto } from './dto/rejectClaimRequest.dto';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
 import { ResidenceDraftRepository } from '../residencesDraft/residencesDraft.repository';
 import { ResidenceStatus } from '../residences/enum/residence-enum';
-import { ResidenceActivityLogRepository } from 'src/residence-activity-log/residence-activity-log.repository';
 
 @Injectable()
 export class ClaimRequestService {
@@ -28,8 +27,7 @@ export class ClaimRequestService {
     private readonly residenceRepository: ResidenceRepository,
     private readonly unitRepository: UnitRepository,
     private readonly authService: AuthService,
-    private readonly residenceDraftRepository: ResidenceDraftRepository,
-    private readonly residenceActivityLogRepository: ResidenceActivityLogRepository,
+    private readonly residenceDraftRepository: ResidenceDraftRepository
   ) {}
 
   async createClaimResidence(
@@ -53,17 +51,7 @@ export class ClaimRequestService {
       developerId: new Types.ObjectId(userId),
     };
 
-    const claimRequest = await this.claimRequestRepository.create(transformedDto);
-
-    await this.residenceActivityLogRepository.create({
-      residenceId: new Types.ObjectId(residenceId),
-      activityType: 'Wants to claim residence',
-      details: { id: claimRequest.id },
-      userId: new Types.ObjectId(userId),
-      createdAt: new Date(),
-    });
-
-    return claimRequest;
+    return await this.claimRequestRepository.create(transformedDto);
   }
 
   private async getValidatedResidenceId(createClaimRequestDto: any) {
@@ -167,14 +155,6 @@ export class ClaimRequestService {
       });
     }
 
-    await this.residenceActivityLogRepository.create({
-      residenceId: new Types.ObjectId(residenceId),
-      activityType: 'Wants to claim residence',
-      details: { id: claimRequest.id },
-      userId: new Types.ObjectId(userId),
-      createdAt: new Date(),
-    });
-
     return claimRequest;
   }
 
@@ -241,16 +221,7 @@ export class ClaimRequestService {
       status: ClaimRequestStatus.Pending,
     };
 
-    const claimRequest = await this.claimRequestRepository.create(transformedDto);
-
-    await this.residenceActivityLogRepository.create({
-      residenceId: new Types.ObjectId(residenceId),
-      activityType: 'Wants to claim residence',
-      details: { id: claimRequest.id },
-      createdAt: new Date(),
-    });
-
-    return claimRequest;
+    return await this.claimRequestRepository.create(transformedDto);
   }
 
   async claimResidenceForGuestWithDifferentDomain(
@@ -304,16 +275,7 @@ export class ClaimRequestService {
       status: ClaimRequestStatus.Pending,
     };
 
-    const claimRequest = await this.claimRequestRepository.create(transformedDto);
-
-    await this.residenceActivityLogRepository.create({
-      residenceId: new Types.ObjectId(residenceId),
-      activityType: 'Wants to claim residence',
-      details: { id: claimRequest.id },
-      createdAt: new Date(),
-    });
-
-    return claimRequest;
+    return await this.claimRequestRepository.create(transformedDto);
   }
 
   async associateClaims(userId: string): Promise<any> {

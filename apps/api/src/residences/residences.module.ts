@@ -1,4 +1,3 @@
-import { ResidenceActivityLog, ResidenceActivityLogSchema } from './../residence-activity-log/schema/residence-activity-log.schema';
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Residence, ResidenceSchema } from './schema/residences.schema';
@@ -71,7 +70,6 @@ import {
 import { RankingRequestDraftRepository } from '../rankingRequestDraft/rankingRequestDraft.repository';
 import { RankingCategoryDraftRepository } from '../rankingCategoryDraft/rankingCategoryDraft.repository';
 import { BrandDraftRepository } from '../brandDraft/brandDraft.repository';
-import { ResidenceActivityLogRepository } from 'src/residence-activity-log/residence-activity-log.repository';
 
 @Module({
   imports: [
@@ -102,7 +100,6 @@ import { ResidenceActivityLogRepository } from 'src/residence-activity-log/resid
     MongooseModule.forFeature([
       { name: RankingRequestDraft.name, schema: RankingRequestDraftSchema },
     ]),
-    MongooseModule.forFeature([{ name: ResidenceActivityLog.name, schema: ResidenceActivityLogSchema }]),
   ],
   providers: [
     ResidenceService,
@@ -130,7 +127,6 @@ import { ResidenceActivityLogRepository } from 'src/residence-activity-log/resid
     RankingRequestDraftRepository,
     RankingCategoryDraftRepository,
     BrandDraftRepository,
-    ResidenceActivityLogRepository,
   ],
   exports: [
     ResidenceSeeder,

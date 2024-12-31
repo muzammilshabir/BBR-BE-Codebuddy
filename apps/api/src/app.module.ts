@@ -68,8 +68,6 @@ import { AdditionalServiceModule } from './additional-service/additional-service
 import { EditorNoteModule } from './editor-note/editor-note.module';
 import { BespokeRequestModule } from './bespokeRequests/bespokeRequests.module';
 import { StateModule } from './state/state.module';
-import { ResidenceActivityLogModule } from './residence-activity-log/residence-activity-log.module';
-
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -136,8 +134,7 @@ import { ResidenceActivityLogModule } from './residence-activity-log/residence-a
     AdditionalServiceModule,
     EditorNoteModule,
     BespokeRequestModule,
-    StateModule,
-    ResidenceActivityLogModule
+    StateModule
   ],
   controllers: [AppController],
   providers: [

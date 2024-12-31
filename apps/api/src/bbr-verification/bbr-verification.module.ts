@@ -15,8 +15,6 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { PlanSchema } from 'src/subscription-plan/schema/plan.schema';
 import { Plan } from 'src/subscription-plan/schema/plan.schema';
 import { PlanRepository } from 'src/subscription-plan/plan.repository';
-import { ResidenceActivityLog, ResidenceActivityLogSchema } from 'src/residence-activity-log/schema/residence-activity-log.schema';
-import { ResidenceActivityLogRepository } from 'src/residence-activity-log/residence-activity-log.repository';
 
 @Module({
   imports: [
@@ -24,7 +22,6 @@ import { ResidenceActivityLogRepository } from 'src/residence-activity-log/resid
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
     MongooseModule.forFeature([{ name: Residence.name, schema: ResidenceSchema }]),
     MongooseModule.forFeature([{ name: Plan.name, schema: PlanSchema }]),
-    MongooseModule.forFeature([{ name: ResidenceActivityLog.name, schema: ResidenceActivityLogSchema }]),
     CustomerSupportModule,
     ScheduleModule.forRoot(),
   ],
@@ -34,8 +31,7 @@ import { ResidenceActivityLogRepository } from 'src/residence-activity-log/resid
     BbrVerificationRepository,
     UserRepository,
     ResidenceRepository,
-    PlanRepository,
-    ResidenceActivityLogRepository,
+    PlanRepository
   ],
   exports: [BbrVerificationService],
 })

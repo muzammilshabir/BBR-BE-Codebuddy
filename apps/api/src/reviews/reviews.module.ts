@@ -10,8 +10,6 @@ import { ReviewsFixture } from './reviews.fixture';
 import { MailerCoreModule } from 'src/mailer/mailer.module';
 import { UserModule } from 'src/users/user.module';
 import { ResidenceModule } from 'src/residences/residences.module';
-import { ResidenceActivityLog, ResidenceActivityLogSchema } from 'src/residence-activity-log/schema/residence-activity-log.schema';
-import { ResidenceActivityLogRepository } from 'src/residence-activity-log/residence-activity-log.repository';
 
 @Module({
   imports: [
@@ -20,9 +18,8 @@ import { ResidenceActivityLogRepository } from 'src/residence-activity-log/resid
     UserModule,
     ResidenceModule,
     MongooseModule.forFeature([{ name: Review.name, schema: ReviewSchema }]),
-    MongooseModule.forFeature([{ name: ResidenceActivityLog.name, schema: ResidenceActivityLogSchema }]),
   ],
-  providers: [ReviewService, ReviewRepository, ReviewSeeder, ReviewsFixture, ResidenceActivityLogRepository],
+  providers: [ReviewService, ReviewRepository, ReviewSeeder, ReviewsFixture],
   exports: [ReviewSeeder, ReviewsFixture],
   controllers: [ReviewController],
 })

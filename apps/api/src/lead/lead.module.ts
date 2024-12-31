@@ -10,18 +10,12 @@ import { Unit, UnitSchema } from 'src/unit/schema/unit.schema';
 import { UnitRepository } from 'src/unit/unit.repository';
 import { LeadSeeder } from './lead.seeder';
 import { CounterModule } from '../counter/counter.module';
-import {
-  ResidenceActivityLog,
-  ResidenceActivityLogSchema,
-} from 'src/residence-activity-log/schema/residence-activity-log.schema';
-import { ResidenceActivityLogRepository } from 'src/residence-activity-log/residence-activity-log.repository';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: Lead.name, schema: LeadSchema }]),
     MongooseModule.forFeature([{ name: Residence.name, schema: ResidenceSchema }]),
     MongooseModule.forFeature([{ name: Unit.name, schema: UnitSchema }]),
-    MongooseModule.forFeature([{ name: ResidenceActivityLog.name, schema: ResidenceActivityLogSchema }]),
     CounterModule,
   ],
   providers: [
@@ -30,7 +24,7 @@ import { ResidenceActivityLogRepository } from 'src/residence-activity-log/resid
     ResidenceRepository,
     UnitRepository,
     LeadSeeder,
-    ResidenceActivityLogRepository,
+
   ],
   exports: [LeadSeeder, LeadService],
   controllers: [LeadController],

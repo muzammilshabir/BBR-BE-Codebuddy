@@ -54,7 +54,6 @@ import { PassThrough } from 'stream';
 import * as fastcsv from 'fast-csv';
 import { v4 as uuidv4 } from 'uuid';
 import { PatchResidenceDto } from './dto/patch-update-residence.dto';
-import { ResidenceActivityLogRepository } from 'src/residence-activity-log/residence-activity-log.repository';
 
 @Injectable()
 export class ResidenceService {
@@ -71,7 +70,6 @@ export class ResidenceService {
     private readonly amenityRepository: AmenityRepository,
     private readonly lifeStyleRepository: LifeStyleRepository,
     private readonly rankingRequestRepository: RankingRequestRepository,
-    private readonly residenceActivityLogRepository: ResidenceActivityLogRepository,
     @InjectModel(Country.name)
     private readonly countryModel: Model<Country>
   ) {}
@@ -165,21 +163,6 @@ export class ResidenceService {
         transformedDto.address = updateResidenceDto.address;
       }
       const residenceDraft = await this.checkResidenceDraft(id);
-
-      // Log changes to the name
-      if (updateResidenceDto.name && residenceDraft.name !== updateResidenceDto.name) {
-        await this.residenceActivityLogRepository.create({
-          residenceId: new Types.ObjectId(id),
-          activityType: 'Details Changed',
-          details: {
-            previous: residenceDraft.name,
-            new: updateResidenceDto.name,
-          },
-          userId: new Types.ObjectId(user.sub),
-          createdAt: new Date(),
-        });
-      }
-
       if (residenceDraft) {
         return await this.residenceDraftRepository.update(residenceDraft.id, transformedDto);
       }
@@ -1397,17 +1380,6 @@ export class ResidenceService {
       updatePayload.isDeleted = DeletionStatus.DELETED;
     }
 
-    await this.residenceActivityLogRepository.create({
-      residenceId: new Types.ObjectId(residenceId),
-      activityType: 'Status Changed',
-      details: {
-        previous: residence.status,
-        new: updateResidenceStatusDto.status,
-      },
-      userId: new Types.ObjectId(userId),
-      createdAt: new Date(),
-    });
-
     const updatedResidence = await this.residenceRepository.update(residenceId, updatePayload);
 
     return updatedResidence;
@@ -1693,17 +1665,8 @@ export class ResidenceService {
     };
   }
 
-  async updateFeaturedStatus(updateFeaturedDto: UpdateFeaturedDto, userId: string) {
-    const result = await this.residenceRepository.updateFeaturedStatus(updateFeaturedDto);
-
-    await this.residenceActivityLogRepository.create({
-      residenceId: new Types.ObjectId(updateFeaturedDto.residenceId),
-      activityType: updateFeaturedDto.featured ? 'Added to Featured' : 'Removed from Featured',
-      userId: new Types.ObjectId(userId),
-      createdAt: new Date(),
-    });
-
-    return result;
+  async updateFeaturedStatus(updateFeaturedDto: UpdateFeaturedDto) {
+    return await this.residenceRepository.updateFeaturedStatus(updateFeaturedDto);
   }
 
   async listResidencesByDeveloperId(developerId: string) {

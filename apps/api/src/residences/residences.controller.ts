@@ -371,8 +371,8 @@ export class ResidenceController {
   @Roles(UserRole.ADMIN)
   @Permissions('residence', PermissionLevel.EDIT)
   @UsePipes(new JoiValidationPipe(updateFeaturedSchema, 'body'))
-  async updateFeaturedStatus(@Body() updateFeaturedDto: UpdateFeaturedDto, @GetCurrentUserId() userId: string) {
-    const result = await this.residenceService.updateFeaturedStatus(updateFeaturedDto, userId);
+  async updateFeaturedStatus(@Body() updateFeaturedDto: UpdateFeaturedDto) {
+    const result = await this.residenceService.updateFeaturedStatus(updateFeaturedDto);
     return ResponseService.buildResponse(
       { result },
       'Residence featured status updated successfully'
