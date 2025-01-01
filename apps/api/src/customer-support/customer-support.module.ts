@@ -9,15 +9,26 @@ import { Residence, ResidenceSchema } from '../residences/schema/residences.sche
 import { Unit, UnitSchema } from 'src/unit/schema/unit.schema';
 import { UnitRepository } from 'src/unit/unit.repository';
 import { CounterModule } from '../counter/counter.module';
+import { DeveloperProfileActivityLogRepository } from 'src/developer-profile-activity-log/developer-profile-activity-log.repository';
+import { DeveloperProfileActivityLog, DeveloperProfileActivityLogSchema } from 'src/developer-profile-activity-log/schema/developer-profile-activity-log.schema';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: CustomerSupport.name, schema: CustomerSupportSchema }]),
     MongooseModule.forFeature([{ name: Residence.name, schema: ResidenceSchema }]),
     MongooseModule.forFeature([{ name: Unit.name, schema: UnitSchema }]),
+    MongooseModule.forFeature([
+      { name: DeveloperProfileActivityLog.name, schema: DeveloperProfileActivityLogSchema },
+    ]),
     CounterModule,
   ],
-  providers: [CustomerSupportService, CustomerSupportRepository, ResidenceRepository, UnitRepository],
+  providers: [
+    CustomerSupportService,
+    CustomerSupportRepository,
+    ResidenceRepository,
+    UnitRepository,
+    DeveloperProfileActivityLogRepository,
+  ],
   exports: [CustomerSupportService],
   controllers: [CustomerSupportController],
 })

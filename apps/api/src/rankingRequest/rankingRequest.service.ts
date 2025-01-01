@@ -33,6 +33,7 @@ import * as XLSX from 'xlsx';
 import { format } from '@fast-csv/format';
 import { Writable } from 'stream';
 import { ChangeRankingScore } from './enum/change-ranking-score.enum';
+import { DeveloperProfileActivityLogRepository } from 'src/developer-profile-activity-log/developer-profile-activity-log.repository';
 
 @Injectable()
 export class RankingRequestService {
@@ -42,7 +43,8 @@ export class RankingRequestService {
     private readonly userRepository: UserRepository,
     private readonly residenceRepository: ResidenceRepository,
     private readonly rankingCategoryRepository: RankingCategoryRepository,
-    private readonly residenceActivityLogRepository: ResidenceActivityLogRepository
+    private readonly residenceActivityLogRepository: ResidenceActivityLogRepository,
+    private readonly developerProfileActivityLogRepository: DeveloperProfileActivityLogRepository
   ) {}
 
   async findAll(listRankingRequestDto: ListRankingRequestDto) {
@@ -209,6 +211,19 @@ export class RankingRequestService {
       activityType: 'Submitted for ranking',
       details: {
         name: rankingCategory.title,
+      },
+      userId: new Types.ObjectId(user.sub),
+      createdAt: new Date(),
+    });
+
+    await this.developerProfileActivityLogRepository.create({
+      developerId: new Types.ObjectId(createRankingRequestDto.residenceId),
+      activityType: 'Submitted for ranking',
+      details: {
+        residenceId: new Types.ObjectId(createRankingRequestDto.residenceId),
+        residenceName: residence.name,
+        rankingCategoryId: new Types.ObjectId(createRankingRequestDto.rankingCategoryId),
+        rankingCategoryName: rankingCategory.title,
       },
       userId: new Types.ObjectId(user.sub),
       createdAt: new Date(),

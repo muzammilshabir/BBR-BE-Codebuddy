@@ -55,6 +55,7 @@ import * as fastcsv from 'fast-csv';
 import { v4 as uuidv4 } from 'uuid';
 import { PatchResidenceDto } from './dto/patch-update-residence.dto';
 import { ResidenceActivityLogRepository } from 'src/residence-activity-log/residence-activity-log.repository';
+import { DeveloperProfileActivityLogRepository } from 'src/developer-profile-activity-log/developer-profile-activity-log.repository';
 
 @Injectable()
 export class ResidenceService {
@@ -72,6 +73,7 @@ export class ResidenceService {
     private readonly lifeStyleRepository: LifeStyleRepository,
     private readonly rankingRequestRepository: RankingRequestRepository,
     private readonly residenceActivityLogRepository: ResidenceActivityLogRepository,
+    private readonly developerProfileActivityLogRepository: DeveloperProfileActivityLogRepository,
     @InjectModel(Country.name)
     private readonly countryModel: Model<Country>
   ) {}
@@ -122,6 +124,16 @@ export class ResidenceService {
     });
 
     const residenceData = residence.toObject();
+
+    if (user.role === UserRole.SELLER) {
+      await this.developerProfileActivityLogRepository.create({
+        developerId: new Types.ObjectId(user.sub),
+        activityType: 'New residence submitted',
+        userId: new Types.ObjectId(user.sub),
+        createdAt: new Date(),
+      });
+    }
+
     return { ...residenceData, residenceDraftId: residenceDraft._id };
   }
 
@@ -179,6 +191,12 @@ export class ResidenceService {
           createdAt: new Date(),
         });
       }
+      await this.developerProfileActivityLogRepository.create({
+        developerId: new Types.ObjectId(user.sub),
+        activityType: 'Residence details updated',
+        userId: new Types.ObjectId(user.sub),
+        createdAt: new Date(),
+      });
 
       if (residenceDraft) {
         return await this.residenceDraftRepository.update(residenceDraft.id, transformedDto);
@@ -1407,6 +1425,16 @@ export class ResidenceService {
       userId: new Types.ObjectId(userId),
       createdAt: new Date(),
     });
+
+    if (updateResidenceStatusDto.status === ResidenceStatus.ARCHIVED) {
+      await this.developerProfileActivityLogRepository.create({
+        developerId: new Types.ObjectId(userId),
+        activityType: 'Archived residence',
+        details: { residenceId: new Types.ObjectId(residenceId), residenceName: residence.name },
+        userId: new Types.ObjectId(userId),
+        createdAt: new Date(),
+      });
+    }
 
     const updatedResidence = await this.residenceRepository.update(residenceId, updatePayload);
 

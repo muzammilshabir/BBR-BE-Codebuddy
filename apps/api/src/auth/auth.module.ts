@@ -18,6 +18,11 @@ import { StripeModule } from 'src/stripe/stripe.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { LoginAttempt, LoginAttemptSchema } from '../loginAttempt/schema/loginAttempt.schema';
 import { LoginAttemptRepository } from '../loginAttempt/loginAttempt.repository';
+import {
+  DeveloperProfileActivityLog,
+  DeveloperProfileActivityLogSchema,
+} from 'src/developer-profile-activity-log/schema/developer-profile-activity-log.schema';
+import { DeveloperProfileActivityLogRepository } from 'src/developer-profile-activity-log/developer-profile-activity-log.repository';
 
 @Module({
   imports: [
@@ -29,6 +34,9 @@ import { LoginAttemptRepository } from '../loginAttempt/loginAttempt.repository'
     StripeModule,
     RoleModule,
     MongooseModule.forFeature([{ name: LoginAttempt.name, schema: LoginAttemptSchema }]),
+    MongooseModule.forFeature([
+      { name: DeveloperProfileActivityLog.name, schema: DeveloperProfileActivityLogSchema },
+    ]),
   ],
   providers: [
     AuthService,
@@ -38,6 +46,7 @@ import { LoginAttemptRepository } from '../loginAttempt/loginAttempt.repository'
     CaptchaGuard,
     TokenService,
     LoginAttemptRepository,
+    DeveloperProfileActivityLogRepository,
   ],
   controllers: [AuthController],
   exports: [TokenService, AuthService],

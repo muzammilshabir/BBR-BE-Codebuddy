@@ -1,4 +1,7 @@
-import { ResidenceActivityLog, ResidenceActivityLogSchema } from './../residence-activity-log/schema/residence-activity-log.schema';
+import {
+  ResidenceActivityLog,
+  ResidenceActivityLogSchema,
+} from './../residence-activity-log/schema/residence-activity-log.schema';
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Residence, ResidenceSchema } from './schema/residences.schema';
@@ -72,6 +75,11 @@ import { RankingRequestDraftRepository } from '../rankingRequestDraft/rankingReq
 import { RankingCategoryDraftRepository } from '../rankingCategoryDraft/rankingCategoryDraft.repository';
 import { BrandDraftRepository } from '../brandDraft/brandDraft.repository';
 import { ResidenceActivityLogRepository } from 'src/residence-activity-log/residence-activity-log.repository';
+import {
+  DeveloperProfileActivityLog,
+  DeveloperProfileActivityLogSchema,
+} from 'src/developer-profile-activity-log/schema/developer-profile-activity-log.schema';
+import { DeveloperProfileActivityLogRepository } from 'src/developer-profile-activity-log/developer-profile-activity-log.repository';
 
 @Module({
   imports: [
@@ -102,7 +110,12 @@ import { ResidenceActivityLogRepository } from 'src/residence-activity-log/resid
     MongooseModule.forFeature([
       { name: RankingRequestDraft.name, schema: RankingRequestDraftSchema },
     ]),
-    MongooseModule.forFeature([{ name: ResidenceActivityLog.name, schema: ResidenceActivityLogSchema }]),
+    MongooseModule.forFeature([
+      { name: ResidenceActivityLog.name, schema: ResidenceActivityLogSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: DeveloperProfileActivityLog.name, schema: DeveloperProfileActivityLogSchema },
+    ]),
   ],
   providers: [
     ResidenceService,
@@ -131,6 +144,7 @@ import { ResidenceActivityLogRepository } from 'src/residence-activity-log/resid
     RankingCategoryDraftRepository,
     BrandDraftRepository,
     ResidenceActivityLogRepository,
+    DeveloperProfileActivityLogRepository,
   ],
   exports: [
     ResidenceSeeder,

@@ -5,12 +5,14 @@ import { CustomerSupportService } from '../customer-support/customer-support.ser
 import { CustomerSupportConversationRepository } from './customer-support-conversation.repository';
 import { ListConversationDto } from './dto/list-conversation.dto';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
+import { DeveloperProfileActivityLogRepository } from 'src/developer-profile-activity-log/developer-profile-activity-log.repository';
 
 @Injectable()
 export class CustomerSupportConversationService {
   constructor(
     private readonly conversationRepository: CustomerSupportConversationRepository,
-    private readonly customerSupportService: CustomerSupportService
+    private readonly customerSupportService: CustomerSupportService,
+    private readonly developerProfileActivityLogRepository: DeveloperProfileActivityLogRepository,
   ) {}
 
   async create(createConversationDto: CreateConversationDto, userId: string) {
@@ -25,6 +27,13 @@ export class CustomerSupportConversationService {
         ...attachment,
         fileId: new Types.ObjectId(attachment.fileId),
       })),
+    });
+
+    await this.developerProfileActivityLogRepository.create({
+      developerId: new Types.ObjectId(userId),
+      activityType: 'Support request responded',
+      userId: new Types.ObjectId(userId),
+      createdAt: new Date(),
     });
 
     return conversation;

@@ -50,6 +50,7 @@ import { AxiosError } from 'axios';
 import { LoginAttemptRepository } from '../loginAttempt/loginAttempt.repository';
 import { LoginStatus } from '../loginAttempt/schema/loginAttempt.schema';
 import * as CryptoJS from 'crypto-js';
+import { DeveloperProfileActivityLogRepository } from 'src/developer-profile-activity-log/developer-profile-activity-log.repository';
 
 @Injectable()
 export class AuthService {
@@ -62,7 +63,8 @@ export class AuthService {
     private readonly tokenService: TokenService,
     private readonly stripeService: StripeService,
     private readonly httpService: HttpService,
-    private readonly loginAttemptRepository: LoginAttemptRepository
+    private readonly loginAttemptRepository: LoginAttemptRepository,
+    private readonly developerProfileActivityLogRepository: DeveloperProfileActivityLogRepository
   ) {}
 
   private static getBaseUrl(userRole: UserRole): string {
@@ -647,6 +649,13 @@ export class AuthService {
     });
 
     this.sendVerificationEmail(user.email, user.verificationToken, user.role);
+
+    await this.developerProfileActivityLogRepository.create({
+      developerId: new Types.ObjectId(user.id),
+      activityType: 'Account created',
+      userId: new Types.ObjectId(user.id),
+      createdAt: new Date(),
+    });
 
     return user;
   }

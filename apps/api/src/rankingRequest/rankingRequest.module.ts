@@ -1,5 +1,8 @@
 import { ResidenceActivityLogRepository } from './../residence-activity-log/residence-activity-log.repository';
-import { ResidenceActivityLog, ResidenceActivityLogSchema } from './../residence-activity-log/schema/residence-activity-log.schema';
+import {
+  ResidenceActivityLog,
+  ResidenceActivityLogSchema,
+} from './../residence-activity-log/schema/residence-activity-log.schema';
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { RankingRequestService } from './rankingRequest.service';
@@ -20,6 +23,8 @@ import {
   RankingCategory,
   RankingCategorySchema,
 } from '../rankingCategory/schema/rankingCategory.schema';
+import { DeveloperProfileActivityLogRepository } from 'src/developer-profile-activity-log/developer-profile-activity-log.repository';
+import { DeveloperProfileActivityLog, DeveloperProfileActivityLogSchema } from 'src/developer-profile-activity-log/schema/developer-profile-activity-log.schema';
 
 @Module({
   imports: [
@@ -30,7 +35,12 @@ import {
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
     MongooseModule.forFeature([{ name: Residence.name, schema: ResidenceSchema }]),
     MongooseModule.forFeature([{ name: RankingCategory.name, schema: RankingCategorySchema }]),
-    MongooseModule.forFeature([{ name: ResidenceActivityLog.name, schema: ResidenceActivityLogSchema }]),
+    MongooseModule.forFeature([
+      { name: ResidenceActivityLog.name, schema: ResidenceActivityLogSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: DeveloperProfileActivityLog.name, schema: DeveloperProfileActivityLogSchema },
+    ]),
   ],
   controllers: [RankingRequestController],
   providers: [
@@ -41,6 +51,7 @@ import {
     ResidenceRepository,
     RankingCategoryRepository,
     ResidenceActivityLogRepository,
+    DeveloperProfileActivityLogRepository,
   ],
 })
 export class RankingRequestModule {}

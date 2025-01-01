@@ -19,6 +19,7 @@ import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.s
 import { ResidenceDraftRepository } from '../residencesDraft/residencesDraft.repository';
 import { ResidenceStatus } from '../residences/enum/residence-enum';
 import { ResidenceActivityLogRepository } from 'src/residence-activity-log/residence-activity-log.repository';
+import { DeveloperProfileActivityLogRepository } from 'src/developer-profile-activity-log/developer-profile-activity-log.repository';
 
 @Injectable()
 export class ClaimRequestService {
@@ -30,6 +31,7 @@ export class ClaimRequestService {
     private readonly authService: AuthService,
     private readonly residenceDraftRepository: ResidenceDraftRepository,
     private readonly residenceActivityLogRepository: ResidenceActivityLogRepository,
+    private readonly developerProfileActivityLogRepository: DeveloperProfileActivityLogRepository,
   ) {}
 
   async createClaimResidence(
@@ -57,6 +59,14 @@ export class ClaimRequestService {
 
     await this.residenceActivityLogRepository.create({
       residenceId: new Types.ObjectId(residenceId),
+      activityType: 'Wants to claim residence',
+      details: { id: claimRequest.id },
+      userId: new Types.ObjectId(userId),
+      createdAt: new Date(),
+    });
+
+    await this.developerProfileActivityLogRepository.create({
+      developerId: new Types.ObjectId(userId),
       activityType: 'Wants to claim residence',
       details: { id: claimRequest.id },
       userId: new Types.ObjectId(userId),
@@ -175,6 +185,13 @@ export class ClaimRequestService {
       createdAt: new Date(),
     });
 
+    await this.developerProfileActivityLogRepository.create({
+      developerId: new Types.ObjectId(claimRequest.developerId),
+      activityType: 'Wants to claim residence',
+      details: { id: claimRequest.id },
+      userId: new Types.ObjectId(userId),
+      createdAt: new Date(),
+    });
     return claimRequest;
   }
 
@@ -422,6 +439,14 @@ export class ClaimRequestService {
         `residence with ID ${claimRequest.residenceId.toString()} not found`
       );
     }
+
+    await this.developerProfileActivityLogRepository.create({
+      developerId: new Types.ObjectId(claimRequest.developerId),
+      activityType: 'Residence claim request rejected',
+      details: { id: claimRequest.id, residenceId: claimRequest.residenceId },
+      userId: new Types.ObjectId(claimRequest.developerId),
+      createdAt: new Date(),
+    });
 
     return await this.claimRequestRepository.update(getClaimRequestByIdDto.id, {
       status: ClaimRequestStatus.Rejected,

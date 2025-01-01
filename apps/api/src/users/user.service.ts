@@ -39,6 +39,7 @@ import { LoginAttempt } from '../loginAttempt/schema/loginAttempt.schema';
 import { LoginAttemptRepository } from '../loginAttempt/loginAttempt.repository';
 import { ClaimRequestRepository } from '../claimRequest/claimRequest.repository';
 import { ClaimRequestStatus } from '../claimRequest/enum/claimReques-enum';
+import { DeveloperProfileActivityLogRepository } from 'src/developer-profile-activity-log/developer-profile-activity-log.repository';
 
 @Injectable()
 export class UserService {
@@ -51,7 +52,8 @@ export class UserService {
     private readonly unitRepository: UnitRepository,
     private readonly roleRepository: RoleRepository,
     private readonly loginAttemptRepository: LoginAttemptRepository,
-    private readonly claimRequestRepository: ClaimRequestRepository
+    private readonly claimRequestRepository: ClaimRequestRepository,
+    private readonly developerProfileActivityLogRepository: DeveloperProfileActivityLogRepository
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
@@ -111,14 +113,13 @@ export class UserService {
   }
   async findByEmail(email: string, role?: UserRole): Promise<User> {
     const filter: { email: string; role?: UserRole | { $in: UserRole[] } } = { email };
-    
+
     if (!role) {
       return this.userModel.findOne(filter).exec();
     }
 
-    filter.role = role === UserRole.ADMIN 
-      ? UserRole.ADMIN
-      : { $in: [UserRole.BUYER, UserRole.SELLER] };
+    filter.role =
+      role === UserRole.ADMIN ? UserRole.ADMIN : { $in: [UserRole.BUYER, UserRole.SELLER] };
 
     return this.userModel.findOne(filter).exec();
   }
@@ -158,6 +159,13 @@ export class UserService {
   }
 
   async updatePassword(id: string, password: string) {
+    await this.developerProfileActivityLogRepository.create({
+      developerId: new Types.ObjectId(id),
+      activityType: 'Password updated',
+      userId: new Types.ObjectId(id),
+      createdAt: new Date(),
+    });
+
     return await this.userRepository.update(id, {
       password,
       isVerified: true,
@@ -667,6 +675,13 @@ export class UserService {
     if (!updatedUser) {
       throw new NotFoundException(`User with ID ${sellerId} not found`);
     }
+
+    await this.developerProfileActivityLogRepository.create({
+      developerId: new Types.ObjectId(user.id),
+      activityType: 'Profile details updated',
+      userId: new Types.ObjectId(user.id),
+      createdAt: new Date(),
+    });
 
     return updatedUser;
   }

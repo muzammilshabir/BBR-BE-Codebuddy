@@ -12,6 +12,7 @@ import { BbrVerificationStatus } from './enum/bbr-verification-status';
 import { VerificationType } from './enum/verification-type.enum';
 import { PlanRepository } from 'src/subscription-plan/plan.repository';
 import { ResidenceActivityLogRepository } from 'src/residence-activity-log/residence-activity-log.repository';
+import { DeveloperProfileActivityLogRepository } from 'src/developer-profile-activity-log/developer-profile-activity-log.repository';
 
 @Injectable()
 export class BbrVerificationService {
@@ -20,7 +21,8 @@ export class BbrVerificationService {
     private readonly userRepository: UserRepository,
     private readonly residenceRepository: ResidenceRepository,
     private readonly planRepository: PlanRepository,
-    private readonly residenceActivityLogRepository: ResidenceActivityLogRepository
+    private readonly residenceActivityLogRepository: ResidenceActivityLogRepository,
+    private readonly developerProfileActivityLogRepository: DeveloperProfileActivityLogRepository,
   ) {}
 
   async create(createBbrVerificationDto: CreateBbrVerificationDto, userId: string) {
@@ -64,6 +66,16 @@ export class BbrVerificationService {
     await this.residenceActivityLogRepository.create({
       residenceId: new Types.ObjectId(createBbrVerificationDto.residenceId),
       activityType: `Submitted for ${plan.name}`,
+      userId: new Types.ObjectId(userId),
+      createdAt: new Date(),
+    });
+
+    await this.developerProfileActivityLogRepository.create({
+      developerId: new Types.ObjectId(userId),
+      activityType: `Requested ${plan.name}`,
+      details: {
+        residenceName: residence.name,
+      },
       userId: new Types.ObjectId(userId),
       createdAt: new Date(),
     });

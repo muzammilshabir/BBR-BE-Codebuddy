@@ -25,6 +25,11 @@ import { LoginAttempt, LoginAttemptSchema } from '../loginAttempt/schema/loginAt
 import { LoginAttemptRepository } from '../loginAttempt/loginAttempt.repository';
 import { ClaimRequest, ClaimRequestSchema } from '../claimRequest/schema/claimRequest.schema';
 import { ClaimRequestRepository } from '../claimRequest/claimRequest.repository';
+import {
+  DeveloperProfileActivityLog,
+  DeveloperProfileActivityLogSchema,
+} from 'src/developer-profile-activity-log/schema/developer-profile-activity-log.schema';
+import { DeveloperProfileActivityLogRepository } from 'src/developer-profile-activity-log/developer-profile-activity-log.repository';
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
@@ -38,6 +43,9 @@ import { ClaimRequestRepository } from '../claimRequest/claimRequest.repository'
     MailerCoreModule,
     MongooseModule.forFeature([{ name: LoginAttempt.name, schema: LoginAttemptSchema }]),
     MongooseModule.forFeature([{ name: ClaimRequest.name, schema: ClaimRequestSchema }]),
+    MongooseModule.forFeature([
+      { name: DeveloperProfileActivityLog.name, schema: DeveloperProfileActivityLogSchema },
+    ]),
   ],
   controllers: [UserController],
   providers: [
@@ -53,6 +61,7 @@ import { ClaimRequestRepository } from '../claimRequest/claimRequest.repository'
     RoleService,
     LoginAttemptRepository,
     ClaimRequestRepository,
+    DeveloperProfileActivityLogRepository,
   ],
   exports: [UserService, UserFixture, SuperAdminSeeder],
 })

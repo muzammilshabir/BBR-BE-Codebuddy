@@ -69,6 +69,8 @@ import { EditorNoteModule } from './editor-note/editor-note.module';
 import { BespokeRequestModule } from './bespokeRequests/bespokeRequests.module';
 import { StateModule } from './state/state.module';
 import { ResidenceActivityLogModule } from './residence-activity-log/residence-activity-log.module';
+import { LeadsActivityLogModule } from './leads-activity-log/leads-activity-log.module';
+import { DeveloperProfileActivityLogModule } from './developer-profile-activity-log/developer-profile-activity-log.module';
 
 @Module({
   imports: [
@@ -137,7 +139,9 @@ import { ResidenceActivityLogModule } from './residence-activity-log/residence-a
     EditorNoteModule,
     BespokeRequestModule,
     StateModule,
-    ResidenceActivityLogModule
+    ResidenceActivityLogModule,
+    LeadsActivityLogModule,
+    DeveloperProfileActivityLogModule
   ],
   controllers: [AppController],
   providers: [

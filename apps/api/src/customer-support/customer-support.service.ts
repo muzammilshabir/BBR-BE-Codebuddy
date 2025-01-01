@@ -14,13 +14,16 @@ import { UnitRepository } from 'src/unit/unit.repository';
 import { UserRole } from '../users/enum/user.enum';
 import { JwtPayloadType } from '../auth/type/jwt-payload.type';
 import { UpdateCalendlyDetailsDto } from './dto/update-calendly-details.dto';
+import { DeveloperProfileActivityLogRepository } from 'src/developer-profile-activity-log/developer-profile-activity-log.repository';
+import { CustomerSupportStatus } from './enum/customer-support-enum';
 
 @Injectable()
 export class CustomerSupportService {
   constructor(
     private readonly customerSupportRepository: CustomerSupportRepository,
     private readonly residenceRepository: ResidenceRepository,
-    private readonly unitRepository: UnitRepository
+    private readonly unitRepository: UnitRepository,
+    private readonly developerProfileActivityLogRepository: DeveloperProfileActivityLogRepository
   ) {}
   async getDeveloperId(createCustomerSupportDto: CreateCustomerSupportDto) {
     if (createCustomerSupportDto.developerId) {
@@ -88,7 +91,16 @@ export class CustomerSupportService {
       })),
     };
 
-    return await this.customerSupportRepository.create(transformedDto);
+    const support = await this.customerSupportRepository.create(transformedDto);
+
+    await this.developerProfileActivityLogRepository.create({
+      developerId: await this.getDeveloperId(createCustomerSupportDto),
+      activityType: 'Support request submitted',
+      userId: await this.getDeveloperId(createCustomerSupportDto),
+      createdAt: new Date(),
+    });
+
+    return support;
   }
 
   async createForGuest(createCustomerSupportForGuestDto: CreateCustomerSupportForGuestDto) {
@@ -110,7 +122,8 @@ export class CustomerSupportService {
 
   async updateCustomerSupport(
     customerSupportId: string,
-    updateCustomerSupportDto: UpdateCustomerSupportDto
+    updateCustomerSupportDto: UpdateCustomerSupportDto,
+    userId?: string
   ): Promise<any> {
     const transformedDto: any = {
       ...updateCustomerSupportDto,
@@ -193,7 +206,21 @@ export class CustomerSupportService {
       );
     }
 
-    return this.customerSupportRepository.update(customerSupportId, transformedDto);
+    const updatedSupport = await this.customerSupportRepository.update(
+      customerSupportId,
+      transformedDto
+    );
+
+    if (updateCustomerSupportDto.status === CustomerSupportStatus.SOLVED) {
+      await this.developerProfileActivityLogRepository.create({
+        developerId: new Types.ObjectId(userId),
+        activityType: 'Support request solved',
+        userId: new Types.ObjectId(userId),
+        createdAt: new Date(),
+      });
+    }
+
+    return updatedSupport;
   }
 
   getCustomerSupport(customerSupportId: string, userId?: string): Promise<CustomerSupport> {
@@ -217,13 +244,24 @@ export class CustomerSupportService {
       : await this.getCustomerSupport(customerSupportId);
   }
 
-  async deleteCustomerSupport(customerSupportId: string) {
+  async deleteCustomerSupport(customerSupportId: string, userId?: string) {
     const customerSupport = await this.customerSupportRepository.findById(customerSupportId);
     if (!customerSupport) {
       throw new NotFoundException(`Customer support with ID ${customerSupportId} not found`);
     }
 
-    return await this.customerSupportRepository.update(customerSupportId, { isDeleted: true });
+    const updatedSupport = await this.customerSupportRepository.update(customerSupportId, {
+      isDeleted: true,
+    });
+
+    await this.developerProfileActivityLogRepository.create({
+      developerId: new Types.ObjectId(userId),
+      activityType: 'Support request deleted',
+      userId: new Types.ObjectId(userId),
+      createdAt: new Date(),
+    });
+
+    return updatedSupport;
   }
 
   async updateCalendlyDetails(

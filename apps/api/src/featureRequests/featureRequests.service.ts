@@ -11,6 +11,7 @@ import { ResidenceRepository } from 'src/residences/residences.repository';
 import { FeatureRequestStatus } from './enum/feature-request-status';
 import { PlanRepository } from 'src/subscription-plan/plan.repository';
 import { ResidenceActivityLogRepository } from 'src/residence-activity-log/residence-activity-log.repository';
+import { DeveloperProfileActivityLogRepository } from 'src/developer-profile-activity-log/developer-profile-activity-log.repository';
 
 @Injectable()
 export class FeatureRequestService {
@@ -19,7 +20,8 @@ export class FeatureRequestService {
     private readonly userRepository: UserRepository,
     private readonly residenceRepository: ResidenceRepository,
     private readonly subscriptionPlanRepository: PlanRepository,
-    private readonly residenceActivityLogRepository: ResidenceActivityLogRepository
+    private readonly residenceActivityLogRepository: ResidenceActivityLogRepository,
+    private readonly developerProfileActivityLogRepository: DeveloperProfileActivityLogRepository
   ) {}
 
   async create(createFeatureRequestDto: CreateFeatureRequestDto, userId: string) {
@@ -62,6 +64,16 @@ export class FeatureRequestService {
     await this.residenceActivityLogRepository.create({
       residenceId: new Types.ObjectId(residence.id),
       activityType: 'Added to Featured',
+      userId: new Types.ObjectId(userId),
+      createdAt: new Date(),
+    });
+
+    await this.developerProfileActivityLogRepository.create({
+      developerId: new Types.ObjectId(userId),
+      activityType: 'Added to Featured',
+      details: {
+        residenceName: residence.name,
+      },
       userId: new Types.ObjectId(userId),
       createdAt: new Date(),
     });

@@ -23,6 +23,7 @@ import {
   updateCalendlyDetailsSchema,
 } from './dto/update-calendly-details.dto';
 import { Public } from 'src/auth/decorators/public.decorator';
+import { GetCurrentUserId } from 'src/auth/decorators/getCurrentUserId.decorator';
 
 @ApiTags('CustomerSupport')
 @Controller('customer-support')
@@ -69,11 +70,13 @@ export class CustomerSupportController {
   @UsePipes(new JoiValidationPipe(updateCustomerSupportSchema, 'body'))
   async updateCustomerSupport(
     @Param('id') customerSupportId: string,
-    @Body() updateCustomerSupportDto: UpdateCustomerSupportDto
+    @Body() updateCustomerSupportDto: UpdateCustomerSupportDto,
+    @GetCurrentUserId() userId: string,
   ) {
     const customerSupport = await this.customerSupportService.updateCustomerSupport(
       customerSupportId,
-      updateCustomerSupportDto
+      updateCustomerSupportDto,
+      userId
     );
     return ResponseService.buildResponse(
       { customerSupport },
@@ -105,9 +108,9 @@ export class CustomerSupportController {
   @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
   @Permissions('customer-support', PermissionLevel.DELETE)
-  async deleteCustomerSupport(@Param('id') customerSupportId: string) {
+  async deleteCustomerSupport(@Param('id') customerSupportId: string, @GetCurrentUserId() userId: string) {
     const customerSupport =
-      await this.customerSupportService.deleteCustomerSupport(customerSupportId);
+      await this.customerSupportService.deleteCustomerSupport(customerSupportId, userId);
     return ResponseService.buildResponse(
       { customerSupport },
       'Customer support deleted successfully'

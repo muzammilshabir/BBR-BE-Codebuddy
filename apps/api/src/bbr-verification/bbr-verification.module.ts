@@ -15,8 +15,13 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { PlanSchema } from 'src/subscription-plan/schema/plan.schema';
 import { Plan } from 'src/subscription-plan/schema/plan.schema';
 import { PlanRepository } from 'src/subscription-plan/plan.repository';
-import { ResidenceActivityLog, ResidenceActivityLogSchema } from 'src/residence-activity-log/schema/residence-activity-log.schema';
+import {
+  ResidenceActivityLog,
+  ResidenceActivityLogSchema,
+} from 'src/residence-activity-log/schema/residence-activity-log.schema';
 import { ResidenceActivityLogRepository } from 'src/residence-activity-log/residence-activity-log.repository';
+import { DeveloperProfileActivityLogRepository } from 'src/developer-profile-activity-log/developer-profile-activity-log.repository';
+import { DeveloperProfileActivityLog, DeveloperProfileActivityLogSchema } from 'src/developer-profile-activity-log/schema/developer-profile-activity-log.schema';
 
 @Module({
   imports: [
@@ -24,7 +29,12 @@ import { ResidenceActivityLogRepository } from 'src/residence-activity-log/resid
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
     MongooseModule.forFeature([{ name: Residence.name, schema: ResidenceSchema }]),
     MongooseModule.forFeature([{ name: Plan.name, schema: PlanSchema }]),
-    MongooseModule.forFeature([{ name: ResidenceActivityLog.name, schema: ResidenceActivityLogSchema }]),
+    MongooseModule.forFeature([
+      { name: ResidenceActivityLog.name, schema: ResidenceActivityLogSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: DeveloperProfileActivityLog.name, schema: DeveloperProfileActivityLogSchema },
+    ]),
     CustomerSupportModule,
     ScheduleModule.forRoot(),
   ],
@@ -36,6 +46,7 @@ import { ResidenceActivityLogRepository } from 'src/residence-activity-log/resid
     ResidenceRepository,
     PlanRepository,
     ResidenceActivityLogRepository,
+    DeveloperProfileActivityLogRepository,
   ],
   exports: [BbrVerificationService],
 })
