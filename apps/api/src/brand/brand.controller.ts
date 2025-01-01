@@ -47,8 +47,8 @@ export class BrandController {
   @ApiBearerAuth()
   @Roles(UserRole.ADMIN)
   @UsePipes(new JoiValidationPipe(updateBrandSchema, 'body'))
-  async update(@Param('id') id: string, @Body() updateBrandDto: UpdateBrandDto) {
-    const updatedBrand = await this.brandService.update(id, updateBrandDto);
+  async update(@Param('id') id: string, @Body() updateBrandDto: UpdateBrandDto, @GetCurrentUserId() userId: string) {
+    const updatedBrand = await this.brandService.update(id, updateBrandDto, userId);
     return ResponseService.buildResponse(updatedBrand);
   }
 
@@ -58,8 +58,8 @@ export class BrandController {
   @Permissions('brands', PermissionLevel.EDIT)
   @ApiOperation({ summary: 'Save Brand as draft' })
   @UsePipes(new JoiValidationPipe(createBrandDraftSchema, 'body'))
-  async saveAsDraft(@Body() createBrandDraftDto: CreateBrandDraftDto) {
-    const brandDraft = await this.brandService.saveAsDraft(createBrandDraftDto);
+  async saveAsDraft(@Body() createBrandDraftDto: CreateBrandDraftDto, @GetCurrentUserId() userId: string) {
+    const brandDraft = await this.brandService.saveAsDraft(createBrandDraftDto, userId);
     return {
       message: 'Brand draft saved successfully',
       data: brandDraft,
@@ -72,8 +72,8 @@ export class BrandController {
   @Permissions('brands', PermissionLevel.EDIT)
   @ApiOperation({ summary: 'Save and Apply a new brand' })
   @UsePipes(new JoiValidationPipe(createBrandApplySchema, 'body'))
-  async saveAndApplyBrand(@Body() createBrandApplyDto: CreateBrandApplyDto) {
-    const result = await this.brandService.saveAndApplyBrand(createBrandApplyDto);
+  async saveAndApplyBrand(@Body() createBrandApplyDto: CreateBrandApplyDto, @GetCurrentUserId() userId: string) {
+    const result = await this.brandService.saveAndApplyBrand(createBrandApplyDto, userId);
     return {
       message: 'Brand saved and applied successfully',
       data: result,

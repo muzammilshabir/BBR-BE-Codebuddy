@@ -80,6 +80,8 @@ import {
   DeveloperProfileActivityLogSchema,
 } from 'src/developer-profile-activity-log/schema/developer-profile-activity-log.schema';
 import { DeveloperProfileActivityLogRepository } from 'src/developer-profile-activity-log/developer-profile-activity-log.repository';
+import { BrandActivityLogRepository } from 'src/brand-activity-log/brand-activity-log.repository';
+import { BrandActivityLog, BrandActivityLogSchema } from 'src/brand-activity-log/schema/brand-activity-log.schema';
 
 @Module({
   imports: [
@@ -116,6 +118,7 @@ import { DeveloperProfileActivityLogRepository } from 'src/developer-profile-act
     MongooseModule.forFeature([
       { name: DeveloperProfileActivityLog.name, schema: DeveloperProfileActivityLogSchema },
     ]),
+    MongooseModule.forFeature([{ name: BrandActivityLog.name, schema: BrandActivityLogSchema }]),
   ],
   providers: [
     ResidenceService,
@@ -145,6 +148,7 @@ import { DeveloperProfileActivityLogRepository } from 'src/developer-profile-act
     BrandDraftRepository,
     ResidenceActivityLogRepository,
     DeveloperProfileActivityLogRepository,
+    BrandActivityLogRepository,
   ],
   exports: [
     ResidenceSeeder,

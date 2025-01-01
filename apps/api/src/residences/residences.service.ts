@@ -56,6 +56,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { PatchResidenceDto } from './dto/patch-update-residence.dto';
 import { ResidenceActivityLogRepository } from 'src/residence-activity-log/residence-activity-log.repository';
 import { DeveloperProfileActivityLogRepository } from 'src/developer-profile-activity-log/developer-profile-activity-log.repository';
+import { BrandActivityLogRepository } from 'src/brand-activity-log/brand-activity-log.repository';
 
 @Injectable()
 export class ResidenceService {
@@ -74,6 +75,7 @@ export class ResidenceService {
     private readonly rankingRequestRepository: RankingRequestRepository,
     private readonly residenceActivityLogRepository: ResidenceActivityLogRepository,
     private readonly developerProfileActivityLogRepository: DeveloperProfileActivityLogRepository,
+    private readonly brandActivityLogRepository: BrandActivityLogRepository,
     @InjectModel(Country.name)
     private readonly countryModel: Model<Country>
   ) {}
@@ -129,6 +131,15 @@ export class ResidenceService {
       await this.developerProfileActivityLogRepository.create({
         developerId: new Types.ObjectId(user.sub),
         activityType: 'New residence submitted',
+        userId: new Types.ObjectId(user.sub),
+        createdAt: new Date(),
+      });
+    }
+
+    if (createResidenceDto.associatedBrandId) {
+      await this.brandActivityLogRepository.create({
+        brandId: new Types.ObjectId(createResidenceDto.associatedBrandId),
+        activityType: 'Residence assigned',
         userId: new Types.ObjectId(user.sub),
         createdAt: new Date(),
       });
@@ -197,6 +208,22 @@ export class ResidenceService {
         userId: new Types.ObjectId(user.sub),
         createdAt: new Date(),
       });
+
+      if (updateResidenceDto.associatedBrandId) {
+        await this.brandActivityLogRepository.create({
+          brandId: new Types.ObjectId(updateResidenceDto.associatedBrandId),
+          activityType: 'Residence assigned',
+          userId: new Types.ObjectId(user.sub),
+          createdAt: new Date(),
+        });
+      } else if (residenceDraft?.associatedBrandId) {
+        await this.brandActivityLogRepository.create({
+          brandId: new Types.ObjectId(updateResidenceDto.associatedBrandId),
+          activityType: 'Residence deleted',
+          userId: new Types.ObjectId(user.sub),
+          createdAt: new Date(),
+        });
+      }
 
       if (residenceDraft) {
         return await this.residenceDraftRepository.update(residenceDraft.id, transformedDto);

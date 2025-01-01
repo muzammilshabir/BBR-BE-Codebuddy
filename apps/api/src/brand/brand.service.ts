@@ -13,20 +13,22 @@ import { DeletionStatus } from '../unit/enum/unit-enum';
 import { ResidenceService } from '../residences/residences.service';
 import { ResidenceStatus } from '../residences/enum/residence-enum';
 import { PipelineStage } from 'mongoose';
+import { BrandActivityLogRepository } from 'src/brand-activity-log/brand-activity-log.repository';
 
 @Injectable()
 export class BrandService {
   constructor(
     private readonly brandRepository: BrandRepository,
     private readonly brandDraftRepository: BrandDraftRepository,
-    private readonly residenceService: ResidenceService
+    private readonly residenceService: ResidenceService,
+    private readonly brandActivityLogRepository: BrandActivityLogRepository
   ) {}
 
   async findAll(listBrandDto: ListBrandDto) {
     try {
       const { status, brandCategoryId, search } = listBrandDto;
       const paginationOptions = PaginationService.prepareOptions(listBrandDto);
-      
+
       const pipeline: PipelineStage[] = [
         // Initial match for non-deleted brands
         {
@@ -63,15 +65,18 @@ export class BrandService {
               {
                 $match: {
                   $expr: {
-                    $in: ['$_id', {
-                      $map: {
-                        input: '$$uploads',
-                        as: 'upload',
-                        in: '$$upload.ImageId'
-                      }
-                    }]
-                  }
-                }
+                    $in: [
+                      '$_id',
+                      {
+                        $map: {
+                          input: '$$uploads',
+                          as: 'upload',
+                          in: '$$upload.ImageId',
+                        },
+                      },
+                    ],
+                  },
+                },
               },
               {
                 $project: {
@@ -80,12 +85,12 @@ export class BrandService {
                   fileKey: 1,
                   url: 1,
                   mimeType: 1,
-                  id: '$_id'
-                }
-              }
+                  id: '$_id',
+                },
+              },
             ],
-            as: 'uploadDocs'
-          }
+            as: 'uploadDocs',
+          },
         },
         {
           $addFields: {
@@ -95,18 +100,21 @@ export class BrandService {
                 as: 'uploadItem',
                 in: {
                   ImageId: {
-                    $arrayElemAt: [{
-                      $filter: {
-                        input: '$uploadDocs',
-                        cond: { $eq: ['$$this._id', '$$uploadItem.ImageId'] }
-                      }
-                    }, 0]
+                    $arrayElemAt: [
+                      {
+                        $filter: {
+                          input: '$uploadDocs',
+                          cond: { $eq: ['$$this._id', '$$uploadItem.ImageId'] },
+                        },
+                      },
+                      0,
+                    ],
                   },
-                  type: '$$uploadItem.type'
-                }
-              }
-            }
-          }
+                  type: '$$uploadItem.type',
+                },
+              },
+            },
+          },
         },
 
         // Lookup brand drafts and their images
@@ -124,14 +132,14 @@ export class BrandService {
                   from: 'brandcategories',
                   localField: 'brandCategoryId',
                   foreignField: '_id',
-                  as: 'brandCategoryId'
-                }
+                  as: 'brandCategoryId',
+                },
               },
               {
                 $unwind: {
                   path: '$brandCategoryId',
-                  preserveNullAndEmptyArrays: true
-                }
+                  preserveNullAndEmptyArrays: true,
+                },
               },
               // Add lookup for draft images
               {
@@ -142,15 +150,18 @@ export class BrandService {
                     {
                       $match: {
                         $expr: {
-                          $in: ['$_id', {
-                            $map: {
-                              input: '$$uploads',
-                              as: 'upload',
-                              in: '$$upload.ImageId'
-                            }
-                          }]
-                        }
-                      }
+                          $in: [
+                            '$_id',
+                            {
+                              $map: {
+                                input: '$$uploads',
+                                as: 'upload',
+                                in: '$$upload.ImageId',
+                              },
+                            },
+                          ],
+                        },
+                      },
                     },
                     {
                       $project: {
@@ -159,12 +170,12 @@ export class BrandService {
                         fileKey: 1,
                         url: 1,
                         mimeType: 1,
-                        id: '$_id'
-                      }
-                    }
+                        id: '$_id',
+                      },
+                    },
                   ],
-                  as: 'uploadDocs'
-                }
+                  as: 'uploadDocs',
+                },
               },
               // Map the upload docs to the upload array
               {
@@ -175,19 +186,22 @@ export class BrandService {
                       as: 'uploadItem',
                       in: {
                         ImageId: {
-                          $arrayElemAt: [{
-                            $filter: {
-                              input: '$uploadDocs',
-                              cond: { $eq: ['$$this._id', '$$uploadItem.ImageId'] }
-                            }
-                          }, 0]
+                          $arrayElemAt: [
+                            {
+                              $filter: {
+                                input: '$uploadDocs',
+                                cond: { $eq: ['$$this._id', '$$uploadItem.ImageId'] },
+                              },
+                            },
+                            0,
+                          ],
                         },
-                        type: '$$uploadItem.type'
-                      }
-                    }
-                  }
-                }
-              }
+                        type: '$$uploadItem.type',
+                      },
+                    },
+                  },
+                },
+              },
             ],
             as: 'brandDrafts',
           },
@@ -205,24 +219,24 @@ export class BrandService {
                     $and: [
                       { $eq: ['$associatedBrandId', '$$brandId'] },
                       { $ne: ['$isDeleted', true] },
-                      { $eq: ['$status', 'active'] }
-                    ]
-                  }
-                }
+                      { $eq: ['$status', 'active'] },
+                    ],
+                  },
+                },
               },
               {
-                $count: 'total'
-              }
+                $count: 'total',
+              },
             ],
-            as: 'residenceCount'
-          }
+            as: 'residenceCount',
+          },
         },
         {
           $addFields: {
             numberOfResidences: {
-              $ifNull: [{ $arrayElemAt: ['$residenceCount.total', 0] }, 0]
-            }
-          }
+              $ifNull: [{ $arrayElemAt: ['$residenceCount.total', 0] }, 0],
+            },
+          },
         },
 
         // Apply sorting
@@ -236,10 +250,7 @@ export class BrandService {
         // Pagination and total count using facet
         {
           $facet: {
-            data: [
-              { $skip: paginationOptions.offset },
-              { $limit: paginationOptions.limit },
-            ],
+            data: [{ $skip: paginationOptions.offset }, { $limit: paginationOptions.limit }],
             totalCount: [{ $count: 'count' }],
           },
         },
@@ -250,17 +261,14 @@ export class BrandService {
             data: 1,
             totalCount: { $arrayElemAt: ['$totalCount.count', 0] },
           },
-        }
+        },
       ];
 
       const result = await this.brandRepository.aggregate(pipeline);
       const count = result[0]?.totalCount || 0;
       const data = result[0]?.data || [];
 
-      const { pagination } = PaginationService.paginate(
-        { rows: data, count },
-        listBrandDto
-      );
+      const { pagination } = PaginationService.paginate({ rows: data, count }, listBrandDto);
 
       return { pagination, brands: data };
     } catch (error) {
@@ -268,17 +276,37 @@ export class BrandService {
     }
   }
 
-  async update(id: string, updateBrandDto: UpdateBrandDto) {
+  async update(id: string, updateBrandDto: UpdateBrandDto, userId: string) {
     const brand = await this.brandRepository.findById(id);
 
     if (!brand) {
       throw new NotFoundException(`Brand with id ${id} not found`);
     }
 
-    return await this.brandRepository.update(id, updateBrandDto);
+    const updatedBrand = await this.brandRepository.update(id, updateBrandDto);
+
+    if (updateBrandDto.name || updateBrandDto.brandCategoryId) {
+      await this.brandActivityLogRepository.create({
+        brandId: new Types.ObjectId(id),
+        activityType: 'General info edited',
+        userId: new Types.ObjectId(userId),
+        createdAt: new Date(),
+      });
+    }
+
+    if (updateBrandDto.upload?.length) {
+      await this.brandActivityLogRepository.create({
+        brandId: new Types.ObjectId(id),
+        activityType: 'Brand assets updated',
+        userId: new Types.ObjectId(userId),
+        createdAt: new Date(),
+      });
+    }
+
+    return updatedBrand;
   }
 
-  async saveAsDraft(createBrandDraftDto: CreateBrandDraftDto) {
+  async saveAsDraft(createBrandDraftDto: CreateBrandDraftDto, userId: string) {
     const { brandId, name, description, brandCategoryId, upload, registeredDate } =
       createBrandDraftDto;
 
@@ -306,6 +334,13 @@ export class BrandService {
         upload,
         status: BrandStatus.DRAFT,
         registeredDate,
+      });
+
+      await this.brandActivityLogRepository.create({
+        brandId: new Types.ObjectId(newBrand.id),
+        activityType: 'Created',
+        userId: new Types.ObjectId(userId),
+        createdAt: new Date(),
       });
 
       return brandDraft;
@@ -338,6 +373,13 @@ export class BrandService {
 
       const updatedDraft = await this.brandDraftRepository.update(existingDraft._id, updatePayload);
 
+      await this.brandActivityLogRepository.create({
+        brandId: new Types.ObjectId(brandId),
+        activityType: 'Created',
+        userId: new Types.ObjectId(userId),
+        createdAt: new Date(),
+      });
+
       return updatedDraft;
     }
 
@@ -352,10 +394,17 @@ export class BrandService {
       registeredDate,
     });
 
+    await this.brandActivityLogRepository.create({
+      brandId: new Types.ObjectId(brandId),
+      activityType: 'Created',
+      userId: new Types.ObjectId(userId),
+      createdAt: new Date(),
+    });
+
     return newDraft;
   }
 
-  async saveAndApplyBrand(createBrandApplyDto: CreateBrandApplyDto) {
+  async saveAndApplyBrand(createBrandApplyDto: CreateBrandApplyDto, userId: string) {
     const { brandId, name, description, brandCategoryId, upload, registeredDate } =
       createBrandApplyDto;
 
@@ -383,6 +432,13 @@ export class BrandService {
         upload,
         status: BrandStatus.ACTIVE, // Draft is also marked as active
         registeredDate,
+      });
+
+      await this.brandActivityLogRepository.create({
+        brandId: new Types.ObjectId(newBrand.id),
+        activityType: 'Approved',
+        userId: new Types.ObjectId(userId),
+        createdAt: new Date(),
       });
 
       return { brand: newBrand, draft: brandDraft };
@@ -422,6 +478,13 @@ export class BrandService {
       // Fetch the updated brand
       const updatedBrand = await this.brandRepository.findById(brandId);
 
+      await this.brandActivityLogRepository.create({
+        brandId: new Types.ObjectId(updatedBrand.id),
+        activityType: 'Approved',
+        userId: new Types.ObjectId(userId),
+        createdAt: new Date(),
+      });
+
       return { brand: updatedBrand, draft: updatedDraft };
     }
 
@@ -447,6 +510,13 @@ export class BrandService {
 
     // Fetch the updated brand
     const updatedBrand = await this.brandRepository.findById(brandId);
+
+    await this.brandActivityLogRepository.create({
+      brandId: new Types.ObjectId(updatedBrand.id),
+      activityType: 'Approved',
+      userId: new Types.ObjectId(userId),
+      createdAt: new Date(),
+    });
 
     return { brand: updatedBrand, draft: newDraft };
   }
@@ -503,10 +573,26 @@ export class BrandService {
       if (updateLatestBrand) {
         await this.brandDraftRepository.update(updateLatestBrand.id, updatePayload);
       }
+
+      await this.brandActivityLogRepository.create({
+        brandId: new Types.ObjectId(brandId),
+        activityType: 'Deleted',
+        userId: new Types.ObjectId(userId),
+        createdAt: new Date(),
+      });
     }
 
-    const updatedResidence = await this.brandRepository.update(brandId, updatePayload);
+    if (updateBrandStatusDto.status === BrandStatus.ARCHIVED) {
+      await this.brandActivityLogRepository.create({
+        brandId: new Types.ObjectId(brandId),
+        activityType: 'Archived',
+        userId: new Types.ObjectId(userId),
+        createdAt: new Date(),
+      });
+    }
 
-    return updatedResidence;
+    const updatedBrand = await this.brandRepository.update(brandId, updatePayload);
+
+    return updatedBrand;
   }
 }

@@ -71,6 +71,7 @@ import { StateModule } from './state/state.module';
 import { ResidenceActivityLogModule } from './residence-activity-log/residence-activity-log.module';
 import { LeadsActivityLogModule } from './leads-activity-log/leads-activity-log.module';
 import { DeveloperProfileActivityLogModule } from './developer-profile-activity-log/developer-profile-activity-log.module';
+import { BrandActivityLogModule } from './brand-activity-log/brand-activity-log.module';
 
 @Module({
   imports: [
@@ -141,7 +142,8 @@ import { DeveloperProfileActivityLogModule } from './developer-profile-activity-
     StateModule,
     ResidenceActivityLogModule,
     LeadsActivityLogModule,
-    DeveloperProfileActivityLogModule
+    DeveloperProfileActivityLogModule,
+    BrandActivityLogModule,
   ],
   controllers: [AppController],
   providers: [
