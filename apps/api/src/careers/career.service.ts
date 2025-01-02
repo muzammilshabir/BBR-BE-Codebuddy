@@ -21,6 +21,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { SendEmailEvent } from 'src/mailer/events/send-email.event';
 import { ApplicationStatus, JobStatus } from './enum/career.enum';
 import { VacancyActivityLogRepository } from 'src/vacancy-activity-log/vacancy-activity-log.repository';
+import { VacancyApplicationActivityLogRepository } from 'src/vacancy-application-activity-log/vacancy-application-activity-log.repository';
 
 @Injectable()
 export class CareerService {
@@ -29,6 +30,7 @@ export class CareerService {
     private readonly vacancyApplicationRepository: VacancyApplicationRepository,
     private readonly vacancyDepartmentRepository: VacancyDepartmentRepository,
     private readonly vacancyActivityLogRepository: VacancyActivityLogRepository,
+    private readonly vacancyApplicationActivityLogRepository: VacancyApplicationActivityLogRepository,
     private readonly eventEmitter: EventEmitter2
   ) {}
 
@@ -119,12 +121,26 @@ export class CareerService {
 
     if (updateVacancyApplicationDto.status === ApplicationStatus.SHORT_LISTED) {
       await this.vacancyActivityLogRepository.create({
-        vacancyId: new Types.ObjectId(existingApplication.vacancy?.id),
+        vacancyId: new Types.ObjectId(existingApplication.vacancy.id),
         activityType: 'Approved',
         userId: new Types.ObjectId(userId),
         createdAt: new Date(),
       });
     }
+
+    let status: string;
+
+    if (updateVacancyApplicationDto.status === ApplicationStatus.REJECTED) {
+      status = 'Rejected';
+    } else {
+      status = 'Status changed';
+    }
+
+    await this.vacancyApplicationActivityLogRepository.create({
+      vacancyId: new Types.ObjectId(existingApplication.vacancy.id),
+      activityType: status,
+      createdAt: new Date(),
+    });
 
     return existingApplication;
   }
@@ -226,6 +242,12 @@ export class CareerService {
     await this.vacancyActivityLogRepository.create({
       vacancyId: new Types.ObjectId(vacancy.id),
       activityType: 'New applicant received',
+      createdAt: new Date(),
+    });
+
+    await this.vacancyApplicationActivityLogRepository.create({
+      vacancyId: new Types.ObjectId(vacancy.id),
+      activityType: 'Created',
       createdAt: new Date(),
     });
 
