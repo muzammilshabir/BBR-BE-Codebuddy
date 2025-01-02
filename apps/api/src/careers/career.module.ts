@@ -14,6 +14,8 @@ import { VacancyDepartment, VacancyDepartmentSchema } from './schema/vacancy-dep
 import { VacancyRepository } from './vacancy.repository';
 import { VacancyDepartmentRepository } from './vacancy-department.repository';
 import { VacancyApplicationRepository } from './vacancy-application.repository';
+import { VacancyActivityLog, VacancyActivityLogSchema } from 'src/vacancy-activity-log/schema/vacancy-activity-log.schema';
+import { VacancyActivityLogRepository } from 'src/vacancy-activity-log/vacancy-activity-log.repository';
 
 @Module({
   imports: [
@@ -24,12 +26,14 @@ import { VacancyApplicationRepository } from './vacancy-application.repository';
     MongooseModule.forFeature([{ name: Vacancy.name, schema: VacancySchema }]),
     MongooseModule.forFeature([{ name: VacancyApplication.name, schema: VacancyApplicationSchema }]),
     MongooseModule.forFeature([{ name: VacancyDepartment.name, schema: VacancyDepartmentSchema }]),
+    MongooseModule.forFeature([{ name: VacancyActivityLog.name, schema: VacancyActivityLogSchema }]),
   ],
   providers: [
     CareerService,
     VacancyRepository,
     VacancyDepartmentRepository,
     VacancyApplicationRepository,
+    VacancyActivityLogRepository,
     CareerSeeder,
     CareerFixture,
   ],

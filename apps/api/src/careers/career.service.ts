@@ -19,19 +19,20 @@ import { CreateJobApplicationDto } from './dto/create-job-application.dto';
 import { UpdateVacancyApplicationDto } from './dto/update-vacancy-application.dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { SendEmailEvent } from 'src/mailer/events/send-email.event';
-import { JobStatus } from './enum/career.enum';
+import { ApplicationStatus, JobStatus } from './enum/career.enum';
+import { VacancyActivityLogRepository } from 'src/vacancy-activity-log/vacancy-activity-log.repository';
 
 @Injectable()
 export class CareerService {
-
   constructor(
     private readonly vacancyRepository: VacancyRepository,
     private readonly vacancyApplicationRepository: VacancyApplicationRepository,
     private readonly vacancyDepartmentRepository: VacancyDepartmentRepository,
-    private readonly eventEmitter: EventEmitter2,
+    private readonly vacancyActivityLogRepository: VacancyActivityLogRepository,
+    private readonly eventEmitter: EventEmitter2
   ) {}
 
-  async createVacancy(createJobPostDto: CreateJobPostDto): Promise<Vacancy> {
+  async createVacancy(createJobPostDto: CreateJobPostDto, userId: string): Promise<Vacancy> {
     const transformedDto = {
       ...createJobPostDto,
       location: createJobPostDto.isRemote ? 'Remote' : createJobPostDto.location,
@@ -39,12 +40,22 @@ export class CareerService {
       department: new Types.ObjectId(createJobPostDto.department),
     };
 
-    return this.vacancyRepository.create(transformedDto);
+    const vacancy = await this.vacancyRepository.create(transformedDto);
+
+    await this.vacancyActivityLogRepository.create({
+      vacancyId: new Types.ObjectId(vacancy.id),
+      activityType: 'Created',
+      userId: new Types.ObjectId(userId),
+      createdAt: new Date(),
+    });
+
+    return vacancy;
   }
 
   async updateVacancy(
     id: string,
     updateVacancyDto: UpdateVacancyDto,
+    userId: string
   ): Promise<Vacancy> {
     const transformedDto: any = {
       ...updateVacancyDto,
@@ -61,12 +72,18 @@ export class CareerService {
     if (!existingVacancy) {
       throw new NotFoundException(`Vacancy with ID ${id} not found`);
     }
+
+    await this.vacancyActivityLogRepository.create({
+      vacancyId: new Types.ObjectId(existingVacancy.id),
+      activityType: 'Details edited',
+      userId: new Types.ObjectId(userId),
+      createdAt: new Date(),
+    });
+
     return existingVacancy;
   }
 
-  async closeVacancy(
-    id: string,
-  ): Promise<Vacancy> {
+  async closeVacancy(id: string, userId: string): Promise<Vacancy> {
     const closeVacancyDto: any = {
       isDeleted: DeletionStatus.DELETED,
       status: JobStatus.ARCHIVED,
@@ -76,36 +93,57 @@ export class CareerService {
     if (!existingVacancy) {
       throw new NotFoundException(`Vacancy with ID ${id} not found`);
     }
+
+    await this.vacancyActivityLogRepository.create({
+      vacancyId: new Types.ObjectId(existingVacancy.id),
+      activityType: 'Closed',
+      userId: new Types.ObjectId(userId),
+      createdAt: new Date(),
+    });
+
     return existingVacancy;
   }
 
   async updateApplication(
     id: string,
     updateVacancyApplicationDto: UpdateVacancyApplicationDto,
+    userId: string
   ): Promise<VacancyApplication> {
-
-    const existingApplication = await this.vacancyApplicationRepository.update(id, updateVacancyApplicationDto);
+    const existingApplication = await this.vacancyApplicationRepository.update(
+      id,
+      updateVacancyApplicationDto
+    );
     if (!existingApplication) {
       throw new NotFoundException(`Job Application with ID ${id} not found`);
     }
+
+    if (updateVacancyApplicationDto.status === ApplicationStatus.SHORT_LISTED) {
+      await this.vacancyActivityLogRepository.create({
+        vacancyId: new Types.ObjectId(existingApplication.vacancy?.id),
+        activityType: 'Approved',
+        userId: new Types.ObjectId(userId),
+        createdAt: new Date(),
+      });
+    }
+
     return existingApplication;
   }
 
   async updateDepartment(
     id: string,
-    updateDepartmentDto: UpdateVacancyDepartmentDto,
+    updateDepartmentDto: UpdateVacancyDepartmentDto
   ): Promise<VacancyDepartment> {
-
-    const existingDepartment = await this.vacancyDepartmentRepository.update(id, updateDepartmentDto);
+    const existingDepartment = await this.vacancyDepartmentRepository.update(
+      id,
+      updateDepartmentDto
+    );
     if (!existingDepartment) {
       throw new NotFoundException(`Department with ID ${id} not found`);
     }
     return existingDepartment;
   }
 
-  async deleteDepartment(
-    id: string,
-  ): Promise<VacancyDepartment> {
+  async deleteDepartment(id: string): Promise<VacancyDepartment> {
     const deleteDepartmentDto: any = {
       isDeleted: DeletionStatus.DELETED,
     };
@@ -118,14 +156,19 @@ export class CareerService {
       });
     }
 
-    const existingDepartment = await this.vacancyDepartmentRepository.update(id, deleteDepartmentDto);
+    const existingDepartment = await this.vacancyDepartmentRepository.update(
+      id,
+      deleteDepartmentDto
+    );
     if (!existingDepartment) {
       throw new NotFoundException(`Department with ID ${id} not found`);
     }
     return existingDepartment;
   }
 
-  async createDepartment(createCareerDepartmentDto: CreateCareerDepartmentDto): Promise<VacancyDepartment> {    
+  async createDepartment(
+    createCareerDepartmentDto: CreateCareerDepartmentDto
+  ): Promise<VacancyDepartment> {
     return this.vacancyDepartmentRepository.create(createCareerDepartmentDto);
   }
 
@@ -134,7 +177,7 @@ export class CareerService {
       isDeleted: DeletionStatus.ACTIVE,
     };
 
-    if(getJobApplicationsDto.vacancyId) {
+    if (getJobApplicationsDto.vacancyId) {
       filter.vacancyId = getJobApplicationsDto.vacancyId;
     }
 
@@ -147,11 +190,7 @@ export class CareerService {
     return { pagination, applications: data };
   }
 
-  private async sendJobApplicationEmail(
-    email: string,
-    name: string,
-    vacancy: string,
-  ) {
+  private async sendJobApplicationEmail(email: string, name: string, vacancy: string) {
     this.eventEmitter.emit(
       SendEmailEvent.event,
       new SendEmailEvent({
@@ -166,19 +205,30 @@ export class CareerService {
     );
   }
 
-  async createApplication(createJobApplicationDto: CreateJobApplicationDto): Promise<VacancyApplication> {
+  async createApplication(
+    createJobApplicationDto: CreateJobApplicationDto
+  ): Promise<VacancyApplication> {
     const transformedDto = {
       ...createJobApplicationDto,
       resume: new Types.ObjectId(createJobApplicationDto.resume),
       vacancy: new Types.ObjectId(createJobApplicationDto.vacancy),
     };
-    const vacancy = await this.vacancyRepository.findById(createJobApplicationDto.vacancy.toString());
+    const vacancy = await this.vacancyRepository.findById(
+      createJobApplicationDto.vacancy.toString()
+    );
     const application = await this.vacancyApplicationRepository.create(transformedDto);
     await this.sendJobApplicationEmail(
       createJobApplicationDto.email,
       createJobApplicationDto.fullName,
-      vacancy.title,
+      vacancy.title
     );
+
+    await this.vacancyActivityLogRepository.create({
+      vacancyId: new Types.ObjectId(vacancy.id),
+      activityType: 'New applicant received',
+      createdAt: new Date(),
+    });
+
     return application;
   }
 
@@ -189,7 +239,7 @@ export class CareerService {
       postedOn: { $lt: new Date() },
     };
 
-    if(listVacanciesDto.search) {
+    if (listVacanciesDto.search) {
       filter.$or = [
         { title: { $regex: listVacanciesDto.search, $options: 'i' } },
         { description: { $regex: listVacanciesDto.search, $options: 'i' } },
@@ -206,10 +256,9 @@ export class CareerService {
   }
 
   async adminListVacancies(listVacanciesDto: ListVacanciesDto) {
-    const filter: any = {
-    };
+    const filter: any = {};
 
-    if(listVacanciesDto.search) {
+    if (listVacanciesDto.search) {
       filter.$or = [
         { title: { $regex: listVacanciesDto.search, $options: 'i' } },
         { description: { $regex: listVacanciesDto.search, $options: 'i' } },

@@ -6,14 +6,27 @@ import { CareerService } from './career.service';
 import { GetJobApplicationsDto, getJobApplicationsSchema } from './dto/get-job-applications.dto';
 import { ListVacanciesDto, listVacanciesSchema } from './dto/list-vacancies.dto';
 import { CreateJobPostDto, createJobPostDtoSchema } from './dto/create-job-post.dto';
-import { CreateCareerDepartmentDto, createCareerDepartmentDtoSchema } from './dto/create-career-department.dto';
+import {
+  CreateCareerDepartmentDto,
+  createCareerDepartmentDtoSchema,
+} from './dto/create-career-department.dto';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { UserRole } from 'src/users/enum/user.enum';
 import { UpdateVacancyDto, updateVacancyDtoSchema } from './dto/update-vacancy.dto';
-import { UpdateVacancyDepartmentDto, updateVacancyDepartmentDtoSchema } from './dto/update-vacancy-department.dto';
+import {
+  UpdateVacancyDepartmentDto,
+  updateVacancyDepartmentDtoSchema,
+} from './dto/update-vacancy-department.dto';
 import { Public } from 'src/auth/decorators/public.decorator';
-import { CreateJobApplicationDto, createJobApplicationDtoSchema } from './dto/create-job-application.dto';
-import { UpdateVacancyApplicationDto, updateVacancyApplicationDtoSchema } from './dto/update-vacancy-application.dto';
+import {
+  CreateJobApplicationDto,
+  createJobApplicationDtoSchema,
+} from './dto/create-job-application.dto';
+import {
+  UpdateVacancyApplicationDto,
+  updateVacancyApplicationDtoSchema,
+} from './dto/update-vacancy-application.dto';
+import { GetCurrentUserId } from 'src/auth/decorators/getCurrentUserId.decorator';
 
 @ApiTags('Career')
 @Controller('career')
@@ -29,8 +42,9 @@ export class CareerController {
   @UsePipes(new JoiValidationPipe(createJobPostDtoSchema, 'body'))
   async createVacancy(
     @Body() createJobPostDto: CreateJobPostDto,
-    ) {
-    const result = await this.careerService.createVacancy(createJobPostDto);
+    @GetCurrentUserId() userId: string
+  ) {
+    const result = await this.careerService.createVacancy(createJobPostDto, userId);
     return ResponseService.buildResponse({ result }, 'Successfully created new Job Post!');
   }
 
@@ -41,11 +55,12 @@ export class CareerController {
   @ApiBearerAuth()
   @Roles(UserRole.ADMIN)
   @UsePipes(new JoiValidationPipe(createCareerDepartmentDtoSchema, 'body'))
-  async createDepartment(
-    @Body() createCareerDepartmentDto: CreateCareerDepartmentDto,
-    ) {
+  async createDepartment(@Body() createCareerDepartmentDto: CreateCareerDepartmentDto) {
     const result = await this.careerService.createDepartment(createCareerDepartmentDto);
-    return ResponseService.buildResponse({ result }, 'Successfully created new Careers Department!');
+    return ResponseService.buildResponse(
+      { result },
+      'Successfully created new Careers Department!'
+    );
   }
 
   @Put('/admin/vacancy/:id')
@@ -58,8 +73,9 @@ export class CareerController {
   async updateVacancy(
     @Param('id') id: string,
     @Body() updateVacancyDto: UpdateVacancyDto,
+    @GetCurrentUserId() userId: string
   ) {
-    const vacancy = await this.careerService.updateVacancy(id, updateVacancyDto);
+    const vacancy = await this.careerService.updateVacancy(id, updateVacancyDto, userId);
     return ResponseService.buildResponse({ vacancy }, 'Vacancy updated successfully');
   }
 
@@ -73,8 +89,13 @@ export class CareerController {
   async updateDepartment(
     @Param('id') id: string,
     @Body() updateVacancyDepartmentDto: UpdateVacancyDepartmentDto,
+    @GetCurrentUserId() userId: string
   ) {
-    const department = await this.careerService.updateVacancy(id, updateVacancyDepartmentDto);
+    const department = await this.careerService.updateVacancy(
+      id,
+      updateVacancyDepartmentDto,
+      userId
+    );
     return ResponseService.buildResponse({ department }, 'Vacancy Department updated successfully');
   }
 
@@ -88,8 +109,13 @@ export class CareerController {
   async updateApplication(
     @Param('id') id: string,
     @Body() updateVacancyApplicationDto: UpdateVacancyApplicationDto,
+    @GetCurrentUserId() userId: string
   ) {
-    const application = await this.careerService.updateApplication(id, updateVacancyApplicationDto);
+    const application = await this.careerService.updateApplication(
+      id,
+      updateVacancyApplicationDto,
+      userId
+    );
     return ResponseService.buildResponse({ application }, 'Job Application updated successfully');
   }
 
@@ -99,10 +125,8 @@ export class CareerController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.ADMIN)
-  async closeVacancy(
-    @Param('id') id: string,
-  ) {
-    const vacancy = await this.careerService.closeVacancy(id);
+  async closeVacancy(@Param('id') id: string, @GetCurrentUserId() userId: string) {
+    const vacancy = await this.careerService.closeVacancy(id, userId);
     return ResponseService.buildResponse({ vacancy }, 'Vacancy Closed successfully');
   }
 
@@ -112,9 +136,7 @@ export class CareerController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.ADMIN)
-  async deleteDepartment(
-    @Param('id') id: string,
-  ) {
+  async deleteDepartment(@Param('id') id: string) {
     const department = await this.careerService.deleteDepartment(id);
     return ResponseService.buildResponse({ department }, 'Department deleted successfully');
   }
@@ -126,9 +148,7 @@ export class CareerController {
   @ApiBearerAuth()
   @Roles(UserRole.ADMIN)
   @UsePipes(new JoiValidationPipe(getJobApplicationsSchema, 'query'))
-  async getJobApplications(
-    @Query() query: GetJobApplicationsDto,
-    ) {
+  async getJobApplications(@Query() query: GetJobApplicationsDto) {
     const result = await this.careerService.getJobApplications(query);
     return ResponseService.buildResponse({ result });
   }
@@ -140,9 +160,7 @@ export class CareerController {
   @ApiBearerAuth()
   @Roles(UserRole.ADMIN)
   @UsePipes(new JoiValidationPipe(listVacanciesSchema, 'query'))
-  async adminListVacancies(
-    @Query() query: ListVacanciesDto,
-    ) {
+  async adminListVacancies(@Query() query: ListVacanciesDto) {
     const result = await this.careerService.adminListVacancies(query);
     return ResponseService.buildResponse({ result });
   }
@@ -153,9 +171,7 @@ export class CareerController {
   })
   @Public()
   @UsePipes(new JoiValidationPipe(createJobApplicationDtoSchema, 'body'))
-  async createApplication(
-    @Body() createJobApplicationDto: CreateJobApplicationDto,
-    ) {
+  async createApplication(@Body() createJobApplicationDto: CreateJobApplicationDto) {
     const result = await this.careerService.createApplication(createJobApplicationDto);
     return ResponseService.buildResponse({ result }, 'Successfully Applied for Job!');
   }

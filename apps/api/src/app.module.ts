@@ -72,6 +72,7 @@ import { ResidenceActivityLogModule } from './residence-activity-log/residence-a
 import { LeadsActivityLogModule } from './leads-activity-log/leads-activity-log.module';
 import { DeveloperProfileActivityLogModule } from './developer-profile-activity-log/developer-profile-activity-log.module';
 import { BrandActivityLogModule } from './brand-activity-log/brand-activity-log.module';
+import { VacancyActivityLogModule } from './vacancy-activity-log/vacancy-activity-log.module';
 
 @Module({
   imports: [
@@ -144,6 +145,7 @@ import { BrandActivityLogModule } from './brand-activity-log/brand-activity-log.
     LeadsActivityLogModule,
     DeveloperProfileActivityLogModule,
     BrandActivityLogModule,
+    VacancyActivityLogModule
   ],
   controllers: [AppController],
   providers: [
