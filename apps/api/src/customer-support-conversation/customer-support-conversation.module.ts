@@ -13,6 +13,11 @@ import {
   DeveloperProfileActivityLog,
   DeveloperProfileActivityLogSchema,
 } from 'src/developer-profile-activity-log/schema/developer-profile-activity-log.schema';
+import {
+  SupportActivityLog,
+  SupportActivityLogSchema,
+} from 'src/support-activity-log/schema/support-activity-log.schema';
+import { SupportActivityLogRepository } from 'src/support-activity-log/support-activity-log.repository';
 
 @Module({
   imports: [
@@ -22,6 +27,9 @@ import {
     MongooseModule.forFeature([
       { name: DeveloperProfileActivityLog.name, schema: DeveloperProfileActivityLogSchema },
     ]),
+    MongooseModule.forFeature([
+      { name: SupportActivityLog.name, schema: SupportActivityLogSchema },
+    ]),
     CustomerSupportModule,
   ],
   controllers: [CustomerSupportConversationController],
@@ -29,6 +37,7 @@ import {
     CustomerSupportConversationService,
     CustomerSupportConversationRepository,
     DeveloperProfileActivityLogRepository,
+    SupportActivityLogRepository,
   ],
   exports: [CustomerSupportConversationService],
 })

@@ -16,6 +16,8 @@ import { JwtPayloadType } from '../auth/type/jwt-payload.type';
 import { UpdateCalendlyDetailsDto } from './dto/update-calendly-details.dto';
 import { DeveloperProfileActivityLogRepository } from 'src/developer-profile-activity-log/developer-profile-activity-log.repository';
 import { CustomerSupportStatus } from './enum/customer-support-enum';
+import { SupportActivityLogRepository } from 'src/support-activity-log/support-activity-log.repository';
+import { UserRepository } from 'src/users/user.repository';
 
 @Injectable()
 export class CustomerSupportService {
@@ -23,7 +25,9 @@ export class CustomerSupportService {
     private readonly customerSupportRepository: CustomerSupportRepository,
     private readonly residenceRepository: ResidenceRepository,
     private readonly unitRepository: UnitRepository,
-    private readonly developerProfileActivityLogRepository: DeveloperProfileActivityLogRepository
+    private readonly developerProfileActivityLogRepository: DeveloperProfileActivityLogRepository,
+    private readonly supportActivityLogRepository: SupportActivityLogRepository,
+    private readonly userRepository: UserRepository
   ) {}
   async getDeveloperId(createCustomerSupportDto: CreateCustomerSupportDto) {
     if (createCustomerSupportDto.developerId) {
@@ -96,6 +100,13 @@ export class CustomerSupportService {
     await this.developerProfileActivityLogRepository.create({
       developerId: await this.getDeveloperId(createCustomerSupportDto),
       activityType: 'Support request submitted',
+      userId: await this.getDeveloperId(createCustomerSupportDto),
+      createdAt: new Date(),
+    });
+
+    await this.supportActivityLogRepository.create({
+      supportId: new Types.ObjectId(support.id),
+      activityType: 'Submitted',
       userId: await this.getDeveloperId(createCustomerSupportDto),
       createdAt: new Date(),
     });
@@ -204,6 +215,33 @@ export class CustomerSupportService {
       transformedDto.assignedTo = updateCustomerSupportDto.assignedTo.map(
         (id) => new Types.ObjectId(id)
       );
+      for (const assignee of updateCustomerSupportDto.assignedTo) {
+        const user = await this.userRepository.findById(assignee.toString());
+
+        if (user) {
+          await this.supportActivityLogRepository.create({
+            supportId: new Types.ObjectId(customerSupportId),
+            activityType: 'Assigned',
+            details: {
+              assigneeId: assignee.toString(),
+              assignee: user.fullName,
+            },
+            userId: new Types.ObjectId(userId),
+            createdAt: new Date(),
+          });
+        }
+      }
+    }
+
+    const support = await this.customerSupportRepository.findById(customerSupportId);
+
+    if (support && updateCustomerSupportDto.priority !== support?.id) {
+      await this.supportActivityLogRepository.create({
+        supportId: new Types.ObjectId(customerSupportId),
+        activityType: 'Priority changed',
+        userId: new Types.ObjectId(userId),
+        createdAt: new Date(),
+      });
     }
 
     const updatedSupport = await this.customerSupportRepository.update(
@@ -215,6 +253,13 @@ export class CustomerSupportService {
       await this.developerProfileActivityLogRepository.create({
         developerId: new Types.ObjectId(userId),
         activityType: 'Support request solved',
+        userId: new Types.ObjectId(userId),
+        createdAt: new Date(),
+      });
+
+      await this.supportActivityLogRepository.create({
+        supportId: new Types.ObjectId(customerSupportId),
+        activityType: 'Solved',
         userId: new Types.ObjectId(userId),
         createdAt: new Date(),
       });
@@ -257,6 +302,13 @@ export class CustomerSupportService {
     await this.developerProfileActivityLogRepository.create({
       developerId: new Types.ObjectId(userId),
       activityType: 'Support request deleted',
+      userId: new Types.ObjectId(userId),
+      createdAt: new Date(),
+    });
+
+    await this.supportActivityLogRepository.create({
+      supportId: new Types.ObjectId(customerSupportId),
+      activityType: 'Deleted',
       userId: new Types.ObjectId(userId),
       createdAt: new Date(),
     });

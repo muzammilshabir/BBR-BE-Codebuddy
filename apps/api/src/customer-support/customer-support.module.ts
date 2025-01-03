@@ -10,7 +10,17 @@ import { Unit, UnitSchema } from 'src/unit/schema/unit.schema';
 import { UnitRepository } from 'src/unit/unit.repository';
 import { CounterModule } from '../counter/counter.module';
 import { DeveloperProfileActivityLogRepository } from 'src/developer-profile-activity-log/developer-profile-activity-log.repository';
-import { DeveloperProfileActivityLog, DeveloperProfileActivityLogSchema } from 'src/developer-profile-activity-log/schema/developer-profile-activity-log.schema';
+import {
+  DeveloperProfileActivityLog,
+  DeveloperProfileActivityLogSchema,
+} from 'src/developer-profile-activity-log/schema/developer-profile-activity-log.schema';
+import {
+  SupportActivityLog,
+  SupportActivityLogSchema,
+} from 'src/support-activity-log/schema/support-activity-log.schema';
+import { SupportActivityLogRepository } from 'src/support-activity-log/support-activity-log.repository';
+import { User, UserSchema } from 'src/users/schema/user.schema';
+import { UserRepository } from 'src/users/user.repository';
 
 @Module({
   imports: [
@@ -20,6 +30,10 @@ import { DeveloperProfileActivityLog, DeveloperProfileActivityLogSchema } from '
     MongooseModule.forFeature([
       { name: DeveloperProfileActivityLog.name, schema: DeveloperProfileActivityLogSchema },
     ]),
+    MongooseModule.forFeature([
+      { name: SupportActivityLog.name, schema: SupportActivityLogSchema },
+    ]),
+    MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
     CounterModule,
   ],
   providers: [
@@ -28,6 +42,8 @@ import { DeveloperProfileActivityLog, DeveloperProfileActivityLogSchema } from '
     ResidenceRepository,
     UnitRepository,
     DeveloperProfileActivityLogRepository,
+    SupportActivityLogRepository,
+    UserRepository,
   ],
   exports: [CustomerSupportService],
   controllers: [CustomerSupportController],

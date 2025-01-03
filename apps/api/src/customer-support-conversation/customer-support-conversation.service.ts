@@ -6,6 +6,7 @@ import { CustomerSupportConversationRepository } from './customer-support-conver
 import { ListConversationDto } from './dto/list-conversation.dto';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
 import { DeveloperProfileActivityLogRepository } from 'src/developer-profile-activity-log/developer-profile-activity-log.repository';
+import { SupportActivityLogRepository } from 'src/support-activity-log/support-activity-log.repository';
 
 @Injectable()
 export class CustomerSupportConversationService {
@@ -13,6 +14,7 @@ export class CustomerSupportConversationService {
     private readonly conversationRepository: CustomerSupportConversationRepository,
     private readonly customerSupportService: CustomerSupportService,
     private readonly developerProfileActivityLogRepository: DeveloperProfileActivityLogRepository,
+    private readonly supportActivityLogRepository: SupportActivityLogRepository,
   ) {}
 
   async create(createConversationDto: CreateConversationDto, userId: string) {
@@ -32,6 +34,13 @@ export class CustomerSupportConversationService {
     await this.developerProfileActivityLogRepository.create({
       developerId: new Types.ObjectId(userId),
       activityType: 'Support request responded',
+      userId: new Types.ObjectId(userId),
+      createdAt: new Date(),
+    });
+
+    await this.supportActivityLogRepository.create({
+      supportId: new Types.ObjectId(createConversationDto.customerSupportId),
+      activityType: 'Responded',
       userId: new Types.ObjectId(userId),
       createdAt: new Date(),
     });

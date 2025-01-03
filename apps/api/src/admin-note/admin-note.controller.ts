@@ -9,6 +9,7 @@ import { UserRole } from '../users/enum/user.enum';
 import { ListAdminNoteDto } from './dto/list-admin-note.dto';
 import { listAdminNoteSchema } from './dto/list-admin-note.dto';
 import { AdminNoteService } from './admin-note.service';
+import { GetCurrentUserId } from 'src/auth/decorators/getCurrentUserId.decorator';
 
 @ApiTags('Admin Note')
 @Controller('admin-note')
@@ -20,8 +21,8 @@ export class AdminNoteController {
   @ApiOperation({ summary: 'Create admin note' })
   @Roles(UserRole.ADMIN)
   @UsePipes(new JoiValidationPipe(createAdminNoteSchema, 'body'))
-  async create(@Body() createAdminNoteDto: CreateAdminNoteDto) {
-    const adminNote = await this.adminNoteService.create(createAdminNoteDto);
+  async create(@Body() createAdminNoteDto: CreateAdminNoteDto, @GetCurrentUserId() userId: string) {
+    const adminNote = await this.adminNoteService.create(createAdminNoteDto, userId);
     return ResponseService.buildResponse({ adminNote }, 'Admin note created successfully');
   }
 
@@ -29,8 +30,12 @@ export class AdminNoteController {
   @ApiOperation({ summary: 'Update admin note' })
   @Roles(UserRole.ADMIN)
   @UsePipes(new JoiValidationPipe(updateAdminNoteSchema, 'body'))
-  async update(@Param('id') id: string, @Body() updateAdminNoteDto: UpdateAdminNoteDto) {
-    const adminNote = await this.adminNoteService.update(id, updateAdminNoteDto);
+  async update(
+    @Param('id') id: string,
+    @Body() updateAdminNoteDto: UpdateAdminNoteDto,
+    @GetCurrentUserId() userId: string
+  ) {
+    const adminNote = await this.adminNoteService.update(id, updateAdminNoteDto, userId);
     return ResponseService.buildResponse({ adminNote }, 'Admin note updated successfully');
   }
 

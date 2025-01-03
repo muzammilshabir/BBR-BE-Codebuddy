@@ -6,26 +6,51 @@ import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.s
 import { NotFoundException } from '@bbr/api-core/modules/exceptions';
 import { UpdateAdminNoteDto } from './dto/update-admin-note.dto';
 import { ListAdminNoteDto } from './dto/list-admin-note.dto';
+import { SupportActivityLogRepository } from 'src/support-activity-log/support-activity-log.repository';
 
 @Injectable()
 export class AdminNoteService {
-  constructor(private readonly adminNoteRepository: AdminNoteRepository) {}
+  constructor(
+    private readonly adminNoteRepository: AdminNoteRepository,
+    private readonly supportActivityLogRepository: SupportActivityLogRepository
+  ) {}
 
-  async create(createAdminNoteDto: CreateAdminNoteDto) {
+  async create(createAdminNoteDto: CreateAdminNoteDto, userId: string) {
     const adminNote = {
       ...createAdminNoteDto,
       customerSupportId: new Types.ObjectId(createAdminNoteDto.customerSupportId),
     };
-    return this.adminNoteRepository.create(adminNote);
+    const note = await this.adminNoteRepository.create(adminNote);
+
+    await this.supportActivityLogRepository.create({
+      supportId: new Types.ObjectId(createAdminNoteDto.customerSupportId),
+      activityType: 'Note created / edited',
+      details: { noteId: note.id },
+      userId: new Types.ObjectId(userId),
+      createdAt: new Date(),
+    });
+
+    return note;
   }
 
-  async update(id: string, updateData: UpdateAdminNoteDto) {
+  async update(id: string, updateData: UpdateAdminNoteDto, userId: string) {
     const adminNote = await this.adminNoteRepository.findById(id);
+
     if (!adminNote) {
       throw new NotFoundException(`Admin note with ID ${id} not found`);
     }
 
-    return this.adminNoteRepository.update(id, updateData);
+    const updatedNote = await this.adminNoteRepository.update(id, updateData);
+
+    await this.supportActivityLogRepository.create({
+      supportId: new Types.ObjectId(adminNote.customerSupportId),
+      activityType: 'Note created / edited',
+      details: { noteId: id },
+      userId: new Types.ObjectId(userId),
+      createdAt: new Date(),
+    });
+
+    return updatedNote;
   }
 
   async getAdminNoteById(id: string) {
