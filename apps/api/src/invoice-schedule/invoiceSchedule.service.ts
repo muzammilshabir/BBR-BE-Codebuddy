@@ -140,6 +140,9 @@ export class InvoiceScheduleService {
     let daysToAdd;
 
     switch (renewalFrequency) {
+      case RenewalFrequency.DAY:
+        daysToAdd = 1;
+        break;
       case RenewalFrequency.MONTHLY:
         daysToAdd = 30;
         break;
@@ -310,7 +313,39 @@ export class InvoiceScheduleService {
       );
     }
 
-    return await this.invoiceScheduleModel.create(invoiceScheduleData);
+    const invoiceSchedule = await this.invoiceScheduleModel.create(invoiceScheduleData);
+
+    if (
+      invoiceSchedule.status === InvoiceScheduleStatus.ACTIVE &&
+      dayjs(invoiceSchedule.issueDate).tz('Asia/Kolkata').startOf('day').isSame(todayStartPST)
+    ) {
+      // Create invoice immediately
+      const dueDate = dayjs(invoiceSchedule.dueDate).tz('Asia/Kolkata');
+      let invoice = await this.invoiceService.createInvoiceFromSchedule(
+        invoiceSchedule,
+        invoiceSchedule.issueDate,
+        dueDate.toDate(),
+        invoiceSchedule.paymentMethodId.toString()
+      );
+      invoice = await this.invoiceModel.findById(invoice._id);
+
+      // calculate next invoice issue date
+      const nextInvoiceIssueDate = this.calculateNextInvoiceIssueDate(
+        invoiceSchedule.issueDate,
+        invoiceSchedule.renewalFrequency,
+        invoiceSchedule.reminderDays
+      );
+      // update invoice schedule
+      await this.invoiceScheduleModel.findByIdAndUpdate(invoiceSchedule._id, {
+        nextInvoiceIssueDate,
+        currentInvoiceId: invoice._id,
+      });
+
+      // Attempt to pay the invoice
+      await this.invoiceService.attemptAutoPayment(invoice);
+    }
+
+    return invoiceSchedule;
   }
 
   async getInvoiceSchedule(developerId: string, residenceId: string) {
