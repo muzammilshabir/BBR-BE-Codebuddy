@@ -34,6 +34,7 @@ import {
   GetBuyerPaymentMethodsDto,
   getBuyerPaymentMethodsDtoSchema,
 } from './dto/get-buyer-payment-methods.dto';
+import { ListInvoicesV2Dto, listInvoicesV2Schema } from './dto/list-invoices-v2.dto';
 
 @ApiTags('Payment')
 @Controller('payment')
@@ -396,5 +397,17 @@ export class PaymentController {
       { paymentMethods: paymentMethods.data },
       'Buyer Payment Methods retrieved successfully'
     );
+  }
+
+  @Get('/invoices/v2')
+  @ApiOperation({
+    summary: 'Get Invoices V2',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
+  @UsePipes(new JoiValidationPipe(listInvoicesV2Schema, 'query'))
+  async getInvoicesV2(@Query() query: ListInvoicesV2Dto) {
+    const invoices = await this.paymentService.getInvoicesV2(query);
+    return ResponseService.buildResponse(invoices, 'Invoices retrieved successfully');
   }
 }

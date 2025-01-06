@@ -60,6 +60,13 @@ export class Invoice extends Document {
   subTotal: number;
 
   @Prop({
+    type: Number,
+    example: 500000,
+    default: 0,
+  })
+  total: number;
+
+  @Prop({
     type: String,
     example: 'Payment is required by mm/yy',
   })

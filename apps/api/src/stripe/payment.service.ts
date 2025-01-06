@@ -35,6 +35,7 @@ import { Invoice } from './schema/invoice.schema';
 import { PdfService } from 'src/pdf/pdf.service';
 import { UploadService } from 'src/upload/upload.service';
 import { CreatePaymentMethodDto } from './dto/create-payment.dto';
+import { ListInvoicesV2Dto } from './dto/list-invoices-v2.dto';
 
 @Injectable()
 export class PaymentService {
@@ -1218,5 +1219,105 @@ export class PaymentService {
     }
 
     return this.paymentMethodRepository.findAll({ customerId: user.id });
+  }
+
+  async getInvoicesV2(listInvoicesDto: ListInvoicesV2Dto) {
+    const { status, search, residenceId, developerId } = listInvoicesDto;
+    const matchStage: any = {
+      isDeleted: false,
+    };
+
+    if (status) {
+      matchStage.status = status;
+    } else {
+      matchStage.status = {
+        $in: [
+          InvoiceStatus.DRAFT,
+          InvoiceStatus.PENDING,
+          InvoiceStatus.PAID,
+          InvoiceStatus.CANCELED,
+          InvoiceStatus.FAILED,
+          InvoiceStatus.REFUNDED,
+        ],
+      };
+    }
+
+    if (residenceId) {
+      matchStage.residenceId = new Types.ObjectId(residenceId);
+    }
+
+    if (developerId) {
+      matchStage.developerId = new Types.ObjectId(developerId);
+    }
+
+    const pipeline = [
+      {
+        $lookup: {
+          from: 'residences',
+          localField: 'residenceId',
+          foreignField: '_id',
+          as: 'residence',
+        },
+      },
+      {
+        $unwind: {
+          path: '$residence',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $match: matchStage,
+      },
+    ] as any;
+
+    if (search) {
+      pipeline.push({
+        $match: {
+          $or: [
+            { note: { $regex: search, $options: 'i' } },
+            { membershipType: { $regex: search, $options: 'i' } },
+            { 'residence.name': { $regex: search, $options: 'i' } },
+            { paymentMethodId: { $regex: search, $options: 'i' } },
+          ],
+        },
+      });
+    }
+
+    pipeline.push({
+      $sort: {
+        createdAt: -1,
+      },
+    });
+    pipeline.push({
+      $project: {
+        issuedAt: 1,
+        invoiceNumber: 1,
+        dueAt: 1,
+        residenceId: 1,
+        residenceName: '$residence.name',
+        notes: 1,
+        total: 1,
+        hostedInvoiceUrl: 1,
+        pdfLink: 1,
+        status: 1,
+      },
+    });
+
+    const countPipeline = [...pipeline, { $count: 'total' }];
+    const dataPipeline = [
+      ...pipeline,
+      { $skip: (listInvoicesDto.page - 1) * listInvoicesDto.limit },
+      { $limit: listInvoicesDto.limit },
+    ];
+
+    const [countResult, data] = await Promise.all([
+      this.invoiceRepository.aggregate(countPipeline),
+      this.invoiceRepository.aggregate(dataPipeline),
+    ]);
+
+    const count = countResult[0]?.total || 0;
+    const { pagination } = PaginationService.paginate({ rows: data, count }, listInvoicesDto);
+
+    return { pagination, invoices: data };
   }
 }
