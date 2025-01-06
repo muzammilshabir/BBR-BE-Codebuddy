@@ -83,9 +83,6 @@ export class InvoiceSchedule extends Document {
   @Prop({ type: Number, required: true })
   gracePeriodDays: number;
 
-  @Prop({ type: Boolean, default: false })
-  publish: boolean;
-
   @Prop({ type: Date })
   nextInvoiceIssueDate: Date;
 

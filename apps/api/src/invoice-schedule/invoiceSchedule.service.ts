@@ -312,4 +312,31 @@ export class InvoiceScheduleService {
 
     return await this.invoiceScheduleModel.create(invoiceScheduleData);
   }
+
+  async getInvoiceSchedule(developerId: string, residenceId: string) {
+    const invoiceSchedules = await this.invoiceScheduleModel.find({
+      developerId: new Types.ObjectId(developerId),
+      residenceId: new Types.ObjectId(residenceId),
+      status: {
+        $in: [InvoiceScheduleStatus.DRAFT, InvoiceScheduleStatus.ACTIVE],
+      },
+    });
+
+    if (invoiceSchedules.length > 0) {
+      const draft = invoiceSchedules.find(
+        (schedule) => schedule.status === InvoiceScheduleStatus.DRAFT
+      );
+      if (draft) {
+        return draft;
+      } else {
+        const active = invoiceSchedules.find(
+          (schedule) => schedule.status === InvoiceScheduleStatus.ACTIVE
+        );
+        if (active) {
+          return active;
+        }
+      }
+    }
+    return null;
+  }
 }
