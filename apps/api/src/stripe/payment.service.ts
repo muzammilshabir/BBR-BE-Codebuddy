@@ -34,6 +34,7 @@ import { SendEmailEvent } from 'src/mailer/events/send-email.event';
 import { Invoice } from './schema/invoice.schema';
 import { PdfService } from 'src/pdf/pdf.service';
 import { UploadService } from 'src/upload/upload.service';
+import { CreatePaymentMethodDto } from './dto/create-payment.dto';
 
 @Injectable()
 export class PaymentService {
@@ -1168,5 +1169,44 @@ export class PaymentService {
       throw new Error('Invoice is not paid');
     }
     return this.refundRepository.create(transformedDto);
+  }
+
+  async createCustomerPaymentMethod(
+    userId: string,
+    createPaymentMethodDto: CreatePaymentMethodDto
+  ) {
+    const user = await this.userService.findById(userId);
+    let stripeCustomerId = user.stripeCustomerId;
+
+    if (!stripeCustomerId) {
+      const customer = await this.stripeService.createCustomer({
+        email: user.email,
+        name: user.fullName,
+      });
+      stripeCustomerId = customer.id;
+      await this.userService.updateSellerStripeCustomerId(userId, stripeCustomerId);
+    }
+
+    const stripePaymentMethod = await this.stripeService.createPaymentMethod(
+      stripeCustomerId,
+      createPaymentMethodDto.pmTokenId
+    );
+
+    // Save payment method details to database
+    const paymentMethodData = {
+      customerId: new Types.ObjectId(userId),
+      paymentMethodId: stripePaymentMethod.id,
+      last4Digit: stripePaymentMethod.card.last4,
+      brand: stripePaymentMethod.card.brand,
+      expiryMonth:
+        stripePaymentMethod.card.exp_month < 10
+          ? `0${stripePaymentMethod.card.exp_month}`
+          : `${stripePaymentMethod.card.exp_month}`,
+      expiryYear: stripePaymentMethod.card.exp_year,
+    };
+
+    await this.paymentMethodRepository.create(paymentMethodData);
+
+    return stripePaymentMethod;
   }
 }

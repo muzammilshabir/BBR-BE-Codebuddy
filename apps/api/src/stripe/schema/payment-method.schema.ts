@@ -21,6 +21,30 @@ export class PaymentMethod extends Document {
   })
   mandateId: string;
 
+  @Prop({
+    type: String,
+    example: '1234',
+  })
+  last4Digit: string;
+
+  @Prop({
+    type: String,
+    example: 'Visa',
+  })
+  brand: string;
+
+  @Prop({
+    type: String,
+    example: '12',
+  })
+  expiryMonth: string;
+
+  @Prop({
+    type: String,
+    example: '2025',
+  })
+  expiryYear: string;
+
   @Prop({ type: Date })
   createdAt: Date;
 

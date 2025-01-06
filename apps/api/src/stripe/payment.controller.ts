@@ -27,11 +27,18 @@ import { UpdateInvoiceItemDto, updateInvoiceItemsDtoSchema } from './dto/update-
 import { UpdateInvoiceDto, updateInvoiceDtoSchema } from './dto/update-invoice.dto';
 import { RefundPaymentDto, refundPaymentDtoSchema } from './dto/refund-payment.dto';
 import { ListTransactionsDto, listTransactionsDtoSchema } from './dto/list-transactions.dto';
+import { CreatePaymentMethodDto } from './dto/create-payment.dto';
+import { UserService } from 'src/users/user.service';
+import { StripeService } from 'src/stripe/stripe.service';
 
 @ApiTags('Payment')
 @Controller('payment')
 export class PaymentController {
-  constructor(private readonly paymentService: PaymentService) {}
+  constructor(
+    private readonly paymentService: PaymentService,
+    private readonly userService: UserService,
+    private readonly stripeService: StripeService
+  ) {}
   @Get('/invoices/')
   @ApiOperation({
     summary: 'Get Customer Invoices',
@@ -353,5 +360,22 @@ export class PaymentController {
       { residence },
       'Default Residence Payment Method unset successfully'
     );
+  }
+
+  @Post('/payment-method-v2')
+  @ApiOperation({
+    summary: 'Create Payment Method for Customer',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
+  async createCustomerPaymentMethod(
+    @GetCurrentUserId() userId: string,
+    @Body() createPaymentMethodDto: CreatePaymentMethodDto
+  ) {
+    const paymentMethod = await this.paymentService.createCustomerPaymentMethod(
+      userId,
+      createPaymentMethodDto
+    );
+    return ResponseService.buildResponse({ paymentMethod }, 'Payment Method created successfully');
   }
 }
