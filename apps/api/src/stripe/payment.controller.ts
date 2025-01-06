@@ -35,6 +35,8 @@ import {
   getBuyerPaymentMethodsDtoSchema,
 } from './dto/get-buyer-payment-methods.dto';
 import { ListInvoicesV2Dto, listInvoicesV2Schema } from './dto/list-invoices-v2.dto';
+import { CreateRefundRequestDto, createRefundRequestSchema } from './dto/create-refund-request.dto';
+import { ListRefundRequestsDto, listRefundRequestsSchema } from './dto/list-refund-requests.dto';
 
 @ApiTags('Payment')
 @Controller('payment')
@@ -409,5 +411,46 @@ export class PaymentController {
   async getInvoicesV2(@Query() query: ListInvoicesV2Dto) {
     const invoices = await this.paymentService.getInvoicesV2(query);
     return ResponseService.buildResponse(invoices, 'Invoices retrieved successfully');
+  }
+
+  @Get('/refund-reasons')
+  @ApiOperation({
+    summary: 'Get All Refund Request Reasons',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
+  async getRefundReasons() {
+    const reasons = await this.paymentService.getRefundReasons();
+    return ResponseService.buildResponse({ reasons }, 'Refund reasons retrieved successfully');
+  }
+
+  @Post('/refund-request/:invoiceId')
+  @ApiOperation({
+    summary: 'Create refund request for an invoice',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
+  @UsePipes(new JoiValidationPipe(createRefundRequestSchema, 'body'))
+  async createRefundRequest(
+    @GetCurrentUserId() userId: string,
+    @Body() createRefundRequestDto: CreateRefundRequestDto
+  ) {
+    const refundRequest = await this.paymentService.createRefundRequest(
+      userId,
+      createRefundRequestDto
+    );
+    return ResponseService.buildResponse({ refundRequest }, 'Refund request created successfully');
+  }
+
+  @Get('/refund-requests')
+  @ApiOperation({
+    summary: 'Get Refund Requests',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
+  @UsePipes(new JoiValidationPipe(listRefundRequestsSchema, 'query'))
+  async getRefundRequests(@Query() query: ListRefundRequestsDto) {
+    const refundRequests = await this.paymentService.getRefundRequests(query);
+    return ResponseService.buildResponse(refundRequests, 'Refund requests retrieved successfully');
   }
 }
