@@ -40,6 +40,8 @@ import {
   BespokeRequest,
   BespokeRequestSchema,
 } from '../bespokeRequests/schema/bespokeRequests.schema';
+import { PaymentMethod, PaymentMethodSchema } from 'src/stripe/schema/payment-method.schema';
+import { PaymentAttempt, PaymentAttemptSchema } from 'src/stripe/schema/payment-attempt.schema';
 
 @Module({
   imports: [
@@ -50,6 +52,14 @@ import {
       {
         name: InvoicePostPaymentAction.name,
         schema: InvoicePostPaymentActionSchema,
+      },
+      {
+        name: PaymentMethod.name,
+        schema: PaymentMethodSchema,
+      },
+      {
+        name: PaymentAttempt.name,
+        schema: PaymentAttemptSchema,
       },
     ]),
 

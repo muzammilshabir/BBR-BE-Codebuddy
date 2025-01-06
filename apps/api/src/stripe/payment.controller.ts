@@ -27,11 +27,25 @@ import { UpdateInvoiceItemDto, updateInvoiceItemsDtoSchema } from './dto/update-
 import { UpdateInvoiceDto, updateInvoiceDtoSchema } from './dto/update-invoice.dto';
 import { RefundPaymentDto, refundPaymentDtoSchema } from './dto/refund-payment.dto';
 import { ListTransactionsDto, listTransactionsDtoSchema } from './dto/list-transactions.dto';
+import { CreatePaymentMethodDto } from './dto/create-payment.dto';
+import { UserService } from 'src/users/user.service';
+import { StripeService } from 'src/stripe/stripe.service';
+import {
+  GetBuyerPaymentMethodsDto,
+  getBuyerPaymentMethodsDtoSchema,
+} from './dto/get-buyer-payment-methods.dto';
+import { ListInvoicesV2Dto, listInvoicesV2Schema } from './dto/list-invoices-v2.dto';
+import { CreateRefundRequestDto, createRefundRequestSchema } from './dto/create-refund-request.dto';
+import { ListRefundRequestsDto, listRefundRequestsSchema } from './dto/list-refund-requests.dto';
 
 @ApiTags('Payment')
 @Controller('payment')
 export class PaymentController {
-  constructor(private readonly paymentService: PaymentService) {}
+  constructor(
+    private readonly paymentService: PaymentService,
+    private readonly userService: UserService,
+    private readonly stripeService: StripeService
+  ) {}
   @Get('/invoices/')
   @ApiOperation({
     summary: 'Get Customer Invoices',
@@ -353,5 +367,90 @@ export class PaymentController {
       { residence },
       'Default Residence Payment Method unset successfully'
     );
+  }
+
+  @Post('/payment-method-v2')
+  @ApiOperation({
+    summary: 'Create Payment Method for Customer',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
+  async createCustomerPaymentMethod(
+    @GetCurrentUserId() userId: string,
+    @Body() createPaymentMethodDto: CreatePaymentMethodDto
+  ) {
+    const paymentMethod = await this.paymentService.createCustomerPaymentMethod(
+      userId,
+      createPaymentMethodDto
+    );
+    return ResponseService.buildResponse({ paymentMethod }, 'Payment Method created successfully');
+  }
+
+  @Get('/payment-methods-v2/:buyerId')
+  @ApiOperation({
+    summary: 'Get Payment Methods for Buyer',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(getBuyerPaymentMethodsDtoSchema, 'param'))
+  async getBuyerPaymentMethods(@Param() params: GetBuyerPaymentMethodsDto) {
+    const paymentMethods = await this.paymentService.getBuyerPaymentMethods(params.buyerId);
+    return ResponseService.buildResponse(
+      { paymentMethods: paymentMethods.data },
+      'Buyer Payment Methods retrieved successfully'
+    );
+  }
+
+  @Get('/invoices/v2')
+  @ApiOperation({
+    summary: 'Get Invoices V2',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
+  @UsePipes(new JoiValidationPipe(listInvoicesV2Schema, 'query'))
+  async getInvoicesV2(@Query() query: ListInvoicesV2Dto) {
+    const invoices = await this.paymentService.getInvoicesV2(query);
+    return ResponseService.buildResponse(invoices, 'Invoices retrieved successfully');
+  }
+
+  @Get('/refund-reasons')
+  @ApiOperation({
+    summary: 'Get All Refund Request Reasons',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
+  async getRefundReasons() {
+    const reasons = await this.paymentService.getRefundReasons();
+    return ResponseService.buildResponse({ reasons }, 'Refund reasons retrieved successfully');
+  }
+
+  @Post('/refund-request/:invoiceId')
+  @ApiOperation({
+    summary: 'Create refund request for an invoice',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
+  @UsePipes(new JoiValidationPipe(createRefundRequestSchema, 'body'))
+  async createRefundRequest(
+    @GetCurrentUserId() userId: string,
+    @Body() createRefundRequestDto: CreateRefundRequestDto
+  ) {
+    const refundRequest = await this.paymentService.createRefundRequest(
+      userId,
+      createRefundRequestDto
+    );
+    return ResponseService.buildResponse({ refundRequest }, 'Refund request created successfully');
+  }
+
+  @Get('/refund-requests')
+  @ApiOperation({
+    summary: 'Get Refund Requests',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
+  @UsePipes(new JoiValidationPipe(listRefundRequestsSchema, 'query'))
+  async getRefundRequests(@Query() query: ListRefundRequestsDto) {
+    const refundRequests = await this.paymentService.getRefundRequests(query);
+    return ResponseService.buildResponse(refundRequests, 'Refund requests retrieved successfully');
   }
 }

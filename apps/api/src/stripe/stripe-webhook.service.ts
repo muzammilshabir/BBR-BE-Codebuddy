@@ -156,12 +156,16 @@ export class StripeWebhookService {
           `No internal invoice found for payment attempt ${paymentAttempt.id}`
         );
       }
+
       await this.paymentAttemptRepository.update(paymentAttempt.id, {
         status: PaymentAttemptStatus.SUCCEEDED,
       });
       await this.invoiceRepository.update(internalInvoice.id, {
         stripeInvoiceId: stripeInvoice.id,
+        stripeChargeId:
+          typeof stripeInvoice.charge === 'string' ? stripeInvoice.charge : stripeInvoice.charge.id,
         status: InvoiceStatus.PAID,
+        pdfLink: stripeInvoice.invoice_pdf,
       });
       if (internalInvoice.residenceId) {
         const transaction: CreateTransactionDto = {

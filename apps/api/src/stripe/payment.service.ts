@@ -1,4 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { StripeService } from './stripe.service';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
 import { PaymentLineItemDto } from './dto/payment-line-item.dto';
@@ -34,6 +39,13 @@ import { SendEmailEvent } from 'src/mailer/events/send-email.event';
 import { Invoice } from './schema/invoice.schema';
 import { PdfService } from 'src/pdf/pdf.service';
 import { UploadService } from 'src/upload/upload.service';
+import { CreatePaymentMethodDto } from './dto/create-payment.dto';
+import { ListInvoicesV2Dto } from './dto/list-invoices-v2.dto';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { RefundRequestReason } from './schema/refund-request-reason.schema';
+import { RefundRequest } from './schema/refund-request.schema';
+import { CreateRefundRequestDto } from './dto/create-refund-request.dto';
 
 @Injectable()
 export class PaymentService {
@@ -51,7 +63,11 @@ export class PaymentService {
     private readonly paymentAttemptRepository: PaymentAttemptRepository,
     private readonly eventEmitter: EventEmitter2,
     private pdfService: PdfService,
-    private uploadService: UploadService
+    private uploadService: UploadService,
+    @InjectModel(RefundRequestReason.name)
+    private readonly refundRequestReasonModel: Model<RefundRequestReason>,
+    @InjectModel(RefundRequest.name)
+    private readonly refundRequestModel: Model<RefundRequest>
   ) {}
 
   private convertPaymentItemsToLineItems(
@@ -1168,5 +1184,319 @@ export class PaymentService {
       throw new Error('Invoice is not paid');
     }
     return this.refundRepository.create(transformedDto);
+  }
+
+  async createCustomerPaymentMethod(
+    userId: string,
+    createPaymentMethodDto: CreatePaymentMethodDto
+  ) {
+    const user = await this.userService.findById(userId);
+    let stripeCustomerId = user.stripeCustomerId;
+
+    if (!stripeCustomerId) {
+      const customer = await this.stripeService.createCustomer({
+        email: user.email,
+        name: user.fullName,
+      });
+      stripeCustomerId = customer.id;
+      await this.userService.updateSellerStripeCustomerId(userId, stripeCustomerId);
+    }
+
+    const stripePaymentMethod = await this.stripeService.createPaymentMethod(
+      stripeCustomerId,
+      createPaymentMethodDto.pmTokenId
+    );
+
+    // Save payment method details to database
+    const paymentMethodData = {
+      customerId: new Types.ObjectId(userId),
+      paymentMethodId: stripePaymentMethod.id,
+      last4Digit: stripePaymentMethod.card.last4,
+      brand: stripePaymentMethod.card.brand,
+      expiryMonth:
+        stripePaymentMethod.card.exp_month < 10
+          ? `0${stripePaymentMethod.card.exp_month}`
+          : `${stripePaymentMethod.card.exp_month}`,
+      expiryYear: stripePaymentMethod.card.exp_year,
+    };
+
+    await this.paymentMethodRepository.create(paymentMethodData);
+
+    return stripePaymentMethod;
+  }
+
+  async getBuyerPaymentMethods(userId: string) {
+    const user = await this.userService.findById(userId);
+
+    if (!user || !user.stripeCustomerId) {
+      throw new Error('User not found or has no payment methods');
+    }
+
+    return this.paymentMethodRepository.findAll({ customerId: user.id });
+  }
+
+  async getInvoicesV2(listInvoicesDto: ListInvoicesV2Dto) {
+    const { status, search, residenceId, developerId } = listInvoicesDto;
+    const matchStage: any = {
+      isDeleted: false,
+    };
+
+    if (status) {
+      matchStage.status = status;
+    } else {
+      matchStage.status = {
+        $in: [
+          InvoiceStatus.DRAFT,
+          InvoiceStatus.PENDING,
+          InvoiceStatus.PAID,
+          InvoiceStatus.CANCELED,
+          InvoiceStatus.FAILED,
+          InvoiceStatus.REFUNDED,
+        ],
+      };
+    }
+
+    if (residenceId) {
+      matchStage.residenceId = new Types.ObjectId(residenceId);
+    }
+
+    if (developerId) {
+      matchStage.developerId = new Types.ObjectId(developerId);
+    }
+
+    const pipeline = [
+      {
+        $lookup: {
+          from: 'residences',
+          localField: 'residenceId',
+          foreignField: '_id',
+          as: 'residence',
+        },
+      },
+      {
+        $unwind: {
+          path: '$residence',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $match: matchStage,
+      },
+    ] as any;
+
+    if (search) {
+      pipeline.push({
+        $match: {
+          $or: [
+            { note: { $regex: search, $options: 'i' } },
+            { membershipType: { $regex: search, $options: 'i' } },
+            { 'residence.name': { $regex: search, $options: 'i' } },
+            { paymentMethodId: { $regex: search, $options: 'i' } },
+          ],
+        },
+      });
+    }
+
+    pipeline.push({
+      $sort: {
+        createdAt: -1,
+      },
+    });
+    pipeline.push({
+      $project: {
+        issuedAt: 1,
+        invoiceNumber: 1,
+        dueAt: 1,
+        residenceId: 1,
+        residenceName: '$residence.name',
+        notes: 1,
+        total: 1,
+        hostedInvoiceUrl: 1,
+        pdfLink: 1,
+        status: 1,
+      },
+    });
+
+    const countPipeline = [...pipeline, { $count: 'total' }];
+    const dataPipeline = [
+      ...pipeline,
+      { $skip: (listInvoicesDto.page - 1) * listInvoicesDto.limit },
+      { $limit: listInvoicesDto.limit },
+    ];
+
+    const [countResult, data] = await Promise.all([
+      this.invoiceRepository.aggregate(countPipeline),
+      this.invoiceRepository.aggregate(dataPipeline),
+    ]);
+
+    const count = countResult[0]?.total || 0;
+    const { pagination } = PaginationService.paginate({ rows: data, count }, listInvoicesDto);
+
+    return { pagination, invoices: data };
+  }
+
+  async getRefundReasons(): Promise<RefundRequestReason[]> {
+    return this.refundRequestReasonModel.find({ isDeleted: false });
+  }
+
+  async createRefundRequest(userId: string, createRefundRequestDto: CreateRefundRequestDto) {
+    // Get invoice and validate it's paid
+    const invoice = await this.invoiceRepository.findById(createRefundRequestDto.invoiceId);
+    if (!invoice) {
+      throw new NotFoundException('Invoice not found');
+    }
+    if (invoice.status !== 'paid') {
+      throw new BadRequestException('Invoice must be paid to request a refund');
+    }
+
+    // Validate refund amount
+    if (createRefundRequestDto.amount > invoice.total) {
+      throw new BadRequestException('Refund amount cannot exceed invoice total');
+    }
+
+    // Validate refund reason exists
+    const reason = await this.refundRequestReasonModel.findById(createRefundRequestDto.reasonId);
+    if (!reason) {
+      throw new NotFoundException('Refund reason not found');
+    }
+
+    // Check if there is already a pending refund request
+    const existingRefundRequest = await this.refundRequestModel.findOne({
+      invoiceId: new Types.ObjectId(createRefundRequestDto.invoiceId),
+      status: RefundStatus.REQUESTED,
+    });
+    if (existingRefundRequest) {
+      throw new ConflictException('There is already a pending refund request for this invoice');
+    }
+
+    // Create refund request
+    return await this.refundRequestModel.create({
+      ...createRefundRequestDto,
+      residenceId: new Types.ObjectId(invoice.residenceId),
+      invoiceId: new Types.ObjectId(createRefundRequestDto.invoiceId),
+      reasonId: new Types.ObjectId(createRefundRequestDto.reasonId),
+      status: RefundStatus.REQUESTED,
+      createdById: userId,
+      updatedById: userId,
+    });
+  }
+
+  async getRefundRequests(query: ListRefundRequestsDto) {
+    const { status, search, residenceId, developerId } = query;
+    const matchStage: any = {
+      isDeleted: false,
+    };
+
+    if (status) {
+      matchStage.status = status;
+    }
+
+    if (residenceId) {
+      matchStage['invoice.residenceId'] = new Types.ObjectId(residenceId);
+    }
+
+    if (developerId) {
+      matchStage['invoice.developerId'] = new Types.ObjectId(developerId);
+    }
+
+    const pipeline = [
+      {
+        $lookup: {
+          from: 'invoices',
+          localField: 'invoiceId',
+          foreignField: '_id',
+          as: 'invoice',
+        },
+      },
+      {
+        $unwind: {
+          path: '$invoice',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: 'residences',
+          localField: 'invoice.residenceId',
+          foreignField: '_id',
+          as: 'residence',
+        },
+      },
+      {
+        $unwind: {
+          path: '$residence',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: 'refundrequestreasons',
+          localField: 'reasonId',
+          foreignField: '_id',
+          as: 'reason',
+        },
+      },
+      {
+        $unwind: {
+          path: '$reason',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $match: matchStage,
+      },
+    ] as any;
+
+    if (search) {
+      pipeline.push({
+        $match: {
+          $or: [
+            { note: { $regex: search, $options: 'i' } },
+            { 'residence.name': { $regex: search, $options: 'i' } },
+            { 'invoice.invoiceNumber': { $regex: search, $options: 'i' } },
+          ],
+        },
+      });
+    }
+
+    pipeline.push({
+      $sort: {
+        createdAt: -1,
+      },
+    });
+
+    pipeline.push({
+      $project: {
+        createdAt: 1,
+        amount: 1,
+        status: 1,
+        note: 1,
+        invoiceId: '$invoice._id',
+        invoiceNumber: '$invoice.invoiceNumber',
+        issuedAt: '$invoice.issuedAt',
+        dueAt: '$invoice.dueAt',
+        total: '$invoice.total',
+        residenceName: '$residence.name',
+        residenceId: '$residence._id',
+        reason: 1,
+      },
+    });
+
+    const countPipeline = [...pipeline, { $count: 'total' }];
+    const dataPipeline = [
+      ...pipeline,
+      { $skip: (query.page - 1) * query.limit },
+      { $limit: query.limit },
+    ];
+
+    const [countResult, data] = await Promise.all([
+      this.refundRequestModel.aggregate(countPipeline),
+      this.refundRequestModel.aggregate(dataPipeline),
+    ]);
+
+    const count = countResult[0]?.total || 0;
+    const { pagination } = PaginationService.paginate({ rows: data, count }, query);
+
+    return { pagination, refundRequests: data };
   }
 }

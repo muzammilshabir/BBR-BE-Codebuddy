@@ -1,9 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
 import * as Joi from 'joi';
 import { ListPropsDto, PaginationSchema } from '@bbr/api-core/modules/dto/listProps.dto';
-import { RefundStatus } from '../enum/refund-status.enum';
+import { InvoiceStatus } from '../enum/invoice-status.enum';
 
-export class ListRefundRequestsDto extends ListPropsDto {
+export class ListInvoicesV2Dto extends ListPropsDto {
   @ApiProperty({
     description: 'Filter by residence ID',
     example: '507f1f77bcf86cd799439011',
@@ -21,28 +21,28 @@ export class ListRefundRequestsDto extends ListPropsDto {
   developerId?: string;
 
   @ApiProperty({
-    description: 'Filter by refund status',
-    example: RefundStatus.REQUESTED,
-    enum: RefundStatus,
+    description: 'Filter by invoice status',
+    example: InvoiceStatus.PENDING,
+    enum: InvoiceStatus,
     required: false,
     type: String,
   })
-  status?: RefundStatus;
+  status?: InvoiceStatus;
 
   @ApiProperty({
-    description: 'Search by residence name',
-    example: 'Sunset Apartments',
+    description: 'Search by invoice info',
+    example: 'test',
     required: false,
     type: String,
   })
   search?: string;
 }
 
-export const listRefundRequestsSchema = PaginationSchema.append({
+export const listInvoicesV2Schema = PaginationSchema.append({
   residenceId: Joi.string().optional(),
   developerId: Joi.string().optional(),
   status: Joi.string()
-    .valid(...Object.values(RefundStatus))
+    .valid(...Object.values(InvoiceStatus))
     .optional(),
   search: Joi.string().optional(),
 });

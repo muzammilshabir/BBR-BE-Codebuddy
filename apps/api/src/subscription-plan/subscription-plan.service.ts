@@ -87,7 +87,10 @@ export class SubscriptionPlanService {
       active: true,
       isDeleted: false,
     };
-    if (query.forPage === PlanForPage.GUEST_UPLOAD_INVENTORY) {
+    if (
+      query.forPage === PlanForPage.GUEST_UPLOAD_INVENTORY ||
+      query.forPage === PlanForPage.CREATE_INVOICE_SCHEDULE
+    ) {
       options.name = {
         $in: ['Premium Residence Profile', 'Bespoke Residence Profile'],
       };

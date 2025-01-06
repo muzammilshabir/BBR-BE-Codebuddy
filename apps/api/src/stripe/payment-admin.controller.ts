@@ -28,7 +28,7 @@ import { CreateInvoiceDto, createInvoiceDtoSchema } from './dto/create-invoice.d
 import { UpdateSubscriptionDto, updateSubscriptionDtoSchema } from './dto/update-subscription.dto';
 import { RefundStatus } from './enum/refund-status.enum';
 import { ListTransactionsDto, listTransactionsDtoSchema } from './dto/list-transactions.dto';
-import { ListRefundRequestsDto, listRefundRequestsDtoSchema } from './dto/list-refund-requests.dto';
+import { ListRefundRequestsDto, listRefundRequestsSchema } from './dto/list-refund-requests.dto';
 
 @ApiTags('Payment/admin')
 @Controller('payment/admin')
@@ -284,7 +284,7 @@ export class PaymentAdminController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.ADMIN)
-  @UsePipes(new JoiValidationPipe(listRefundRequestsDtoSchema, 'query'))
+  @UsePipes(new JoiValidationPipe(listRefundRequestsSchema, 'query'))
   async refundRequestList(@Query() query: ListRefundRequestsDto) {
     const data = await this.paymentService.listRefundRequests(query);
     return ResponseService.buildResponse(data, 'Refunds/Requests retrieved successfully');

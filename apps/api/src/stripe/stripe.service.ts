@@ -108,6 +108,7 @@ export class StripeService {
       customer_email: fInvoice.customer_email,
       items: this.parseInvoiceLineItems(latestInvoice.lines.data),
       client_secret: (fInvoice.payment_intent as Stripe.PaymentIntent)?.client_secret,
+      hosted_invoice_url: fInvoice.hosted_invoice_url,
     };
   }
 
