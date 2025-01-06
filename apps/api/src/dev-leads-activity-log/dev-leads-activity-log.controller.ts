@@ -1,31 +1,28 @@
-import {
-  Controller,
-  Get,
-  Query,
-  Res,
-  UsePipes,
-} from '@nestjs/common';
+import { Controller, Get, Query, Res, UsePipes } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/enum/user.enum';
 import { Response } from 'express';
-import { DevResidenceActivityLogService } from './dev-residence-activity-log.service';
-import { ListDevResidenceActivityLogDto, listDevResidenceActivityLogSchema } from './dto/dev-list-residence-activity-log.dto';
+import {
+  ListDevLeadsActivityLogDto,
+  listDevLeadsActivityLogSchema,
+} from './dto/dev-list-leads-activity-log.dto';
+import { DevLeadsActivityLogService } from './dev-leads-activity-log.service';
 
-@ApiTags('DevResidence Activity Log')
-@Controller('residence-activity-log')
+@ApiTags('DevLeads Activity Log')
+@Controller('leads-activity-log')
 @ApiBearerAuth()
-export class DevResidenceActivityLogController {
-  constructor(private readonly residenceActivityLogService: DevResidenceActivityLogService) {}
+export class DevLeadsActivityLogController {
+  constructor(private readonly leadsActivityLogService: DevLeadsActivityLogService) {}
 
   @Get()
   @ApiOperation({ summary: 'Get all activity logs' })
   @Roles(UserRole.SELLER)
-  @UsePipes(new JoiValidationPipe(listDevResidenceActivityLogSchema, 'query'))
-  async findAll(@Query() query: ListDevResidenceActivityLogDto, @Res() res: Response) {
-    const result = await this.residenceActivityLogService.list(query);
+  @UsePipes(new JoiValidationPipe(listDevLeadsActivityLogSchema, 'query'))
+  async findAll(@Query() query: ListDevLeadsActivityLogDto, @Res() res: Response) {
+    const result = await this.leadsActivityLogService.list(query);
     if (query.isDownload) {
       if (query.fileType === 'csv') {
         res.header('Content-Type', 'text/csv');

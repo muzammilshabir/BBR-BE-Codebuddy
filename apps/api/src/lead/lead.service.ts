@@ -1,3 +1,4 @@
+import { LeadsActivityLogRepository } from './../leads-activity-log/leads-activity-log.repository';
 import { Injectable } from '@nestjs/common';
 import { LeadRepository } from './lead.repository';
 import { CreateLeadDto } from './dto/create-lead.dto';
@@ -15,6 +16,7 @@ import { JwtPayloadType } from '../auth/type/jwt-payload.type';
 import { ResidenceActivityLogRepository } from 'src/residence-activity-log/residence-activity-log.repository';
 import { DeveloperProfileActivityLogRepository } from 'src/developer-profile-activity-log/developer-profile-activity-log.repository';
 import { DevResidenceActivityLogRepository } from 'src/dev-residence-activity-log/dev-residence-activity-log.repository';
+import { DevLeadsActivityLogRepository } from 'src/dev-leads-activity-log/dev-leads-activity-log.repository';
 
 @Injectable()
 export class LeadService {
@@ -24,7 +26,9 @@ export class LeadService {
     private readonly unitRepository: UnitRepository,
     private readonly residenceActivityLogRepository: ResidenceActivityLogRepository,
     private readonly devResidenceActivityLogRepository: DevResidenceActivityLogRepository,
-    private readonly developerProfileActivityLogRepository: DeveloperProfileActivityLogRepository
+    private readonly developerProfileActivityLogRepository: DeveloperProfileActivityLogRepository,
+    private readonly leadsActivityLogRepository: LeadsActivityLogRepository,
+    private readonly devLeadsActivityLogRepository: DevLeadsActivityLogRepository
   ) {}
   async getDeveloperId(createLeadDto: CreateLeadDto) {
     if (createLeadDto.developerId) {
@@ -98,6 +102,20 @@ export class LeadService {
       createdAt: new Date(),
     });
 
+    await this.leadsActivityLogRepository.create({
+      leadId: new Types.ObjectId(createLeadDto.residenceId),
+      activityType: 'Lead received',
+      userId: new Types.ObjectId(userId),
+      createdAt: new Date(),
+    });
+
+    await this.devLeadsActivityLogRepository.create({
+      leadId: new Types.ObjectId(createLeadDto.residenceId),
+      activityType: 'Lead received',
+      userId: new Types.ObjectId(userId),
+      createdAt: new Date(),
+    });
+
     return result;
   }
 
@@ -149,12 +167,43 @@ export class LeadService {
           : undefined,
       },
     };
+
+    if (updateLeadDto.status !== existingLead.status) {
+      await this.leadsActivityLogRepository.create({
+        leadId: new Types.ObjectId(leadId),
+        activityType: 'Status changed',
+        userId: new Types.ObjectId(userId),
+        createdAt: new Date(),
+      });
+
+      await this.devLeadsActivityLogRepository.create({
+        leadId: new Types.ObjectId(leadId),
+        activityType: 'Status changed',
+        userId: new Types.ObjectId(userId),
+        createdAt: new Date(),
+      });
+    }
+
     const lead = await this.leadRepository.update(leadId, transformedDto);
 
     await this.developerProfileActivityLogRepository.create({
       developerId: new Types.ObjectId(userId),
       activityType: `Updated lead information`,
       details: { leadId: new Types.ObjectId(leadId), leadName: lead.name },
+      userId: new Types.ObjectId(userId),
+      createdAt: new Date(),
+    });
+
+    await this.leadsActivityLogRepository.create({
+      leadId: new Types.ObjectId(leadId),
+      activityType: 'Information changed',
+      userId: new Types.ObjectId(userId),
+      createdAt: new Date(),
+    });
+
+    await this.devLeadsActivityLogRepository.create({
+      leadId: new Types.ObjectId(leadId),
+      activityType: 'Information changed',
       userId: new Types.ObjectId(userId),
       createdAt: new Date(),
     });

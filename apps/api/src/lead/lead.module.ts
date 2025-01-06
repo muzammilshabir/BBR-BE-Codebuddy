@@ -25,6 +25,10 @@ import {
   DevResidenceActivityLog,
   DevResidenceActivityLogSchema,
 } from 'src/dev-residence-activity-log/schema/dev-residence-activity-log.schema';
+import { LeadsActivityLog, LeadsActivityLogSchema } from 'src/leads-activity-log/schema/leads-activity-log.schema';
+import { LeadsActivityLogRepository } from 'src/leads-activity-log/leads-activity-log.repository';
+import { DevLeadsActivityLogRepository } from 'src/dev-leads-activity-log/dev-leads-activity-log.repository';
+import { DevLeadsActivityLog, DevLeadsActivityLogSchema } from 'src/dev-leads-activity-log/schema/dev-leads-activity-log.schema';
 
 @Module({
   imports: [
@@ -40,6 +44,12 @@ import {
     MongooseModule.forFeature([
       { name: DeveloperProfileActivityLog.name, schema: DeveloperProfileActivityLogSchema },
     ]),
+    MongooseModule.forFeature([
+      { name: LeadsActivityLog.name, schema: LeadsActivityLogSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: DevLeadsActivityLog.name, schema: DevLeadsActivityLogSchema },
+    ]),
     CounterModule,
   ],
   providers: [
@@ -51,6 +61,8 @@ import {
     ResidenceActivityLogRepository,
     DevResidenceActivityLogRepository,
     DeveloperProfileActivityLogRepository,
+    LeadsActivityLogRepository,
+    DevLeadsActivityLogRepository,
   ],
   exports: [LeadSeeder, LeadService],
   controllers: [LeadController],

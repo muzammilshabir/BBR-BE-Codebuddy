@@ -76,6 +76,7 @@ import { VacancyActivityLogModule } from './vacancy-activity-log/vacancy-activit
 import { VacancyApplicationActivityLogModule } from './vacancy-application-activity-log/vacancy-activity-log.module';
 import { SupportActivityLogModule } from './support-activity-log/support-activity-log.module';
 import { DevResidenceActivityLogModule } from './dev-residence-activity-log/dev-residence-activity-log.module';
+import { DevLeadsActivityLogModule } from './dev-leads-activity-log/dev-leads-activity-log.module';
 
 @Module({
   imports: [
@@ -152,6 +153,7 @@ import { DevResidenceActivityLogModule } from './dev-residence-activity-log/dev-
     VacancyApplicationActivityLogModule,
     SupportActivityLogModule,
     DevResidenceActivityLogModule,
+    DevLeadsActivityLogModule,
   ],
   controllers: [AppController],
   providers: [
