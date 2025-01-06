@@ -33,7 +33,7 @@ export const createInvoiceScheduleSchema = Joi.object({
   residenceId: Joi.string().required(),
   planId: Joi.string().required(),
   issueDate: Joi.date().format('YYYY-MM-DD').raw().required(),
-  dueDate: Joi.date().format('YYYY-MM-DD').greater(Joi.ref('issueDate')).raw().required(),
+  dueDate: Joi.date().format('YYYY-MM-DD').raw().required(),
   currentPaymentMethodId: Joi.string().required(),
   features: Joi.array().items(featureSchema).required(),
   discountAmount: Joi.number().min(0).required(),

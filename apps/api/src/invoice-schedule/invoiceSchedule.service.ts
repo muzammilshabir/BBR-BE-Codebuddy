@@ -76,20 +76,20 @@ export class InvoiceScheduleService {
       throw new NotFoundException('Plan not found');
     }
 
-    // Convert incoming PST date to dayjs object and validate it's in the future
+    // Convert incoming PST date to dayjs object and validate it's not in the past
     const pstDate = dayjs.tz(issueDate, 'America/Los_Angeles');
-    const nowPST = dayjs().tz('America/Los_Angeles');
+    const todayStartPST = dayjs().tz('America/Los_Angeles').startOf('day');
 
-    if (pstDate.isBefore(nowPST)) {
-      throw new BadRequestException('Issue date must be in the future');
+    if (pstDate.isBefore(todayStartPST)) {
+      throw new BadRequestException('Issue date cannot be in the past');
     }
 
     // Convert PST date to UTC for storage
     const utcDate = pstDate.utc().toDate();
 
     const dueDatePST = dayjs.tz(dueDate, 'America/Los_Angeles');
-    if (dueDatePST.isBefore(pstDate)) {
-      throw new BadRequestException('Due date must be after issue date');
+    if (dueDatePST.isBefore(pstDate, 'day')) {
+      throw new BadRequestException('Due date cannot be before issue date');
     }
 
     const dueDateUTC = dueDatePST.utc().toDate();
@@ -165,64 +165,31 @@ export class InvoiceScheduleService {
       status: publish ? InvoiceScheduleStatus.ACTIVE : InvoiceScheduleStatus.DRAFT,
     };
 
-    const existingActiveSchedules = invoiceSchedules.filter(
-      (schedule) => schedule.status === InvoiceScheduleStatus.ACTIVE
-    );
+    // Find existing schedules
     const existingDraft = invoiceSchedules.find(
       (schedule) => schedule.status === InvoiceScheduleStatus.DRAFT
     );
+    const existingActiveSchedules = invoiceSchedules.filter(
+      (schedule) => schedule.status === InvoiceScheduleStatus.ACTIVE
+    );
 
-    if (existingActiveSchedules.length > 0) {
-      // Already exists logic
-      if (!publish) {
-        // User wants to save as draft
-        if (existingDraft) {
-          // Update existing draft
-          return await this.invoiceScheduleModel.findByIdAndUpdate(
-            existingDraft._id,
-            invoiceScheduleData,
-            { new: true }
-          );
-        } else {
-          // Create new draft
-          return await this.invoiceScheduleModel.create(invoiceScheduleData);
-        }
-      } else {
-        // User wants to publish
-        if (existingDraft) {
-          // Update draft to active and mark others inactive
-          await this.invoiceScheduleModel.updateMany(
-            { _id: { $in: existingActiveSchedules.map((schedule) => schedule._id) } },
-            { status: InvoiceScheduleStatus.INACTIVE }
-          );
-          return await this.invoiceScheduleModel.findByIdAndUpdate(
-            existingDraft._id,
-            invoiceScheduleData,
-            { new: true }
-          );
-        } else {
-          // Mark all active ones inactive and create new active
-          await this.invoiceScheduleModel.updateMany(
-            { _id: { $in: existingActiveSchedules.map((schedule) => schedule._id) } },
-            { status: InvoiceScheduleStatus.INACTIVE }
-          );
-          return await this.invoiceScheduleModel.create(invoiceScheduleData);
-        }
-      }
-    } else {
-      // No active schedules exist
-      if (!publish) {
-        // User wants to save as draft
-        if (existingDraft) {
-          return await this.invoiceScheduleModel.findByIdAndUpdate(
-            existingDraft._id,
-            invoiceScheduleData,
-            { new: true }
-          );
-        }
-      }
-      // Either publish new or create new draft
-      return await this.invoiceScheduleModel.create(invoiceScheduleData);
+    // If publishing, mark existing active schedules as inactive
+    if (publish && existingActiveSchedules.length > 0) {
+      await this.invoiceScheduleModel.updateMany(
+        { _id: { $in: existingActiveSchedules.map((schedule) => schedule._id) } },
+        { status: InvoiceScheduleStatus.INACTIVE }
+      );
     }
+
+    // Update existing draft or create new schedule
+    if (existingDraft) {
+      return await this.invoiceScheduleModel.findByIdAndUpdate(
+        existingDraft._id,
+        invoiceScheduleData,
+        { new: true }
+      );
+    }
+
+    return await this.invoiceScheduleModel.create(invoiceScheduleData);
   }
 }
