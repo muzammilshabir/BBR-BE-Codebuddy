@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { ResidenceRepository } from './residences.repository';
 import { CreateResidenceDto } from './dto/create-residence.dto';
 import { Residence } from './schema/residences.schema';
@@ -54,9 +54,12 @@ import { PassThrough } from 'stream';
 import * as fastcsv from 'fast-csv';
 import { v4 as uuidv4 } from 'uuid';
 import { PatchResidenceDto } from './dto/patch-update-residence.dto';
+import { RankingRequestStatus } from 'src/rankingRequest/enum/rankingRequest-status.enum';
 
 @Injectable()
 export class ResidenceService {
+  private readonly logger = new Logger('ResidenceService');
+
   constructor(
     private readonly residenceRepository: ResidenceRepository,
     private readonly cityRepository: CityRepository,
@@ -2071,5 +2074,72 @@ export class ResidenceService {
       residenceId: new Types.ObjectId(foundResidence._id.toString()),
       status: ResidenceStatus.DRAFT,
     });
+  }
+
+  async processBbrScores() {
+    const BATCH_SIZE = 50; // Optimal batch size
+    let skip = 0;
+    let totalProcessed = 0;
+
+    try {
+      this.logger.log('Starting BBR score processing...');
+
+      while (true) {
+        // Get batch of residences
+        const { data: residences } = await this.residenceRepository.findAll(
+          {
+            isDeleted: { $ne: DeletionStatus.DELETED },
+          },
+          {
+            offset:skip,
+            limit: BATCH_SIZE,
+          }
+        );
+
+        if (residences.length === 0) {
+          break; // No more residences to process
+        }
+
+        for (const residence of residences) {
+          try {
+            // Get active ranking requests for this residence
+            const { data: rankingRequests } = await this.rankingRequestRepository.findAll({
+              residenceId: residence._id,
+              status: RankingRequestStatus.ACTIVE,
+              isDeleted: { $ne: DeletionStatus.DELETED },
+            });
+
+            if (rankingRequests.length > 0) {
+              // Find highest BBR score and its category
+              const highestRanking = rankingRequests.reduce((highest, current) => {
+                return current.bbrScore > highest.bbrScore ? current : highest;
+              });
+
+              // Update residence with highest BBR score
+              await this.residenceRepository.update(residence._id.toString(), {
+                highestBbrScore: highestRanking.bbrScore,
+                highestRankingCategoryId: highestRanking.rankingCategoryId,
+              });
+
+              totalProcessed++;
+            }
+
+            // Add small delay to prevent overwhelming the server
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+          } catch (error) {
+            this.logger.error(`Error processing residence ${residence._id}: ${error.message}`);
+          }
+        }
+
+        this.logger.log(`Processed ${totalProcessed} residences so far...`);
+        skip += BATCH_SIZE;
+      }
+
+      this.logger.log(`BBR score processing completed. Total processed: ${totalProcessed}`);
+
+    } catch (error) {
+      this.logger.error('Error in BBR score processing:', error);
+    }
   }
 }

@@ -683,4 +683,23 @@ export class ResidenceController {
     const result = await this.residenceSeederService.processRankingCategoryImages(file);
     return ResponseService.buildResponse(result);
   }
+
+  @Post('/process-bbr-scores')
+  @ApiOperation({
+    summary: 'Process all residences BBR scores in background',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @Public()
+  async processBbrScores() {
+    // Start background processing
+    setTimeout(() => {
+      this.residenceService.processBbrScores();
+    }, 0);
+
+    return ResponseService.buildResponse(
+      null,
+      'BBR score processing started in background'
+    );
+  }
 }
