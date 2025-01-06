@@ -1209,4 +1209,14 @@ export class PaymentService {
 
     return stripePaymentMethod;
   }
+
+  async getBuyerPaymentMethods(userId: string) {
+    const user = await this.userService.findById(userId);
+
+    if (!user || !user.stripeCustomerId) {
+      throw new Error('User not found or has no payment methods');
+    }
+
+    return this.paymentMethodRepository.findAll({ customerId: user.id });
+  }
 }

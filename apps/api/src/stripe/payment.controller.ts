@@ -30,6 +30,10 @@ import { ListTransactionsDto, listTransactionsDtoSchema } from './dto/list-trans
 import { CreatePaymentMethodDto } from './dto/create-payment.dto';
 import { UserService } from 'src/users/user.service';
 import { StripeService } from 'src/stripe/stripe.service';
+import {
+  GetBuyerPaymentMethodsDto,
+  getBuyerPaymentMethodsDtoSchema,
+} from './dto/get-buyer-payment-methods.dto';
 
 @ApiTags('Payment')
 @Controller('payment')
@@ -377,5 +381,20 @@ export class PaymentController {
       createPaymentMethodDto
     );
     return ResponseService.buildResponse({ paymentMethod }, 'Payment Method created successfully');
+  }
+
+  @Get('/payment-methods-v2/:buyerId')
+  @ApiOperation({
+    summary: 'Get Payment Methods for Buyer',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(getBuyerPaymentMethodsDtoSchema, 'param'))
+  async getBuyerPaymentMethods(@Param() params: GetBuyerPaymentMethodsDto) {
+    const paymentMethods = await this.paymentService.getBuyerPaymentMethods(params.buyerId);
+    return ResponseService.buildResponse(
+      { paymentMethods: paymentMethods.data },
+      'Buyer Payment Methods retrieved successfully'
+    );
   }
 }
