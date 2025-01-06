@@ -77,6 +77,8 @@ import { VacancyApplicationActivityLogModule } from './vacancy-application-activ
 import { SupportActivityLogModule } from './support-activity-log/support-activity-log.module';
 import { DevResidenceActivityLogModule } from './dev-residence-activity-log/dev-residence-activity-log.module';
 import { DevLeadsActivityLogModule } from './dev-leads-activity-log/dev-leads-activity-log.module';
+import { RankingActivityLogModule } from './ranking-activity-log/ranking-activity-log.module';
+import { DevRankingActivityLogModule } from './dev-ranking-activity-log/dev-ranking-activity-log.module';
 
 @Module({
   imports: [
@@ -145,6 +147,7 @@ import { DevLeadsActivityLogModule } from './dev-leads-activity-log/dev-leads-ac
     EditorNoteModule,
     BespokeRequestModule,
     StateModule,
+    RankingActivityLogModule,
     ResidenceActivityLogModule,
     LeadsActivityLogModule,
     DeveloperProfileActivityLogModule,
@@ -154,6 +157,7 @@ import { DevLeadsActivityLogModule } from './dev-leads-activity-log/dev-leads-ac
     SupportActivityLogModule,
     DevResidenceActivityLogModule,
     DevLeadsActivityLogModule,
+    DevRankingActivityLogModule,
   ],
   controllers: [AppController],
   providers: [

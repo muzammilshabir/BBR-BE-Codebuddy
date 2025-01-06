@@ -28,6 +28,8 @@ import { Brand, BrandSchema } from '../brand/schema/brand.schema';
 import { BrandRepository } from '../brand/brand.repository';
 import { State, StateSchema } from 'src/state/schema/state.schema';
 import { StateRepository } from 'src/state/state.repository';
+import { RankingActivityLog, RankingActivityLogSchema } from 'src/ranking-activity-log/schema/ranking-activity-log.schema';
+import { RankingActivityLogRepository } from 'src/ranking-activity-log/ranking-activity-log.repository';
 
 @Module({
   imports: [
@@ -39,11 +41,11 @@ import { StateRepository } from 'src/state/state.repository';
     MongooseModule.forFeature([{ name: State.name, schema: StateSchema }]),
     MongooseModule.forFeature([{ name: City.name, schema: CitySchema }]),
     MongooseModule.forFeature([{ name: GeographicalAreas.name, schema: GeographicalAreasSchema }]),
-
     MongooseModule.forFeature([
       { name: RankingCategoryDraft.name, schema: RankingCategoryDraftSchema },
     ]),
     MongooseModule.forFeature([{ name: Brand.name, schema: BrandSchema }]),
+    MongooseModule.forFeature([{ name: RankingActivityLog.name, schema: RankingActivityLogSchema }]),
   ],
   controllers: [RankingCategoryController],
   providers: [
@@ -58,6 +60,7 @@ import { StateRepository } from 'src/state/state.repository';
     CityRepository,
     GeographicalAreasRepository,
     BrandRepository,
+    RankingActivityLogRepository,
   ],
   exports: [RankingCategoryRepository],
 })

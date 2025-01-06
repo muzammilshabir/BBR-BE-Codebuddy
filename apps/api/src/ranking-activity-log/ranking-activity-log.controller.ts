@@ -1,28 +1,31 @@
-import { Controller, Get, Query, Res, UsePipes } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Query,
+  Res,
+  UsePipes,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/enum/user.enum';
 import { Response } from 'express';
-import {
-  ListDevLeadsActivityLogDto,
-  listDevLeadsActivityLogSchema,
-} from './dto/dev-list-leads-activity-log.dto';
-import { DevLeadsActivityLogService } from './dev-leads-activity-log.service';
+import { RankingActivityLogService } from './ranking-activity-log.service';
+import { ListRankingActivityLogDto, listRankingActivityLogSchema } from './dto/list-ranking-activity-log.dto';
 
-@ApiTags('DevLeads Activity Log')
-@Controller('dev-leads-activity-log')
+@ApiTags('Ranking Activity Log')
+@Controller('ranking-activity-log')
 @ApiBearerAuth()
-export class DevLeadsActivityLogController {
-  constructor(private readonly leadsActivityLogService: DevLeadsActivityLogService) {}
+export class RankingActivityLogController {
+  constructor(private readonly rankingActivityLogService: RankingActivityLogService) {}
 
   @Get()
   @ApiOperation({ summary: 'Get all activity logs' })
-  @Roles(UserRole.SELLER)
-  @UsePipes(new JoiValidationPipe(listDevLeadsActivityLogSchema, 'query'))
-  async findAll(@Query() query: ListDevLeadsActivityLogDto, @Res() res: Response) {
-    const result = await this.leadsActivityLogService.list(query);
+  @Roles(UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(listRankingActivityLogSchema, 'query'))
+  async findAll(@Query() query: ListRankingActivityLogDto, @Res() res: Response) {
+    const result = await this.rankingActivityLogService.list(query);
     if (query.isDownload) {
       if (query.fileType === 'csv') {
         res.header('Content-Type', 'text/csv');

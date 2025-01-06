@@ -15,7 +15,7 @@ import { DevResidenceActivityLogService } from './dev-residence-activity-log.ser
 import { ListDevResidenceActivityLogDto, listDevResidenceActivityLogSchema } from './dto/dev-list-residence-activity-log.dto';
 
 @ApiTags('DevResidence Activity Log')
-@Controller('residence-activity-log')
+@Controller('dev-residence-activity-log')
 @ApiBearerAuth()
 export class DevResidenceActivityLogController {
   constructor(private readonly residenceActivityLogService: DevResidenceActivityLogService) {}

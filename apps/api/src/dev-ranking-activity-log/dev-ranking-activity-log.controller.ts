@@ -6,23 +6,23 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/enum/user.enum';
 import { Response } from 'express';
 import {
-  ListDevLeadsActivityLogDto,
-  listDevLeadsActivityLogSchema,
-} from './dto/dev-list-leads-activity-log.dto';
-import { DevLeadsActivityLogService } from './dev-leads-activity-log.service';
+  ListDevRankingActivityLogDto,
+  listDevRankingActivityLogSchema,
+} from './dto/list-dev-ranking-activity-log.dto';
+import { DevRankingActivityLogService } from './dev-ranking-activity-log.service';
 
-@ApiTags('DevLeads Activity Log')
-@Controller('dev-leads-activity-log')
+@ApiTags('DevRanking Activity Log')
+@Controller('dev-ranking-activity-log')
 @ApiBearerAuth()
-export class DevLeadsActivityLogController {
-  constructor(private readonly leadsActivityLogService: DevLeadsActivityLogService) {}
+export class DevRankingActivityLogController {
+  constructor(private readonly devRankingActivityLogService: DevRankingActivityLogService) {}
 
   @Get()
   @ApiOperation({ summary: 'Get all activity logs' })
-  @Roles(UserRole.SELLER)
-  @UsePipes(new JoiValidationPipe(listDevLeadsActivityLogSchema, 'query'))
-  async findAll(@Query() query: ListDevLeadsActivityLogDto, @Res() res: Response) {
-    const result = await this.leadsActivityLogService.list(query);
+  @Roles(UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(listDevRankingActivityLogSchema, 'query'))
+  async findAll(@Query() query: ListDevRankingActivityLogDto, @Res() res: Response) {
+    const result = await this.devRankingActivityLogService.list(query);
     if (query.isDownload) {
       if (query.fileType === 'csv') {
         res.header('Content-Type', 'text/csv');

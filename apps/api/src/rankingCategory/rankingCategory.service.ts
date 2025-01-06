@@ -34,6 +34,7 @@ import { GeographicalAreasRepository } from '../geographicalAreas/geographicalAr
 import { BrandRepository } from '../brand/brand.repository';
 import { InjectModel } from '@nestjs/mongoose';
 import { StateRepository } from 'src/state/state.repository';
+import { RankingActivityLogRepository } from 'src/ranking-activity-log/ranking-activity-log.repository';
 
 @Injectable()
 export class RankingCategoryService {
@@ -48,6 +49,7 @@ export class RankingCategoryService {
     private readonly propertyTypeRepository: PropertyTypeRepository,
     private readonly geographicalAreasRepository: GeographicalAreasRepository,
     private readonly brandRepository: BrandRepository,
+    private readonly rankingActivityLogRepository: RankingActivityLogRepository,
     @InjectModel(RankingCategory.name) private readonly rankingCategoryModel: Model<RankingCategory>
   ) {}
 
@@ -225,7 +227,7 @@ export class RankingCategoryService {
       const city = await this.cityRepository.find({
         _id: new Types.ObjectId(createRankingCategoryDto.cityId),
         isDeleted: { $ne: DeletionStatus.DELETED },
-        active: true
+        active: true,
       });
       if (!city) {
         throw new BadRequestException(
@@ -239,7 +241,7 @@ export class RankingCategoryService {
       const state = await this.stateRepository.find({
         _id: new Types.ObjectId(createRankingCategoryDto.stateId),
         isDeleted: { $ne: DeletionStatus.DELETED },
-        active: true
+        active: true,
       });
       if (!state) {
         throw new BadRequestException(
@@ -266,7 +268,7 @@ export class RankingCategoryService {
       const country = await this.countryRepository.find({
         _id: new Types.ObjectId(createRankingCategoryDto.countryId),
         isDeleted: { $ne: DeletionStatus.DELETED },
-        active: true
+        active: true,
       });
       if (!country) {
         throw new BadRequestException(
@@ -348,6 +350,14 @@ export class RankingCategoryService {
         updatedById: new Types.ObjectId(user.sub),
       });
     }
+
+    await this.rankingActivityLogRepository.create({
+      categoryId: new Types.ObjectId(rankingCategory.id),
+      activityType: 'Submitted a new category',
+      userId: new Types.ObjectId(user.sub),
+      createdAt: new Date(),
+    });
+
     return rankingCategory;
   }
 
@@ -375,7 +385,7 @@ export class RankingCategoryService {
       const city = await this.cityRepository.find({
         _id: new Types.ObjectId(updateRankingCategoryDto.cityId),
         isDeleted: { $ne: DeletionStatus.DELETED },
-        active: true
+        active: true,
       });
       if (!city) {
         throw new BadRequestException(
@@ -389,7 +399,7 @@ export class RankingCategoryService {
       const state = await this.stateRepository.find({
         _id: new Types.ObjectId(updateRankingCategoryDto.stateId),
         isDeleted: { $ne: DeletionStatus.DELETED },
-        active: true
+        active: true,
       });
       if (!state) {
         throw new BadRequestException(
@@ -416,7 +426,7 @@ export class RankingCategoryService {
       const country = await this.countryRepository.find({
         _id: new Types.ObjectId(updateRankingCategoryDto.countryId),
         isDeleted: { $ne: DeletionStatus.DELETED },
-        active: true
+        active: true,
       });
       if (!country) {
         throw new BadRequestException(
@@ -480,16 +490,34 @@ export class RankingCategoryService {
 
     const rankingCategoryDraft = await this.checkRankingCategoryDraft(rankingCategoryId);
     if (rankingCategoryDraft) {
-      return await this.rankingCategoryDraftRepository.update(
+      const updatedCategory = await this.rankingCategoryDraftRepository.update(
         rankingCategoryDraft.id,
         transformedDto
       );
+
+      await this.rankingActivityLogRepository.create({
+        categoryId: new Types.ObjectId(rankingCategoryId),
+        activityType: 'Category details changed',
+        userId: new Types.ObjectId(user.sub),
+        createdAt: new Date(),
+      });
+
+      return updatedCategory;
     }
 
-    return await this.rankingCategoryDraftRepository.create({
+    const updatedCategory = await this.rankingCategoryDraftRepository.create({
       ...transformedDto,
       rankingCategoryId: new Types.ObjectId(rankingCategoryId),
     });
+
+    await this.rankingActivityLogRepository.create({
+      categoryId: new Types.ObjectId(rankingCategoryId),
+      activityType: 'Category details changed',
+      userId: new Types.ObjectId(user.sub),
+      createdAt: new Date(),
+    });
+
+    return updatedCategory;
   }
 
   async findRankingCategoryById(id: string): Promise<RankingCategory> {
@@ -636,6 +664,24 @@ export class RankingCategoryService {
 
     if (updateRankingCategoryStatusDto.status === RankingCategoryStatus.DELETED) {
       updatePayload.isDeleted = DeletionStatus.DELETED;
+
+      await this.rankingActivityLogRepository.create({
+        categoryId: new Types.ObjectId(rankingCategoryId),
+        activityType: 'Category is removed',
+        userId: new Types.ObjectId(userId),
+        createdAt: new Date(),
+      });
+    } else {
+      await this.rankingActivityLogRepository.create({
+        categoryId: new Types.ObjectId(rankingCategoryId),
+        activityType: 'Category status changed',
+        details: {
+          previous: rankingCategory.status,
+          new: updateRankingCategoryStatusDto.status,
+        },
+        userId: new Types.ObjectId(userId),
+        createdAt: new Date(),
+      });
     }
 
     const updatedResidence = await this.rankingCategoryRepository.update(

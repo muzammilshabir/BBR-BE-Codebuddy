@@ -35,6 +35,8 @@ import { Writable } from 'stream';
 import { ChangeRankingScore } from './enum/change-ranking-score.enum';
 import { DeveloperProfileActivityLogRepository } from 'src/developer-profile-activity-log/developer-profile-activity-log.repository';
 import { DevResidenceActivityLogRepository } from 'src/dev-residence-activity-log/dev-residence-activity-log.repository';
+import { RankingActivityLogRepository } from 'src/ranking-activity-log/ranking-activity-log.repository';
+import { DevRankingActivityLogRepository } from 'src/dev-ranking-activity-log/dev-ranking-activity-log.repository';
 
 @Injectable()
 export class RankingRequestService {
@@ -46,7 +48,9 @@ export class RankingRequestService {
     private readonly rankingCategoryRepository: RankingCategoryRepository,
     private readonly residenceActivityLogRepository: ResidenceActivityLogRepository,
     private readonly devResidenceActivityLogRepository: DevResidenceActivityLogRepository,
-    private readonly developerProfileActivityLogRepository: DeveloperProfileActivityLogRepository
+    private readonly developerProfileActivityLogRepository: DeveloperProfileActivityLogRepository,
+    private readonly rankingActivityLogRepository: RankingActivityLogRepository,
+    private readonly devRankingActivityLogRepository: DevRankingActivityLogRepository,
   ) {}
 
   async findAll(listRankingRequestDto: ListRankingRequestDto) {
@@ -212,7 +216,8 @@ export class RankingRequestService {
       residenceId: new Types.ObjectId(createRankingRequestDto.residenceId),
       activityType: 'Submitted for ranking',
       details: {
-        name: rankingCategory.title,
+        rankingCategoryId: new Types.ObjectId(createRankingRequestDto.rankingCategoryId),
+        rankingCategoryName: rankingCategory.title,
       },
       userId: new Types.ObjectId(user.sub),
       createdAt: new Date(),
@@ -246,6 +251,29 @@ export class RankingRequestService {
       ...transformedDto,
       rankingRequestId: new Types.ObjectId(rankingRequest.id),
     });
+
+    await this.rankingActivityLogRepository.create({
+      rankingId: new Types.ObjectId(rankingRequest.id),
+      activityType: 'Submitted for ranking',
+      details: {
+        rankingCategoryId: new Types.ObjectId(createRankingRequestDto.rankingCategoryId),
+        rankingCategoryName: rankingCategory.title,
+      },
+      userId: new Types.ObjectId(user.sub),
+      createdAt: new Date(),
+    });
+
+    await this.devRankingActivityLogRepository.create({
+      rankingId: new Types.ObjectId(rankingRequest.id),
+      activityType: 'Submitted for ranking',
+      details: {
+        rankingCategoryId: new Types.ObjectId(createRankingRequestDto.rankingCategoryId),
+        rankingCategoryName: rankingCategory.title,
+      },
+      userId: new Types.ObjectId(user.sub),
+      createdAt: new Date(),
+    });
+
     return rankingRequest;
   }
 
@@ -405,6 +433,28 @@ export class RankingRequestService {
         details: {
           name: rankingCategory.title,
           id: rankingCategory.id,
+        },
+        userId: new Types.ObjectId(userId),
+        createdAt: new Date(),
+      });
+
+      await this.rankingActivityLogRepository.create({
+        rankingId: new Types.ObjectId(updatedRankingRequestDraftRequest.id),
+        activityType: 'Ranked',
+        details: {
+          rankingCategoryId: new Types.ObjectId(rankingCategory.id),
+          rankingCategoryName: rankingCategory.title,
+        },
+        userId: new Types.ObjectId(userId),
+        createdAt: new Date(),
+      });
+
+      await this.devRankingActivityLogRepository.create({
+        rankingId: new Types.ObjectId(updatedRankingRequestDraftRequest.id),
+        activityType: 'Ranked',
+        details: {
+          rankingCategoryId: new Types.ObjectId(rankingCategory.id),
+          rankingCategoryName: rankingCategory.title,
         },
         userId: new Types.ObjectId(userId),
         createdAt: new Date(),

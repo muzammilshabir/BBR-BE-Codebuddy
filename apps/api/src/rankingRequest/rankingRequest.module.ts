@@ -33,6 +33,13 @@ import {
   DevResidenceActivityLog,
   DevResidenceActivityLogSchema,
 } from 'src/dev-residence-activity-log/schema/dev-residence-activity-log.schema';
+import {
+  RankingActivityLog,
+  RankingActivityLogSchema,
+} from 'src/ranking-activity-log/schema/ranking-activity-log.schema';
+import { RankingActivityLogRepository } from 'src/ranking-activity-log/ranking-activity-log.repository';
+import { DevRankingActivityLogRepository } from 'src/dev-ranking-activity-log/dev-ranking-activity-log.repository';
+import { DevRankingActivityLog, DevRankingActivityLogSchema } from 'src/dev-ranking-activity-log/schema/dev-ranking-activity-log.schema';
 
 @Module({
   imports: [
@@ -52,6 +59,12 @@ import {
     MongooseModule.forFeature([
       { name: DeveloperProfileActivityLog.name, schema: DeveloperProfileActivityLogSchema },
     ]),
+    MongooseModule.forFeature([
+      { name: RankingActivityLog.name, schema: RankingActivityLogSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: DevRankingActivityLog.name, schema: DevRankingActivityLogSchema },
+    ]),
   ],
   controllers: [RankingRequestController],
   providers: [
@@ -65,6 +78,8 @@ import {
     RankingCategoryRepository,
     DevResidenceActivityLogRepository,
     DeveloperProfileActivityLogRepository,
+    RankingActivityLogRepository,
+    DevRankingActivityLogRepository,
   ],
 })
 export class RankingRequestModule {}
