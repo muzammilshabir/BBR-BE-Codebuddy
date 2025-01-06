@@ -27,7 +27,7 @@ export class Feature {
 }
 
 export const createInvoiceScheduleSchema = Joi.object({
-  buyerId: Joi.string().required(),
+  developerId: Joi.string().required(),
   buyerEmail: Joi.string().email().required(),
   companyName: Joi.string().required(),
   residenceId: Joi.string().required(),
@@ -52,7 +52,7 @@ export const createInvoiceScheduleSchema = Joi.object({
 
 export class CreateInvoiceScheduleDto {
   @ApiProperty({ example: 'buyer_123', description: 'Buyer ID' })
-  buyerId: string;
+  developerId: string;
 
   @ApiProperty({ example: 'buyer@example.com', description: 'Buyer email address' })
   buyerEmail: string;

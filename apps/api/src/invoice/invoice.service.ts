@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Invoice } from '../stripe/schema/invoice.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -7,13 +7,25 @@ import { InvoiceItem } from 'src/stripe/schema/invoice-item.schema';
 import { StripeService } from 'src/stripe/stripe.service';
 import { Plan } from 'src/subscription-plan/schema/plan.schema';
 import { BespokeRequestFeature } from '../bespokeRequests/bespokeRequests.service';
+import { InvoiceStatus } from 'src/stripe/enum/invoice-status.enum';
+import { InvoiceSchedule } from 'src/invoice-schedule/invoiceSchedule.schema';
+import { User } from 'src/users/schema/user.schema';
+import { PaymentMethod } from 'src/stripe/schema/payment-method.schema';
+import * as dayjs from 'dayjs';
+import { PaymentAttempt } from 'src/stripe/schema/payment-attempt.schema';
+import { PaymentAttemptStatus } from 'src/stripe/enum/payment-attempt-status.enum';
 
 @Injectable()
 export class InvoiceService {
   constructor(
     @InjectModel(Invoice.name) private readonly invoiceModel: Model<Invoice>,
     @InjectModel(InvoiceItem.name) private readonly lineItemModel: Model<InvoiceItem>,
-    private readonly stripeService: StripeService
+    private readonly stripeService: StripeService,
+
+    @InjectModel(User.name) private readonly userModel: Model<User>,
+    @InjectModel(PaymentMethod.name) private readonly paymentMethodModel: Model<PaymentMethod>,
+
+    @InjectModel(PaymentAttempt.name) private readonly paymentAttemptModel: Model<PaymentAttempt>
   ) {}
 
   async createInvoice() {
@@ -28,8 +40,11 @@ export class InvoiceService {
     return await this.stripeService.getInvoiceFull(invoiceId);
   }
 
-  async attachStripeInvoice(invoiceId: string, stripeInvoiceId: string) {
-    return await this.invoiceModel.findByIdAndUpdate(invoiceId, { stripeInvoiceId });
+  async attachStripeInvoice(invoiceId: string, stripeInvoiceId: string, hostedInvoiceUrl?: string) {
+    return await this.invoiceModel.findByIdAndUpdate(invoiceId, {
+      stripeInvoiceId,
+      ...(hostedInvoiceUrl ? { hostedInvoiceUrl } : {}),
+    });
   }
 
   async createLineItemsFromRankingCategories(
@@ -133,5 +148,140 @@ export class InvoiceService {
       unitAmount: subscriptionPlan.name === 'Bespoke Residence Profile' ? 0 : subscriptionPlan.fee,
       totalAmount: subscriptionPlan.name === 'Bespoke Residence Profile' ? 0 : subscriptionPlan.fee,
     });
+  }
+
+  async createInvoiceFromSchedule(
+    invoiceSchedule: InvoiceSchedule,
+    issuedAt: Date,
+    dueAt: Date,
+    paymentMethodId: string
+  ) {
+    const invoice = await this.invoiceModel.create({
+      residenceId: invoiceSchedule.residenceId,
+      paymentMethodId,
+      status: InvoiceStatus.PENDING,
+      subscriptionId: invoiceSchedule.planId,
+      issuedAt,
+      dueAt,
+      developerId: invoiceSchedule.developerId,
+      nextAutoPaymentAttemptAt: dueAt,
+      maxAutoPaymentAttemptsCount: invoiceSchedule.maxRenewalAttemptsCount,
+      paymentFrequency: invoiceSchedule.attemptsFrequency,
+    });
+
+    const developer = await this.userModel.findById(invoiceSchedule.developerId);
+
+    const stripeInvoice = await this.stripeService.createInvoiceV2(developer.stripeCustomerId);
+
+    const lineItems = await this.createLineItemsFromScheduleFeatures(
+      invoice.id,
+      invoiceSchedule.features
+    );
+
+    await this.attachLineItemsToStripeInvoice(
+      developer.stripeCustomerId,
+      stripeInvoice.id,
+      lineItems
+    );
+
+    const finalStripeInvoice = await this.stripeService.finalizeInvoice(stripeInvoice);
+
+    await this.attachStripeInvoice(
+      invoice.id,
+      stripeInvoice.id,
+      finalStripeInvoice.hosted_invoice_url
+    );
+
+    return invoice;
+  }
+
+  private async createLineItemsFromScheduleFeatures(invoiceId: string, features: any[]) {
+    const lineItems = [];
+    for (const feature of features) {
+      lineItems.push(
+        await this.lineItemModel.create({
+          invoiceId,
+          name: feature.featureName,
+          unitAmount: feature.unitAmount,
+          totalAmount: feature.unitAmount,
+        })
+      );
+    }
+
+    return lineItems;
+  }
+
+  async attemptAutoPayment(invoice: Invoice) {
+    const { autoPaymentAttemptsCount, maxAutoPaymentAttemptsCount } = invoice;
+    try {
+      const paymentMethod = await this.paymentMethodModel.findById(invoice.paymentMethodId);
+      if (!paymentMethod) {
+        throw new NotFoundException('Payment method not found');
+      }
+
+      await this.paymentAttemptModel.create({
+        invoiceId: invoice._id,
+        paymentMethodId: invoice.paymentMethodId,
+        stripeInvoiceId: invoice.stripeInvoiceId,
+        status: PaymentAttemptStatus.PENDING,
+        attemptNumber: 1,
+        attemptsRemaining: 0,
+        attemptsRemainingToday: 0,
+      });
+
+      await this.stripeService.payInvoiceUsingPaymentMethod(
+        invoice.stripeInvoiceId,
+        paymentMethod.paymentMethodId
+      );
+
+      await this.invoiceModel.findByIdAndUpdate(invoice.id, {
+        autoPaymentAttemptsCount: autoPaymentAttemptsCount + 1,
+        lastAutoPaymentAttemptedAt: new Date(),
+        paymentAttempts: [
+          ...invoice.paymentAttempts,
+          {
+            success: true,
+            timestamp: new Date(),
+            message: 'Payment successful',
+          },
+        ],
+      });
+
+      if (autoPaymentAttemptsCount + 1 >= maxAutoPaymentAttemptsCount) {
+        await this.invoiceModel.findByIdAndUpdate(invoice.id, {
+          status: InvoiceStatus.FAILED,
+        });
+      } else {
+        const todayStartPST = dayjs().tz('Asia/Kolkata').startOf('day');
+        const nextAutoPaymentAttemptAt = todayStartPST.add(invoice.paymentFrequency, 'days');
+        await this.invoiceModel.findByIdAndUpdate(invoice.id, {
+          nextAutoPaymentAttemptAt,
+        });
+      }
+    } catch (error) {
+      await this.invoiceModel.findByIdAndUpdate(invoice.id, {
+        paymentAttempts: [
+          ...invoice.paymentAttempts,
+          {
+            success: false,
+            timestamp: new Date(),
+            message: error.message,
+          },
+        ],
+      });
+      if (autoPaymentAttemptsCount + 1 >= maxAutoPaymentAttemptsCount) {
+        await this.invoiceModel.findByIdAndUpdate(invoice.id, {
+          status: InvoiceStatus.FAILED,
+        });
+      } else {
+        const todayStartPST = dayjs().tz('Asia/Kolkata').startOf('day');
+        const nextAutoPaymentAttemptAt = todayStartPST.add(invoice.paymentFrequency, 'days');
+        await this.invoiceModel.findByIdAndUpdate(invoice.id, {
+          nextAutoPaymentAttemptAt,
+          autoPaymentAttemptsCount: autoPaymentAttemptsCount + 1,
+          lastAutoPaymentAttemptedAt: new Date(),
+        });
+      }
+    }
   }
 }

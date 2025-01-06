@@ -11,7 +11,11 @@ import * as utc from 'dayjs/plugin/utc';
 import * as timezone from 'dayjs/plugin/timezone';
 import { PaymentMethod } from 'src/stripe/schema/payment-method.schema';
 import { Feature as FeatureSchema } from 'src/subscription-plan/schema/feature.schema';
-import { InvoiceScheduleStatus } from './invoiceSchedule.enum';
+import { InvoiceScheduleStatus, RenewalFrequency } from './invoiceSchedule.enum';
+import { Cron } from '@nestjs/schedule';
+import { InvoiceService } from 'src/invoice/invoice.service';
+import { Invoice } from 'src/stripe/schema/invoice.schema';
+import { InvoiceStatus } from 'src/stripe/enum/invoice-status.enum';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -35,12 +39,128 @@ export class InvoiceScheduleService {
     private paymentMethodModel: Model<PaymentMethod>,
 
     @InjectModel(Feature.name)
-    private featureModel: Model<FeatureSchema>
+    private featureModel: Model<FeatureSchema>,
+
+    @InjectModel(Invoice.name)
+    private invoiceModel: Model<Invoice>,
+
+    private readonly invoiceService: InvoiceService
   ) {}
+
+  @Cron('0 0 * * *', {
+    timeZone: 'Asia/Kolkata',
+  })
+  //   @Cron('*/30 * * * * *', {
+  //     timeZone: 'America/Los_Angeles',
+  //   })
+  async handleMidnightTasks() {
+    const startOfDayPST = dayjs().tz('Asia/Kolkata').startOf('day');
+    const endOfDayPST = startOfDayPST.endOf('day');
+    console.log(startOfDayPST.toDate(), endOfDayPST.toDate());
+
+    const invoiceSchedules = await this.invoiceScheduleModel.find({
+      status: InvoiceScheduleStatus.ACTIVE,
+      $or: [
+        { issueDate: { $gte: startOfDayPST.toDate(), $lte: endOfDayPST.toDate() } },
+        {
+          $and: [
+            { nextInvoiceIssueDate: { $exists: true } },
+            { nextInvoiceIssueDate: { $gte: startOfDayPST.toDate(), $lte: endOfDayPST.toDate() } },
+          ],
+        },
+      ],
+    });
+
+    for (const invoiceSchedule of invoiceSchedules) {
+      if (!invoiceSchedule.nextInvoiceIssueDate) {
+        // create invoice
+        const invoice = await this.invoiceService.createInvoiceFromSchedule(
+          invoiceSchedule,
+          invoiceSchedule.issueDate,
+          invoiceSchedule.dueDate,
+          invoiceSchedule.currentPaymentMethodId.toString()
+        );
+        // calculate next invoice issue date
+        const nextInvoiceIssueDate = this.calculateNextInvoiceIssueDate(
+          invoiceSchedule.issueDate,
+          invoiceSchedule.renewalFrequency,
+          invoiceSchedule.reminderDays
+        );
+        // update invoice schedule
+        await this.invoiceScheduleModel.findByIdAndUpdate(invoiceSchedule._id, {
+          nextInvoiceIssueDate,
+          currentInvoiceId: invoice._id,
+        });
+      } else {
+        // create invoice
+        const dueDate = dayjs(invoiceSchedule.nextInvoiceIssueDate).add(
+          invoiceSchedule.reminderDays,
+          'days'
+        );
+        const invoice = await this.invoiceService.createInvoiceFromSchedule(
+          invoiceSchedule,
+          invoiceSchedule.nextInvoiceIssueDate,
+          dueDate.toDate(),
+          invoiceSchedule.paymentMethodId.toString()
+        );
+        await this.invoiceScheduleModel.findByIdAndUpdate(invoiceSchedule._id, {
+          currentInvoiceId: invoice._id,
+        });
+        // calculate next invoice issue date
+        const nextInvoiceIssueDate = this.calculateNextInvoiceIssueDate(
+          invoiceSchedule.nextInvoiceIssueDate,
+          invoiceSchedule.renewalFrequency,
+          invoiceSchedule.reminderDays
+        );
+        // update invoice schedule
+        await this.invoiceScheduleModel.findByIdAndUpdate(invoiceSchedule._id, {
+          nextInvoiceIssueDate,
+          currentInvoiceId: invoice._id,
+        });
+        // attempt to pay invoice
+      }
+    }
+
+    const invoicesToAttemptPayment = await this.invoiceModel.find({
+      status: InvoiceStatus.PENDING,
+      nextAutoPaymentAttemptAt: { $gte: startOfDayPST.toDate(), $lte: endOfDayPST.toDate() },
+    });
+    console.log(invoicesToAttemptPayment);
+
+    for (const invoice of invoicesToAttemptPayment) {
+      await this.invoiceService.attemptAutoPayment(invoice);
+    }
+  }
+
+  calculateNextInvoiceIssueDate(
+    issueDate: Date,
+    renewalFrequency: RenewalFrequency,
+    reminderDays: number
+  ) {
+    let daysToAdd;
+
+    switch (renewalFrequency) {
+      case RenewalFrequency.MONTHLY:
+        daysToAdd = 30;
+        break;
+      case RenewalFrequency.YEARLY:
+        daysToAdd = 365;
+        break;
+      default:
+        daysToAdd = 30;
+    }
+
+    const nextInvoiceIssueDate = dayjs(issueDate)
+      .add(daysToAdd, 'days')
+      .subtract(reminderDays, 'days')
+      .toDate();
+
+    return nextInvoiceIssueDate;
+  }
 
   async createInvoiceSchedule(createInvoiceScheduleDto: CreateInvoiceScheduleDto) {
     const {
-      buyerId,
+      developerId,
       residenceId,
       planId,
       issueDate,
@@ -61,9 +181,9 @@ export class InvoiceScheduleService {
       gracePeriodDays,
     } = createInvoiceScheduleDto;
 
-    const buyer = await this.userModel.findById(buyerId);
-    if (!buyer) {
-      throw new NotFoundException('Buyer not found');
+    const developer = await this.userModel.findById(developerId);
+    if (!developer) {
+      throw new NotFoundException('Developer not found');
     }
 
     const residence = await this.residenceModel.findById(residenceId);
@@ -77,8 +197,8 @@ export class InvoiceScheduleService {
     }
 
     // Convert incoming PST date to dayjs object and validate it's not in the past
-    const pstDate = dayjs.tz(issueDate, 'America/Los_Angeles');
-    const todayStartPST = dayjs().tz('America/Los_Angeles').startOf('day');
+    const pstDate = dayjs.tz(issueDate, 'Asia/Kolkata');
+    const todayStartPST = dayjs().tz('Asia/Kolkata').startOf('day');
 
     if (pstDate.isBefore(todayStartPST)) {
       throw new BadRequestException('Issue date cannot be in the past');
@@ -87,7 +207,7 @@ export class InvoiceScheduleService {
     // Convert PST date to UTC for storage
     const utcDate = pstDate.utc().toDate();
 
-    const dueDatePST = dayjs.tz(dueDate, 'America/Los_Angeles');
+    const dueDatePST = dayjs.tz(dueDate, 'Asia/Kolkata');
     if (dueDatePST.isBefore(pstDate, 'day')) {
       throw new BadRequestException('Due date cannot be before issue date');
     }
@@ -96,7 +216,7 @@ export class InvoiceScheduleService {
 
     const currentPaymentMethod = await this.paymentMethodModel.findOne({
       _id: currentPaymentMethodId,
-      customerId: buyerId,
+      customerId: developerId,
     });
 
     if (!currentPaymentMethod) {
@@ -105,7 +225,7 @@ export class InvoiceScheduleService {
 
     const paymentMethod = await this.paymentMethodModel.findOne({
       _id: paymentMethodId,
-      customerId: buyerId,
+      customerId: developerId,
     });
 
     if (!paymentMethod) {
@@ -127,14 +247,14 @@ export class InvoiceScheduleService {
     }
 
     const invoiceSchedules = await this.invoiceScheduleModel.find({
-      buyerId: new Types.ObjectId(buyerId),
+      developerId: new Types.ObjectId(developerId),
       residenceId: new Types.ObjectId(residenceId),
       status: { $ne: InvoiceScheduleStatus.INACTIVE },
     });
 
     // Prepare the invoice schedule data
     const invoiceScheduleData = {
-      buyerId: new Types.ObjectId(buyerId),
+      developerId: new Types.ObjectId(developerId),
       residenceId: new Types.ObjectId(residenceId),
       buyerEmail,
       companyName,

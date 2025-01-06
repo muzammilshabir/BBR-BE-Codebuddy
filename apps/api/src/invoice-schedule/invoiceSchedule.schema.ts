@@ -12,7 +12,7 @@ export class InvoiceSchedule extends Document {
   status: InvoiceScheduleStatus;
 
   @Prop({ type: Types.ObjectId, required: true })
-  buyerId: Types.ObjectId;
+  developerId: Types.ObjectId;
 
   @Prop({ required: true })
   buyerEmail: string;
@@ -85,6 +85,12 @@ export class InvoiceSchedule extends Document {
 
   @Prop({ type: Boolean, default: false })
   publish: boolean;
+
+  @Prop({ type: Date })
+  nextInvoiceIssueDate: Date;
+
+  @Prop({ type: Types.ObjectId })
+  currentInvoiceId: Types.ObjectId;
 }
 
 export const InvoiceScheduleSchema = SchemaFactory.createForClass(InvoiceSchedule);
