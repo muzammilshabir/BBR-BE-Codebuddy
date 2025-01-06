@@ -12,6 +12,7 @@ import { FeatureRequestStatus } from './enum/feature-request-status';
 import { PlanRepository } from 'src/subscription-plan/plan.repository';
 import { ResidenceActivityLogRepository } from 'src/residence-activity-log/residence-activity-log.repository';
 import { DeveloperProfileActivityLogRepository } from 'src/developer-profile-activity-log/developer-profile-activity-log.repository';
+import { DevResidenceActivityLogRepository } from 'src/dev-residence-activity-log/dev-residence-activity-log.repository';
 
 @Injectable()
 export class FeatureRequestService {
@@ -21,6 +22,7 @@ export class FeatureRequestService {
     private readonly residenceRepository: ResidenceRepository,
     private readonly subscriptionPlanRepository: PlanRepository,
     private readonly residenceActivityLogRepository: ResidenceActivityLogRepository,
+    private readonly devResidenceActivityLogRepository: DevResidenceActivityLogRepository,
     private readonly developerProfileActivityLogRepository: DeveloperProfileActivityLogRepository
   ) {}
 
@@ -62,6 +64,13 @@ export class FeatureRequestService {
     });
 
     await this.residenceActivityLogRepository.create({
+      residenceId: new Types.ObjectId(residence.id),
+      activityType: 'Added to Featured',
+      userId: new Types.ObjectId(userId),
+      createdAt: new Date(),
+    });
+
+    await this.devResidenceActivityLogRepository.create({
       residenceId: new Types.ObjectId(residence.id),
       activityType: 'Added to Featured',
       userId: new Types.ObjectId(userId),
@@ -161,6 +170,13 @@ export class FeatureRequestService {
       });
 
       await this.residenceActivityLogRepository.create({
+        residenceId: new Types.ObjectId(featureRequest.residenceId),
+        activityType: 'Removed from Featured',
+        userId: new Types.ObjectId(userId),
+        createdAt: new Date(),
+      });
+
+      await this.devResidenceActivityLogRepository.create({
         residenceId: new Types.ObjectId(featureRequest.residenceId),
         activityType: 'Removed from Featured',
         userId: new Types.ObjectId(userId),

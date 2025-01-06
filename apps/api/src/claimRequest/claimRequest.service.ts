@@ -20,6 +20,7 @@ import { ResidenceDraftRepository } from '../residencesDraft/residencesDraft.rep
 import { ResidenceStatus } from '../residences/enum/residence-enum';
 import { ResidenceActivityLogRepository } from 'src/residence-activity-log/residence-activity-log.repository';
 import { DeveloperProfileActivityLogRepository } from 'src/developer-profile-activity-log/developer-profile-activity-log.repository';
+import { DevResidenceActivityLogRepository } from 'src/dev-residence-activity-log/dev-residence-activity-log.repository';
 
 @Injectable()
 export class ClaimRequestService {
@@ -31,7 +32,8 @@ export class ClaimRequestService {
     private readonly authService: AuthService,
     private readonly residenceDraftRepository: ResidenceDraftRepository,
     private readonly residenceActivityLogRepository: ResidenceActivityLogRepository,
-    private readonly developerProfileActivityLogRepository: DeveloperProfileActivityLogRepository,
+    private readonly devResidenceActivityLogRepository: DevResidenceActivityLogRepository,
+    private readonly developerProfileActivityLogRepository: DeveloperProfileActivityLogRepository
   ) {}
 
   async createClaimResidence(
@@ -58,6 +60,14 @@ export class ClaimRequestService {
     const claimRequest = await this.claimRequestRepository.create(transformedDto);
 
     await this.residenceActivityLogRepository.create({
+      residenceId: new Types.ObjectId(residenceId),
+      activityType: 'Wants to claim residence',
+      details: { id: claimRequest.id },
+      userId: new Types.ObjectId(userId),
+      createdAt: new Date(),
+    });
+
+    await this.devResidenceActivityLogRepository.create({
       residenceId: new Types.ObjectId(residenceId),
       activityType: 'Wants to claim residence',
       details: { id: claimRequest.id },
@@ -185,6 +195,14 @@ export class ClaimRequestService {
       createdAt: new Date(),
     });
 
+    await this.devResidenceActivityLogRepository.create({
+      residenceId: new Types.ObjectId(residenceId),
+      activityType: 'Wants to claim residence',
+      details: { id: claimRequest.id },
+      userId: new Types.ObjectId(userId),
+      createdAt: new Date(),
+    });
+
     await this.developerProfileActivityLogRepository.create({
       developerId: new Types.ObjectId(claimRequest.developerId),
       activityType: 'Wants to claim residence',
@@ -267,6 +285,13 @@ export class ClaimRequestService {
       createdAt: new Date(),
     });
 
+    await this.devResidenceActivityLogRepository.create({
+      residenceId: new Types.ObjectId(residenceId),
+      activityType: 'Wants to claim residence',
+      details: { id: claimRequest.id },
+      createdAt: new Date(),
+    });
+
     return claimRequest;
   }
 
@@ -324,6 +349,13 @@ export class ClaimRequestService {
     const claimRequest = await this.claimRequestRepository.create(transformedDto);
 
     await this.residenceActivityLogRepository.create({
+      residenceId: new Types.ObjectId(residenceId),
+      activityType: 'Wants to claim residence',
+      details: { id: claimRequest.id },
+      createdAt: new Date(),
+    });
+
+    await this.devResidenceActivityLogRepository.create({
       residenceId: new Types.ObjectId(residenceId),
       activityType: 'Wants to claim residence',
       details: { id: claimRequest.id },

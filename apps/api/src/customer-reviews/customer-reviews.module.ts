@@ -12,8 +12,13 @@ import { GoogleReviewRepository } from './google-reviews.repository';
 import { GoogleReviews, GoogleReviewsSchema } from './googleReviewsSchema/googleReviews.schema';
 import { HttpModule } from '@nestjs/axios';
 import { ScheduleModule } from '@nestjs/schedule';
-import { ResidenceActivityLog, ResidenceActivityLogSchema } from 'src/residence-activity-log/schema/residence-activity-log.schema';
+import {
+  ResidenceActivityLog,
+  ResidenceActivityLogSchema,
+} from 'src/residence-activity-log/schema/residence-activity-log.schema';
 import { ResidenceActivityLogRepository } from 'src/residence-activity-log/residence-activity-log.repository';
+import { DevResidenceActivityLog, DevResidenceActivityLogSchema } from 'src/dev-residence-activity-log/schema/dev-residence-activity-log.schema';
+import { DevResidenceActivityLogRepository } from 'src/dev-residence-activity-log/dev-residence-activity-log.repository';
 
 @Module({
   imports: [
@@ -25,11 +30,22 @@ import { ResidenceActivityLogRepository } from 'src/residence-activity-log/resid
       { name: CustomerReview.name, schema: CustomerReviewSchema },
       { name: GoogleReviews.name, schema: GoogleReviewsSchema },
     ]),
-    MongooseModule.forFeature([{ name: ResidenceActivityLog.name, schema: ResidenceActivityLogSchema }]),
+    MongooseModule.forFeature([
+      { name: ResidenceActivityLog.name, schema: ResidenceActivityLogSchema },
+    ]),
+    MongooseModule.forFeature([
+      { name: DevResidenceActivityLog.name, schema: DevResidenceActivityLogSchema },
+    ]),
     HttpModule,
     ScheduleModule.forRoot(),
   ],
   controllers: [CustomerReviewsController],
-  providers: [CustomerReviewsService, CustomerReviewRepository, GoogleReviewRepository, ResidenceActivityLogRepository],
+  providers: [
+    CustomerReviewsService,
+    CustomerReviewRepository,
+    GoogleReviewRepository,
+    ResidenceActivityLogRepository,
+    DevResidenceActivityLogRepository,
+  ],
 })
 export class CustomerReviewsModule {}

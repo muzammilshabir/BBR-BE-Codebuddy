@@ -21,7 +21,12 @@ import {
 } from 'src/residence-activity-log/schema/residence-activity-log.schema';
 import { ResidenceActivityLogRepository } from 'src/residence-activity-log/residence-activity-log.repository';
 import { DeveloperProfileActivityLogRepository } from 'src/developer-profile-activity-log/developer-profile-activity-log.repository';
-import { DeveloperProfileActivityLog, DeveloperProfileActivityLogSchema } from 'src/developer-profile-activity-log/schema/developer-profile-activity-log.schema';
+import {
+  DeveloperProfileActivityLog,
+  DeveloperProfileActivityLogSchema,
+} from 'src/developer-profile-activity-log/schema/developer-profile-activity-log.schema';
+import { DevResidenceActivityLog, DevResidenceActivityLogSchema } from 'src/dev-residence-activity-log/schema/dev-residence-activity-log.schema';
+import { DevResidenceActivityLogRepository } from 'src/dev-residence-activity-log/dev-residence-activity-log.repository';
 
 @Module({
   imports: [
@@ -35,6 +40,9 @@ import { DeveloperProfileActivityLog, DeveloperProfileActivityLogSchema } from '
     MongooseModule.forFeature([
       { name: DeveloperProfileActivityLog.name, schema: DeveloperProfileActivityLogSchema },
     ]),
+    MongooseModule.forFeature([
+      { name: DevResidenceActivityLog.name, schema: DevResidenceActivityLogSchema },
+    ]),
     CustomerSupportModule,
     ScheduleModule.forRoot(),
   ],
@@ -47,6 +55,7 @@ import { DeveloperProfileActivityLog, DeveloperProfileActivityLogSchema } from '
     PlanRepository,
     ResidenceActivityLogRepository,
     DeveloperProfileActivityLogRepository,
+    DevResidenceActivityLogRepository,
   ],
   exports: [BbrVerificationService],
 })

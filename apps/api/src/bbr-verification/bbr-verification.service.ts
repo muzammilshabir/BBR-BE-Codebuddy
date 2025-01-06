@@ -13,6 +13,7 @@ import { VerificationType } from './enum/verification-type.enum';
 import { PlanRepository } from 'src/subscription-plan/plan.repository';
 import { ResidenceActivityLogRepository } from 'src/residence-activity-log/residence-activity-log.repository';
 import { DeveloperProfileActivityLogRepository } from 'src/developer-profile-activity-log/developer-profile-activity-log.repository';
+import { DevResidenceActivityLogRepository } from 'src/dev-residence-activity-log/dev-residence-activity-log.repository';
 
 @Injectable()
 export class BbrVerificationService {
@@ -22,6 +23,7 @@ export class BbrVerificationService {
     private readonly residenceRepository: ResidenceRepository,
     private readonly planRepository: PlanRepository,
     private readonly residenceActivityLogRepository: ResidenceActivityLogRepository,
+    private readonly devResidenceActivityLogRepository: DevResidenceActivityLogRepository,
     private readonly developerProfileActivityLogRepository: DeveloperProfileActivityLogRepository,
   ) {}
 
@@ -70,6 +72,13 @@ export class BbrVerificationService {
       createdAt: new Date(),
     });
 
+    await this.devResidenceActivityLogRepository.create({
+      residenceId: new Types.ObjectId(createBbrVerificationDto.residenceId),
+      activityType: `Submitted for ${plan.name}`,
+      userId: new Types.ObjectId(userId),
+      createdAt: new Date(),
+    });
+
     await this.developerProfileActivityLogRepository.create({
       developerId: new Types.ObjectId(userId),
       activityType: `Requested ${plan.name}`,
@@ -107,6 +116,12 @@ export class BbrVerificationService {
           userId: new Types.ObjectId(userId),
           createdAt: new Date(),
         });
+        await this.devResidenceActivityLogRepository.create({
+          residenceId: new Types.ObjectId(residence.id),
+          activityType: 'E-verified',
+          userId: new Types.ObjectId(userId),
+          createdAt: new Date(),
+        });
       }
       if (residence && verification.verificationType === VerificationType.ONSITE_VERIFICATION) {
         await this.residenceRepository.update(residence._id.toString(), {
@@ -114,6 +129,12 @@ export class BbrVerificationService {
           verifiedOn: updateBbrVerificationDto.verifiedOn,
         });
         await this.residenceActivityLogRepository.create({
+          residenceId: new Types.ObjectId(residence.id),
+          activityType: 'Verified onsite',
+          userId: new Types.ObjectId(userId),
+          createdAt: new Date(),
+        });
+        await this.devResidenceActivityLogRepository.create({
           residenceId: new Types.ObjectId(residence.id),
           activityType: 'Verified onsite',
           userId: new Types.ObjectId(userId),

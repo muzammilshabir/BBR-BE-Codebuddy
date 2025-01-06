@@ -34,6 +34,7 @@ import { format } from '@fast-csv/format';
 import { Writable } from 'stream';
 import { ChangeRankingScore } from './enum/change-ranking-score.enum';
 import { DeveloperProfileActivityLogRepository } from 'src/developer-profile-activity-log/developer-profile-activity-log.repository';
+import { DevResidenceActivityLogRepository } from 'src/dev-residence-activity-log/dev-residence-activity-log.repository';
 
 @Injectable()
 export class RankingRequestService {
@@ -44,6 +45,7 @@ export class RankingRequestService {
     private readonly residenceRepository: ResidenceRepository,
     private readonly rankingCategoryRepository: RankingCategoryRepository,
     private readonly residenceActivityLogRepository: ResidenceActivityLogRepository,
+    private readonly devResidenceActivityLogRepository: DevResidenceActivityLogRepository,
     private readonly developerProfileActivityLogRepository: DeveloperProfileActivityLogRepository
   ) {}
 
@@ -216,6 +218,16 @@ export class RankingRequestService {
       createdAt: new Date(),
     });
 
+    await this.devResidenceActivityLogRepository.create({
+      residenceId: new Types.ObjectId(createRankingRequestDto.residenceId),
+      activityType: 'Submitted for ranking',
+      details: {
+        name: rankingCategory.title,
+      },
+      userId: new Types.ObjectId(user.sub),
+      createdAt: new Date(),
+    });
+
     await this.developerProfileActivityLogRepository.create({
       developerId: new Types.ObjectId(createRankingRequestDto.residenceId),
       activityType: 'Submitted for ranking',
@@ -377,6 +389,17 @@ export class RankingRequestService {
       });
 
       await this.residenceActivityLogRepository.create({
+        residenceId: new Types.ObjectId(updatedRankingRequestDraftRequest.residenceId),
+        activityType: 'Ranked',
+        details: {
+          name: rankingCategory.title,
+          id: rankingCategory.id,
+        },
+        userId: new Types.ObjectId(userId),
+        createdAt: new Date(),
+      });
+
+      await this.devResidenceActivityLogRepository.create({
         residenceId: new Types.ObjectId(updatedRankingRequestDraftRequest.residenceId),
         activityType: 'Ranked',
         details: {

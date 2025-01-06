@@ -17,22 +17,24 @@ import { RequestReviewDto } from './dto/request-review.dto';
 import { Residence } from 'src/residences/schema/residences.schema';
 import { RespondToReviewDto } from './dto/respond-review';
 import { ResidenceActivityLogRepository } from 'src/residence-activity-log/residence-activity-log.repository';
+import { DevResidenceActivityLogRepository } from 'src/dev-residence-activity-log/dev-residence-activity-log.repository';
 
 @Injectable()
 export class ReviewService {
-
   private convertToCSV(arr) {
-    const array = [Object.keys(arr[0])].concat(arr)
+    const array = [Object.keys(arr[0])].concat(arr);
 
-    return array.map(it => {
-      return Object.values(it).toString()
-    }).join('\n')
+    return array
+      .map((it) => {
+        return Object.values(it).toString();
+      })
+      .join('\n');
   }
 
   private matchReviewWordsWithReview(reviewWords: string[], review: string): string[] {
     const result = [];
     for (const word of reviewWords) {
-      if(review.includes(word)) {
+      if (review.includes(word)) {
         result.push(word);
       }
     }
@@ -45,34 +47,57 @@ export class ReviewService {
     private readonly userService: UserService,
     private readonly eventEmitter: EventEmitter2,
     private readonly residenceActivityLogRepository: ResidenceActivityLogRepository,
+    private readonly devResidenceActivityLogRepository: DevResidenceActivityLogRepository
   ) {}
 
   async create(userFromToken: JwtPayloadType, createReviewDto: CreateReviewDto): Promise<Review> {
     const transformedDto = {
       ...createReviewDto,
       residence: new Types.ObjectId(createReviewDto.residenceId),
-      photos: createReviewDto.photos.map(
-        (photo) => new Types.ObjectId(photo)
-      ),
+      photos: createReviewDto.photos.map((photo) => new Types.ObjectId(photo)),
       createdById: new Types.ObjectId(userFromToken.sub),
     };
     const createdReview = await this.reviewRepository.create(transformedDto);
 
-    const residence = await this.residenceService.getResidenceById(createReviewDto.residenceId.toString());
+    const residence = await this.residenceService.getResidenceById(
+      createReviewDto.residenceId.toString()
+    );
     const residenceSeller = await this.userService.findById(residence.createdByIdId);
-    if(residenceSeller && residenceSeller.reviewWordsForAlert.length > 0) {
-      const matchedWords = this.matchReviewWordsWithReview(residenceSeller?.reviewWordsForAlert, createdReview.review.details.concat(createdReview.review.title));
-      if (matchedWords.length > 0) await this.sendReviewWordsMatchEmail(residenceSeller.email, residenceSeller.fullName, residence.name, matchedWords.toString());
+    if (residenceSeller && residenceSeller.reviewWordsForAlert.length > 0) {
+      const matchedWords = this.matchReviewWordsWithReview(
+        residenceSeller?.reviewWordsForAlert,
+        createdReview.review.details.concat(createdReview.review.title)
+      );
+      if (matchedWords.length > 0)
+        await this.sendReviewWordsMatchEmail(
+          residenceSeller.email,
+          residenceSeller.fullName,
+          residence.name,
+          matchedWords.toString()
+        );
     }
-    if(createReviewDto.rating < 4) {
-      await this.sendLowStarReviewEmail(residenceSeller.email, residenceSeller.fullName, residence.name, createReviewDto.rating.toString());
+    if (createReviewDto.rating < 4) {
+      await this.sendLowStarReviewEmail(
+        residenceSeller.email,
+        residenceSeller.fullName,
+        residence.name,
+        createReviewDto.rating.toString()
+      );
     }
 
-    if(createReviewDto.rating == 5) {
+    if (createReviewDto.rating == 5) {
       await this.checkAndSetHundredFiveStarReviewsBadge(residenceSeller);
     }
 
     await this.residenceActivityLogRepository.create({
+      residenceId: new Types.ObjectId(residence.id),
+      activityType: 'The new review received',
+      details: { id: createdReview.id },
+      userId: new Types.ObjectId(userFromToken.sub),
+      createdAt: new Date(),
+    });
+
+    await this.devResidenceActivityLogRepository.create({
       residenceId: new Types.ObjectId(residence.id),
       activityType: 'The new review received',
       details: { id: createdReview.id },
@@ -87,24 +112,20 @@ export class ReviewService {
     const { count } = await this.reviewRepository.findAll([
       { $match: { rating: 5 } },
       {
-          $lookup:
-          {
-              from: "residences",
-              localField: "residenceId",
-              foreignField: "_id",
-              as: "residence"
-          }
+        $lookup: {
+          from: 'residences',
+          localField: 'residenceId',
+          foreignField: '_id',
+          as: 'residence',
+        },
       },
-      { $match: { "residence.createdByIdId": seller._id } },
+      { $match: { 'residence.createdByIdId': seller._id } },
     ]);
     if (count >= 100) {
       this.userService.update(seller._id.toString(), {
         hundredFiveStarReviews: true,
       });
-      await this.sendHundredFiveStarReviewsBadgeEmail(
-        seller.email,
-        seller.fullName,
-      );
+      await this.sendHundredFiveStarReviewsBadgeEmail(seller.email, seller.fullName);
     }
   }
 
@@ -117,21 +138,25 @@ export class ReviewService {
       isResponded: true,
       response: respondToReviewDto.response,
     };
-    if(review.isResponded) {
+    if (review.isResponded) {
       updatedValues.isResponseEdited = true;
     }
     const updatedReview = await this.reviewRepository.update(reviewId, updatedValues);
     await this.sendReviewResponseEmail(
       review.createdById.email,
       review.createdById.fullName,
-      review.residence.name,
+      review.residence.name
     );
     return updatedReview;
   }
 
-  async requestReview(userFromToken: JwtPayloadType, requestReviewDto: RequestReviewDto): Promise<any> {
-
-    const residence = await this.residenceService.getResidenceById(requestReviewDto.residenceId.toString()) as Residence;
+  async requestReview(
+    userFromToken: JwtPayloadType,
+    requestReviewDto: RequestReviewDto
+  ): Promise<any> {
+    const residence = (await this.residenceService.getResidenceById(
+      requestReviewDto.residenceId.toString()
+    )) as Residence;
     const residenceBuyer = await this.userService.findById(requestReviewDto.buyerId.toString());
     const residenceSeller = await this.userService.findById(userFromToken.sub);
 
@@ -139,10 +164,10 @@ export class ReviewService {
       residenceBuyer.email,
       residenceBuyer.fullName,
       residence.name,
-      residenceSeller.fullName,
+      residenceSeller.fullName
     );
 
-    return "Email sent to Buyer successfully.";
+    return 'Email sent to Buyer successfully.';
   }
 
   async getReviewById(reviewId: string): Promise<any> {
@@ -158,14 +183,12 @@ export class ReviewService {
       isDeleted: DeletionStatus.ACTIVE,
       residence: new Types.ObjectId(listReviewsDto.residenceId),
     };
-    if(listReviewsDto.isFlagged) {
+    if (listReviewsDto.isFlagged) {
       filter.isFlagged = true;
     }
 
-    if(listReviewsDto.search) {
-      filter.$or = [
-        { "review.title": { $regex: listReviewsDto.search, $options: 'i' } },
-      ];
+    if (listReviewsDto.search) {
+      filter.$or = [{ 'review.title': { $regex: listReviewsDto.search, $options: 'i' } }];
     }
 
     const options = PaginationService.prepareOptions(listReviewsDto);
@@ -193,7 +216,7 @@ export class ReviewService {
       totalRating += review.rating;
     }
 
-    return { averageRating: totalRating/count, totalReviews: count };
+    return { averageRating: totalRating / count, totalReviews: count };
   }
 
   async processWeeklySummaries() {
@@ -203,8 +226,8 @@ export class ReviewService {
       isDeleted: DeletionStatus.ACTIVE,
       created_on: {
         $gte: oneWeekAgo,
-        $lt: new Date()
-      }
+        $lt: new Date(),
+      },
     };
 
     const { data } = await this.reviewRepository.findAll(filter);
@@ -213,12 +236,12 @@ export class ReviewService {
       return;
     }
     const summaries: {
-      totalRating: number,
-      count: number,
+      totalRating: number;
+      count: number;
     }[] = [];
     for (const review of data) {
       const key = review.residence.createdById.toString();
-      if(key in summaries) {
+      if (key in summaries) {
         summaries[key].totalRating += review.rating;
         summaries[key].count++;
       } else {
@@ -231,13 +254,13 @@ export class ReviewService {
     for (const userId in summaries) {
       if (Object.prototype.hasOwnProperty.call(summaries, userId)) {
         const summary = summaries[userId];
-        const avgRatings = summary.totalRating/summary.count;
+        const avgRatings = summary.totalRating / summary.count;
         const user = await this.userService.findById(userId);
         this.sendWeeklySummaryEmail(
           user.email,
           user.fullName,
           summary.count.toString(),
-          avgRatings.toString(),
+          avgRatings.toString()
         );
       }
     }
@@ -252,7 +275,6 @@ export class ReviewService {
     const { data } = await this.reviewRepository.findAll(filter);
 
     return { reviews: this.convertToCSV(data) };
-
   }
 
   async getHighlightedReviewsByResidenceId(residenceId: string) {
@@ -281,25 +303,28 @@ export class ReviewService {
 
   async bulkMarking(residenceId: string, reviewIds: string[], mark: BulkMark): Promise<any> {
     let query = {};
-    if(mark == BulkMark.REMOVAL) {
+    if (mark == BulkMark.REMOVAL) {
       query = { isRemovalRequested: true };
-    } else if(mark = BulkMark.RESPONDED) {
+    } else if ((mark = BulkMark.RESPONDED)) {
       query = { isResponded: true };
     }
     for (const reviewId of reviewIds) {
-      await this.reviewRepository.updateWithFilter({
-        residenceId,
-        reviewId,
-      }, query);
+      await this.reviewRepository.updateWithFilter(
+        {
+          residenceId,
+          reviewId,
+        },
+        query
+      );
     }
-    return { message: "Bulk Action Performed" };
+    return { message: 'Bulk Action Performed' };
   }
 
   private async sendLowStarReviewEmail(
     email: string,
     name: string,
     residence: string,
-    star: string,
+    star: string
   ) {
     this.eventEmitter.emit(
       SendEmailEvent.event,
@@ -320,9 +345,9 @@ export class ReviewService {
     email: string,
     name: string,
     reviews: string,
-    rating: string,
+    rating: string
   ) {
-    const date = new Date;
+    const date = new Date();
     this.eventEmitter.emit(
       SendEmailEvent.event,
       new SendEmailEvent({
@@ -342,7 +367,7 @@ export class ReviewService {
     email: string,
     name: string,
     residence: string,
-    words: string,
+    words: string
   ) {
     this.eventEmitter.emit(
       SendEmailEvent.event,
@@ -359,11 +384,7 @@ export class ReviewService {
     );
   }
 
-  private async sendReviewResponseEmail(
-    email: string,
-    name: string,
-    residence: string,
-  ) {
+  private async sendReviewResponseEmail(email: string, name: string, residence: string) {
     this.eventEmitter.emit(
       SendEmailEvent.event,
       new SendEmailEvent({
@@ -378,10 +399,7 @@ export class ReviewService {
     );
   }
 
-  private async sendHundredFiveStarReviewsBadgeEmail(
-    email: string,
-    name: string,
-  ) {
+  private async sendHundredFiveStarReviewsBadgeEmail(email: string, name: string) {
     this.eventEmitter.emit(
       SendEmailEvent.event,
       new SendEmailEvent({
@@ -399,7 +417,7 @@ export class ReviewService {
     email: string,
     name: string,
     residence: string,
-    seller: string,
+    seller: string
   ) {
     this.eventEmitter.emit(
       SendEmailEvent.event,

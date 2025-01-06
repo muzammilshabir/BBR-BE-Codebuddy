@@ -47,6 +47,11 @@ import {
   DeveloperProfileActivityLog,
   DeveloperProfileActivityLogSchema,
 } from 'src/developer-profile-activity-log/schema/developer-profile-activity-log.schema';
+import { DevResidenceActivityLogRepository } from 'src/dev-residence-activity-log/dev-residence-activity-log.repository';
+import {
+  DevResidenceActivityLog,
+  DevResidenceActivityLogSchema,
+} from 'src/dev-residence-activity-log/schema/dev-residence-activity-log.schema';
 
 @Module({
   imports: [
@@ -72,6 +77,9 @@ import {
       { name: ResidenceActivityLog.name, schema: ResidenceActivityLogSchema },
     ]),
     MongooseModule.forFeature([
+      { name: DevResidenceActivityLog.name, schema: DevResidenceActivityLogSchema },
+    ]),
+    MongooseModule.forFeature([
       { name: DeveloperProfileActivityLog.name, schema: DeveloperProfileActivityLogSchema },
     ]),
     forwardRef(() => InvoiceModule),
@@ -94,6 +102,7 @@ import {
     RefundSeeder,
     AllInOnePaymentSeeder,
     ResidenceActivityLogRepository,
+    DevResidenceActivityLogRepository,
     DeveloperProfileActivityLogRepository,
   ],
   exports: [

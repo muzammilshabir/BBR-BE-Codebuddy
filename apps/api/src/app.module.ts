@@ -74,6 +74,8 @@ import { DeveloperProfileActivityLogModule } from './developer-profile-activity-
 import { BrandActivityLogModule } from './brand-activity-log/brand-activity-log.module';
 import { VacancyActivityLogModule } from './vacancy-activity-log/vacancy-activity-log.module';
 import { VacancyApplicationActivityLogModule } from './vacancy-application-activity-log/vacancy-activity-log.module';
+import { SupportActivityLogModule } from './support-activity-log/support-activity-log.module';
+import { DevResidenceActivityLogModule } from './dev-residence-activity-log/dev-residence-activity-log.module';
 
 @Module({
   imports: [
@@ -148,6 +150,8 @@ import { VacancyApplicationActivityLogModule } from './vacancy-application-activ
     BrandActivityLogModule,
     VacancyActivityLogModule,
     VacancyApplicationActivityLogModule,
+    SupportActivityLogModule,
+    DevResidenceActivityLogModule,
   ],
   controllers: [AppController],
   providers: [

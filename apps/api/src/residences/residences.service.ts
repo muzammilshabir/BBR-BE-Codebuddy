@@ -57,6 +57,7 @@ import { PatchResidenceDto } from './dto/patch-update-residence.dto';
 import { ResidenceActivityLogRepository } from 'src/residence-activity-log/residence-activity-log.repository';
 import { DeveloperProfileActivityLogRepository } from 'src/developer-profile-activity-log/developer-profile-activity-log.repository';
 import { BrandActivityLogRepository } from 'src/brand-activity-log/brand-activity-log.repository';
+import { DevResidenceActivityLogRepository } from 'src/dev-residence-activity-log/dev-residence-activity-log.repository';
 
 @Injectable()
 export class ResidenceService {
@@ -74,6 +75,7 @@ export class ResidenceService {
     private readonly lifeStyleRepository: LifeStyleRepository,
     private readonly rankingRequestRepository: RankingRequestRepository,
     private readonly residenceActivityLogRepository: ResidenceActivityLogRepository,
+    private readonly devResidenceActivityLogRepository: DevResidenceActivityLogRepository,
     private readonly developerProfileActivityLogRepository: DeveloperProfileActivityLogRepository,
     private readonly brandActivityLogRepository: BrandActivityLogRepository,
     @InjectModel(Country.name)
@@ -192,6 +194,17 @@ export class ResidenceService {
       // Log changes to the name
       if (updateResidenceDto.name && residenceDraft.name !== updateResidenceDto.name) {
         await this.residenceActivityLogRepository.create({
+          residenceId: new Types.ObjectId(id),
+          activityType: 'Details Changed',
+          details: {
+            previous: residenceDraft.name,
+            new: updateResidenceDto.name,
+          },
+          userId: new Types.ObjectId(user.sub),
+          createdAt: new Date(),
+        });
+
+        await this.devResidenceActivityLogRepository.create({
           residenceId: new Types.ObjectId(id),
           activityType: 'Details Changed',
           details: {
@@ -1453,6 +1466,17 @@ export class ResidenceService {
       createdAt: new Date(),
     });
 
+    await this.devResidenceActivityLogRepository.create({
+      residenceId: new Types.ObjectId(residenceId),
+      activityType: 'Status Changed',
+      details: {
+        previous: residence.status,
+        new: updateResidenceStatusDto.status,
+      },
+      userId: new Types.ObjectId(userId),
+      createdAt: new Date(),
+    });
+
     if (updateResidenceStatusDto.status === ResidenceStatus.ARCHIVED) {
       await this.developerProfileActivityLogRepository.create({
         developerId: new Types.ObjectId(userId),
@@ -1752,6 +1776,13 @@ export class ResidenceService {
     const result = await this.residenceRepository.updateFeaturedStatus(updateFeaturedDto);
 
     await this.residenceActivityLogRepository.create({
+      residenceId: new Types.ObjectId(updateFeaturedDto.residenceId),
+      activityType: updateFeaturedDto.featured ? 'Added to Featured' : 'Removed from Featured',
+      userId: new Types.ObjectId(userId),
+      createdAt: new Date(),
+    });
+
+    await this.devResidenceActivityLogRepository.create({
       residenceId: new Types.ObjectId(updateFeaturedDto.residenceId),
       activityType: updateFeaturedDto.featured ? 'Added to Featured' : 'Removed from Featured',
       userId: new Types.ObjectId(userId),

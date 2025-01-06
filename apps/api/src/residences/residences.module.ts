@@ -81,7 +81,15 @@ import {
 } from 'src/developer-profile-activity-log/schema/developer-profile-activity-log.schema';
 import { DeveloperProfileActivityLogRepository } from 'src/developer-profile-activity-log/developer-profile-activity-log.repository';
 import { BrandActivityLogRepository } from 'src/brand-activity-log/brand-activity-log.repository';
-import { BrandActivityLog, BrandActivityLogSchema } from 'src/brand-activity-log/schema/brand-activity-log.schema';
+import {
+  BrandActivityLog,
+  BrandActivityLogSchema,
+} from 'src/brand-activity-log/schema/brand-activity-log.schema';
+import { DevResidenceActivityLogRepository } from 'src/dev-residence-activity-log/dev-residence-activity-log.repository';
+import {
+  DevResidenceActivityLog,
+  DevResidenceActivityLogSchema,
+} from 'src/dev-residence-activity-log/schema/dev-residence-activity-log.schema';
 
 @Module({
   imports: [
@@ -116,6 +124,9 @@ import { BrandActivityLog, BrandActivityLogSchema } from 'src/brand-activity-log
       { name: ResidenceActivityLog.name, schema: ResidenceActivityLogSchema },
     ]),
     MongooseModule.forFeature([
+      { name: DevResidenceActivityLog.name, schema: DevResidenceActivityLogSchema },
+    ]),
+    MongooseModule.forFeature([
       { name: DeveloperProfileActivityLog.name, schema: DeveloperProfileActivityLogSchema },
     ]),
     MongooseModule.forFeature([{ name: BrandActivityLog.name, schema: BrandActivityLogSchema }]),
@@ -147,6 +158,7 @@ import { BrandActivityLog, BrandActivityLogSchema } from 'src/brand-activity-log
     RankingCategoryDraftRepository,
     BrandDraftRepository,
     ResidenceActivityLogRepository,
+    DevResidenceActivityLogRepository,
     DeveloperProfileActivityLogRepository,
     BrandActivityLogRepository,
   ],
