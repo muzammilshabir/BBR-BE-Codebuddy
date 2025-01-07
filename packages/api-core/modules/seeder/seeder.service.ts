@@ -14,5 +14,6 @@ export class SeederService {
     }
     // eslint-disable-next-line no-console
     console.log('after run all seeder');
+    process.exit(0);
   }
 }
