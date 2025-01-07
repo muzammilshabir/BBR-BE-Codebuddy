@@ -548,4 +548,40 @@ export class StripeService {
       payment_method: paymentMethodId,
     });
   }
+
+  async createRefund(chargeId: string, amount: number) {
+    try {
+      const refund = await this.stripe.refunds.create({
+        charge: chargeId,
+        amount: amount,
+      });
+      return refund;
+    } catch (error) {
+      throw new Error(`Failed to create refund: ${error.message}`);
+    }
+  }
+
+  async applyDiscount(invoiceId: string, discountAmount: number) {
+    const coupon = await this.stripe.coupons.create({
+      name: uuid(),
+      amount_off: discountAmount,
+      currency: 'usd',
+    });
+
+    await this.stripe.invoices.update(invoiceId, {
+      discounts: [{ coupon: coupon.id }],
+    });
+  }
+
+  async applyTax(invoiceId: string, taxPercent: number) {
+    const taxRate = await this.stripe.taxRates.create({
+      display_name: uuid(),
+      inclusive: false,
+      percentage: taxPercent,
+    });
+
+    await this.stripe.invoices.update(invoiceId, {
+      default_tax_rates: [taxRate.id],
+    });
+  }
 }

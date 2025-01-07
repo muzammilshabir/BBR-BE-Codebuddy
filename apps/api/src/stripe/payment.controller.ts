@@ -464,4 +464,15 @@ export class PaymentController {
     const refundRequest = await this.paymentService.rejectRefundRequest(refundRequestId);
     return ResponseService.buildResponse({ refundRequest }, 'Refund request rejected successfully');
   }
+
+  @Post('/refund-requests/:id/approve')
+  @ApiOperation({
+    summary: 'Approve a refund request and process the refund',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
+  async approveRefundRequest(@Param('id') refundRequestId: string) {
+    const refundRequest = await this.paymentService.approveRefundRequest(refundRequestId);
+    return ResponseService.buildResponse({ refundRequest }, 'Refund request approved successfully');
+  }
 }

@@ -203,6 +203,14 @@ export class InvoiceService {
       lineItems
     );
 
+    if (invoiceSchedule.discountAmount && invoiceSchedule.discountAmount > 0) {
+      await this.stripeService.applyDiscount(stripeInvoice.id, invoiceSchedule.discountAmount);
+    }
+
+    if (invoiceSchedule.taxPercentage && invoiceSchedule.taxPercentage > 0) {
+      await this.stripeService.applyTax(stripeInvoice.id, invoiceSchedule.taxPercentage);
+    }
+
     const finalStripeInvoice = await this.stripeService.finalizeInvoice(stripeInvoice);
 
     await this.attachStripeInvoice(
