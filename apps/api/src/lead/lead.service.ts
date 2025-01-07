@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { LeadRepository } from './lead.repository';
 import { CreateLeadDto } from './dto/create-lead.dto';
 import { Lead } from './schema/lead.schema';
-import { Types } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { ListLeadDto } from './dto/list-lead.dto';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
 import { ResidenceRepository } from '../residences/residences.repository';
@@ -12,14 +12,97 @@ import { UnitRepository } from 'src/unit/unit.repository';
 import { LeadStatus } from './enum/lead-enum';
 import { UserRole } from '../users/enum/user.enum';
 import { JwtPayloadType } from '../auth/type/jwt-payload.type';
+import { CometChatService } from '../users/comet-chat.service';
+import { ConfigService } from '@nestjs/config';
+import { User } from 'src/users/schema/user.schema';
+import { UploadRepository } from 'src/upload/upload.repository';
+import { InjectModel } from '@nestjs/mongoose';
 
 @Injectable()
 export class LeadService {
+  private readonly customerSupportUserId: string;
+
   constructor(
+    @InjectModel(User.name) private readonly userModel: Model<User>,
     private readonly leadRepository: LeadRepository,
     private readonly residenceRepository: ResidenceRepository,
-    private readonly unitRepository: UnitRepository
-  ) {}
+    private readonly unitRepository: UnitRepository,
+    private readonly cometChatService: CometChatService,
+    private readonly configService: ConfigService,
+    private readonly uploadRepository: UploadRepository
+  ) {
+    this.customerSupportUserId = this.configService.get<string>('COMET_CHAT_CUSTOMER_SUPPORT_ID');
+  }
+
+  private async createCometChatLeadGroup(lead: Lead, buyer: User, residence?: any) {
+    try {
+      // Create group data
+      const groupData: any = {
+        guid: lead._id.toString(),
+        name: lead.name,
+        type: 'private',
+      };
+
+      if (residence) {
+        groupData.metadata = {
+          residenceId: residence._id.toString(),
+          residenceName: residence.name,
+        };
+      }
+
+      if (buyer?.avatarImage) {
+        const avatarUpload = await this.uploadRepository.findOne(buyer.avatarImage.toString());
+        groupData.avatar = avatarUpload ? avatarUpload.url : undefined;
+      }
+
+      // Create the group
+      await this.cometChatService.createGroup(groupData);
+
+      // Add participants
+      const participants = [this.customerSupportUserId, buyer._id.toString()];
+      
+      // Add developer if present
+      if (lead.developerId) {
+        participants.push(lead.developerId.toString());
+      }
+
+      // Add participants to group
+      await this.cometChatService.addMembersToGroup(lead._id.toString(), participants);
+
+    } catch (error) {
+      console.error('Failed to create CometChat lead group:', error);
+    }
+  }
+
+  private async updateCometChatLeadGroup(leadId: string, updateData: any, buyer: User, residence?: any) {
+    try {
+      const groupData: any = {};
+
+      if (updateData.name) {
+        groupData.name = updateData.name;
+      }
+
+      if (residence) {
+        groupData.metadata = {
+          residenceId: residence._id.toString(),
+          residenceName: residence.name,
+        };
+      }
+
+      if (buyer?.avatarImage) {
+        const avatarUpload = await this.uploadRepository.findOne(buyer.avatarImage.toString());
+        groupData.avatar = avatarUpload ? avatarUpload.url : undefined;
+      }
+
+      if (Object.keys(groupData).length > 0) {
+        await this.cometChatService.updateGroup(leadId, groupData);
+      }
+
+    } catch (error) {
+      console.error('Failed to update CometChat lead group:', error);
+    }
+  }
+
   async getDeveloperId(createLeadDto: CreateLeadDto) {
     if (createLeadDto.developerId) {
       return new Types.ObjectId(createLeadDto.developerId);
@@ -70,7 +153,18 @@ export class LeadService {
       },
     };
 
-    return await this.leadRepository.create(transformedDto);
+    const lead = await this.leadRepository.create(transformedDto);
+
+    const user = await this.userModel.findOne({ email: lead.email });
+    if (user) {
+      const residence = lead.residenceId ? 
+        await this.residenceRepository.findById(lead.residenceId.toString()) : 
+        null;
+
+      await this.createCometChatLeadGroup(lead, user, residence);
+    }
+
+    return lead;
   }
 
   async getLeads(filterDto: ListLeadDto, developerId?: string) {
@@ -122,7 +216,18 @@ export class LeadService {
       },
     };
 
-    return this.leadRepository.update(leadId, transformedDto);
+    const lead = await this.leadRepository.update(leadId, transformedDto);
+
+    // If lead has associated user, update CometChat group
+    const user = await this.userModel.findOne({ email: lead.email });
+    if (user) {
+      const residence = lead.residenceId ? 
+        await this.residenceRepository.findById(lead.residenceId.toString()) : 
+        null;
+      await this.updateCometChatLeadGroup(leadId, updateLeadDto, user, residence);
+    }
+
+    return lead;
   }
 
   async getLead(leadId: string, userId?: string): Promise<Lead> {
