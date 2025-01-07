@@ -44,3 +44,9 @@ export class Brand extends Document {
 }
 
 export const BrandSchema = SchemaFactory.createForClass(Brand);
+
+// Add compound indexes for commonly queried fields
+BrandSchema.index({ name: 1 });
+BrandSchema.index({ isDeleted: 1, status: 1 });
+BrandSchema.index({ brandCategoryId: 1 });
+BrandSchema.index({ createdAt: -1 });
