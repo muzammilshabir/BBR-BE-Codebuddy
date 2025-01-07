@@ -1573,4 +1573,30 @@ export class PaymentService {
       throw new BadRequestException(`Failed to process refund: ${error.message}`);
     }
   }
+
+  async getRefundRequestV2(refundRequestId: string) {
+    const refundRequest = await this.refundRequestModel
+      .findById(refundRequestId)
+      .populate([
+        {
+          path: 'invoiceId',
+        },
+        {
+          path: 'residenceId',
+        },
+        {
+          path: 'reasonId',
+        },
+        {
+          path: 'uploadIds',
+        },
+      ])
+      .lean();
+
+    if (!refundRequest) {
+      throw new NotFoundException('Refund request not found');
+    }
+
+    return refundRequest;
+  }
 }

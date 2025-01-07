@@ -475,4 +475,18 @@ export class PaymentController {
     const refundRequest = await this.paymentService.approveRefundRequest(refundRequestId);
     return ResponseService.buildResponse({ refundRequest }, 'Refund request approved successfully');
   }
+
+  @Get('/refund-requests/:id')
+  @ApiOperation({
+    summary: 'Get Single Refund Request with Relations',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
+  async getRefundRequest(@Param('id') refundRequestId: string) {
+    const refundRequest = await this.paymentService.getRefundRequestV2(refundRequestId);
+    return ResponseService.buildResponse(
+      { refundRequest },
+      'Refund request retrieved successfully'
+    );
+  }
 }
