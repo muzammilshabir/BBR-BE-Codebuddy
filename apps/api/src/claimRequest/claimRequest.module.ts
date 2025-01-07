@@ -27,6 +27,10 @@ import {
   ResidenceDraftSchema,
 } from '../residencesDraft/schema/residencesDraft.schema';
 import { ResidenceDraftRepository } from '../residencesDraft/residencesDraft.repository';
+import { CometChatService } from 'src/users/comet-chat.service';
+import { UploadRepository } from 'src/upload/upload.repository';
+import { UploadSchema } from 'src/upload/schema/upload.schema';
+import { Upload } from '@aws-sdk/lib-storage';
 
 @Module({
   imports: [
@@ -40,6 +44,7 @@ import { ResidenceDraftRepository } from '../residencesDraft/residencesDraft.rep
     HttpModule,
     MongooseModule.forFeature([{ name: LoginAttempt.name, schema: LoginAttemptSchema }]),
     MongooseModule.forFeature([{ name: ResidenceDraft.name, schema: ResidenceDraftSchema }]),
+    MongooseModule.forFeature([{ name: Upload.name, schema: UploadSchema }]),
   ],
   providers: [
     ClaimRequestService,
@@ -55,6 +60,8 @@ import { ResidenceDraftRepository } from '../residencesDraft/residencesDraft.rep
     AuthService,
     LoginAttemptRepository,
     ResidenceDraftRepository,
+    CometChatService,
+    UploadRepository,
   ],
   exports: [],
   controllers: [ClaimRequestController],

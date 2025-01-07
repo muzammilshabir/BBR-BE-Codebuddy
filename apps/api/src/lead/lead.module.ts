@@ -10,6 +10,12 @@ import { Unit, UnitSchema } from 'src/unit/schema/unit.schema';
 import { UnitRepository } from 'src/unit/unit.repository';
 import { LeadSeeder } from './lead.seeder';
 import { CounterModule } from '../counter/counter.module';
+import { UploadSchema } from 'src/upload/schema/upload.schema';
+import { Upload } from 'src/upload/schema/upload.schema';
+import { UploadRepository } from 'src/upload/upload.repository';
+import { CometChatService } from 'src/users/comet-chat.service';
+import { UserSchema } from 'src/users/schema/user.schema';
+import { User } from 'src/users/schema/user.schema';
 
 @Module({
   imports: [
@@ -17,6 +23,8 @@ import { CounterModule } from '../counter/counter.module';
     MongooseModule.forFeature([{ name: Residence.name, schema: ResidenceSchema }]),
     MongooseModule.forFeature([{ name: Unit.name, schema: UnitSchema }]),
     CounterModule,
+    MongooseModule.forFeature([{ name: Upload.name, schema: UploadSchema }]),
+    MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
   ],
   providers: [
     LeadService,
@@ -24,7 +32,9 @@ import { CounterModule } from '../counter/counter.module';
     ResidenceRepository,
     UnitRepository,
     LeadSeeder,
-
+    UploadRepository,
+    CometChatService,
+    ResidenceRepository,
   ],
   exports: [LeadSeeder, LeadService],
   controllers: [LeadController],

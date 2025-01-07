@@ -25,6 +25,11 @@ import { LoginAttempt, LoginAttemptSchema } from '../loginAttempt/schema/loginAt
 import { LoginAttemptRepository } from '../loginAttempt/loginAttempt.repository';
 import { ClaimRequest, ClaimRequestSchema } from '../claimRequest/schema/claimRequest.schema';
 import { ClaimRequestRepository } from '../claimRequest/claimRequest.repository';
+import { CometChatService } from './comet-chat.service';
+import { Upload } from 'src/upload/schema/upload.schema';
+import { UploadSchema } from 'src/upload/schema/upload.schema';
+import { UploadRepository } from 'src/upload/upload.repository';
+
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
@@ -38,9 +43,11 @@ import { ClaimRequestRepository } from '../claimRequest/claimRequest.repository'
     MailerCoreModule,
     MongooseModule.forFeature([{ name: LoginAttempt.name, schema: LoginAttemptSchema }]),
     MongooseModule.forFeature([{ name: ClaimRequest.name, schema: ClaimRequestSchema }]),
+    MongooseModule.forFeature([{ name: Upload.name, schema: UploadSchema }]),
   ],
   controllers: [UserController],
   providers: [
+    CometChatService,
     UserService,
     ServiceConfig,
     UserRepository,
@@ -53,6 +60,7 @@ import { ClaimRequestRepository } from '../claimRequest/claimRequest.repository'
     RoleService,
     LoginAttemptRepository,
     ClaimRequestRepository,
+    UploadRepository,
   ],
   exports: [UserService, UserFixture, SuperAdminSeeder],
 })
