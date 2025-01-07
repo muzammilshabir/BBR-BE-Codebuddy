@@ -36,11 +36,20 @@ export class ListRefundRequestsDto extends ListPropsDto {
     type: String,
   })
   search?: string;
+
+  @ApiProperty({
+    description: 'Filter by reason type ID',
+    example: '677b6c166da7f3e2d3b2f80b',
+    required: false,
+    type: String,
+  })
+  reasonTypeId?: string;
 }
 
 export const listRefundRequestsSchema = PaginationSchema.append({
   residenceId: Joi.string().optional(),
   developerId: Joi.string().optional(),
+  reasonTypeId: Joi.string().optional(),
   status: Joi.string()
     .valid(...Object.values(RefundStatus))
     .optional(),

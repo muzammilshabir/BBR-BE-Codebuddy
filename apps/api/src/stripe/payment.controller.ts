@@ -424,7 +424,7 @@ export class PaymentController {
     return ResponseService.buildResponse({ reasons }, 'Refund reasons retrieved successfully');
   }
 
-  @Post('/refund-request/:invoiceId')
+  @Post('/refund-requests')
   @ApiOperation({
     summary: 'Create refund request for an invoice',
   })
@@ -452,5 +452,16 @@ export class PaymentController {
   async getRefundRequests(@Query() query: ListRefundRequestsDto) {
     const refundRequests = await this.paymentService.getRefundRequests(query);
     return ResponseService.buildResponse(refundRequests, 'Refund requests retrieved successfully');
+  }
+
+  @Post('/refund-requests/:id/reject')
+  @ApiOperation({
+    summary: 'Reject a refund request',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
+  async rejectRefundRequest(@Param('id') refundRequestId: string) {
+    const refundRequest = await this.paymentService.rejectRefundRequest(refundRequestId);
+    return ResponseService.buildResponse({ refundRequest }, 'Refund request rejected successfully');
   }
 }

@@ -1382,7 +1382,7 @@ export class PaymentService {
   }
 
   async getRefundRequests(query: ListRefundRequestsDto) {
-    const { status, search, residenceId, developerId } = query;
+    const { status, search, residenceId, developerId, reasonTypeId } = query;
     const matchStage: any = {
       isDeleted: false,
     };
@@ -1397,6 +1397,10 @@ export class PaymentService {
 
     if (developerId) {
       matchStage['invoice.developerId'] = new Types.ObjectId(developerId);
+    }
+
+    if (reasonTypeId) {
+      matchStage['reasonId'] = new Types.ObjectId(reasonTypeId);
     }
 
     const pipeline = [
@@ -1498,5 +1502,19 @@ export class PaymentService {
     const { pagination } = PaginationService.paginate({ rows: data, count }, query);
 
     return { pagination, refundRequests: data };
+  }
+
+  async rejectRefundRequest(refundRequestId: string) {
+    const refundRequest = await this.refundRequestModel.findById(refundRequestId);
+    if (!refundRequest) {
+      throw new NotFoundException('Refund request not found');
+    }
+
+    if (refundRequest.status !== RefundStatus.REQUESTED) {
+      throw new BadRequestException('Refund request is not in requested status');
+    }
+
+    refundRequest.status = RefundStatus.REJECTED;
+    return await refundRequest.save();
   }
 }
