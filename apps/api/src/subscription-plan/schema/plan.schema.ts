@@ -3,7 +3,7 @@ import { Document, Types } from 'mongoose';
 import { User } from 'src/users/schema/user.schema';
 import { Interval } from '../enum/interval.enum';
 
-@Schema({ timestamps: true })
+@Schema({ timestamps: true, virtuals: true })
 export class Plan extends Document {
   @Prop({
     type: String,
@@ -33,19 +33,19 @@ export class Plan extends Document {
   @Prop({
     type: [
       {
-      type: {
-        feature: { type: Types.ObjectId, ref: 'Feature' },
-        active: Boolean,
-        order: Number,
-      }
-    }
-  ],
+        type: {
+          feature: { type: Types.ObjectId, ref: 'Feature' },
+          active: Boolean,
+          order: Number,
+        },
+      },
+    ],
     _id: false,
   })
   features: {
-    feature: Types.ObjectId,
-    active: boolean,
-    order: number,
+    feature: Types.ObjectId;
+    active: boolean;
+    order: number;
   }[];
 
   @Prop({
@@ -68,3 +68,6 @@ export class Plan extends Document {
 }
 
 export const PlanSchema = SchemaFactory.createForClass(Plan);
+
+PlanSchema.set('toJSON', { virtuals: true });
+PlanSchema.set('toObject', { virtuals: true });

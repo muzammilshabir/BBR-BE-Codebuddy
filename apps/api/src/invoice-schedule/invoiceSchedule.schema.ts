@@ -2,7 +2,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { InvoiceScheduleStatus, RenewalFrequency } from './invoiceSchedule.enum';
 
-@Schema({ timestamps: true })
+@Schema({ timestamps: true, virtuals: true })
 export class InvoiceSchedule extends Document {
   @Prop({
     type: String,
@@ -23,7 +23,7 @@ export class InvoiceSchedule extends Document {
   @Prop({ type: Types.ObjectId, required: true })
   residenceId: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, required: true })
+  @Prop({ type: Types.ObjectId, ref: 'Plan', required: true })
   planId: Types.ObjectId;
 
   @Prop({ required: true })
@@ -32,7 +32,7 @@ export class InvoiceSchedule extends Document {
   @Prop({ required: true })
   dueDate: Date;
 
-  @Prop({ type: Types.ObjectId })
+  @Prop({ type: Types.ObjectId, ref: 'PaymentMethod' })
   currentPaymentMethodId: Types.ObjectId;
 
   @Prop({
@@ -68,7 +68,7 @@ export class InvoiceSchedule extends Document {
   })
   renewalFrequency: RenewalFrequency;
 
-  @Prop({ type: Types.ObjectId })
+  @Prop({ type: Types.ObjectId, ref: 'PaymentMethod' })
   paymentMethodId: Types.ObjectId;
 
   @Prop({ type: Number, required: true })
@@ -86,8 +86,39 @@ export class InvoiceSchedule extends Document {
   @Prop({ type: Date })
   nextInvoiceIssueDate: Date;
 
-  @Prop({ type: Types.ObjectId })
+  @Prop({ type: Types.ObjectId, ref: 'Invoice' })
   currentInvoiceId: Types.ObjectId;
 }
 
 export const InvoiceScheduleSchema = SchemaFactory.createForClass(InvoiceSchedule);
+
+InvoiceScheduleSchema.set('toJSON', { virtuals: true });
+InvoiceScheduleSchema.set('toObject', { virtuals: true });
+
+InvoiceScheduleSchema.virtual('currentInvoice', {
+  ref: 'Invoice',
+  localField: 'currentInvoiceId',
+  foreignField: '_id',
+  justOne: true,
+});
+
+InvoiceScheduleSchema.virtual('plan', {
+  ref: 'Plan',
+  localField: 'planId',
+  foreignField: '_id',
+  justOne: true,
+});
+
+InvoiceScheduleSchema.virtual('paymentMethod', {
+  ref: 'PaymentMethod',
+  localField: 'paymentMethodId',
+  foreignField: '_id',
+  justOne: true,
+});
+
+InvoiceScheduleSchema.virtual('currentPaymentMethod', {
+  ref: 'PaymentMethod',
+  localField: 'currentPaymentMethodId',
+  foreignField: '_id',
+  justOne: true,
+});

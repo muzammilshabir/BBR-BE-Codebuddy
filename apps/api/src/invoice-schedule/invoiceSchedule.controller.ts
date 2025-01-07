@@ -22,12 +22,8 @@ export class InvoiceScheduleController {
   @ApiOperation({ summary: 'Create invoice schedule (Admin only)' })
   @UsePipes(new JoiValidationPipe(createInvoiceScheduleSchema, 'body'))
   async createInvoiceScheduleByAdmin(@Body() createInvoiceScheduleDto: CreateInvoiceScheduleDto) {
-    const invoiceSchedule =
-      await this.invoiceScheduleService.createInvoiceSchedule(createInvoiceScheduleDto);
-    return ResponseService.buildResponse(
-      { invoiceSchedule },
-      'Invoice schedule created successfully'
-    );
+    const resp = await this.invoiceScheduleService.createInvoiceSchedule(createInvoiceScheduleDto);
+    return ResponseService.buildResponse(resp, 'Invoice schedule created successfully');
   }
 
   @Get()

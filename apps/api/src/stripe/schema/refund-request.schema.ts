@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
-import { RefundStatus } from '../enum/refund-status.enum';
+import { RefundRequestStatus, RefundStatus } from '../enum/refund-status.enum';
 
 @Schema({ timestamps: true })
 export class RefundRequest extends Document {
@@ -30,16 +30,25 @@ export class RefundRequest extends Document {
 
   @Prop({
     type: String,
-    enum: Object.values(RefundStatus),
-    default: RefundStatus.REQUESTED,
+    enum: Object.values(RefundRequestStatus),
+    default: RefundRequestStatus.REQUESTED,
   })
-  status: RefundStatus;
+  status: RefundRequestStatus;
 
   @Prop({ type: String })
   rejectionReason?: string;
 
   @Prop({ type: Boolean, default: false })
   isDeleted: boolean;
+
+  @Prop({ type: String })
+  stripeRefundId?: string;
+
+  @Prop({ type: Date })
+  approvedAt?: Date;
+
+  @Prop({ type: String, enum: Object.values(RefundStatus), default: RefundStatus.PENDING })
+  refundStatus?: RefundStatus;
 }
 
 export const RefundRequestSchema = SchemaFactory.createForClass(RefundRequest);

@@ -2,38 +2,35 @@ import { Injectable, Logger } from '@nestjs/common';
 import { AbstractSeeder } from '@bbr/api-core/modules/seeder/abstractSeeder.service';
 import { Types } from 'mongoose';
 import { RefundRepository } from './refund.repository';
-import { RefundStatus } from './enum/refund-status.enum';
+import { RefundRequestStatus } from './enum/refund-status.enum';
 
 @Injectable()
 export class RefundSeeder extends AbstractSeeder {
   public name = RefundSeeder.name;
   private readonly logger = new Logger(RefundSeeder.name);
 
-  constructor(
-    private readonly refundRepository: RefundRepository,
-  ) {
+  constructor(private readonly refundRepository: RefundRepository) {
     super();
   }
 
   async seed() {
     try {
-
-      const statuses = Object.values(RefundStatus);
+      const statuses = Object.values(RefundRequestStatus);
       const reasons = [
         'Customer dissatisfaction',
         'Product defect',
         'Incorrect charge',
         'Service not provided',
-        'Duplicate charge'
+        'Duplicate charge',
       ];
       const notes = [
         'Processed as requested',
         'Partial refund issued',
         'Full refund provided',
         'Refund denied',
-        'Escalated to management'
+        'Escalated to management',
       ];
-    
+
       for (let i = 0; i < 15; i++) {
         const refund = {
           invoiceId: new Types.ObjectId(),

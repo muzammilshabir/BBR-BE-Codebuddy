@@ -41,6 +41,7 @@ import { RefundRequestReason } from './schema/refund-request-reason.schema';
 import { RefundRequestReasonSchema } from './schema/refund-request-reason.schema';
 import { RefundRequest } from './schema/refund-request.schema';
 import { RefundRequestSchema } from './schema/refund-request.schema';
+import { RefundRequestReasonSeeder } from './refundRequestReason.seeder';
 
 @Module({
   imports: [
@@ -85,6 +86,7 @@ import { RefundRequestSchema } from './schema/refund-request.schema';
     PaymentAttemptSeeder,
     RefundSeeder,
     AllInOnePaymentSeeder,
+    RefundRequestReasonSeeder,
   ],
   exports: [
     StripeService,

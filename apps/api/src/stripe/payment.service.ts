@@ -23,7 +23,7 @@ import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { UpdateInvoiceItemDto } from './dto/update-invoice-item.dto';
 import { RefundRepository } from './refund.repository';
 import { InvoiceStatus } from './enum/invoice-status.enum';
-import { RefundStatus } from './enum/refund-status.enum';
+import { RefundRequestStatus, RefundStatus } from './enum/refund-status.enum';
 import { PaymentMethodRepository } from './payment-method.repository';
 import { SubscriptionPlanService } from 'src/subscription-plan/subscription-plan.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
@@ -46,6 +46,8 @@ import { Model } from 'mongoose';
 import { RefundRequestReason } from './schema/refund-request-reason.schema';
 import { RefundRequest } from './schema/refund-request.schema';
 import { CreateRefundRequestDto } from './dto/create-refund-request.dto';
+import { Residence } from 'src/residences/schema/residences.schema';
+import { InvoiceScheduleStatus } from 'src/invoice-schedule/invoiceSchedule.enum';
 
 @Injectable()
 export class PaymentService {
@@ -67,7 +69,10 @@ export class PaymentService {
     @InjectModel(RefundRequestReason.name)
     private readonly refundRequestReasonModel: Model<RefundRequestReason>,
     @InjectModel(RefundRequest.name)
-    private readonly refundRequestModel: Model<RefundRequest>
+    private readonly refundRequestModel: Model<RefundRequest>,
+
+    @InjectModel(Residence.name)
+    private readonly residenceModel: Model<Residence>
   ) {}
 
   private convertPaymentItemsToLineItems(
@@ -212,7 +217,7 @@ export class PaymentService {
       return refund.receiptUrl;
     }
 
-    if (refund.status !== RefundStatus.REFUNDED) {
+    if (refund.status !== RefundRequestStatus.REFUNDED) {
       throw new Error('Refund has not been processed');
     }
 
@@ -987,7 +992,7 @@ export class PaymentService {
       ...refundPaymentDto,
       invoiceId,
       attachments: refundPaymentDto.attachments.map((attachment) => new Types.ObjectId(attachment)),
-      status: RefundStatus.REFUNDED,
+      status: RefundRequestStatus.REFUNDED,
     };
     const invoice = await this.invoiceRepository.findOne(invoiceId);
     if (!invoice) {
@@ -1129,9 +1134,9 @@ export class PaymentService {
     return { pagination, refundRequests };
   }
 
-  async acceptRejectInvoiceRefund(refundId: string, action: RefundStatus) {
+  async acceptRejectInvoiceRefund(refundId: string, action: RefundRequestStatus) {
     const refund = await this.refundRepository.findOne(refundId);
-    if (refund.status !== RefundStatus.REQUESTED) {
+    if (refund.status !== RefundRequestStatus.REQUESTED) {
       throw new Error('Actions can no longer be performed on this refund request');
     }
     const invoice = await this.invoiceRepository.findOne(refund.invoiceId.toString());
@@ -1141,7 +1146,7 @@ export class PaymentService {
     if (invoice.status !== InvoiceStatus.PAID) {
       throw new Error('Invoice is not paid');
     }
-    if (action == RefundStatus.REFUNDED) {
+    if (action == RefundRequestStatus.REFUNDED) {
       const transaction: CreateTransactionDto = {
         residenceId: invoice.residenceId,
         developerId: invoice.developerId,
@@ -1171,7 +1176,7 @@ export class PaymentService {
       ...refundPaymentDto,
       invoiceId,
       attachments: refundPaymentDto.attachments.map((attachment) => new Types.ObjectId(attachment)),
-      status: RefundStatus.REQUESTED,
+      status: RefundRequestStatus.REQUESTED,
     };
     const invoice = await this.invoiceRepository.find({
       id: invoiceId,
@@ -1363,7 +1368,7 @@ export class PaymentService {
     // Check if there is already a pending refund request
     const existingRefundRequest = await this.refundRequestModel.findOne({
       invoiceId: new Types.ObjectId(createRefundRequestDto.invoiceId),
-      status: RefundStatus.REQUESTED,
+      status: RefundRequestStatus.REQUESTED,
     });
     if (existingRefundRequest) {
       throw new ConflictException('There is already a pending refund request for this invoice');
@@ -1375,14 +1380,14 @@ export class PaymentService {
       residenceId: new Types.ObjectId(invoice.residenceId),
       invoiceId: new Types.ObjectId(createRefundRequestDto.invoiceId),
       reasonId: new Types.ObjectId(createRefundRequestDto.reasonId),
-      status: RefundStatus.REQUESTED,
+      status: RefundRequestStatus.REQUESTED,
       createdById: userId,
       updatedById: userId,
     });
   }
 
   async getRefundRequests(query: ListRefundRequestsDto) {
-    const { status, search, residenceId, developerId } = query;
+    const { status, search, residenceId, developerId, reasonTypeId } = query;
     const matchStage: any = {
       isDeleted: false,
     };
@@ -1397,6 +1402,10 @@ export class PaymentService {
 
     if (developerId) {
       matchStage['invoice.developerId'] = new Types.ObjectId(developerId);
+    }
+
+    if (reasonTypeId) {
+      matchStage['reasonId'] = new Types.ObjectId(reasonTypeId);
     }
 
     const pipeline = [
@@ -1498,5 +1507,128 @@ export class PaymentService {
     const { pagination } = PaginationService.paginate({ rows: data, count }, query);
 
     return { pagination, refundRequests: data };
+  }
+
+  async rejectRefundRequest(refundRequestId: string) {
+    const refundRequest = await this.refundRequestModel.findById(refundRequestId);
+    if (!refundRequest) {
+      throw new NotFoundException('Refund request not found');
+    }
+
+    if (refundRequest.status !== RefundRequestStatus.REQUESTED) {
+      throw new BadRequestException('Refund request is not in requested status');
+    }
+
+    refundRequest.status = RefundRequestStatus.REJECTED;
+    return await refundRequest.save();
+  }
+
+  async approveRefundRequest(refundRequestId: string) {
+    // Get the refund request
+    const refundRequest = await this.refundRequestModel.findById(refundRequestId);
+    if (!refundRequest) {
+      throw new NotFoundException('Refund request not found');
+    }
+
+    if (refundRequest.status !== RefundRequestStatus.REQUESTED) {
+      throw new BadRequestException('Refund request is not in requested status');
+    }
+
+    // Get the invoice
+    const invoice = await this.invoiceRepository.findById(refundRequest.invoiceId.toString());
+    if (!invoice) {
+      throw new NotFoundException('Invoice not found');
+    }
+
+    if (!invoice.stripeChargeId) {
+      throw new BadRequestException('No charge ID found for this invoice');
+    }
+
+    try {
+      // Create the refund in Stripe
+      const stripeRefund = await this.stripeService.createRefund(
+        invoice.stripeChargeId,
+        refundRequest.amount
+      );
+
+      // Update invoice status
+      await this.invoiceRepository.update(invoice.id, {
+        status: InvoiceStatus.REFUNDED,
+        stripeRefundId: stripeRefund.id,
+      });
+
+      // Create transaction record
+      await this.transactionRepository.create({
+        residenceId: invoice.residenceId,
+        developerId: invoice.developerId,
+        invoiceId: invoice.id,
+        amount: refundRequest.amount,
+        status: TransactionStatus.REFUNDED,
+      });
+
+      // Update refund request
+      refundRequest.status = RefundRequestStatus.REFUNDED;
+      refundRequest.refundStatus = RefundStatus.CREATED;
+      refundRequest.stripeRefundId = stripeRefund.id;
+      refundRequest.approvedAt = new Date();
+      await refundRequest.save();
+
+      return refundRequest;
+    } catch (error) {
+      throw new BadRequestException(`Failed to process refund: ${error.message}`);
+    }
+  }
+
+  async getRefundRequestV2(refundRequestId: string) {
+    const refundRequest = await this.refundRequestModel
+      .findById(refundRequestId)
+      .populate([
+        {
+          path: 'invoiceId',
+        },
+        {
+          path: 'residenceId',
+        },
+        {
+          path: 'reasonId',
+        },
+        {
+          path: 'uploadIds',
+        },
+      ])
+      .lean();
+
+    if (!refundRequest) {
+      throw new NotFoundException('Refund request not found');
+    }
+
+    return refundRequest;
+  }
+
+  async getResidencePayments(userId: string) {
+    const residences = await this.residenceModel
+      .find({ developerId: new Types.ObjectId(userId) })
+      .populate({
+        path: 'activeInvoiceSchedule',
+        match: { status: InvoiceScheduleStatus.ACTIVE },
+        populate: [
+          {
+            path: 'currentInvoice',
+            populate: {
+              path: 'paymentMethod',
+            },
+          },
+          {
+            path: 'plan',
+          },
+          {
+            path: 'currentPaymentMethod',
+          },
+          {
+            path: 'paymentMethod',
+          },
+        ],
+      });
+    return residences;
   }
 }

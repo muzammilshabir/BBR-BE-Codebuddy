@@ -315,13 +315,14 @@ export class InvoiceScheduleService {
 
     const invoiceSchedule = await this.invoiceScheduleModel.create(invoiceScheduleData);
 
+    let invoice;
     if (
       invoiceSchedule.status === InvoiceScheduleStatus.ACTIVE &&
       dayjs(invoiceSchedule.issueDate).tz('Asia/Kolkata').startOf('day').isSame(todayStartPST)
     ) {
       // Create invoice immediately
       const dueDate = dayjs(invoiceSchedule.dueDate).tz('Asia/Kolkata');
-      let invoice = await this.invoiceService.createInvoiceFromSchedule(
+      invoice = await this.invoiceService.createInvoiceFromSchedule(
         invoiceSchedule,
         invoiceSchedule.issueDate,
         dueDate.toDate(),
@@ -345,7 +346,7 @@ export class InvoiceScheduleService {
       await this.invoiceService.attemptAutoPayment(invoice);
     }
 
-    return invoiceSchedule;
+    return { invoiceSchedule, invoice };
   }
 
   async getInvoiceSchedule(developerId: string, residenceId: string) {

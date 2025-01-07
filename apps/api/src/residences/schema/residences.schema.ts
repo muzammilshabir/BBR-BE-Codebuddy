@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 
-@Schema({ timestamps: true })
+@Schema({ timestamps: true, virtuals: true })
 export class Residence extends Document {
   @Prop({ required: true })
   name: string;
@@ -258,3 +258,13 @@ export class Residence extends Document {
 }
 
 export const ResidenceSchema = SchemaFactory.createForClass(Residence);
+
+// Add virtual field for activeInvoiceSchedule
+ResidenceSchema.virtual('activeInvoiceSchedule', {
+  ref: 'InvoiceSchedule',
+  localField: '_id',
+  foreignField: 'residenceId',
+  justOne: true, // Get only one invoice schedule
+});
+ResidenceSchema.set('toJSON', { virtuals: true });
+ResidenceSchema.set('toObject', { virtuals: true });

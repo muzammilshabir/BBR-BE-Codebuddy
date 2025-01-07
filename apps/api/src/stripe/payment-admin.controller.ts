@@ -26,7 +26,7 @@ import { CreateInvoiceItemsDto, createInvoiceItemsDtoSchema } from './dto/create
 import { UpdateInvoiceDto, updateInvoiceDtoSchema } from './dto/update-invoice.dto';
 import { CreateInvoiceDto, createInvoiceDtoSchema } from './dto/create-invoice.dto';
 import { UpdateSubscriptionDto, updateSubscriptionDtoSchema } from './dto/update-subscription.dto';
-import { RefundStatus } from './enum/refund-status.enum';
+import { RefundRequestStatus } from './enum/refund-status.enum';
 import { ListTransactionsDto, listTransactionsDtoSchema } from './dto/list-transactions.dto';
 import { ListRefundRequestsDto, listRefundRequestsSchema } from './dto/list-refund-requests.dto';
 
@@ -321,7 +321,7 @@ export class PaymentAdminController {
   async acceptRefundRequest(@Param('refundId') refundId: string) {
     const refund = await this.paymentService.acceptRejectInvoiceRefund(
       refundId,
-      RefundStatus.REFUNDED
+      RefundRequestStatus.REFUNDED
     );
     return ResponseService.buildResponse({ refund }, 'Invoice refunded successfully');
   }
@@ -335,7 +335,7 @@ export class PaymentAdminController {
   async rejectRefundRequest(@Param('refundId') refundId: string) {
     const refund = await this.paymentService.acceptRejectInvoiceRefund(
       refundId,
-      RefundStatus.REJECTED
+      RefundRequestStatus.REJECTED
     );
     return ResponseService.buildResponse({ refund }, 'Invoice refund rejected successfully');
   }

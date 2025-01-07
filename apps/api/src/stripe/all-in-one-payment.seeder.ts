@@ -9,7 +9,7 @@ import { Subscription } from './schema/subscription.schema';
 import { Transaction } from './schema/transaction.schema';
 import { InvoiceStatus } from './enum/invoice-status.enum';
 import { PaymentAttemptStatus } from './enum/payment-attempt-status.enum';
-import { RefundStatus } from './enum/refund-status.enum';
+import { RefundRequestStatus } from './enum/refund-status.enum';
 import { SubscriptionStatus } from './enum/subscription-status.enum';
 import { TransactionStatus } from './enum/transaction-status.enum';
 import { Interval } from './enum/interval.enum';
@@ -694,7 +694,7 @@ export class AllInOnePaymentSeeder extends AbstractSeeder {
 
   private async seedRefunds(invoices: Invoice[]): Promise<Refund[]> {
     console.log('Seeding refunds...');
-    const statuses = Object.values(RefundStatus);
+    const statuses = Object.values(RefundRequestStatus);
     const reasons = [
       'Customer dissatisfaction',
       'Product defect',
