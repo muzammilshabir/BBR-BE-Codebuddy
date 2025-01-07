@@ -46,6 +46,8 @@ import { Model } from 'mongoose';
 import { RefundRequestReason } from './schema/refund-request-reason.schema';
 import { RefundRequest } from './schema/refund-request.schema';
 import { CreateRefundRequestDto } from './dto/create-refund-request.dto';
+import { Residence } from 'src/residences/schema/residences.schema';
+import { InvoiceScheduleStatus } from 'src/invoice-schedule/invoiceSchedule.enum';
 
 @Injectable()
 export class PaymentService {
@@ -67,7 +69,10 @@ export class PaymentService {
     @InjectModel(RefundRequestReason.name)
     private readonly refundRequestReasonModel: Model<RefundRequestReason>,
     @InjectModel(RefundRequest.name)
-    private readonly refundRequestModel: Model<RefundRequest>
+    private readonly refundRequestModel: Model<RefundRequest>,
+
+    @InjectModel(Residence.name)
+    private readonly residenceModel: Model<Residence>
   ) {}
 
   private convertPaymentItemsToLineItems(
@@ -1598,5 +1603,32 @@ export class PaymentService {
     }
 
     return refundRequest;
+  }
+
+  async getResidencePayments(userId: string) {
+    const residences = await this.residenceModel
+      .find({ developerId: new Types.ObjectId(userId) })
+      .populate({
+        path: 'activeInvoiceSchedule',
+        match: { status: InvoiceScheduleStatus.ACTIVE },
+        populate: [
+          {
+            path: 'currentInvoice',
+            populate: {
+              path: 'paymentMethod',
+            },
+          },
+          {
+            path: 'plan',
+          },
+          {
+            path: 'currentPaymentMethod',
+          },
+          {
+            path: 'paymentMethod',
+          },
+        ],
+      });
+    return residences;
   }
 }

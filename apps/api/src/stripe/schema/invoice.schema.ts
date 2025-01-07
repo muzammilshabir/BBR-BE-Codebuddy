@@ -168,7 +168,7 @@ const InvoiceSchema = SchemaFactory.createForClass(Invoice);
 InvoiceSchema.virtual('paymentMethod', {
   ref: 'PaymentMethod',
   localField: 'paymentMethodId',
-  foreignField: 'paymentMethodId',
+  foreignField: '_id',
   justOne: true,
 });
 

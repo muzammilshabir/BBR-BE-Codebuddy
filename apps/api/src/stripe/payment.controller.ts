@@ -406,7 +406,7 @@ export class PaymentController {
     summary: 'Get Invoices V2',
   })
   @ApiBearerAuth()
-  @Roles(UserRole.SELLER)
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
   @UsePipes(new JoiValidationPipe(listInvoicesV2Schema, 'query'))
   async getInvoicesV2(@Query() query: ListInvoicesV2Dto) {
     const invoices = await this.paymentService.getInvoicesV2(query);
@@ -418,7 +418,7 @@ export class PaymentController {
     summary: 'Get All Refund Request Reasons',
   })
   @ApiBearerAuth()
-  @Roles(UserRole.SELLER)
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
   async getRefundReasons() {
     const reasons = await this.paymentService.getRefundReasons();
     return ResponseService.buildResponse({ reasons }, 'Refund reasons retrieved successfully');
@@ -447,7 +447,7 @@ export class PaymentController {
     summary: 'Get Refund Requests',
   })
   @ApiBearerAuth()
-  @Roles(UserRole.SELLER)
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
   @UsePipes(new JoiValidationPipe(listRefundRequestsSchema, 'query'))
   async getRefundRequests(@Query() query: ListRefundRequestsDto) {
     const refundRequests = await this.paymentService.getRefundRequests(query);
@@ -459,7 +459,7 @@ export class PaymentController {
     summary: 'Reject a refund request',
   })
   @ApiBearerAuth()
-  @Roles(UserRole.SELLER)
+  @Roles(UserRole.ADMIN)
   async rejectRefundRequest(@Param('id') refundRequestId: string) {
     const refundRequest = await this.paymentService.rejectRefundRequest(refundRequestId);
     return ResponseService.buildResponse({ refundRequest }, 'Refund request rejected successfully');
@@ -470,7 +470,7 @@ export class PaymentController {
     summary: 'Approve a refund request and process the refund',
   })
   @ApiBearerAuth()
-  @Roles(UserRole.SELLER)
+  @Roles(UserRole.ADMIN)
   async approveRefundRequest(@Param('id') refundRequestId: string) {
     const refundRequest = await this.paymentService.approveRefundRequest(refundRequestId);
     return ResponseService.buildResponse({ refundRequest }, 'Refund request approved successfully');
@@ -481,12 +481,26 @@ export class PaymentController {
     summary: 'Get Single Refund Request with Relations',
   })
   @ApiBearerAuth()
-  @Roles(UserRole.SELLER)
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
   async getRefundRequest(@Param('id') refundRequestId: string) {
     const refundRequest = await this.paymentService.getRefundRequestV2(refundRequestId);
     return ResponseService.buildResponse(
       { refundRequest },
       'Refund request retrieved successfully'
+    );
+  }
+
+  @Get('/residence-payments')
+  @ApiOperation({
+    summary: 'Get Residence Payments with Active Invoice Schedules',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
+  async getResidencePayments(@GetCurrentUserId() userId: string) {
+    const residences = await this.paymentService.getResidencePayments(userId);
+    return ResponseService.buildResponse(
+      { residences },
+      'Residence payments retrieved successfully'
     );
   }
 }

@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 
-@Schema({ timestamps: true })
+@Schema({ timestamps: true, virtuals: true })
 export class PaymentMethod extends Document {
   @Prop({
     type: String,
@@ -56,3 +56,6 @@ export class PaymentMethod extends Document {
 }
 
 export const PaymentMethodSchema = SchemaFactory.createForClass(PaymentMethod);
+
+PaymentMethodSchema.set('toJSON', { virtuals: true });
+PaymentMethodSchema.set('toObject', { virtuals: true });
