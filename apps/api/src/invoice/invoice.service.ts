@@ -25,7 +25,9 @@ export class InvoiceService {
     @InjectModel(User.name) private readonly userModel: Model<User>,
     @InjectModel(PaymentMethod.name) private readonly paymentMethodModel: Model<PaymentMethod>,
 
-    @InjectModel(PaymentAttempt.name) private readonly paymentAttemptModel: Model<PaymentAttempt>
+    @InjectModel(PaymentAttempt.name) private readonly paymentAttemptModel: Model<PaymentAttempt>,
+
+    @InjectModel(Plan.name) private readonly planModel: Model<Plan>
   ) {}
 
   async createInvoice() {
@@ -167,16 +169,33 @@ export class InvoiceService {
       nextAutoPaymentAttemptAt: dueAt,
       maxAutoPaymentAttemptsCount: invoiceSchedule.maxRenewalAttemptsCount,
       paymentFrequency: invoiceSchedule.attemptsFrequency,
+      subTotal: 0,
+      total: 0,
+      discount: invoiceSchedule.discountAmount || 0,
+      tax: invoiceSchedule.taxPercentage || 0,
     });
 
     const developer = await this.userModel.findById(invoiceSchedule.developerId);
-
     const stripeInvoice = await this.stripeService.createInvoiceV2(developer.stripeCustomerId);
 
-    const lineItems = await this.createLineItemsFromScheduleFeatures(
-      invoice.id,
-      invoiceSchedule.features
-    );
+    await this.createLineItemsFromScheduleFeatures(invoice.id, invoiceSchedule.features);
+    const plan = await this.planModel.findById(invoiceSchedule.planId);
+    await this.createLineItemsFromSubscriptionPlan(invoice.id, plan);
+
+    const lineItems = await this.lineItemModel.find({ invoiceId: invoice.id });
+
+    // Calculate amounts
+    const subTotal = lineItems.reduce((sum, item) => sum + item.totalAmount, 0);
+    const discountAmount = invoiceSchedule.discountAmount || 0;
+    const taxAmount = ((subTotal - discountAmount) * (invoiceSchedule.taxPercentage || 0)) / 100;
+    const total = subTotal - discountAmount + taxAmount;
+
+    // Update invoice with calculated amounts
+    await this.invoiceModel.findByIdAndUpdate(invoice.id, {
+      subTotal,
+      total,
+      tax: taxAmount,
+    });
 
     await this.attachLineItemsToStripeInvoice(
       developer.stripeCustomerId,
