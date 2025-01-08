@@ -15,18 +15,18 @@ export class PatchResidenceDto {
     description: 'Array of residence type IDs',
   })
   residenceTypeIds?: Types.ObjectId[];
-  
+
   @ApiProperty({ example: '60d9c6a0a11c3c6c6a9a1a1a', required: false, type: String })
   locationId?: Types.ObjectId;
 
-  
+
   @ApiProperty({ example: 'https://dummywebsite.com', required: false })
   websiteLink?: string;
 
   @ApiProperty({ example: '60d9c6a0a11c3c6c6a9a1a1b', required: false, type: String })
   associatedBrandId?: Types.ObjectId;
-  
-  @ApiProperty({ 
+
+  @ApiProperty({
     required: false,
     example: {
       subtitle: "Luxury Living in Miami",
@@ -37,8 +37,8 @@ export class PatchResidenceDto {
     subtitle?: string;
     briefDescription?: string;
   };
-  
-  @ApiProperty({ 
+
+  @ApiProperty({
     required: false,
     example: {
       subtitle: "Experience Modern Luxury",
@@ -57,8 +57,8 @@ export class PatchResidenceDto {
     localAttractions?: string;
     futureDevelopmentPlans?: string;
   };
-  
-  @ApiProperty({ 
+
+  @ApiProperty({
     required: false,
     example: {
       startRange: 1000000,
@@ -69,8 +69,8 @@ export class PatchResidenceDto {
     startRange?: number;
     endRange?: number;
   };
-  
-  @ApiProperty({ 
+
+  @ApiProperty({
     required: false,
     example: {
       featureIds: ['60d9c6a0a11c3c6c6a9a1a1b', '60d9c6a0a11c3c6c6a9a1a1c'],
@@ -82,7 +82,7 @@ export class PatchResidenceDto {
         staffToResidenceRatio: 0.5
       },
       bespokeAmenitiesAmount: 40,
-      avgPricePerUnit: 5000000,
+      avgPricePerUnit: '5M',
       petPolicy: "petFriendly"
     }
   })
@@ -96,11 +96,11 @@ export class PatchResidenceDto {
       staffToResidenceRatio?: number;
     };
     bespokeAmenitiesAmount?: number;
-    avgPricePerUnit?: number;
+    avgPricePerUnit?: string;
     petPolicy?: string;
   };
-  
-  @ApiProperty({ 
+
+  @ApiProperty({
     required: false,
     example: {
       country: "United States",
@@ -125,15 +125,15 @@ export class PatchResidenceDto {
     };
     placeId?: string;
   };
-  
-  @ApiProperty({ 
+
+  @ApiProperty({
     required: false,
     enum: ResidenceStatus,
     example: ResidenceStatus.ACTIVE
   })
   status?: ResidenceStatus;
 
-  @ApiProperty({ 
+  @ApiProperty({
     required: false,
     example: {
       mainPhotos: ['60d9c6a0a11c3c6c6a9a1a1b', '60d9c6a0a11c3c6c6a9a1a1c'],
@@ -151,7 +151,7 @@ export class PatchResidenceDto {
     videoTourLink?: string;
   };
 
-  @ApiProperty({ 
+  @ApiProperty({
     required: false,
     example: {
       amenitiesList: ['60d9c6a0a11c3c6c6a9a1a1b', '60d9c6a0a11c3c6c6a9a1a1c'],
@@ -173,7 +173,7 @@ export class PatchResidenceDto {
     }[];
   };
 }
-  
+
   export const patchResidenceSchema = Joi.object({
     name: Joi.string().optional(),
     residenceTypeIds: Joi.array()
@@ -208,7 +208,7 @@ export class PatchResidenceDto {
         staffToResidenceRatio: Joi.number().optional(),
       }).optional(),
       bespokeAmenitiesAmount: Joi.number().optional(),
-      avgPricePerUnit: Joi.number().optional(),
+      avgPricePerUnit: Joi.string().optional(),
       petPolicy: Joi.string().optional(),
     }).optional(),
     address: Joi.object({

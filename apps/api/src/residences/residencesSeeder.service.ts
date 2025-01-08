@@ -31,7 +31,6 @@ import { BrandDraftRepository } from '../brandDraft/brandDraft.repository';
 import { RankingCategoryDraftRepository } from '../rankingCategoryDraft/rankingCategoryDraft.repository';
 import { ResidenceDraftRepository } from '../residencesDraft/residencesDraft.repository';
 import { RankingRequestDraftRepository } from '../rankingRequestDraft/rankingRequestDraft.repository';
-import e from 'express';
 
 interface Residence {
   residence_id: string;
@@ -74,6 +73,9 @@ interface Residence {
   second_gallery_path?: string;
   second_gallery_images?: string;
   amenity_ids: string;
+  avg_price_per_unit?: string;
+  ameneties_count?: string;
+  no_of_units?: string;
 }
 
 const categoryTypeMapping = {
@@ -842,7 +844,10 @@ export class ResidenceSeederService {
       residence.rental_potential?.toString().trim() ||
       residence.development_status?.toString().trim() ||
       residence.pet_policy?.toString().trim() ||
-      residence.floor_area_sqft?.toString().trim()
+      residence.floor_area_sqft?.toString().trim() ||
+      residence.avg_price_per_unit?.toString().trim() ||
+      residence.ameneties_count?.toString().trim() ||
+      residence.no_of_units?.toString().trim()
     ) {
       const residenceKeyFeatures: any = {};
 
@@ -882,6 +887,18 @@ export class ResidenceSeederService {
 
       if (Object.keys(residenceKeyFeatures).length > 0) {
         baseData.residenceKeyFeatures = residenceKeyFeatures;
+      }
+
+      if (residence.avg_price_per_unit?.toString().trim()) {
+        residenceKeyFeatures.avgPricePerUnit = residence.avg_price_per_unit;
+      }
+
+      if (residence.ameneties_count?.toString().trim()) {
+        residenceKeyFeatures.amenitiesCount = Number(residence.ameneties_count.split('+')[0]);
+      }
+
+      if (residence.no_of_units?.toString().trim()) {
+        residenceKeyFeatures.noOfUnits = Number(residence.no_of_units);
       }
     }
 
