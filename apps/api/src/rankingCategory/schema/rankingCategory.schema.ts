@@ -93,6 +93,20 @@ export class RankingCategory extends Document {
 
 export const RankingCategorySchema = SchemaFactory.createForClass(RankingCategory);
 
+// Add indexes for performance optimization
+RankingCategorySchema.index({ status: 1, isDeleted: 1, categoryType: 1 });
+RankingCategorySchema.index({ title: 'text', description: 'text' });
+RankingCategorySchema.index({ createdById: 1 });
+RankingCategorySchema.index({ countryId: 1 });
+RankingCategorySchema.index({ stateId: 1 });
+RankingCategorySchema.index({ cityId: 1 });
+RankingCategorySchema.index({ locationId: 1 });
+RankingCategorySchema.index({ propertyTypeId: 1 });
+RankingCategorySchema.index({ geoGraphyId: 1 });
+RankingCategorySchema.index({ lifeStyleId: 1 });
+RankingCategorySchema.index({ brandId: 1 });
+RankingCategorySchema.index({ createdAt: -1 });
+
 RankingCategorySchema.virtual('rankingRequests', {
   ref: 'RankingRequest',
   localField: '_id',
