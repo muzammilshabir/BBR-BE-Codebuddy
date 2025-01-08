@@ -14,7 +14,7 @@ export class CustomerSupportConversation extends Document {
   @Prop({ type: Types.ObjectId, ref: 'CustomerSupport', required: true })
   customerSupportId: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  @Prop({ type: Types.ObjectId, ref: 'User', required: false })
   userId: Types.ObjectId;
 
   @Prop({ required: true })
