@@ -374,13 +374,10 @@ export class PaymentController {
     summary: 'Create Payment Method for Customer',
   })
   @ApiBearerAuth()
-  @Roles(UserRole.SELLER)
-  async createCustomerPaymentMethod(
-    @GetCurrentUserId() userId: string,
-    @Body() createPaymentMethodDto: CreatePaymentMethodDto
-  ) {
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  async createCustomerPaymentMethod(@Body() createPaymentMethodDto: CreatePaymentMethodDto) {
     const paymentMethod = await this.paymentService.createCustomerPaymentMethod(
-      userId,
+      createPaymentMethodDto.developerId,
       createPaymentMethodDto
     );
     return ResponseService.buildResponse({ paymentMethod }, 'Payment Method created successfully');

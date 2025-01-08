@@ -125,7 +125,6 @@ export class InvoiceScheduleService {
       status: InvoiceStatus.PENDING,
       nextAutoPaymentAttemptAt: { $gte: startOfDayPST.toDate(), $lte: endOfDayPST.toDate() },
     });
-    console.log(invoicesToAttemptPayment);
 
     for (const invoice of invoicesToAttemptPayment) {
       await this.invoiceService.attemptAutoPayment(invoice);
