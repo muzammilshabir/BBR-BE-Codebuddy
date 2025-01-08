@@ -46,8 +46,12 @@ import { Model } from 'mongoose';
 import { RefundRequestReason } from './schema/refund-request-reason.schema';
 import { RefundRequest } from './schema/refund-request.schema';
 import { CreateRefundRequestDto } from './dto/create-refund-request.dto';
+import { InvoiceSchedule } from 'src/invoice-schedule/invoiceSchedule.schema';
 import { Residence } from 'src/residences/schema/residences.schema';
-import { InvoiceScheduleStatus } from 'src/invoice-schedule/invoiceSchedule.enum';
+import {
+  InvoiceScheduleStatus,
+  PaymentMethodType,
+} from 'src/invoice-schedule/invoiceSchedule.enum';
 
 @Injectable()
 export class PaymentService {
@@ -72,7 +76,13 @@ export class PaymentService {
     private readonly refundRequestModel: Model<RefundRequest>,
 
     @InjectModel(Residence.name)
-    private readonly residenceModel: Model<Residence>
+    private readonly residenceModel: Model<Residence>,
+
+    @InjectModel(Invoice.name)
+    private readonly invoiceModel: Model<Invoice>,
+
+    @InjectModel(InvoiceSchedule.name)
+    private readonly invoiceScheduleModel: Model<InvoiceSchedule>
   ) {}
 
   private convertPaymentItemsToLineItems(
@@ -1241,7 +1251,7 @@ export class PaymentService {
   }
 
   async getInvoicesV2(listInvoicesDto: ListInvoicesV2Dto) {
-    const { status, search, residenceId, developerId } = listInvoicesDto;
+    const { status, search, residenceId, developerId, paymentMethodType } = listInvoicesDto;
     const matchStage: any = {
       isDeleted: false,
     };
@@ -1267,6 +1277,10 @@ export class PaymentService {
 
     if (developerId) {
       matchStage.developerId = new Types.ObjectId(developerId);
+    }
+
+    if (paymentMethodType) {
+      matchStage.paymentMethodType = paymentMethodType;
     }
 
     const pipeline = [
@@ -1309,6 +1323,7 @@ export class PaymentService {
     });
     pipeline.push({
       $project: {
+        id: '$_id',
         issuedAt: 1,
         invoiceNumber: 1,
         dueAt: 1,
@@ -1319,6 +1334,8 @@ export class PaymentService {
         hostedInvoiceUrl: 1,
         pdfLink: 1,
         status: 1,
+        paymentMethodType: 1,
+        invoiceScheduleId: 1,
       },
     });
 
@@ -1476,6 +1493,7 @@ export class PaymentService {
 
     pipeline.push({
       $project: {
+        id: '$_id',
         createdAt: 1,
         amount: 1,
         status: 1,
@@ -1488,6 +1506,8 @@ export class PaymentService {
         residenceName: '$residence.name',
         residenceId: '$residence._id',
         reason: 1,
+        paymentMethodType: '$invoice.paymentMethodType',
+        invoiceScheduleId: '$invoice.invoiceScheduleId',
       },
     });
 
@@ -1630,5 +1650,97 @@ export class PaymentService {
         ],
       });
     return residences;
+  }
+
+  async markInvoiceAsPaidManually(invoiceId: string) {
+    // Get the invoice from database
+    const invoice = await this.invoiceModel.findOne({
+      _id: invoiceId,
+    });
+
+    if (!invoice) {
+      throw new NotFoundException('Invoice not found');
+    }
+
+    if (invoice.status !== InvoiceStatus.PENDING && invoice.status !== InvoiceStatus.DRAFT) {
+      throw new BadRequestException('Invoice is not in pending or draft status');
+    }
+
+    // If there's a Stripe invoice ID, void it in Stripe
+    if (invoice.stripeInvoiceId) {
+      await this.stripeService.voidInvoice(invoice.stripeInvoiceId);
+    }
+
+    // Update local invoice status
+    invoice.status = InvoiceStatus.PAID;
+    invoice.paymentMethodType = PaymentMethodType.MANUAL;
+
+    // Save the updated invoice
+    const updatedInvoice = await invoice.save();
+
+    return updatedInvoice;
+  }
+
+  async cancelInvoice(invoiceId: string) {
+    // Get the invoice from database
+    const invoice = await this.invoiceModel.findOne({
+      _id: invoiceId,
+    });
+
+    if (!invoice) {
+      throw new NotFoundException('Invoice not found');
+    }
+
+    if (invoice.status !== InvoiceStatus.PENDING && invoice.status !== InvoiceStatus.DRAFT) {
+      throw new BadRequestException('Invoice is not in pending or draft status');
+    }
+
+    // If there's a Stripe invoice ID, void it in Stripe
+    if (invoice.stripeInvoiceId) {
+      await this.stripeService.voidInvoice(invoice.stripeInvoiceId);
+    }
+
+    // Update local invoice status
+    invoice.status = InvoiceStatus.CANCELED;
+
+    // Save the updated invoice
+    const updatedInvoice = await invoice.save();
+
+    return updatedInvoice;
+  }
+
+  async sendInvoiceEmailV2(invoiceId: string) {
+    // Get invoice and populate invoice schedule
+    const invoice = await this.invoiceModel.findById(invoiceId);
+
+    if (!invoice) {
+      throw new NotFoundException('Invoice not found');
+    }
+
+    const invoiceSchedule = await this.invoiceScheduleModel.findById(invoice.invoiceScheduleId);
+    if (!invoiceSchedule) {
+      throw new NotFoundException('Invoice schedule not found');
+    }
+
+    // Validate invoice status
+    if (invoice.status !== InvoiceStatus.PENDING && invoice.status !== InvoiceStatus.DRAFT) {
+      throw new BadRequestException('Invoice must be in pending or draft status to send email');
+    }
+
+    // Send email
+    this.eventEmitter.emit(
+      SendEmailEvent.event,
+      new SendEmailEvent({
+        context: {
+          email: invoiceSchedule.buyerEmail,
+          link: invoice.hostedInvoiceUrl,
+        },
+        template: 'send-invoice',
+        subject: `Invoice #${invoice.invoiceNumber}`,
+        toEmail: invoiceSchedule.buyerEmail,
+      })
+    );
+
+    return invoice;
   }
 }

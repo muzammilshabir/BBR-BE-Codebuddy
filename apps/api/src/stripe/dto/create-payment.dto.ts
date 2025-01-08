@@ -69,8 +69,15 @@ export class CreatePaymentMethodDto {
     required: true,
   })
   pmTokenId: string;
+
+  @ApiProperty({
+    example: 'buyer_123',
+    required: true,
+  })
+  developerId: string;
 }
 
 export const createPaymentMethodDtoSchema = Joi.object({
   pmTokenId: Joi.string().required(),
+  developerId: Joi.string().required(),
 });

@@ -3,6 +3,7 @@ import { Document, Types } from 'mongoose';
 import { InvoiceStatus } from '../enum/invoice-status.enum';
 import { User } from 'src/users/schema/user.schema';
 import { PaymentMethod } from './payment-method.schema';
+import { PaymentMethodType } from 'src/invoice-schedule/invoiceSchedule.enum';
 
 @Schema({
   timestamps: true,
@@ -161,6 +162,14 @@ export class Invoice extends Document {
     timestamp: Date;
     message: string;
   }>;
+
+  @Prop({
+    type: String,
+    enum: Object.values(PaymentMethodType),
+    default: PaymentMethodType.CARD,
+    required: true,
+  })
+  paymentMethodType: PaymentMethodType;
 }
 
 const InvoiceSchema = SchemaFactory.createForClass(Invoice);

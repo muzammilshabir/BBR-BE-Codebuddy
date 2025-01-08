@@ -88,6 +88,9 @@ export class InvoiceSchedule extends Document {
 
   @Prop({ type: Types.ObjectId, ref: 'Invoice' })
   currentInvoiceId: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'InvoiceSchedule' })
+  invoiceScheduleId: Types.ObjectId;
 }
 
 export const InvoiceScheduleSchema = SchemaFactory.createForClass(InvoiceSchedule);
@@ -119,6 +122,13 @@ InvoiceScheduleSchema.virtual('paymentMethod', {
 InvoiceScheduleSchema.virtual('currentPaymentMethod', {
   ref: 'PaymentMethod',
   localField: 'currentPaymentMethodId',
+  foreignField: '_id',
+  justOne: true,
+});
+
+InvoiceScheduleSchema.virtual('invoiceSchedule', {
+  ref: 'InvoiceSchedule',
+  localField: 'invoiceScheduleId',
   foreignField: '_id',
   justOne: true,
 });

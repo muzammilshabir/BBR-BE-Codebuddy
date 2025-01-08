@@ -125,7 +125,6 @@ export class InvoiceScheduleService {
       status: InvoiceStatus.PENDING,
       nextAutoPaymentAttemptAt: { $gte: startOfDayPST.toDate(), $lte: endOfDayPST.toDate() },
     });
-    console.log(invoicesToAttemptPayment);
 
     for (const invoice of invoicesToAttemptPayment) {
       await this.invoiceService.attemptAutoPayment(invoice);
@@ -315,33 +314,55 @@ export class InvoiceScheduleService {
 
     const invoiceSchedule = await this.invoiceScheduleModel.create(invoiceScheduleData);
 
-    let invoice;
+    // Create invoice immediately
+    const dueDateObj = dayjs(invoiceSchedule.dueDate).tz('Asia/Kolkata');
+    let invoice = await this.invoiceService.createInvoiceFromSchedule(
+      invoiceSchedule,
+      invoiceSchedule.issueDate,
+      dueDateObj.toDate(),
+      invoiceSchedule.paymentMethodId.toString()
+    );
+    invoice = await this.invoiceModel.findById(invoice._id);
+
+    if (publish === false) {
+      invoice = await this.invoiceModel.findByIdAndUpdate(
+        invoice._id,
+        {
+          status: InvoiceStatus.DRAFT,
+        },
+        {
+          new: true,
+        }
+      );
+    } else {
+      invoice = await this.invoiceModel.findByIdAndUpdate(
+        invoice._id,
+        {
+          status: InvoiceStatus.PENDING,
+        },
+        {
+          new: true,
+        }
+      );
+    }
+
+    // calculate next invoice issue date
+    const nextInvoiceIssueDate = this.calculateNextInvoiceIssueDate(
+      invoiceSchedule.issueDate,
+      invoiceSchedule.renewalFrequency,
+      invoiceSchedule.reminderDays
+    );
+    // update invoice schedule
+    await this.invoiceScheduleModel.findByIdAndUpdate(invoiceSchedule._id, {
+      nextInvoiceIssueDate,
+      currentInvoiceId: invoice._id,
+    });
+
     if (
+      publish === true &&
       invoiceSchedule.status === InvoiceScheduleStatus.ACTIVE &&
       dayjs(invoiceSchedule.issueDate).tz('Asia/Kolkata').startOf('day').isSame(todayStartPST)
     ) {
-      // Create invoice immediately
-      const dueDate = dayjs(invoiceSchedule.dueDate).tz('Asia/Kolkata');
-      invoice = await this.invoiceService.createInvoiceFromSchedule(
-        invoiceSchedule,
-        invoiceSchedule.issueDate,
-        dueDate.toDate(),
-        invoiceSchedule.paymentMethodId.toString()
-      );
-      invoice = await this.invoiceModel.findById(invoice._id);
-
-      // calculate next invoice issue date
-      const nextInvoiceIssueDate = this.calculateNextInvoiceIssueDate(
-        invoiceSchedule.issueDate,
-        invoiceSchedule.renewalFrequency,
-        invoiceSchedule.reminderDays
-      );
-      // update invoice schedule
-      await this.invoiceScheduleModel.findByIdAndUpdate(invoiceSchedule._id, {
-        nextInvoiceIssueDate,
-        currentInvoiceId: invoice._id,
-      });
-
       // Attempt to pay the invoice
       await this.invoiceService.attemptAutoPayment(invoice);
     }
@@ -374,5 +395,29 @@ export class InvoiceScheduleService {
       }
     }
     return null;
+  }
+
+  async getInvoiceScheduleById(id: string) {
+    const invoiceSchedule = await this.invoiceScheduleModel.findById(id).populate([
+      {
+        path: 'currentInvoice',
+      },
+      {
+        path: 'paymentMethod',
+      },
+      {
+        path: 'currentPaymentMethod',
+      },
+      {
+        path: 'plan',
+      },
+      {
+        path: 'residence',
+      },
+    ]);
+    if (!invoiceSchedule) {
+      throw new NotFoundException('Invoice schedule not found');
+    }
+    return invoiceSchedule;
   }
 }

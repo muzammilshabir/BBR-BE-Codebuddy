@@ -374,13 +374,10 @@ export class PaymentController {
     summary: 'Create Payment Method for Customer',
   })
   @ApiBearerAuth()
-  @Roles(UserRole.SELLER)
-  async createCustomerPaymentMethod(
-    @GetCurrentUserId() userId: string,
-    @Body() createPaymentMethodDto: CreatePaymentMethodDto
-  ) {
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  async createCustomerPaymentMethod(@Body() createPaymentMethodDto: CreatePaymentMethodDto) {
     const paymentMethod = await this.paymentService.createCustomerPaymentMethod(
-      userId,
+      createPaymentMethodDto.developerId,
       createPaymentMethodDto
     );
     return ResponseService.buildResponse({ paymentMethod }, 'Payment Method created successfully');
@@ -502,5 +499,39 @@ export class PaymentController {
       { residences },
       'Residence payments retrieved successfully'
     );
+  }
+
+  @Post('/invoice/:id/mark-paid')
+  @ApiOperation({
+    summary: 'Mark Invoice as Paid Manually and Forgive Stripe Invoice',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  async markInvoicePaidManually(@Param('id') invoiceId: string) {
+    const invoice = await this.paymentService.markInvoiceAsPaidManually(invoiceId);
+    return ResponseService.buildResponse({ invoice }, 'Invoice marked as paid successfully');
+  }
+
+  @Post('/invoice/:id/cancel')
+  @ApiOperation({
+    summary: 'Cancel Invoice and Void Stripe Invoice',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
+  async cancelInvoice(@Param('id') invoiceId: string) {
+    const invoice = await this.paymentService.cancelInvoice(invoiceId);
+    return ResponseService.buildResponse({ invoice }, 'Invoice cancelled successfully');
+  }
+
+  @Post('/invoice/:id/send')
+  @ApiOperation({
+    summary: 'Send Invoice Email',
+    description: 'Send email for pending or draft invoice',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
+  async sendInvoiceEmail(@Param('id') invoiceId: string) {
+    const invoice = await this.paymentService.sendInvoiceEmailV2(invoiceId);
+    return ResponseService.buildResponse({ invoice }, 'Invoice email sent successfully');
   }
 }

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ServiceConfig } from 'src/config';
 import Stripe from 'stripe';
 import { CustomerDto } from './dto/customer.dto';
@@ -7,6 +7,7 @@ import { ResidenceService } from 'src/residences/residences.service';
 import { RefundPaymentDto } from './dto/refund-payment.dto';
 import { UpdateInvoiceItemDto } from './dto/update-invoice-item.dto';
 import { uuid } from 'short-uuid';
+
 export interface PaymentMethodType {
   id: string;
   type: string;
@@ -17,9 +18,11 @@ export interface PaymentMethodType {
   exp_month?: number;
   exp_year?: number;
 }
+
 @Injectable()
 export class StripeService {
   private stripe: Stripe;
+  private readonly logger = new Logger(StripeService.name);
 
   constructor(
     private readonly configService: ServiceConfig,
@@ -316,6 +319,7 @@ export class StripeService {
       created: refund.created,
     };
   }
+
   async createManualInvoice(
     customerId: string,
     productIds: string[],
@@ -583,5 +587,14 @@ export class StripeService {
     await this.stripe.invoices.update(invoiceId, {
       default_tax_rates: [taxRate.id],
     });
+  }
+
+  async voidInvoice(stripeInvoiceId: string) {
+    try {
+      await this.stripe.invoices.voidInvoice(stripeInvoiceId);
+    } catch (error) {
+      this.logger.error(`Error forgiving Stripe invoice: ${error.message}`, error);
+      throw new Error('Failed to forgive Stripe invoice');
+    }
   }
 }
