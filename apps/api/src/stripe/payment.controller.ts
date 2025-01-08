@@ -500,4 +500,15 @@ export class PaymentController {
       'Residence payments retrieved successfully'
     );
   }
+
+  @Post('/invoice/:id/mark-paid')
+  @ApiOperation({
+    summary: 'Mark Invoice as Paid Manually and Forgive Stripe Invoice',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  async markInvoicePaidManually(@Param('id') invoiceId: string) {
+    const invoice = await this.paymentService.markInvoiceAsPaidManually(invoiceId);
+    return ResponseService.buildResponse({ invoice }, 'Invoice marked as paid successfully');
+  }
 }

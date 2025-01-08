@@ -47,7 +47,10 @@ import { RefundRequestReason } from './schema/refund-request-reason.schema';
 import { RefundRequest } from './schema/refund-request.schema';
 import { CreateRefundRequestDto } from './dto/create-refund-request.dto';
 import { Residence } from 'src/residences/schema/residences.schema';
-import { InvoiceScheduleStatus } from 'src/invoice-schedule/invoiceSchedule.enum';
+import {
+  InvoiceScheduleStatus,
+  PaymentMethodType,
+} from 'src/invoice-schedule/invoiceSchedule.enum';
 
 @Injectable()
 export class PaymentService {
@@ -72,7 +75,10 @@ export class PaymentService {
     private readonly refundRequestModel: Model<RefundRequest>,
 
     @InjectModel(Residence.name)
-    private readonly residenceModel: Model<Residence>
+    private readonly residenceModel: Model<Residence>,
+
+    @InjectModel(Invoice.name)
+    private readonly invoiceModel: Model<Invoice>
   ) {}
 
   private convertPaymentItemsToLineItems(
@@ -1241,7 +1247,7 @@ export class PaymentService {
   }
 
   async getInvoicesV2(listInvoicesDto: ListInvoicesV2Dto) {
-    const { status, search, residenceId, developerId } = listInvoicesDto;
+    const { status, search, residenceId, developerId, paymentMethodType } = listInvoicesDto;
     const matchStage: any = {
       isDeleted: false,
     };
@@ -1267,6 +1273,10 @@ export class PaymentService {
 
     if (developerId) {
       matchStage.developerId = new Types.ObjectId(developerId);
+    }
+
+    if (paymentMethodType) {
+      matchStage.paymentMethodType = paymentMethodType;
     }
 
     const pipeline = [
@@ -1319,6 +1329,7 @@ export class PaymentService {
         hostedInvoiceUrl: 1,
         pdfLink: 1,
         status: 1,
+        paymentMethodType: 1,
       },
     });
 
@@ -1488,6 +1499,7 @@ export class PaymentService {
         residenceName: '$residence.name',
         residenceId: '$residence._id',
         reason: 1,
+        paymentMethodType: '$invoice.paymentMethodType',
       },
     });
 
@@ -1630,5 +1642,34 @@ export class PaymentService {
         ],
       });
     return residences;
+  }
+
+  async markInvoiceAsPaidManually(invoiceId: string) {
+    // Get the invoice from database
+    const invoice = await this.invoiceModel.findOne({
+      _id: invoiceId,
+    });
+
+    if (!invoice) {
+      throw new NotFoundException('Invoice not found');
+    }
+
+    if (invoice.status !== InvoiceStatus.PENDING && invoice.status !== InvoiceStatus.DRAFT) {
+      throw new BadRequestException('Invoice is not in pending or draft status');
+    }
+
+    // If there's a Stripe invoice ID, void it in Stripe
+    if (invoice.stripeInvoiceId) {
+      await this.stripeService.voidInvoice(invoice.stripeInvoiceId);
+    }
+
+    // Update local invoice status
+    invoice.status = InvoiceStatus.PAID;
+    invoice.paymentMethodType = PaymentMethodType.MANUAL;
+
+    // Save the updated invoice
+    const updatedInvoice = await invoice.save();
+
+    return updatedInvoice;
   }
 }

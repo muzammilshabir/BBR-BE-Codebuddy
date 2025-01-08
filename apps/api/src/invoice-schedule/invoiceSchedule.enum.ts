@@ -11,3 +11,8 @@ export enum InvoiceScheduleStatus {
   DRAFT = 'draft',
   INACTIVE = 'inactive',
 }
+
+export enum PaymentMethodType {
+  CARD = 'card',
+  MANUAL = 'manual',
+}

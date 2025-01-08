@@ -26,6 +26,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { RefundRequest } from './schema/refund-request.schema';
 import { Model } from 'mongoose';
 import { RefundStatus } from './enum/refund-status.enum';
+import { PaymentMethodType } from 'src/invoice-schedule/invoiceSchedule.enum';
 
 @Injectable()
 export class StripeWebhookService {
@@ -176,6 +177,7 @@ export class StripeWebhookService {
           typeof stripeInvoice.charge === 'string' ? stripeInvoice.charge : stripeInvoice.charge.id,
         status: InvoiceStatus.PAID,
         pdfLink: stripeInvoice.invoice_pdf,
+        paymentMethodType: PaymentMethodType.CARD,
       });
       if (internalInvoice.residenceId) {
         const transaction: CreateTransactionDto = {
