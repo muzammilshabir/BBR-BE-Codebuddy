@@ -522,4 +522,16 @@ export class PaymentController {
     const invoice = await this.paymentService.cancelInvoice(invoiceId);
     return ResponseService.buildResponse({ invoice }, 'Invoice cancelled successfully');
   }
+
+  @Post('/invoice/:id/send')
+  @ApiOperation({
+    summary: 'Send Invoice Email',
+    description: 'Send email for pending or draft invoice',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
+  async sendInvoiceEmail(@Param('id') invoiceId: string) {
+    const invoice = await this.paymentService.sendInvoiceEmailV2(invoiceId);
+    return ResponseService.buildResponse({ invoice }, 'Invoice email sent successfully');
+  }
 }

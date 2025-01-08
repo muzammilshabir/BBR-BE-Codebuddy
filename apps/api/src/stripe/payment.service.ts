@@ -46,6 +46,7 @@ import { Model } from 'mongoose';
 import { RefundRequestReason } from './schema/refund-request-reason.schema';
 import { RefundRequest } from './schema/refund-request.schema';
 import { CreateRefundRequestDto } from './dto/create-refund-request.dto';
+import { InvoiceSchedule } from 'src/invoice-schedule/invoiceSchedule.schema';
 import { Residence } from 'src/residences/schema/residences.schema';
 import {
   InvoiceScheduleStatus,
@@ -78,7 +79,10 @@ export class PaymentService {
     private readonly residenceModel: Model<Residence>,
 
     @InjectModel(Invoice.name)
-    private readonly invoiceModel: Model<Invoice>
+    private readonly invoiceModel: Model<Invoice>,
+
+    @InjectModel(InvoiceSchedule.name)
+    private readonly invoiceScheduleModel: Model<InvoiceSchedule>
   ) {}
 
   private convertPaymentItemsToLineItems(
@@ -1703,5 +1707,40 @@ export class PaymentService {
     const updatedInvoice = await invoice.save();
 
     return updatedInvoice;
+  }
+
+  async sendInvoiceEmailV2(invoiceId: string) {
+    // Get invoice and populate invoice schedule
+    const invoice = await this.invoiceModel.findById(invoiceId);
+
+    if (!invoice) {
+      throw new NotFoundException('Invoice not found');
+    }
+
+    const invoiceSchedule = await this.invoiceScheduleModel.findById(invoice.invoiceScheduleId);
+    if (!invoiceSchedule) {
+      throw new NotFoundException('Invoice schedule not found');
+    }
+
+    // Validate invoice status
+    if (invoice.status !== InvoiceStatus.PENDING && invoice.status !== InvoiceStatus.DRAFT) {
+      throw new BadRequestException('Invoice must be in pending or draft status to send email');
+    }
+
+    // Send email
+    this.eventEmitter.emit(
+      SendEmailEvent.event,
+      new SendEmailEvent({
+        context: {
+          email: invoiceSchedule.buyerEmail,
+          link: invoice.hostedInvoiceUrl,
+        },
+        template: 'send-invoice',
+        subject: `Invoice #${invoice.invoiceNumber}`,
+        toEmail: invoiceSchedule.buyerEmail,
+      })
+    );
+
+    return invoice;
   }
 }

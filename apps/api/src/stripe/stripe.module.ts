@@ -42,6 +42,8 @@ import { RefundRequestReasonSchema } from './schema/refund-request-reason.schema
 import { RefundRequest } from './schema/refund-request.schema';
 import { RefundRequestSchema } from './schema/refund-request.schema';
 import { RefundRequestReasonSeeder } from './refundRequestReason.seeder';
+import { InvoiceScheduleSchema } from 'src/invoice-schedule/invoiceSchedule.schema';
+import { InvoiceSchedule } from 'src/invoice-schedule/invoiceSchedule.schema';
 
 @Module({
   imports: [
@@ -67,6 +69,7 @@ import { RefundRequestReasonSeeder } from './refundRequestReason.seeder';
       { name: RefundRequestReason.name, schema: RefundRequestReasonSchema },
     ]),
     MongooseModule.forFeature([{ name: RefundRequest.name, schema: RefundRequestSchema }]),
+    MongooseModule.forFeature([{ name: InvoiceSchedule.name, schema: InvoiceScheduleSchema }]),
     forwardRef(() => InvoiceModule),
   ],
   controllers: [StripeController, PaymentController, PaymentAdminController],
