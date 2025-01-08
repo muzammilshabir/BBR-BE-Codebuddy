@@ -88,7 +88,7 @@ export class Residence extends Document {
         staffToResidenceRatio: Number,
       },
       bespokeAmenitiesAmount: Number,
-      avgPricePerUnit: String,
+      avgPricePerUnit: Number,
       petPolicy: String, // Enum values: "petFriendly", "No pet Allowed"
       noOfUnits: Number,
       amenitiesCount: Number,
@@ -105,7 +105,7 @@ export class Residence extends Document {
       staffToResidenceRatio: number;
     };
     bespokeAmenitiesAmount: number;
-    avgPricePerUnit: string;
+    avgPricePerUnit: number;
     petPolicy: string;
     noOfUnits: number;
     amenitiesCount: number;

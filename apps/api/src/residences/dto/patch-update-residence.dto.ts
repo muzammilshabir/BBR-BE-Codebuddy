@@ -82,7 +82,7 @@ export class PatchResidenceDto {
         staffToResidenceRatio: 0.5
       },
       bespokeAmenitiesAmount: 40,
-      avgPricePerUnit: '5M',
+      avgPricePerUnit: 5000000,
       petPolicy: "petFriendly"
     }
   })
@@ -96,7 +96,7 @@ export class PatchResidenceDto {
       staffToResidenceRatio?: number;
     };
     bespokeAmenitiesAmount?: number;
-    avgPricePerUnit?: string;
+    avgPricePerUnit?: number;
     petPolicy?: string;
   };
 
@@ -208,7 +208,7 @@ export class PatchResidenceDto {
         staffToResidenceRatio: Joi.number().optional(),
       }).optional(),
       bespokeAmenitiesAmount: Joi.number().optional(),
-      avgPricePerUnit: Joi.string().optional(),
+      avgPricePerUnit: Joi.number().optional(),
       petPolicy: Joi.string().optional(),
     }).optional(),
     address: Joi.object({

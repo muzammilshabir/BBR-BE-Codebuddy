@@ -881,7 +881,7 @@ export class ResidenceSeederService {
       if (residence.floor_area_sqft?.toString().trim()) {
         const floorArea = Number(residence.floor_area_sqft.split('k')[0]) * 1000;
         if (!isNaN(floorArea)) {
-          residenceKeyFeatures.floorAreaSqFt = floorArea;
+          residenceKeyFeatures.developmentInfo.floorAreaSqFt = floorArea;
         }
       }
 
@@ -890,7 +890,8 @@ export class ResidenceSeederService {
       }
 
       if (residence.avg_price_per_unit?.toString().trim()) {
-        residenceKeyFeatures.avgPricePerUnit = residence.avg_price_per_unit;
+        residenceKeyFeatures.avgPricePerUnit =
+          Number(residence.avg_price_per_unit.split('M')[0]) * 1000000;
       }
 
       if (residence.ameneties_count?.toString().trim()) {
