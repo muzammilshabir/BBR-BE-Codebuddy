@@ -396,4 +396,28 @@ export class InvoiceScheduleService {
     }
     return null;
   }
+
+  async getInvoiceScheduleById(id: string) {
+    const invoiceSchedule = await this.invoiceScheduleModel.findById(id).populate([
+      {
+        path: 'currentInvoice',
+      },
+      {
+        path: 'paymentMethod',
+      },
+      {
+        path: 'currentPaymentMethod',
+      },
+      {
+        path: 'plan',
+      },
+      {
+        path: 'residence',
+      },
+    ]);
+    if (!invoiceSchedule) {
+      throw new NotFoundException('Invoice schedule not found');
+    }
+    return invoiceSchedule;
+  }
 }

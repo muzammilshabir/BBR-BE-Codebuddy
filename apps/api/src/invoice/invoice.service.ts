@@ -173,6 +173,7 @@ export class InvoiceService {
       total: 0,
       discount: invoiceSchedule.discountAmount || 0,
       tax: invoiceSchedule.taxPercentage || 0,
+      invoiceScheduleId: invoiceSchedule._id,
     });
 
     const developer = await this.userModel.findById(invoiceSchedule.developerId);

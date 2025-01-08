@@ -1,4 +1,4 @@
-import { Body, Controller, Post, UsePipes, Get, Query } from '@nestjs/common';
+import { Body, Controller, Post, UsePipes, Get, Query, Param } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
   CreateInvoiceScheduleDto,
@@ -37,6 +37,18 @@ export class InvoiceScheduleController {
       developerId,
       residenceId
     );
+    return ResponseService.buildResponse(
+      { invoiceSchedule },
+      'Invoice schedule retrieved successfully'
+    );
+  }
+
+  @Get(':id')
+  @Roles(UserRole.ADMIN, UserRole.SELLER)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get invoice schedule by ID' })
+  async getInvoiceScheduleById(@Param('id') id: string) {
+    const invoiceSchedule = await this.invoiceScheduleService.getInvoiceScheduleById(id);
     return ResponseService.buildResponse(
       { invoiceSchedule },
       'Invoice schedule retrieved successfully'

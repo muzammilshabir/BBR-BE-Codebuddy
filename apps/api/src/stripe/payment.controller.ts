@@ -511,4 +511,15 @@ export class PaymentController {
     const invoice = await this.paymentService.markInvoiceAsPaidManually(invoiceId);
     return ResponseService.buildResponse({ invoice }, 'Invoice marked as paid successfully');
   }
+
+  @Post('/invoice/:id/cancel')
+  @ApiOperation({
+    summary: 'Cancel Invoice and Void Stripe Invoice',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
+  async cancelInvoice(@Param('id') invoiceId: string) {
+    const invoice = await this.paymentService.cancelInvoice(invoiceId);
+    return ResponseService.buildResponse({ invoice }, 'Invoice cancelled successfully');
+  }
 }

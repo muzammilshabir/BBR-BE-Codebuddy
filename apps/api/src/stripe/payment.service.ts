@@ -1319,6 +1319,7 @@ export class PaymentService {
     });
     pipeline.push({
       $project: {
+        id: '$_id',
         issuedAt: 1,
         invoiceNumber: 1,
         dueAt: 1,
@@ -1330,6 +1331,7 @@ export class PaymentService {
         pdfLink: 1,
         status: 1,
         paymentMethodType: 1,
+        invoiceScheduleId: 1,
       },
     });
 
@@ -1487,6 +1489,7 @@ export class PaymentService {
 
     pipeline.push({
       $project: {
+        id: '$_id',
         createdAt: 1,
         amount: 1,
         status: 1,
@@ -1500,6 +1503,7 @@ export class PaymentService {
         residenceId: '$residence._id',
         reason: 1,
         paymentMethodType: '$invoice.paymentMethodType',
+        invoiceScheduleId: '$invoice.invoiceScheduleId',
       },
     });
 
@@ -1666,6 +1670,34 @@ export class PaymentService {
     // Update local invoice status
     invoice.status = InvoiceStatus.PAID;
     invoice.paymentMethodType = PaymentMethodType.MANUAL;
+
+    // Save the updated invoice
+    const updatedInvoice = await invoice.save();
+
+    return updatedInvoice;
+  }
+
+  async cancelInvoice(invoiceId: string) {
+    // Get the invoice from database
+    const invoice = await this.invoiceModel.findOne({
+      _id: invoiceId,
+    });
+
+    if (!invoice) {
+      throw new NotFoundException('Invoice not found');
+    }
+
+    if (invoice.status !== InvoiceStatus.PENDING && invoice.status !== InvoiceStatus.DRAFT) {
+      throw new BadRequestException('Invoice is not in pending or draft status');
+    }
+
+    // If there's a Stripe invoice ID, void it in Stripe
+    if (invoice.stripeInvoiceId) {
+      await this.stripeService.voidInvoice(invoice.stripeInvoiceId);
+    }
+
+    // Update local invoice status
+    invoice.status = InvoiceStatus.CANCELED;
 
     // Save the updated invoice
     const updatedInvoice = await invoice.save();
