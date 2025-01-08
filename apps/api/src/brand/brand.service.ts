@@ -26,19 +26,16 @@ export class BrandService {
     try {
       const { status, brandCategoryId, search } = listBrandDto;
       const paginationOptions = PaginationService.prepareOptions(listBrandDto);
-      
+
       const pipeline: PipelineStage[] = [
-        // Initial match for non-deleted brands
         {
           $match: {
             isDeleted: { $ne: true },
-            ...(status ? { status: status } : {}),
+            ...(status ? { status } : {}),
             ...(brandCategoryId ? { brandCategoryId: new Types.ObjectId(brandCategoryId) } : {}),
             ...(search ? { name: { $regex: search, $options: 'i' } } : {}),
           },
         },
-
-        // Lookup brand category
         {
           $lookup: {
             from: 'brandcategories',
@@ -47,45 +44,14 @@ export class BrandService {
             as: 'brandCategoryId',
           },
         },
-        {
-          $unwind: {
-            path: '$brandCategoryId',
-            preserveNullAndEmptyArrays: true,
-          },
-        },
-
-        // Lookup uploads for images
+        { $unwind: { path: '$brandCategoryId', preserveNullAndEmptyArrays: true } },
         {
           $lookup: {
             from: 'uploads',
-            let: { uploads: '$upload' },
-            pipeline: [
-              {
-                $match: {
-                  $expr: {
-                    $in: ['$_id', {
-                      $map: {
-                        input: '$$uploads',
-                        as: 'upload',
-                        in: '$$upload.ImageId'
-                      }
-                    }]
-                  }
-                }
-              },
-              {
-                $project: {
-                  _id: 1,
-                  originalFileKey: 1,
-                  fileKey: 1,
-                  url: 1,
-                  mimeType: 1,
-                  id: '$_id'
-                }
-              }
-            ],
-            as: 'uploadDocs'
-          }
+            localField: 'upload.ImageId',
+            foreignField: '_id',
+            as: 'uploadDocs',
+          },
         },
         {
           $addFields: {
@@ -95,21 +61,23 @@ export class BrandService {
                 as: 'uploadItem',
                 in: {
                   ImageId: {
-                    $arrayElemAt: [{
-                      $filter: {
-                        input: '$uploadDocs',
-                        cond: { $eq: ['$$this._id', '$$uploadItem.ImageId'] }
-                      }
-                    }, 0]
+                    $arrayElemAt: [
+                      {
+                        $filter: {
+                          input: '$uploadDocs',
+                          as: 'doc',
+                          cond: { $eq: ['$$doc._id', '$$uploadItem.ImageId'] },
+                        },
+                      },
+                      0,
+                    ],
                   },
-                  type: '$$uploadItem.type'
-                }
-              }
-            }
-          }
+                  type: '$$uploadItem.type',
+                },
+              },
+            },
+          },
         },
-
-        // Lookup brand drafts and their images
         {
           $lookup: {
             from: 'branddrafts',
@@ -118,22 +86,21 @@ export class BrandService {
             pipeline: [
               { $sort: { createdAt: -1 } },
               { $limit: 1 },
-              // Add lookup for brandCategoryId
+
               {
                 $lookup: {
                   from: 'brandcategories',
                   localField: 'brandCategoryId',
                   foreignField: '_id',
-                  as: 'brandCategoryId'
-                }
+                  as: 'brandCategoryId',
+                },
               },
               {
                 $unwind: {
                   path: '$brandCategoryId',
-                  preserveNullAndEmptyArrays: true
-                }
+                  preserveNullAndEmptyArrays: true,
+                },
               },
-              // Add lookup for draft images
               {
                 $lookup: {
                   from: 'uploads',
@@ -142,15 +109,9 @@ export class BrandService {
                     {
                       $match: {
                         $expr: {
-                          $in: ['$_id', {
-                            $map: {
-                              input: '$$uploads',
-                              as: 'upload',
-                              in: '$$upload.ImageId'
-                            }
-                          }]
-                        }
-                      }
+                          $in: ['$_id', '$$uploads.ImageId'],
+                        },
+                      },
                     },
                     {
                       $project: {
@@ -159,14 +120,13 @@ export class BrandService {
                         fileKey: 1,
                         url: 1,
                         mimeType: 1,
-                        id: '$_id'
-                      }
-                    }
+                        id: '$_id',
+                      },
+                    },
                   ],
-                  as: 'uploadDocs'
-                }
+                  as: 'uploadDocs',
+                },
               },
-              // Map the upload docs to the upload array
               {
                 $addFields: {
                   upload: {
@@ -175,25 +135,27 @@ export class BrandService {
                       as: 'uploadItem',
                       in: {
                         ImageId: {
-                          $arrayElemAt: [{
-                            $filter: {
-                              input: '$uploadDocs',
-                              cond: { $eq: ['$$this._id', '$$uploadItem.ImageId'] }
-                            }
-                          }, 0]
+                          $arrayElemAt: [
+                            {
+                              $filter: {
+                                input: '$uploadDocs',
+                                as: 'doc',
+                                cond: { $eq: ['$$doc._id', '$$uploadItem.ImageId'] },
+                              },
+                            },
+                            0,
+                          ],
                         },
-                        type: '$$uploadItem.type'
-                      }
-                    }
-                  }
-                }
-              }
+                        type: '$$uploadItem.type',
+                      },
+                    },
+                  },
+                },
+              },
             ],
             as: 'brandDrafts',
           },
         },
-
-        // Lookup residences count - Moved before $facet
         {
           $lookup: {
             from: 'residences',
@@ -205,62 +167,47 @@ export class BrandService {
                     $and: [
                       { $eq: ['$associatedBrandId', '$$brandId'] },
                       { $ne: ['$isDeleted', true] },
-                      { $eq: ['$status', 'active'] }
-                    ]
-                  }
-                }
+                      { $eq: ['$status', 'active'] },
+                    ],
+                  },
+                },
               },
-              {
-                $count: 'total'
-              }
+              { $count: 'total' },
             ],
-            as: 'residenceCount'
-          }
+            as: 'residenceCount',
+          },
         },
         {
           $addFields: {
-            numberOfResidences: {
-              $ifNull: [{ $arrayElemAt: ['$residenceCount.total', 0] }, 0]
-            }
-          }
+            numberOfResidences: { $ifNull: [{ $arrayElemAt: ['$residenceCount.total', 0] }, 0] },
+          },
         },
 
-        // Apply sorting
         {
           $sort: paginationOptions.sort.reduce((acc, [field, order]) => {
             acc[field] = order;
             return acc;
           }, {}),
         },
-
-        // Pagination and total count using facet
         {
           $facet: {
-            data: [
-              { $skip: paginationOptions.offset },
-              { $limit: paginationOptions.limit },
-            ],
+            data: [{ $skip: paginationOptions.offset }, { $limit: paginationOptions.limit }],
             totalCount: [{ $count: 'count' }],
           },
         },
-
-        // Final projection to format the response
         {
           $project: {
             data: 1,
             totalCount: { $arrayElemAt: ['$totalCount.count', 0] },
           },
-        }
+        },
       ];
 
       const result = await this.brandRepository.aggregate(pipeline);
       const count = result[0]?.totalCount || 0;
       const data = result[0]?.data || [];
 
-      const { pagination } = PaginationService.paginate(
-        { rows: data, count },
-        listBrandDto
-      );
+      const { pagination } = PaginationService.paginate({ rows: data, count }, listBrandDto);
 
       return { pagination, brands: data };
     } catch (error) {
