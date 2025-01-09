@@ -217,7 +217,7 @@ export class InvoiceService {
     const developer = await this.userModel.findById(invoice.developerId);
     const stripeInvoice = await this.stripeService.createInvoiceV2(developer.stripeCustomerId);
 
-    const lineItems = await this.lineItemModel.find({ invoiceId: invoice.id });
+    const lineItems = await this.lineItemModel.find({ invoiceId: invoice._id });
 
     await this.attachLineItemsToStripeInvoice(
       developer.stripeCustomerId,
@@ -249,7 +249,7 @@ export class InvoiceService {
     for (const feature of features) {
       lineItems.push(
         await this.lineItemModel.create({
-          invoiceId,
+          invoiceId: new Types.ObjectId(invoiceId),
           name: feature.featureName,
           unitAmount: feature.unitAmount,
           totalAmount: feature.unitAmount,
