@@ -1249,7 +1249,8 @@ export class PaymentService {
   }
 
   async getInvoicesV2(listInvoicesDto: ListInvoicesV2Dto) {
-    const { status, search, residenceId, developerId, paymentMethodType } = listInvoicesDto;
+    const { status, search, residenceId, developerId, paymentMethodType, sortBy, sortOrder } =
+      listInvoicesDto;
     const matchStage: any = {
       isDeleted: false,
     };
@@ -1330,12 +1331,13 @@ export class PaymentService {
 
     pipeline.push({
       $sort: {
-        createdAt: -1,
+        [sortBy]: sortOrder === 'asc' ? 1 : -1,
       },
     });
     pipeline.push({
       $project: {
         id: '$_id',
+        createdAt: 1,
         issuedAt: 1,
         invoiceNumber: 1,
         dueAt: 1,
