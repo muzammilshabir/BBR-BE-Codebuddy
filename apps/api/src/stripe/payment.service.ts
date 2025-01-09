@@ -1299,6 +1299,20 @@ export class PaymentService {
         },
       },
       {
+        $lookup: {
+          from: 'users',
+          localField: 'developerId',
+          foreignField: '_id',
+          as: 'developer',
+        },
+      },
+      {
+        $unwind: {
+          path: '$developer',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
         $match: matchStage,
       },
     ] as any;
@@ -1329,6 +1343,8 @@ export class PaymentService {
         dueAt: 1,
         residenceId: 1,
         residenceName: '$residence.name',
+        developerId: '$developer._id',
+        developerName: '$developer.fullName',
         notes: 1,
         total: 1,
         hostedInvoiceUrl: 1,
@@ -1391,10 +1407,16 @@ export class PaymentService {
       throw new ConflictException('There is already a pending refund request for this invoice');
     }
 
+    const residence = await this.residenceModel.findById(invoice.residenceId);
+    if (!residence) {
+      throw new NotFoundException('Residence not found');
+    }
+
     // Create refund request
     return await this.refundRequestModel.create({
       ...createRefundRequestDto,
-      residenceId: new Types.ObjectId(invoice.residenceId),
+      residenceId: new Types.ObjectId(residence.id),
+      developerId: new Types.ObjectId(residence.developerId),
       invoiceId: new Types.ObjectId(createRefundRequestDto.invoiceId),
       reasonId: new Types.ObjectId(createRefundRequestDto.reasonId),
       status: RefundRequestStatus.REQUESTED,
@@ -1456,6 +1478,20 @@ export class PaymentService {
       },
       {
         $lookup: {
+          from: 'users',
+          localField: 'invoice.developerId',
+          foreignField: '_id',
+          as: 'developer',
+        },
+      },
+      {
+        $unwind: {
+          path: '$developer',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
           from: 'refundrequestreasons',
           localField: 'reasonId',
           foreignField: '_id',
@@ -1505,6 +1541,8 @@ export class PaymentService {
         total: '$invoice.total',
         residenceName: '$residence.name',
         residenceId: '$residence._id',
+        developerId: '$developer._id',
+        developerName: '$developer.fullName',
         reason: 1,
         paymentMethodType: '$invoice.paymentMethodType',
         invoiceScheduleId: '$invoice.invoiceScheduleId',
