@@ -181,6 +181,34 @@ InvoiceSchema.virtual('paymentMethod', {
   justOne: true,
 });
 
+InvoiceSchema.virtual('residence', {
+  ref: 'Residence',
+  localField: 'residenceId',
+  foreignField: '_id',
+  justOne: true,
+});
+
+InvoiceSchema.virtual('invoiceSchedule', {
+  ref: 'InvoiceSchedule',
+  localField: 'invoiceScheduleId',
+  foreignField: '_id',
+  justOne: true,
+});
+
+InvoiceSchema.virtual('developer', {
+  ref: 'User',
+  localField: 'developerId',
+  foreignField: '_id',
+  justOne: true,
+});
+
+InvoiceSchema.virtual('invoiceItems', {
+  ref: 'InvoiceItem',
+  localField: '_id',
+  foreignField: 'invoiceId',
+  justOne: false,
+});
+
 InvoiceSchema.statics.generateInvoiceNumber = async function () {
   const currentDate = new Date();
   const year = currentDate.getFullYear().toString().slice(-2);

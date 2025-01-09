@@ -851,33 +851,30 @@ export class PaymentService {
     return { pagination, invoices: records };
   }
 
-  async getUserInvoice(userId: string, invoiceId: string) {
-    const invoice = await this.invoiceRepository.find({
-      developerId: new Types.ObjectId(userId),
-      _id: new Types.ObjectId(invoiceId),
-    });
-    const developer = await this.userService.findById(userId);
-    const invoiceItems = await this.invoiceItemRepository.findByInvoiceId(invoiceId);
-    for (const item of invoiceItems) {
-      const product = await this.stripeService.getProduct(item.stripeProductId);
-      item['product'] = product;
-    }
-    const subscriptions = await this.subscriptionRepository.findByInvoiceId(invoiceId);
-
-    const result: any = { invoice, invoiceItems, subscriptions };
-
-    if (invoice.stripeInvoiceId) {
-      result.stripeInvoice = await this.stripeService.getInvoice(invoice.stripeInvoiceId);
-    } else {
-      result.stripeInvoice = { web: null, pdf: null };
-    }
-    if (invoice.paymentMethodId && developer.stripeCustomerId) {
-      result.stripePaymentMethod = (await this.stripeService.retrieveCustomerPaymentMethod(
-        developer.stripeCustomerId,
-        invoice.paymentMethodId
-      )) || { id: null, type: null };
-    }
-    return result;
+  async getUserInvoice(invoiceId: string) {
+    const invoice = await this.invoiceModel
+      .findOne({
+        _id: new Types.ObjectId(invoiceId),
+      })
+      .populate([
+        {
+          path: 'invoiceSchedule',
+          populate: ['currentInvoice', 'plan', 'paymentMethod', 'currentPaymentMethod'],
+        },
+        {
+          path: 'paymentMethod',
+        },
+        {
+          path: 'residence',
+        },
+        {
+          path: 'developer',
+        },
+        {
+          path: 'invoiceItems',
+        },
+      ]);
+    return invoice;
   }
 
   async getUserInvoiceAdmin(invoiceId: string) {
@@ -1778,6 +1775,29 @@ export class PaymentService {
         toEmail: invoiceSchedule.buyerEmail,
       })
     );
+
+    return invoice;
+  }
+
+  async deleteDraftInvoice(invoiceId: string) {
+    // Get the invoice and validate it exists
+    const invoice = await this.invoiceModel.findById(invoiceId);
+    if (!invoice) {
+      throw new NotFoundException('Invoice not found');
+    }
+
+    // Check if invoice is in draft status
+    if (invoice.status !== InvoiceStatus.DRAFT) {
+      throw new BadRequestException('Only draft invoices can be deleted');
+    }
+
+    // If there's an invoice schedule, delete it
+    if (invoice.invoiceScheduleId) {
+      await this.invoiceScheduleModel.findByIdAndDelete(invoice.invoiceScheduleId);
+    }
+
+    // Delete the invoice
+    await invoice.deleteOne();
 
     return invoice;
   }

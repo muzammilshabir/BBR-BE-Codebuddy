@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Invoice } from '../stripe/schema/invoice.schema';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { RankingCategory } from 'src/rankingCategory/schema/rankingCategory.schema';
 import { InvoiceItem } from 'src/stripe/schema/invoice-item.schema';
 import { StripeService } from 'src/stripe/stripe.service';
@@ -64,7 +64,7 @@ export class InvoiceService {
     for (const rankingCategory of rankingCategories) {
       lineItems.push(
         await this.lineItemModel.create({
-          invoiceId,
+          invoiceId: new Types.ObjectId(invoiceId),
           name: rankingCategory.title,
           unitAmount: rankingCategory.price,
           totalAmount: rankingCategory.price,
@@ -152,7 +152,7 @@ export class InvoiceService {
 
   async createLineItemsFromSubscriptionPlan(invoiceId: string, subscriptionPlan: Plan) {
     return await this.lineItemModel.create({
-      invoiceId,
+      invoiceId: new Types.ObjectId(invoiceId),
       name: subscriptionPlan.name,
       unitAmount: subscriptionPlan.name === 'Bespoke Residence Profile' ? 0 : subscriptionPlan.fee,
       totalAmount: subscriptionPlan.name === 'Bespoke Residence Profile' ? 0 : subscriptionPlan.fee,
@@ -188,7 +188,7 @@ export class InvoiceService {
     const plan = await this.planModel.findById(invoiceSchedule.planId);
     await this.createLineItemsFromSubscriptionPlan(invoice.id, plan);
 
-    const lineItems = await this.lineItemModel.find({ invoiceId: invoice.id });
+    const lineItems = await this.lineItemModel.find({ invoiceId: new Types.ObjectId(invoice.id) });
 
     // Calculate amounts
     const subTotal = lineItems.reduce((sum, item) => sum + item.totalAmount, 0);

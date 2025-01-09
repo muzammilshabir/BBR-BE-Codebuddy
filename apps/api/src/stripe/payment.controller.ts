@@ -63,12 +63,9 @@ export class PaymentController {
     summary: 'Get Customer Invoice',
   })
   @ApiBearerAuth()
-  @Roles(UserRole.SELLER)
-  async getCustomerInvoice(
-    @GetCurrentUserId() userId: string,
-    @Param('invoiceId') invoiceId: string
-  ) {
-    const invoices = await this.paymentService.getUserInvoice(userId, invoiceId);
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  async getCustomerInvoice(@Param('invoiceId') invoiceId: string) {
+    const invoices = await this.paymentService.getUserInvoice(invoiceId);
     return ResponseService.buildResponse({ invoices }, 'Customer Invoice retrieved successfully');
   }
 
@@ -533,5 +530,17 @@ export class PaymentController {
   async sendInvoiceEmail(@Param('id') invoiceId: string) {
     const invoice = await this.paymentService.sendInvoiceEmailV2(invoiceId);
     return ResponseService.buildResponse({ invoice }, 'Invoice email sent successfully');
+  }
+
+  @Delete('/invoice/:id')
+  @ApiOperation({
+    summary: 'Delete Draft Invoice',
+    description: 'Delete invoice and its schedule if invoice is in draft status',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  async deleteInvoice(@Param('id') invoiceId: string) {
+    const invoice = await this.paymentService.deleteDraftInvoice(invoiceId);
+    return ResponseService.buildResponse({ invoice }, 'Invoice deleted successfully');
   }
 }
