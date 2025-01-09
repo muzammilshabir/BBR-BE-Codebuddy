@@ -16,6 +16,7 @@ import { Cron } from '@nestjs/schedule';
 import { InvoiceService } from 'src/invoice/invoice.service';
 import { Invoice } from 'src/stripe/schema/invoice.schema';
 import { InvoiceStatus } from 'src/stripe/enum/invoice-status.enum';
+import { PaymentService } from 'src/stripe/payment.service';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -44,7 +45,9 @@ export class InvoiceScheduleService {
     @InjectModel(Invoice.name)
     private invoiceModel: Model<Invoice>,
 
-    private readonly invoiceService: InvoiceService
+    private readonly invoiceService: InvoiceService,
+
+    private readonly paymentService: PaymentService
   ) {}
 
   @Cron('0 0 * * *', {
@@ -54,45 +57,50 @@ export class InvoiceScheduleService {
   //     timeZone: 'America/Los_Angeles',
   //   })
   async handleMidnightTasks() {
+    console.log(`Cron job running at ${new Date().toISOString()}`);
+
     const startOfDayPST = dayjs().tz('Asia/Kolkata').startOf('day');
     const endOfDayPST = startOfDayPST.endOf('day');
     console.log(startOfDayPST.toDate(), endOfDayPST.toDate());
 
     const invoiceSchedules = await this.invoiceScheduleModel.find({
       status: InvoiceScheduleStatus.ACTIVE,
-      $or: [
-        { issueDate: { $gte: startOfDayPST.toDate(), $lte: endOfDayPST.toDate() } },
-        {
-          $and: [
-            { nextInvoiceIssueDate: { $exists: true } },
-            { nextInvoiceIssueDate: { $gte: startOfDayPST.toDate(), $lte: endOfDayPST.toDate() } },
-          ],
-        },
+      $and: [
+        { nextInvoiceIssueDate: { $exists: true } },
+        { nextInvoiceIssueDate: { $gte: startOfDayPST.toDate(), $lte: endOfDayPST.toDate() } },
       ],
     });
 
     for (const invoiceSchedule of invoiceSchedules) {
-      if (!invoiceSchedule.nextInvoiceIssueDate) {
-        // create invoice
-        const invoice = await this.invoiceService.createInvoiceFromSchedule(
-          invoiceSchedule,
-          invoiceSchedule.issueDate,
-          invoiceSchedule.dueDate,
-          invoiceSchedule.currentPaymentMethodId.toString()
+      const activeInvoices = await this.invoiceModel.find({
+        invoiceScheduleId: invoiceSchedule._id,
+        status: InvoiceStatus.ACTIVE,
+      });
+
+      for (const inv of activeInvoices) {
+        const invoice = await this.invoiceModel.findByIdAndUpdate(
+          inv.id,
+          {
+            status: InvoiceStatus.PENDING,
+          },
+          { new: true }
         );
-        // calculate next invoice issue date
+        await this.invoiceService.finalizeInvoice(invoice.id);
+        await this.invoiceModel.findByIdAndUpdate(invoice.id, {
+          nextAutoPaymentAttemptAt: startOfDayPST.toDate(),
+        });
+
         const nextInvoiceIssueDate = this.calculateNextInvoiceIssueDate(
           invoiceSchedule.issueDate,
           invoiceSchedule.renewalFrequency,
           invoiceSchedule.reminderDays
         );
-        // update invoice schedule
         await this.invoiceScheduleModel.findByIdAndUpdate(invoiceSchedule._id, {
-          nextInvoiceIssueDate,
-          currentInvoiceId: invoice._id,
+          nextInvoiceIssueDate: nextInvoiceIssueDate,
         });
-      } else {
-        // create invoice
+      }
+
+      if (!activeInvoices.length) {
         const dueDate = dayjs(invoiceSchedule.nextInvoiceIssueDate).add(
           invoiceSchedule.reminderDays,
           'days'
@@ -101,23 +109,22 @@ export class InvoiceScheduleService {
           invoiceSchedule,
           invoiceSchedule.nextInvoiceIssueDate,
           dueDate.toDate(),
-          invoiceSchedule.paymentMethodId.toString()
+          invoiceSchedule.paymentMethodId.toString(),
+          InvoiceStatus.PENDING
         );
-        await this.invoiceScheduleModel.findByIdAndUpdate(invoiceSchedule._id, {
-          currentInvoiceId: invoice._id,
+        await this.invoiceService.finalizeInvoice(invoice.id);
+        await this.invoiceModel.findByIdAndUpdate(invoice.id, {
+          nextAutoPaymentAttemptAt: startOfDayPST.toDate(),
         });
-        // calculate next invoice issue date
+
         const nextInvoiceIssueDate = this.calculateNextInvoiceIssueDate(
-          invoiceSchedule.nextInvoiceIssueDate,
+          invoiceSchedule.issueDate,
           invoiceSchedule.renewalFrequency,
           invoiceSchedule.reminderDays
         );
-        // update invoice schedule
         await this.invoiceScheduleModel.findByIdAndUpdate(invoiceSchedule._id, {
-          nextInvoiceIssueDate,
-          currentInvoiceId: invoice._id,
+          nextInvoiceIssueDate: nextInvoiceIssueDate,
         });
-        // attempt to pay invoice
       }
     }
 
@@ -125,6 +132,7 @@ export class InvoiceScheduleService {
       status: InvoiceStatus.PENDING,
       nextAutoPaymentAttemptAt: { $gte: startOfDayPST.toDate(), $lte: endOfDayPST.toDate() },
     });
+    console.log(`invoicesToAttemptPayment`, invoicesToAttemptPayment);
 
     for (const invoice of invoicesToAttemptPayment) {
       await this.invoiceService.attemptAutoPayment(invoice);
@@ -288,86 +296,189 @@ export class InvoiceScheduleService {
     };
 
     // Find existing schedules
-    const existingDraft = invoiceSchedules.find(
+    let existingDraft = invoiceSchedules.find(
       (schedule) => schedule.status === InvoiceScheduleStatus.DRAFT
     );
-    const existingActiveSchedules = invoiceSchedules.filter(
+    let existingActiveSchedules = invoiceSchedules.find(
       (schedule) => schedule.status === InvoiceScheduleStatus.ACTIVE
     );
 
-    // If publishing, mark existing active schedules as inactive
-    if (publish && existingActiveSchedules.length > 0) {
-      await this.invoiceScheduleModel.updateMany(
-        { _id: { $in: existingActiveSchedules.map((schedule) => schedule._id) } },
-        { status: InvoiceScheduleStatus.INACTIVE }
-      );
+    if (publish === false) {
+      if (existingDraft) {
+        existingDraft = await this.invoiceScheduleModel.findByIdAndUpdate(
+          existingDraft._id,
+          invoiceScheduleData,
+          { new: true }
+        );
+        // TODO: Delete draft invoice
+        const draftInvoices = await this.invoiceModel.find({
+          invoiceScheduleId: existingDraft._id,
+          status: InvoiceStatus.DRAFT,
+        });
+        for (const inv of draftInvoices) {
+          await this.paymentService.cancelInvoice(inv.id);
+        }
+
+        // TODO: Create draft invoice
+        const invoice = await this.invoiceService.createInvoiceFromSchedule(
+          existingDraft,
+          existingDraft.issueDate,
+          existingDraft.dueDate,
+          existingDraft.paymentMethodId.toString(),
+          InvoiceStatus.DRAFT
+        );
+        return { invoiceSchedule: existingDraft, invoice };
+      } else {
+        existingDraft = await this.invoiceScheduleModel.create(invoiceScheduleData);
+        // TODO: Create draft invoice
+        const invoice = await this.invoiceService.createInvoiceFromSchedule(
+          existingDraft,
+          existingDraft.issueDate,
+          existingDraft.dueDate,
+          existingDraft.paymentMethodId.toString(),
+          InvoiceStatus.DRAFT
+        );
+        return { invoiceSchedule: existingDraft, invoice };
+      }
     }
 
-    // Update existing draft or create new schedule
-    if (existingDraft) {
-      return await this.invoiceScheduleModel.findByIdAndUpdate(
+    if (existingActiveSchedules) {
+      await this.invoiceScheduleModel.findByIdAndUpdate(existingActiveSchedules._id, {
+        status: InvoiceScheduleStatus.INACTIVE,
+      });
+      // TODO: Cancel active/draft invoices
+      const invoices = await this.invoiceModel.find({
+        invoiceScheduleId: existingActiveSchedules._id,
+      });
+      for (const inv of invoices) {
+        if (inv.status === InvoiceStatus.ACTIVE || inv.status === InvoiceStatus.DRAFT) {
+          await this.paymentService.cancelInvoice(inv.id);
+        }
+      }
+
+      // TODO: Create new active schedule
+      existingActiveSchedules = await this.invoiceScheduleModel.create({
+        ...invoiceScheduleData,
+        status: InvoiceScheduleStatus.ACTIVE,
+      });
+      // TODO: Create another active invoice
+      let invoice = await this.invoiceService.createInvoiceFromSchedule(
+        existingActiveSchedules,
+        existingActiveSchedules.issueDate,
+        existingActiveSchedules.dueDate,
+        existingActiveSchedules.paymentMethodId.toString(),
+        InvoiceStatus.ACTIVE
+      );
+
+      if (
+        dayjs(existingActiveSchedules.issueDate)
+          .tz('Asia/Kolkata')
+          .startOf('day')
+          .isSame(todayStartPST)
+      ) {
+        invoice = await this.invoiceService.finalizeInvoice(invoice.id);
+        invoice = await this.invoiceModel.findByIdAndUpdate(
+          invoice.id,
+          {
+            status: InvoiceStatus.PENDING,
+          },
+          { new: true }
+        );
+        await this.invoiceService.attemptAutoPayment(invoice);
+      }
+
+      await this.invoiceScheduleModel.findByIdAndUpdate(existingActiveSchedules._id, {
+        nextInvoiceIssueDate: existingActiveSchedules.issueDate,
+      });
+
+      return { invoiceSchedule: existingActiveSchedules, invoice };
+    } else if (existingDraft) {
+      existingActiveSchedules = await this.invoiceScheduleModel.findByIdAndUpdate(
         existingDraft._id,
-        invoiceScheduleData,
+        {
+          ...invoiceScheduleData,
+          status: InvoiceScheduleStatus.ACTIVE,
+          nextInvoiceIssueDate: invoiceScheduleData.issueDate,
+        },
         { new: true }
       );
-    }
+      // TODO: Make draft invoice active
+      const draftInvoices = await this.invoiceModel.find({
+        invoiceScheduleId: existingDraft._id,
+        status: InvoiceStatus.DRAFT,
+      });
 
-    const invoiceSchedule = await this.invoiceScheduleModel.create(invoiceScheduleData);
+      let invoice;
+      for (const inv of draftInvoices) {
+        invoice = inv;
+        if (
+          dayjs(existingActiveSchedules.issueDate)
+            .tz('Asia/Kolkata')
+            .startOf('day')
+            .isSame(todayStartPST)
+        ) {
+          invoice = await this.invoiceModel.findByIdAndUpdate(
+            invoice.id,
+            {
+              status: InvoiceStatus.PENDING,
+              issuedAt: existingActiveSchedules.issueDate,
+              dueAt: existingActiveSchedules.dueDate,
+              nextAutoPaymentAttemptAt: existingActiveSchedules.issueDate,
+            },
+            { new: true }
+          );
+          invoice = await this.invoiceService.finalizeInvoice(inv.id);
 
-    // Create invoice immediately
-    const dueDateObj = dayjs(invoiceSchedule.dueDate).tz('Asia/Kolkata');
-    let invoice = await this.invoiceService.createInvoiceFromSchedule(
-      invoiceSchedule,
-      invoiceSchedule.issueDate,
-      dueDateObj.toDate(),
-      invoiceSchedule.paymentMethodId.toString()
-    );
-    invoice = await this.invoiceModel.findById(invoice._id);
-
-    if (publish === false) {
-      invoice = await this.invoiceModel.findByIdAndUpdate(
-        invoice._id,
-        {
-          status: InvoiceStatus.DRAFT,
-        },
-        {
-          new: true,
+          await this.invoiceService.attemptAutoPayment(invoice);
+        } else {
+          invoice = await this.invoiceModel.findByIdAndUpdate(
+            invoice.id,
+            {
+              status: InvoiceStatus.ACTIVE,
+              issuedAt: existingActiveSchedules.issueDate,
+              dueAt: existingActiveSchedules.dueDate,
+              nextAutoPaymentAttemptAt: existingActiveSchedules.issueDate,
+            },
+            { new: true }
+          );
         }
-      );
+      }
+
+      return { invoiceSchedule: existingActiveSchedules, invoice };
     } else {
-      invoice = await this.invoiceModel.findByIdAndUpdate(
-        invoice._id,
-        {
-          status: InvoiceStatus.PENDING,
-        },
-        {
-          new: true,
-        }
+      existingActiveSchedules = await this.invoiceScheduleModel.create(invoiceScheduleData);
+      // TODO: Create active invoice
+      let invoice = await this.invoiceService.createInvoiceFromSchedule(
+        existingActiveSchedules,
+        existingActiveSchedules.issueDate,
+        existingActiveSchedules.dueDate,
+        existingActiveSchedules.paymentMethodId.toString(),
+        InvoiceStatus.ACTIVE
       );
+
+      if (
+        dayjs(existingActiveSchedules.issueDate)
+          .tz('Asia/Kolkata')
+          .startOf('day')
+          .isSame(todayStartPST)
+      ) {
+        invoice = await this.invoiceService.finalizeInvoice(invoice.id);
+        invoice = await this.invoiceModel.findByIdAndUpdate(
+          invoice.id,
+          {
+            status: InvoiceStatus.PENDING,
+          },
+          { new: true }
+        );
+        await this.invoiceService.attemptAutoPayment(invoice);
+      }
+
+      await this.invoiceScheduleModel.findByIdAndUpdate(existingActiveSchedules._id, {
+        nextInvoiceIssueDate: existingActiveSchedules.issueDate,
+      });
+
+      return { invoiceSchedule: existingActiveSchedules, invoice };
     }
-
-    // calculate next invoice issue date
-    const nextInvoiceIssueDate = this.calculateNextInvoiceIssueDate(
-      invoiceSchedule.issueDate,
-      invoiceSchedule.renewalFrequency,
-      invoiceSchedule.reminderDays
-    );
-    // update invoice schedule
-    await this.invoiceScheduleModel.findByIdAndUpdate(invoiceSchedule._id, {
-      nextInvoiceIssueDate,
-      currentInvoiceId: invoice._id,
-    });
-
-    if (
-      publish === true &&
-      invoiceSchedule.status === InvoiceScheduleStatus.ACTIVE &&
-      dayjs(invoiceSchedule.issueDate).tz('Asia/Kolkata').startOf('day').isSame(todayStartPST)
-    ) {
-      // Attempt to pay the invoice
-      await this.invoiceService.attemptAutoPayment(invoice);
-    }
-
-    return { invoiceSchedule, invoice };
   }
 
   async getInvoiceSchedule(developerId: string, residenceId: string) {
@@ -419,5 +530,45 @@ export class InvoiceScheduleService {
       throw new NotFoundException('Invoice schedule not found');
     }
     return invoiceSchedule;
+  }
+
+  async updateInvoiceSchedulePaymentMethod(id: string, paymentMethodId: string) {
+    const invoiceSchedule = await this.invoiceScheduleModel.findById(id);
+    if (!invoiceSchedule) {
+      throw new NotFoundException('Invoice schedule not found');
+    }
+
+    // Verify the payment method exists and belongs to the developer
+    const paymentMethod = await this.paymentMethodModel.findOne({
+      _id: paymentMethodId,
+      customerId: invoiceSchedule.developerId,
+    });
+
+    if (!paymentMethod) {
+      throw new NotFoundException('Payment method not found');
+    }
+
+    // Update the invoice schedule with the new payment method
+    const updatedInvoiceSchedule = await this.invoiceScheduleModel.findByIdAndUpdate(
+      id,
+      { paymentMethodId: new Types.ObjectId(paymentMethodId) },
+      { new: true }
+    );
+
+    // Update paymentMethodId on any pending or draft invoices related to the updated invoice schedule
+    const invoices = await this.invoiceModel.find({
+      invoiceScheduleId: id,
+      status: { $in: [InvoiceStatus.ACTIVE, InvoiceStatus.DRAFT, InvoiceStatus.PENDING] },
+    });
+
+    for (const invoice of invoices) {
+      await this.invoiceModel.findByIdAndUpdate(
+        invoice.id,
+        { paymentMethodId: paymentMethodId },
+        { new: true }
+      );
+    }
+
+    return updatedInvoiceSchedule;
   }
 }

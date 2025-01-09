@@ -27,7 +27,10 @@ export class InvoiceService {
 
     @InjectModel(PaymentAttempt.name) private readonly paymentAttemptModel: Model<PaymentAttempt>,
 
-    @InjectModel(Plan.name) private readonly planModel: Model<Plan>
+    @InjectModel(Plan.name) private readonly planModel: Model<Plan>,
+
+    @InjectModel(InvoiceSchedule.name)
+    private readonly invoiceScheduleModel: Model<InvoiceSchedule>
   ) {}
 
   async createInvoice() {
@@ -43,10 +46,14 @@ export class InvoiceService {
   }
 
   async attachStripeInvoice(invoiceId: string, stripeInvoiceId: string, hostedInvoiceUrl?: string) {
-    return await this.invoiceModel.findByIdAndUpdate(invoiceId, {
-      stripeInvoiceId,
-      ...(hostedInvoiceUrl ? { hostedInvoiceUrl } : {}),
-    });
+    return await this.invoiceModel.findByIdAndUpdate(
+      invoiceId,
+      {
+        stripeInvoiceId,
+        ...(hostedInvoiceUrl ? { hostedInvoiceUrl } : {}),
+      },
+      { new: true }
+    );
   }
 
   async createLineItemsFromRankingCategories(
@@ -156,12 +163,13 @@ export class InvoiceService {
     invoiceSchedule: InvoiceSchedule,
     issuedAt: Date,
     dueAt: Date,
-    paymentMethodId: string
+    paymentMethodId: string,
+    status: InvoiceStatus
   ) {
-    const invoice = await this.invoiceModel.create({
+    let invoice = await this.invoiceModel.create({
       residenceId: invoiceSchedule.residenceId,
       paymentMethodId,
-      status: InvoiceStatus.PENDING,
+      status,
       subscriptionId: invoiceSchedule.planId,
       issuedAt,
       dueAt,
@@ -176,9 +184,6 @@ export class InvoiceService {
       invoiceScheduleId: invoiceSchedule._id,
     });
 
-    const developer = await this.userModel.findById(invoiceSchedule.developerId);
-    const stripeInvoice = await this.stripeService.createInvoiceV2(developer.stripeCustomerId);
-
     await this.createLineItemsFromScheduleFeatures(invoice.id, invoiceSchedule.features);
     const plan = await this.planModel.findById(invoiceSchedule.planId);
     await this.createLineItemsFromSubscriptionPlan(invoice.id, plan);
@@ -192,11 +197,27 @@ export class InvoiceService {
     const total = subTotal - discountAmount + taxAmount;
 
     // Update invoice with calculated amounts
-    await this.invoiceModel.findByIdAndUpdate(invoice.id, {
-      subTotal,
-      total,
-      tax: taxAmount,
-    });
+    invoice = await this.invoiceModel.findByIdAndUpdate(
+      invoice.id,
+      {
+        subTotal,
+        total,
+        tax: taxAmount,
+      },
+      { new: true }
+    );
+
+    return invoice;
+  }
+
+  async finalizeInvoice(invoiceId: string) {
+    let invoice = await this.invoiceModel.findById(invoiceId);
+    const invoiceSchedule = await this.invoiceScheduleModel.findById(invoice.invoiceScheduleId);
+
+    const developer = await this.userModel.findById(invoice.developerId);
+    const stripeInvoice = await this.stripeService.createInvoiceV2(developer.stripeCustomerId);
+
+    const lineItems = await this.lineItemModel.find({ invoiceId: invoice.id });
 
     await this.attachLineItemsToStripeInvoice(
       developer.stripeCustomerId,
@@ -214,7 +235,7 @@ export class InvoiceService {
 
     const finalStripeInvoice = await this.stripeService.finalizeInvoice(stripeInvoice);
 
-    await this.attachStripeInvoice(
+    invoice = await this.attachStripeInvoice(
       invoice.id,
       stripeInvoice.id,
       finalStripeInvoice.hosted_invoice_url

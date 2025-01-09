@@ -1,4 +1,4 @@
-import { Body, Controller, Post, UsePipes, Get, Query, Param } from '@nestjs/common';
+import { Body, Controller, Post, UsePipes, Get, Patch, Param, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
   CreateInvoiceScheduleDto,
@@ -10,6 +10,7 @@ import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi
 import { InvoiceScheduleService } from './invoiceSchedule.service';
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
 import { GetInvoiceScheduleDto, getInvoiceScheduleSchema } from './dto/get-invoice-schedule.dto';
+import { UpdatePaymentMethodDto, updatePaymentMethodSchema } from './dto/update-payment-method.dto';
 
 @ApiTags('Invoice Schedule')
 @Controller('invoice-schedule')
@@ -52,6 +53,25 @@ export class InvoiceScheduleController {
     return ResponseService.buildResponse(
       { invoiceSchedule },
       'Invoice schedule retrieved successfully'
+    );
+  }
+
+  @Patch(':id/payment-method')
+  @Roles(UserRole.ADMIN, UserRole.SELLER)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update invoice schedule payment method' })
+  @UsePipes(new JoiValidationPipe(updatePaymentMethodSchema, 'body'))
+  async updateInvoiceSchedulePaymentMethod(
+    @Param('id') id: string,
+    @Body() updatePaymentMethodDto: UpdatePaymentMethodDto
+  ) {
+    const invoiceSchedule = await this.invoiceScheduleService.updateInvoiceSchedulePaymentMethod(
+      id,
+      updatePaymentMethodDto.paymentMethodId
+    );
+    return ResponseService.buildResponse(
+      { invoiceSchedule },
+      'Invoice schedule payment method updated successfully'
     );
   }
 }

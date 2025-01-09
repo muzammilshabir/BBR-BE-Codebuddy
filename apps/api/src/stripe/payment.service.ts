@@ -1691,9 +1691,9 @@ export class PaymentService {
       throw new NotFoundException('Invoice not found');
     }
 
-    if (invoice.status !== InvoiceStatus.PENDING && invoice.status !== InvoiceStatus.DRAFT) {
-      throw new BadRequestException('Invoice is not in pending or draft status');
-    }
+    // if (invoice.status !== InvoiceStatus.PENDING && invoice.status !== InvoiceStatus.DRAFT) {
+    //   throw new BadRequestException('Invoice is not in pending or draft status');
+    // }
 
     // If there's a Stripe invoice ID, void it in Stripe
     if (invoice.stripeInvoiceId) {
