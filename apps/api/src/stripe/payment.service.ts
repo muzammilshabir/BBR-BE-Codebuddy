@@ -1778,4 +1778,27 @@ export class PaymentService {
 
     return invoice;
   }
+
+  async deleteDraftInvoice(invoiceId: string) {
+    // Get the invoice and validate it exists
+    const invoice = await this.invoiceModel.findById(invoiceId);
+    if (!invoice) {
+      throw new NotFoundException('Invoice not found');
+    }
+
+    // Check if invoice is in draft status
+    if (invoice.status !== InvoiceStatus.DRAFT) {
+      throw new BadRequestException('Only draft invoices can be deleted');
+    }
+
+    // If there's an invoice schedule, delete it
+    if (invoice.invoiceScheduleId) {
+      await this.invoiceScheduleModel.findByIdAndDelete(invoice.invoiceScheduleId);
+    }
+
+    // Delete the invoice
+    await invoice.deleteOne();
+
+    return invoice;
+  }
 }

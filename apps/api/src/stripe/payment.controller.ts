@@ -531,4 +531,16 @@ export class PaymentController {
     const invoice = await this.paymentService.sendInvoiceEmailV2(invoiceId);
     return ResponseService.buildResponse({ invoice }, 'Invoice email sent successfully');
   }
+
+  @Delete('/invoice/:id')
+  @ApiOperation({
+    summary: 'Delete Draft Invoice',
+    description: 'Delete invoice and its schedule if invoice is in draft status',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  async deleteInvoice(@Param('id') invoiceId: string) {
+    const invoice = await this.paymentService.deleteDraftInvoice(invoiceId);
+    return ResponseService.buildResponse({ invoice }, 'Invoice deleted successfully');
+  }
 }
