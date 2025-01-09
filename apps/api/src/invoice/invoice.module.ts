@@ -40,6 +40,13 @@ import {
   BespokeRequest,
   BespokeRequestSchema,
 } from '../bespokeRequests/schema/bespokeRequests.schema';
+import { PaymentMethod, PaymentMethodSchema } from 'src/stripe/schema/payment-method.schema';
+import { PaymentAttempt, PaymentAttemptSchema } from 'src/stripe/schema/payment-attempt.schema';
+import { Plan, PlanSchema } from 'src/subscription-plan/schema/plan.schema';
+import {
+  InvoiceSchedule,
+  InvoiceScheduleSchema,
+} from 'src/invoice-schedule/invoiceSchedule.schema';
 
 @Module({
   imports: [
@@ -50,6 +57,22 @@ import {
       {
         name: InvoicePostPaymentAction.name,
         schema: InvoicePostPaymentActionSchema,
+      },
+      {
+        name: PaymentMethod.name,
+        schema: PaymentMethodSchema,
+      },
+      {
+        name: PaymentAttempt.name,
+        schema: PaymentAttemptSchema,
+      },
+      {
+        name: Plan.name,
+        schema: PlanSchema,
+      },
+      {
+        name: InvoiceSchedule.name,
+        schema: InvoiceScheduleSchema,
       },
     ]),
 

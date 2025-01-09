@@ -27,11 +27,25 @@ import { UpdateInvoiceItemDto, updateInvoiceItemsDtoSchema } from './dto/update-
 import { UpdateInvoiceDto, updateInvoiceDtoSchema } from './dto/update-invoice.dto';
 import { RefundPaymentDto, refundPaymentDtoSchema } from './dto/refund-payment.dto';
 import { ListTransactionsDto, listTransactionsDtoSchema } from './dto/list-transactions.dto';
+import { CreatePaymentMethodDto } from './dto/create-payment.dto';
+import { UserService } from 'src/users/user.service';
+import { StripeService } from 'src/stripe/stripe.service';
+import {
+  GetBuyerPaymentMethodsDto,
+  getBuyerPaymentMethodsDtoSchema,
+} from './dto/get-buyer-payment-methods.dto';
+import { ListInvoicesV2Dto, listInvoicesV2Schema } from './dto/list-invoices-v2.dto';
+import { CreateRefundRequestDto, createRefundRequestSchema } from './dto/create-refund-request.dto';
+import { ListRefundRequestsDto, listRefundRequestsSchema } from './dto/list-refund-requests.dto';
 
 @ApiTags('Payment')
 @Controller('payment')
 export class PaymentController {
-  constructor(private readonly paymentService: PaymentService) {}
+  constructor(
+    private readonly paymentService: PaymentService,
+    private readonly userService: UserService,
+    private readonly stripeService: StripeService
+  ) {}
   @Get('/invoices/')
   @ApiOperation({
     summary: 'Get Customer Invoices',
@@ -49,12 +63,9 @@ export class PaymentController {
     summary: 'Get Customer Invoice',
   })
   @ApiBearerAuth()
-  @Roles(UserRole.SELLER)
-  async getCustomerInvoice(
-    @GetCurrentUserId() userId: string,
-    @Param('invoiceId') invoiceId: string
-  ) {
-    const invoices = await this.paymentService.getUserInvoice(userId, invoiceId);
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  async getCustomerInvoice(@Param('invoiceId') invoiceId: string) {
+    const invoices = await this.paymentService.getUserInvoice(invoiceId);
     return ResponseService.buildResponse({ invoices }, 'Customer Invoice retrieved successfully');
   }
 
@@ -353,5 +364,183 @@ export class PaymentController {
       { residence },
       'Default Residence Payment Method unset successfully'
     );
+  }
+
+  @Post('/payment-method-v2')
+  @ApiOperation({
+    summary: 'Create Payment Method for Customer',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  async createCustomerPaymentMethod(@Body() createPaymentMethodDto: CreatePaymentMethodDto) {
+    const paymentMethod = await this.paymentService.createCustomerPaymentMethod(
+      createPaymentMethodDto.developerId,
+      createPaymentMethodDto
+    );
+    return ResponseService.buildResponse({ paymentMethod }, 'Payment Method created successfully');
+  }
+
+  @Get('/payment-methods-v2/:buyerId')
+  @ApiOperation({
+    summary: 'Get Payment Methods for Buyer',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(getBuyerPaymentMethodsDtoSchema, 'param'))
+  async getBuyerPaymentMethods(@Param() params: GetBuyerPaymentMethodsDto) {
+    const paymentMethods = await this.paymentService.getBuyerPaymentMethods(params.buyerId);
+    return ResponseService.buildResponse(
+      { paymentMethods: paymentMethods.data },
+      'Buyer Payment Methods retrieved successfully'
+    );
+  }
+
+  @Get('/invoices/v2')
+  @ApiOperation({
+    summary: 'Get Invoices V2',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(listInvoicesV2Schema, 'query'))
+  async getInvoicesV2(@Query() query: ListInvoicesV2Dto) {
+    const invoices = await this.paymentService.getInvoicesV2(query);
+    return ResponseService.buildResponse(invoices, 'Invoices retrieved successfully');
+  }
+
+  @Get('/refund-reasons')
+  @ApiOperation({
+    summary: 'Get All Refund Request Reasons',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  async getRefundReasons() {
+    const reasons = await this.paymentService.getRefundReasons();
+    return ResponseService.buildResponse({ reasons }, 'Refund reasons retrieved successfully');
+  }
+
+  @Post('/refund-requests')
+  @ApiOperation({
+    summary: 'Create refund request for an invoice',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(createRefundRequestSchema, 'body'))
+  async createRefundRequest(
+    @GetCurrentUserId() userId: string,
+    @Body() createRefundRequestDto: CreateRefundRequestDto
+  ) {
+    const refundRequest = await this.paymentService.createRefundRequest(
+      userId,
+      createRefundRequestDto
+    );
+    return ResponseService.buildResponse({ refundRequest }, 'Refund request created successfully');
+  }
+
+  @Get('/refund-requests')
+  @ApiOperation({
+    summary: 'Get Refund Requests',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(listRefundRequestsSchema, 'query'))
+  async getRefundRequests(@Query() query: ListRefundRequestsDto) {
+    const refundRequests = await this.paymentService.getRefundRequests(query);
+    return ResponseService.buildResponse(refundRequests, 'Refund requests retrieved successfully');
+  }
+
+  @Post('/refund-requests/:id/reject')
+  @ApiOperation({
+    summary: 'Reject a refund request',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  async rejectRefundRequest(@Param('id') refundRequestId: string) {
+    const refundRequest = await this.paymentService.rejectRefundRequest(refundRequestId);
+    return ResponseService.buildResponse({ refundRequest }, 'Refund request rejected successfully');
+  }
+
+  @Post('/refund-requests/:id/approve')
+  @ApiOperation({
+    summary: 'Approve a refund request and process the refund',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  async approveRefundRequest(@Param('id') refundRequestId: string) {
+    const refundRequest = await this.paymentService.approveRefundRequest(refundRequestId);
+    return ResponseService.buildResponse({ refundRequest }, 'Refund request approved successfully');
+  }
+
+  @Get('/refund-requests/:id')
+  @ApiOperation({
+    summary: 'Get Single Refund Request with Relations',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  async getRefundRequest(@Param('id') refundRequestId: string) {
+    const refundRequest = await this.paymentService.getRefundRequestV2(refundRequestId);
+    return ResponseService.buildResponse(
+      { refundRequest },
+      'Refund request retrieved successfully'
+    );
+  }
+
+  @Get('/residence-payments')
+  @ApiOperation({
+    summary: 'Get Residence Payments with Active Invoice Schedules',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER)
+  async getResidencePayments(@GetCurrentUserId() userId: string) {
+    const residences = await this.paymentService.getResidencePayments(userId);
+    return ResponseService.buildResponse(
+      { residences },
+      'Residence payments retrieved successfully'
+    );
+  }
+
+  @Post('/invoice/:id/mark-paid')
+  @ApiOperation({
+    summary: 'Mark Invoice as Paid Manually and Forgive Stripe Invoice',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  async markInvoicePaidManually(@Param('id') invoiceId: string) {
+    const invoice = await this.paymentService.markInvoiceAsPaidManually(invoiceId);
+    return ResponseService.buildResponse({ invoice }, 'Invoice marked as paid successfully');
+  }
+
+  @Post('/invoice/:id/cancel')
+  @ApiOperation({
+    summary: 'Cancel Invoice and Void Stripe Invoice',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  async cancelInvoice(@Param('id') invoiceId: string) {
+    const invoice = await this.paymentService.cancelInvoice(invoiceId);
+    return ResponseService.buildResponse({ invoice }, 'Invoice cancelled successfully');
+  }
+
+  @Post('/invoice/:id/send')
+  @ApiOperation({
+    summary: 'Send Invoice Email',
+    description: 'Send email for pending or draft invoice',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  async sendInvoiceEmail(@Param('id') invoiceId: string) {
+    const invoice = await this.paymentService.sendInvoiceEmailV2(invoiceId);
+    return ResponseService.buildResponse({ invoice }, 'Invoice email sent successfully');
+  }
+
+  @Delete('/invoice/:id')
+  @ApiOperation({
+    summary: 'Delete Draft Invoice',
+    description: 'Delete invoice and its schedule if invoice is in draft status',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  async deleteInvoice(@Param('id') invoiceId: string) {
+    const invoice = await this.paymentService.deleteDraftInvoice(invoiceId);
+    return ResponseService.buildResponse({ invoice }, 'Invoice deleted successfully');
   }
 }

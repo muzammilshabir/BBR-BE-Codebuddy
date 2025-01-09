@@ -26,9 +26,9 @@ import { CreateInvoiceItemsDto, createInvoiceItemsDtoSchema } from './dto/create
 import { UpdateInvoiceDto, updateInvoiceDtoSchema } from './dto/update-invoice.dto';
 import { CreateInvoiceDto, createInvoiceDtoSchema } from './dto/create-invoice.dto';
 import { UpdateSubscriptionDto, updateSubscriptionDtoSchema } from './dto/update-subscription.dto';
-import { RefundStatus } from './enum/refund-status.enum';
+import { RefundRequestStatus } from './enum/refund-status.enum';
 import { ListTransactionsDto, listTransactionsDtoSchema } from './dto/list-transactions.dto';
-import { ListRefundRequestsDto, listRefundRequestsDtoSchema } from './dto/list-refund-requests.dto';
+import { ListRefundRequestsDto, listRefundRequestsSchema } from './dto/list-refund-requests.dto';
 
 @ApiTags('Payment/admin')
 @Controller('payment/admin')
@@ -284,7 +284,7 @@ export class PaymentAdminController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.ADMIN)
-  @UsePipes(new JoiValidationPipe(listRefundRequestsDtoSchema, 'query'))
+  @UsePipes(new JoiValidationPipe(listRefundRequestsSchema, 'query'))
   async refundRequestList(@Query() query: ListRefundRequestsDto) {
     const data = await this.paymentService.listRefundRequests(query);
     return ResponseService.buildResponse(data, 'Refunds/Requests retrieved successfully');
@@ -321,7 +321,7 @@ export class PaymentAdminController {
   async acceptRefundRequest(@Param('refundId') refundId: string) {
     const refund = await this.paymentService.acceptRejectInvoiceRefund(
       refundId,
-      RefundStatus.REFUNDED
+      RefundRequestStatus.REFUNDED
     );
     return ResponseService.buildResponse({ refund }, 'Invoice refunded successfully');
   }
@@ -335,7 +335,7 @@ export class PaymentAdminController {
   async rejectRefundRequest(@Param('refundId') refundId: string) {
     const refund = await this.paymentService.acceptRejectInvoiceRefund(
       refundId,
-      RefundStatus.REJECTED
+      RefundRequestStatus.REJECTED
     );
     return ResponseService.buildResponse({ refund }, 'Invoice refund rejected successfully');
   }

@@ -37,6 +37,13 @@ import { Residence, ResidenceSchema } from 'src/residences/schema/residences.sch
 import { UploadModule } from 'src/upload/upload.module';
 import { PdfModule } from 'src/pdf/pdf.module';
 import { InvoiceModule } from 'src/invoice/invoice.module';
+import { RefundRequestReason } from './schema/refund-request-reason.schema';
+import { RefundRequestReasonSchema } from './schema/refund-request-reason.schema';
+import { RefundRequest } from './schema/refund-request.schema';
+import { RefundRequestSchema } from './schema/refund-request.schema';
+import { RefundRequestReasonSeeder } from './refundRequestReason.seeder';
+import { InvoiceScheduleSchema } from 'src/invoice-schedule/invoiceSchedule.schema';
+import { InvoiceSchedule } from 'src/invoice-schedule/invoiceSchedule.schema';
 
 @Module({
   imports: [
@@ -58,6 +65,11 @@ import { InvoiceModule } from 'src/invoice/invoice.module';
     MongooseModule.forFeature([{ name: Plan.name, schema: PlanSchema }]),
     MongooseModule.forFeature([{ name: Feature.name, schema: FeatureSchema }]),
     MongooseModule.forFeature([{ name: Residence.name, schema: ResidenceSchema }]),
+    MongooseModule.forFeature([
+      { name: RefundRequestReason.name, schema: RefundRequestReasonSchema },
+    ]),
+    MongooseModule.forFeature([{ name: RefundRequest.name, schema: RefundRequestSchema }]),
+    MongooseModule.forFeature([{ name: InvoiceSchedule.name, schema: InvoiceScheduleSchema }]),
     forwardRef(() => InvoiceModule),
   ],
   controllers: [StripeController, PaymentController, PaymentAdminController],
@@ -77,6 +89,7 @@ import { InvoiceModule } from 'src/invoice/invoice.module';
     PaymentAttemptSeeder,
     RefundSeeder,
     AllInOnePaymentSeeder,
+    RefundRequestReasonSeeder,
   ],
   exports: [
     StripeService,

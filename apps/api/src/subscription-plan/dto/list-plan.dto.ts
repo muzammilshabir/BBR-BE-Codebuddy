@@ -6,6 +6,7 @@ export enum PlanForPage {
   REQUEST_PREMIUM_RESIDENCE_PROFILE = 'request-premium-residence-profile',
   REQUEST_BBR_VERIFICATION = 'request-bbr-verification',
   REQUEST_FEATURES_RESIDENCES = 'request-features-residences',
+  CREATE_INVOICE_SCHEDULE = 'create-invoice-schedule',
 }
 
 export class ListPlansDto {

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ServiceConfig } from 'src/config';
 import Stripe from 'stripe';
 import { CustomerDto } from './dto/customer.dto';
@@ -7,6 +7,7 @@ import { ResidenceService } from 'src/residences/residences.service';
 import { RefundPaymentDto } from './dto/refund-payment.dto';
 import { UpdateInvoiceItemDto } from './dto/update-invoice-item.dto';
 import { uuid } from 'short-uuid';
+
 export interface PaymentMethodType {
   id: string;
   type: string;
@@ -17,9 +18,11 @@ export interface PaymentMethodType {
   exp_month?: number;
   exp_year?: number;
 }
+
 @Injectable()
 export class StripeService {
   private stripe: Stripe;
+  private readonly logger = new Logger(StripeService.name);
 
   constructor(
     private readonly configService: ServiceConfig,
@@ -108,6 +111,7 @@ export class StripeService {
       customer_email: fInvoice.customer_email,
       items: this.parseInvoiceLineItems(latestInvoice.lines.data),
       client_secret: (fInvoice.payment_intent as Stripe.PaymentIntent)?.client_secret,
+      hosted_invoice_url: fInvoice.hosted_invoice_url,
     };
   }
 
@@ -315,6 +319,7 @@ export class StripeService {
       created: refund.created,
     };
   }
+
   async createManualInvoice(
     customerId: string,
     productIds: string[],
@@ -546,5 +551,50 @@ export class StripeService {
     return this.stripe.invoices.pay(invoiceId, {
       payment_method: paymentMethodId,
     });
+  }
+
+  async createRefund(chargeId: string, amount: number) {
+    try {
+      const refund = await this.stripe.refunds.create({
+        charge: chargeId,
+        amount: amount,
+      });
+      return refund;
+    } catch (error) {
+      throw new Error(`Failed to create refund: ${error.message}`);
+    }
+  }
+
+  async applyDiscount(invoiceId: string, discountAmount: number) {
+    const coupon = await this.stripe.coupons.create({
+      name: uuid(),
+      amount_off: discountAmount,
+      currency: 'usd',
+    });
+
+    await this.stripe.invoices.update(invoiceId, {
+      discounts: [{ coupon: coupon.id }],
+    });
+  }
+
+  async applyTax(invoiceId: string, taxPercent: number) {
+    const taxRate = await this.stripe.taxRates.create({
+      display_name: uuid(),
+      inclusive: false,
+      percentage: taxPercent,
+    });
+
+    await this.stripe.invoices.update(invoiceId, {
+      default_tax_rates: [taxRate.id],
+    });
+  }
+
+  async voidInvoice(stripeInvoiceId: string) {
+    try {
+      await this.stripe.invoices.voidInvoice(stripeInvoiceId);
+    } catch (error) {
+      this.logger.error(`Error forgiving Stripe invoice: ${error.message}`, error);
+      throw new Error('Failed to forgive Stripe invoice');
+    }
   }
 }

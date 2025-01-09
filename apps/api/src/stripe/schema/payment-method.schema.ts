@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 
-@Schema({ timestamps: true })
+@Schema({ timestamps: true, virtuals: true })
 export class PaymentMethod extends Document {
   @Prop({
     type: String,
@@ -21,6 +21,30 @@ export class PaymentMethod extends Document {
   })
   mandateId: string;
 
+  @Prop({
+    type: String,
+    example: '1234',
+  })
+  last4Digit: string;
+
+  @Prop({
+    type: String,
+    example: 'Visa',
+  })
+  brand: string;
+
+  @Prop({
+    type: String,
+    example: '12',
+  })
+  expiryMonth: string;
+
+  @Prop({
+    type: String,
+    example: '2025',
+  })
+  expiryYear: string;
+
   @Prop({ type: Date })
   createdAt: Date;
 
@@ -32,3 +56,6 @@ export class PaymentMethod extends Document {
 }
 
 export const PaymentMethodSchema = SchemaFactory.createForClass(PaymentMethod);
+
+PaymentMethodSchema.set('toJSON', { virtuals: true });
+PaymentMethodSchema.set('toObject', { virtuals: true });

@@ -20,11 +20,11 @@ export class PaymentItem {
     example: 'listing',
     required: true,
   })
-  type: "listing" | "ranked" | "featured";
+  type: 'listing' | 'ranked' | 'featured';
 
   @ApiProperty({
     example: 30000,
-    description: "30000 = $300.00 // price is always in cents",
+    description: '30000 = $300.00 // price is always in cents',
     required: true,
   })
   price: number;
@@ -50,11 +50,34 @@ export class CreatePaymentDto {
 
 export const createPaymentDtoSchema = Joi.object({
   residenceId: Joi.string().custom(joiObjectIdValidator('residenceId')).required(),
-  paymentItems: Joi.array().items(Joi.object({
-    name: Joi.string().required(),
-    description: Joi.string().required(),
-    type: Joi.string().valid('ranked', 'featured', 'listing').required(),
-    price: Joi.number().required(), 
-    quantity: Joi.number().required(),
-  })).required(),
+  paymentItems: Joi.array()
+    .items(
+      Joi.object({
+        name: Joi.string().required(),
+        description: Joi.string().required(),
+        type: Joi.string().valid('ranked', 'featured', 'listing').required(),
+        price: Joi.number().required(),
+        quantity: Joi.number().required(),
+      })
+    )
+    .required(),
+});
+
+export class CreatePaymentMethodDto {
+  @ApiProperty({
+    example: 'tok_1Qe91lD7a34iLGE0twqRjLen',
+    required: true,
+  })
+  pmTokenId: string;
+
+  @ApiProperty({
+    example: 'buyer_123',
+    required: true,
+  })
+  developerId: string;
+}
+
+export const createPaymentMethodDtoSchema = Joi.object({
+  pmTokenId: Joi.string().required(),
+  developerId: Joi.string().required(),
 });

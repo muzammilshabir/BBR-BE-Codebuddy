@@ -20,7 +20,8 @@ type Template =
   | 'specific-words-review'
   | 'hundred-five-star-reviews'
   | 'job-application'
-  | 'invoice';
+  | 'invoice'
+  | 'send-invoice';
 
 export class SendEmailEvent {
   static event = 'send-email';
