@@ -48,11 +48,9 @@ import { RefundRequest } from './schema/refund-request.schema';
 import { CreateRefundRequestDto } from './dto/create-refund-request.dto';
 import { InvoiceSchedule } from 'src/invoice-schedule/invoiceSchedule.schema';
 import { Residence } from 'src/residences/schema/residences.schema';
-import {
-  InvoiceScheduleStatus,
-  PaymentMethodType,
-} from 'src/invoice-schedule/invoiceSchedule.enum';
+import { PaymentMethodType } from 'src/invoice-schedule/invoiceSchedule.enum';
 import * as dayjs from 'dayjs';
+import { ListResidencePaymentsDto } from './dto/list-residence-payments.dto';
 
 @Injectable()
 export class PaymentService {
@@ -1670,30 +1668,133 @@ export class PaymentService {
     return refundRequest;
   }
 
-  async getResidencePayments(userId: string) {
-    const residences = await this.residenceModel
-      .find({ developerId: new Types.ObjectId(userId) })
-      .populate({
-        path: 'activeInvoiceSchedule',
-        match: { status: InvoiceScheduleStatus.ACTIVE },
-        populate: [
-          {
-            path: 'currentInvoice',
-            populate: {
-              path: 'paymentMethod',
+  async getResidencePayments(userId: string, query: ListResidencePaymentsDto) {
+    const { sortBy, sortOrder } = query;
+
+    const residences = await this.residenceModel.aggregate([
+      {
+        $match: {
+          developerId: new Types.ObjectId(userId),
+        },
+      },
+      {
+        $lookup: {
+          from: 'invoiceschedules',
+          localField: '_id',
+          foreignField: 'residenceId',
+          as: 'activeInvoiceSchedule',
+          pipeline: [
+            {
+              $match: {
+                status: 'active',
+              },
             },
-          },
-          {
-            path: 'plan',
-          },
-          {
-            path: 'currentPaymentMethod',
-          },
-          {
-            path: 'paymentMethod',
-          },
-        ],
-      });
+            {
+              $lookup: {
+                from: 'invoices',
+                localField: '_id',
+                foreignField: 'invoiceScheduleId',
+                as: 'currentInvoice',
+                pipeline: [
+                  {
+                    $lookup: {
+                      from: 'paymentmethods',
+                      localField: 'paymentMethodId',
+                      foreignField: '_id',
+                      as: 'paymentMethod',
+                    },
+                  },
+                  {
+                    $unwind: {
+                      path: '$paymentMethod',
+                      preserveNullAndEmptyArrays: true,
+                    },
+                  },
+                ],
+              },
+            },
+            {
+              $unwind: {
+                path: '$currentInvoice',
+                preserveNullAndEmptyArrays: true,
+              },
+            },
+            {
+              $lookup: {
+                from: 'plans',
+                localField: 'planId',
+                foreignField: '_id',
+                as: 'plan',
+              },
+            },
+            {
+              $unwind: {
+                path: '$plan',
+                preserveNullAndEmptyArrays: true,
+              },
+            },
+            {
+              $lookup: {
+                from: 'paymentmethods',
+                localField: 'currentPaymentMethodId',
+                foreignField: '_id',
+                as: 'currentPaymentMethod',
+              },
+            },
+            {
+              $unwind: {
+                path: '$currentPaymentMethod',
+                preserveNullAndEmptyArrays: true,
+              },
+            },
+            {
+              $lookup: {
+                from: 'paymentmethods',
+                localField: 'paymentMethodId',
+                foreignField: '_id',
+                as: 'paymentMethod',
+              },
+            },
+            {
+              $unwind: {
+                path: '$paymentMethod',
+                preserveNullAndEmptyArrays: true,
+              },
+            },
+          ],
+        },
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'developerId',
+          foreignField: '_id',
+          as: 'developer',
+        },
+      },
+      {
+        $unwind: {
+          path: '$developer',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $unwind: {
+          path: '$activeInvoiceSchedule',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $sort: {
+          [sortBy]: sortOrder === 'asc' ? 1 : -1,
+        },
+      },
+      {
+        $project: {
+          'developer.password': 0,
+        },
+      },
+    ]);
     return residences;
   }
 
