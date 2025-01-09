@@ -357,7 +357,7 @@ export class RankingCategoryService {
     updateRankingCategoryDto: UpdateRankingCategoryDto
   ): Promise<RankingCategory> {
     const rankingCategory = await this.findRankingCategoryById(rankingCategoryId);
-    if (rankingCategory.createdById._id.toString() !== user.sub) {
+    if (rankingCategory?.createdById?._id?.toString() !== user?.sub) {
       throw new ForbiddenException('You do not have permission to update this RankingCategory');
     }
 
