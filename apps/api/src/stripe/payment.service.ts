@@ -52,6 +52,7 @@ import {
   InvoiceScheduleStatus,
   PaymentMethodType,
 } from 'src/invoice-schedule/invoiceSchedule.enum';
+import * as dayjs from 'dayjs';
 
 @Injectable()
 export class PaymentService {
@@ -1640,6 +1641,9 @@ export class PaymentService {
       .populate([
         {
           path: 'invoice',
+          populate: {
+            path: 'invoiceSchedule',
+          },
         },
         {
           path: 'residence',
@@ -1804,5 +1808,20 @@ export class PaymentService {
     await invoice.deleteOne();
 
     return invoice;
+  }
+
+  async sendInvoiceReminder(invoiceSchedule: InvoiceSchedule) {
+    this.eventEmitter.emit(
+      SendEmailEvent.event,
+      new SendEmailEvent({
+        context: {
+          email: invoiceSchedule.buyerEmail,
+          nextBillingDate: dayjs(invoiceSchedule.nextReminderDate).format('MMM DD, YYYY'),
+        },
+        template: 'send-invoice',
+        subject: `Payment Reminder`,
+        toEmail: invoiceSchedule.buyerEmail,
+      })
+    );
   }
 }

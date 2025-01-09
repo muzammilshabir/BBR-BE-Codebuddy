@@ -86,6 +86,9 @@ export class InvoiceSchedule extends Document {
   @Prop({ type: Date })
   nextInvoiceIssueDate: Date;
 
+  @Prop({ type: Date })
+  nextReminderDate: Date;
+
   @Prop({ type: Types.ObjectId, ref: 'Invoice' })
   currentInvoiceId: Types.ObjectId;
 

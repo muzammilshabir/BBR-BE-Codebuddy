@@ -72,59 +72,81 @@ export class InvoiceScheduleService {
     });
 
     for (const invoiceSchedule of invoiceSchedules) {
-      const activeInvoices = await this.invoiceModel.find({
-        invoiceScheduleId: invoiceSchedule._id,
-        status: InvoiceStatus.ACTIVE,
-      });
-
-      for (const inv of activeInvoices) {
-        const invoice = await this.invoiceModel.findByIdAndUpdate(
-          inv.id,
-          {
-            status: InvoiceStatus.PENDING,
-          },
-          { new: true }
-        );
-        await this.invoiceService.finalizeInvoice(invoice.id);
-        await this.invoiceModel.findByIdAndUpdate(invoice.id, {
-          nextAutoPaymentAttemptAt: startOfDayPST.toDate(),
+      try {
+        const activeInvoices = await this.invoiceModel.find({
+          invoiceScheduleId: invoiceSchedule._id,
+          status: InvoiceStatus.ACTIVE,
         });
 
-        const nextInvoiceIssueDate = this.calculateNextInvoiceIssueDate(
-          invoiceSchedule.issueDate,
-          invoiceSchedule.renewalFrequency,
-          invoiceSchedule.reminderDays
-        );
-        await this.invoiceScheduleModel.findByIdAndUpdate(invoiceSchedule._id, {
-          nextInvoiceIssueDate: nextInvoiceIssueDate,
-        });
+        for (const inv of activeInvoices) {
+          const invoice = await this.invoiceModel.findByIdAndUpdate(
+            inv.id,
+            {
+              status: InvoiceStatus.PENDING,
+            },
+            { new: true }
+          );
+          await this.invoiceService.finalizeInvoice(invoice.id);
+          await this.invoiceModel.findByIdAndUpdate(invoice.id, {
+            nextAutoPaymentAttemptAt: startOfDayPST.toDate(),
+          });
+
+          const nextInvoiceIssueDate = this.calculateNextInvoiceIssueDate(
+            invoiceSchedule.issueDate,
+            invoiceSchedule.renewalFrequency,
+            invoiceSchedule.reminderDays
+          );
+          await this.invoiceScheduleModel.findByIdAndUpdate(invoiceSchedule._id, {
+            nextInvoiceIssueDate: nextInvoiceIssueDate,
+            nextReminderDate: dayjs(nextInvoiceIssueDate)
+              .subtract(invoiceSchedule.reminderDays, 'days')
+              .toDate(),
+          });
+        }
+
+        if (!activeInvoices.length) {
+          const dueDate = dayjs(invoiceSchedule.nextInvoiceIssueDate).add(
+            invoiceSchedule.reminderDays,
+            'days'
+          );
+          const invoice = await this.invoiceService.createInvoiceFromSchedule(
+            invoiceSchedule,
+            invoiceSchedule.nextInvoiceIssueDate,
+            dueDate.toDate(),
+            invoiceSchedule.paymentMethodId.toString(),
+            InvoiceStatus.PENDING
+          );
+          await this.invoiceService.finalizeInvoice(invoice.id);
+          await this.invoiceModel.findByIdAndUpdate(invoice.id, {
+            nextAutoPaymentAttemptAt: startOfDayPST.toDate(),
+          });
+
+          const nextInvoiceIssueDate = this.calculateNextInvoiceIssueDate(
+            invoiceSchedule.issueDate,
+            invoiceSchedule.renewalFrequency,
+            invoiceSchedule.reminderDays
+          );
+          await this.invoiceScheduleModel.findByIdAndUpdate(invoiceSchedule._id, {
+            nextInvoiceIssueDate: nextInvoiceIssueDate,
+            nextReminderDate: dayjs(nextInvoiceIssueDate)
+              .subtract(invoiceSchedule.reminderDays, 'days')
+              .toDate(),
+          });
+        }
+      } catch (error) {
+        console.error(error);
       }
+    }
 
-      if (!activeInvoices.length) {
-        const dueDate = dayjs(invoiceSchedule.nextInvoiceIssueDate).add(
-          invoiceSchedule.reminderDays,
-          'days'
-        );
-        const invoice = await this.invoiceService.createInvoiceFromSchedule(
-          invoiceSchedule,
-          invoiceSchedule.nextInvoiceIssueDate,
-          dueDate.toDate(),
-          invoiceSchedule.paymentMethodId.toString(),
-          InvoiceStatus.PENDING
-        );
-        await this.invoiceService.finalizeInvoice(invoice.id);
-        await this.invoiceModel.findByIdAndUpdate(invoice.id, {
-          nextAutoPaymentAttemptAt: startOfDayPST.toDate(),
-        });
-
-        const nextInvoiceIssueDate = this.calculateNextInvoiceIssueDate(
-          invoiceSchedule.issueDate,
-          invoiceSchedule.renewalFrequency,
-          invoiceSchedule.reminderDays
-        );
-        await this.invoiceScheduleModel.findByIdAndUpdate(invoiceSchedule._id, {
-          nextInvoiceIssueDate: nextInvoiceIssueDate,
-        });
+    const invoiceSchedulesToSendReminder = await this.invoiceScheduleModel.find({
+      nextReminderDate: { $gte: startOfDayPST.toDate(), $lte: endOfDayPST.toDate() },
+    });
+    console.log(`invoiceSchedulesToSendReminder`, invoiceSchedulesToSendReminder);
+    for (const invoiceSchedule of invoiceSchedulesToSendReminder) {
+      try {
+        await this.paymentService.sendInvoiceReminder(invoiceSchedule);
+      } catch (error) {
+        console.error(error);
       }
     }
 
@@ -135,7 +157,11 @@ export class InvoiceScheduleService {
     console.log(`invoicesToAttemptPayment`, invoicesToAttemptPayment);
 
     for (const invoice of invoicesToAttemptPayment) {
-      await this.invoiceService.attemptAutoPayment(invoice);
+      try {
+        await this.invoiceService.attemptAutoPayment(invoice);
+      } catch (error) {
+        console.error(error);
+      }
     }
   }
 
@@ -389,6 +415,9 @@ export class InvoiceScheduleService {
 
       await this.invoiceScheduleModel.findByIdAndUpdate(existingActiveSchedules._id, {
         nextInvoiceIssueDate: existingActiveSchedules.issueDate,
+        nextReminderDate: dayjs(existingActiveSchedules.issueDate)
+          .subtract(existingActiveSchedules.reminderDays, 'days')
+          .toDate(),
       });
 
       return { invoiceSchedule: existingActiveSchedules, invoice };
@@ -399,6 +428,9 @@ export class InvoiceScheduleService {
           ...invoiceScheduleData,
           status: InvoiceScheduleStatus.ACTIVE,
           nextInvoiceIssueDate: invoiceScheduleData.issueDate,
+          nextReminderDate: dayjs(invoiceScheduleData.issueDate)
+            .subtract(invoiceScheduleData.reminderDays, 'days')
+            .toDate(),
         },
         { new: true }
       );
@@ -475,6 +507,9 @@ export class InvoiceScheduleService {
 
       await this.invoiceScheduleModel.findByIdAndUpdate(existingActiveSchedules._id, {
         nextInvoiceIssueDate: existingActiveSchedules.issueDate,
+        nextReminderDate: dayjs(existingActiveSchedules.issueDate)
+          .subtract(existingActiveSchedules.reminderDays, 'days')
+          .toDate(),
       });
 
       return { invoiceSchedule: existingActiveSchedules, invoice };
