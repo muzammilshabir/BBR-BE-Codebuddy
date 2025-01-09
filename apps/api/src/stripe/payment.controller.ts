@@ -63,12 +63,9 @@ export class PaymentController {
     summary: 'Get Customer Invoice',
   })
   @ApiBearerAuth()
-  @Roles(UserRole.SELLER)
-  async getCustomerInvoice(
-    @GetCurrentUserId() userId: string,
-    @Param('invoiceId') invoiceId: string
-  ) {
-    const invoices = await this.paymentService.getUserInvoice(userId, invoiceId);
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  async getCustomerInvoice(@Param('invoiceId') invoiceId: string) {
+    const invoices = await this.paymentService.getUserInvoice(invoiceId);
     return ResponseService.buildResponse({ invoices }, 'Customer Invoice retrieved successfully');
   }
 
