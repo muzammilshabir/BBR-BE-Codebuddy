@@ -10,6 +10,9 @@ export class RefundRequest extends Document {
   @Prop({ required: true, type: Types.ObjectId, ref: 'Residence' })
   residenceId: Types.ObjectId;
 
+  @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
+  developerId: Types.ObjectId;
+
   @Prop({ required: true, type: Number })
   amount: number;
 

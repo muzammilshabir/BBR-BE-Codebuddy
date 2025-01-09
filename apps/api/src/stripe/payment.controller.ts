@@ -426,7 +426,7 @@ export class PaymentController {
     summary: 'Create refund request for an invoice',
   })
   @ApiBearerAuth()
-  @Roles(UserRole.SELLER)
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
   @UsePipes(new JoiValidationPipe(createRefundRequestSchema, 'body'))
   async createRefundRequest(
     @GetCurrentUserId() userId: string,
@@ -517,7 +517,7 @@ export class PaymentController {
     summary: 'Cancel Invoice and Void Stripe Invoice',
   })
   @ApiBearerAuth()
-  @Roles(UserRole.SELLER)
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
   async cancelInvoice(@Param('id') invoiceId: string) {
     const invoice = await this.paymentService.cancelInvoice(invoiceId);
     return ResponseService.buildResponse({ invoice }, 'Invoice cancelled successfully');
@@ -529,7 +529,7 @@ export class PaymentController {
     description: 'Send email for pending or draft invoice',
   })
   @ApiBearerAuth()
-  @Roles(UserRole.SELLER)
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
   async sendInvoiceEmail(@Param('id') invoiceId: string) {
     const invoice = await this.paymentService.sendInvoiceEmailV2(invoiceId);
     return ResponseService.buildResponse({ invoice }, 'Invoice email sent successfully');
