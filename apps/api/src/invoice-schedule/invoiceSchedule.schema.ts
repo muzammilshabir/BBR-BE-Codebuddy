@@ -103,8 +103,8 @@ InvoiceScheduleSchema.set('toObject', { virtuals: true });
 
 InvoiceScheduleSchema.virtual('currentInvoice', {
   ref: 'Invoice',
-  localField: 'currentInvoiceId',
-  foreignField: '_id',
+  localField: '_id',
+  foreignField: 'invoiceScheduleId',
   justOne: true,
 });
 
