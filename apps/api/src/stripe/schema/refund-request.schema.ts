@@ -2,7 +2,15 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { RefundRequestStatus, RefundStatus } from '../enum/refund-status.enum';
 
-@Schema({ timestamps: true })
+@Schema({
+  timestamps: true,
+  toJSON: {
+    virtuals: true,
+  },
+  toObject: {
+    virtuals: true,
+  },
+})
 export class RefundRequest extends Document {
   @Prop({ required: true, type: Types.ObjectId, ref: 'Invoice' })
   invoiceId: Types.ObjectId;
@@ -55,3 +63,38 @@ export class RefundRequest extends Document {
 }
 
 export const RefundRequestSchema = SchemaFactory.createForClass(RefundRequest);
+
+RefundRequestSchema.virtual('invoice', {
+  ref: 'Invoice',
+  localField: 'invoiceId',
+  foreignField: '_id',
+  justOne: true,
+});
+
+RefundRequestSchema.virtual('residence', {
+  ref: 'Residence',
+  localField: 'residenceId',
+  foreignField: '_id',
+  justOne: true,
+});
+
+RefundRequestSchema.virtual('developer', {
+  ref: 'User',
+  localField: 'developerId',
+  foreignField: '_id',
+  justOne: true,
+});
+
+RefundRequestSchema.virtual('reason', {
+  ref: 'RefundRequestReason',
+  localField: 'reasonId',
+  foreignField: '_id',
+  justOne: true,
+});
+
+RefundRequestSchema.virtual('uploads', {
+  ref: 'Upload',
+  localField: 'uploadIds',
+  foreignField: '_id',
+  justOne: false,
+});
