@@ -14,13 +14,17 @@ import { UnitRepository } from 'src/unit/unit.repository';
 import { UserRole } from '../users/enum/user.enum';
 import { JwtPayloadType } from '../auth/type/jwt-payload.type';
 import { UpdateCalendlyDetailsDto } from './dto/update-calendly-details.dto';
+import { CustomerSupportConversationRepository } from 'src/customer-support-conversation/customer-support-conversation.repository';
+import { UserRepository } from 'src/users/user.repository';
 
 @Injectable()
 export class CustomerSupportService {
   constructor(
     private readonly customerSupportRepository: CustomerSupportRepository,
     private readonly residenceRepository: ResidenceRepository,
-    private readonly unitRepository: UnitRepository
+    private readonly unitRepository: UnitRepository,
+    private readonly customerSupportConversationRepository: CustomerSupportConversationRepository,
+    private readonly userRepository: UserRepository
   ) {}
   async getDeveloperId(createCustomerSupportDto: CreateCustomerSupportDto) {
     if (createCustomerSupportDto.developerId) {
@@ -88,7 +92,16 @@ export class CustomerSupportService {
       })),
     };
 
-    return await this.customerSupportRepository.create(transformedDto);
+    const customerSupport = await this.customerSupportRepository.create(transformedDto);
+
+    const user = await this.userRepository.find({ email: createCustomerSupportDto.email });
+    await this.customerSupportConversationRepository.create({
+      customerSupportId: customerSupport._id,
+      message: createCustomerSupportDto?.message || 'Hello',
+      userId: user?._id,
+    });
+
+    return customerSupport;
   }
 
   async createForGuest(createCustomerSupportForGuestDto: CreateCustomerSupportForGuestDto) {
