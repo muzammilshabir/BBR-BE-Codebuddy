@@ -1639,16 +1639,20 @@ export class PaymentService {
       .findById(refundRequestId)
       .populate([
         {
-          path: 'invoiceId',
+          path: 'invoice',
         },
         {
-          path: 'residenceId',
+          path: 'residence',
         },
         {
-          path: 'reasonId',
+          path: 'reason',
         },
         {
-          path: 'uploadIds',
+          path: 'uploads',
+        },
+        {
+          path: 'developer',
+          select: 'fullName',
         },
       ])
       .lean();
