@@ -14,6 +14,7 @@ import { PaymentMethod } from 'src/stripe/schema/payment-method.schema';
 import { InvoiceModule } from 'src/invoice/invoice.module';
 import { InvoiceSchema } from 'src/stripe/schema/invoice.schema';
 import { Invoice } from 'src/stripe/schema/invoice.schema';
+import { StripeModule } from 'src/stripe/stripe.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { Invoice } from 'src/stripe/schema/invoice.schema';
       { name: Invoice.name, schema: InvoiceSchema },
     ]),
     InvoiceModule,
+    StripeModule,
   ],
   providers: [InvoiceScheduleService],
   controllers: [InvoiceScheduleController],
