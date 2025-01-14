@@ -337,13 +337,10 @@ export class InvoiceScheduleService {
           { new: true }
         );
         // TODO: Delete draft invoice
-        const draftInvoices = await this.invoiceModel.find({
+        await this.invoiceModel.deleteMany({
           invoiceScheduleId: existingDraft._id,
           status: InvoiceStatus.DRAFT,
         });
-        for (const inv of draftInvoices) {
-          await this.paymentService.cancelInvoice(inv.id);
-        }
 
         // TODO: Create draft invoice
         const invoice = await this.invoiceService.createInvoiceFromSchedule(
@@ -375,12 +372,17 @@ export class InvoiceScheduleService {
       // TODO: Cancel active/draft invoices
       const invoices = await this.invoiceModel.find({
         invoiceScheduleId: existingActiveSchedules._id,
+        status: InvoiceStatus.ACTIVE,
       });
       for (const inv of invoices) {
-        if (inv.status === InvoiceStatus.ACTIVE || inv.status === InvoiceStatus.DRAFT) {
+        if (inv.status === InvoiceStatus.ACTIVE) {
           await this.paymentService.cancelInvoice(inv.id);
         }
       }
+      await this.invoiceModel.deleteMany({
+        invoiceScheduleId: existingActiveSchedules._id,
+        status: InvoiceStatus.DRAFT,
+      });
 
       // TODO: Create new active schedule
       existingActiveSchedules = await this.invoiceScheduleModel.create({
