@@ -1258,6 +1258,7 @@ export class PaymentService {
     } else {
       matchStage.status = {
         $in: [
+          InvoiceStatus.ACTIVE,
           InvoiceStatus.DRAFT,
           InvoiceStatus.PENDING,
           InvoiceStatus.PAID,
