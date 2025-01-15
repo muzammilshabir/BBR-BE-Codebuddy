@@ -26,6 +26,11 @@ import { InvoicePostPaymentActionService } from 'src/invoice/invoice-post-paymen
 import { Types } from 'mongoose';
 import { DeveloperProfileActivityLogRepository } from 'src/developer-profile-activity-log/developer-profile-activity-log.repository';
 import { DevResidenceActivityLogRepository } from 'src/dev-residence-activity-log/dev-residence-activity-log.repository';
+import { InjectModel } from '@nestjs/mongoose';
+import { RefundRequest } from './schema/refund-request.schema';
+import { Model } from 'mongoose';
+import { RefundStatus } from './enum/refund-status.enum';
+import { PaymentMethodType } from 'src/invoice-schedule/invoiceSchedule.enum';
 
 @Injectable()
 export class StripeWebhookService {
@@ -45,7 +50,9 @@ export class StripeWebhookService {
     private readonly invoicePostPaymentActionService: InvoicePostPaymentActionService,
     private readonly residenceActivityLogRepository: ResidenceActivityLogRepository,
     private readonly devResidenceActivityLogRepository: DevResidenceActivityLogRepository,
-    private readonly developerProfileActivityLogRepository: DeveloperProfileActivityLogRepository
+    private readonly developerProfileActivityLogRepository: DeveloperProfileActivityLogRepository,
+    @InjectModel(RefundRequest.name)
+    private readonly refundRequestModel: Model<RefundRequest>
   ) {
     this.stripe = new Stripe(configService.stripe.secretKey, {
       apiVersion: '2024-06-20',
@@ -92,6 +99,9 @@ export class StripeWebhookService {
           break;
         case 'invoice.paid':
           result = await this.handleInvoicePaid(event.data.object as Stripe.Invoice);
+          break;
+        case 'charge.refunded':
+          result = await this.handleChargeRefunded(event.data.object as Stripe.Charge);
           break;
         default:
           this.logger.warn(`Unhandled event type ${event.type}`);
@@ -163,12 +173,17 @@ export class StripeWebhookService {
           `No internal invoice found for payment attempt ${paymentAttempt.id}`
         );
       }
+
       await this.paymentAttemptRepository.update(paymentAttempt.id, {
         status: PaymentAttemptStatus.SUCCEEDED,
       });
       await this.invoiceRepository.update(internalInvoice.id, {
         stripeInvoiceId: stripeInvoice.id,
+        stripeChargeId:
+          typeof stripeInvoice.charge === 'string' ? stripeInvoice.charge : stripeInvoice.charge.id,
         status: InvoiceStatus.PAID,
+        pdfLink: stripeInvoice.invoice_pdf,
+        paymentMethodType: PaymentMethodType.CARD,
       });
       if (internalInvoice.residenceId) {
         const transaction: CreateTransactionDto = {
@@ -219,6 +234,24 @@ export class StripeWebhookService {
         HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
+  }
+
+  private async handleChargeRefunded(stripeCharge: Stripe.Charge) {
+    this.logger.log(`Processing charge.refunded for Stripe charge ${stripeCharge.id}`);
+    const refundRequest = await this.refundRequestModel.findOne({
+      stripeRefundId: stripeCharge.refunds.data[0].id,
+    });
+    if (!refundRequest) {
+      throw new BadRequestException(
+        `No refund request found for Stripe charge ${stripeCharge.refunds.data[0].id}`
+      );
+    }
+    await this.refundRequestModel.updateOne(
+      { _id: refundRequest.id },
+      { refundStatus: RefundStatus.REFUNDED }
+    );
+
+    return { success: true, chargeId: stripeCharge.id };
   }
 
   private async handleInvoiceFailed(stripeInvoice: Stripe.Invoice) {

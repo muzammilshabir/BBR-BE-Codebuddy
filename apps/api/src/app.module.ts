@@ -79,6 +79,7 @@ import { DevResidenceActivityLogModule } from './dev-residence-activity-log/dev-
 import { DevLeadsActivityLogModule } from './dev-leads-activity-log/dev-leads-activity-log.module';
 import { RankingActivityLogModule } from './ranking-activity-log/ranking-activity-log.module';
 import { DevRankingActivityLogModule } from './dev-ranking-activity-log/dev-ranking-activity-log.module';
+import { InvoiceScheduleModule } from './invoice-schedule/invoiceSchedule.module';
 
 @Module({
   imports: [
@@ -158,6 +159,7 @@ import { DevRankingActivityLogModule } from './dev-ranking-activity-log/dev-rank
     DevResidenceActivityLogModule,
     DevLeadsActivityLogModule,
     DevRankingActivityLogModule,
+    InvoiceScheduleModule,
   ],
   controllers: [AppController],
   providers: [

@@ -3,6 +3,7 @@ import { Document, Types } from 'mongoose';
 import { InvoiceStatus } from '../enum/invoice-status.enum';
 import { User } from 'src/users/schema/user.schema';
 import { PaymentMethod } from './payment-method.schema';
+import { PaymentMethodType } from 'src/invoice-schedule/invoiceSchedule.enum';
 
 @Schema({
   timestamps: true,
@@ -60,6 +61,13 @@ export class Invoice extends Document {
   subTotal: number;
 
   @Prop({
+    type: Number,
+    example: 500000,
+    default: 0,
+  })
+  total: number;
+
+  @Prop({
     type: String,
     example: 'Payment is required by mm/yy',
   })
@@ -78,6 +86,27 @@ export class Invoice extends Document {
     required: false,
   })
   stripeInvoiceId?: string;
+
+  @Prop({
+    type: String,
+    example: 'ch_1Pq34567890123456',
+    required: false,
+  })
+  stripeChargeId?: string;
+
+  @Prop({
+    type: String,
+    example: 'https://dashboard.stripe.com/payments/in_1Pq34567890123456',
+    required: false,
+  })
+  hostedInvoiceUrl?: string;
+
+  @Prop({
+    type: String,
+    example: 'https://dashboard.stripe.com/payments/in_1Pq34567890123456',
+    required: false,
+  })
+  pdfLink?: string;
 
   @Prop({ required: false, type: Types.ObjectId, ref: 'Subscription' })
   subscriptionId?: Types.ObjectId;
@@ -102,6 +131,45 @@ export class Invoice extends Document {
 
   @Prop({ type: Boolean, default: false })
   isDeleted: boolean;
+
+  @Prop({ type: Types.ObjectId, ref: 'InvoiceSchedule' })
+  invoiceScheduleId: Types.ObjectId;
+
+  @Prop({ type: Date, default: null })
+  lastAutoPaymentAttemptedAt: Date;
+
+  @Prop({ type: Number, default: 0 })
+  paymentFrequency: number;
+
+  @Prop({ type: Number, default: 0 })
+  maxAutoPaymentAttemptsCount: number;
+
+  @Prop({ type: Number, default: 0 })
+  autoPaymentAttemptsCount: number;
+
+  @Prop({ type: Date, default: null })
+  nextAutoPaymentAttemptAt: Date;
+
+  @Prop([
+    {
+      success: { type: Boolean, required: true },
+      timestamp: { type: Date, required: true },
+      message: { type: String, required: true },
+    },
+  ])
+  paymentAttempts: Array<{
+    success: boolean;
+    timestamp: Date;
+    message: string;
+  }>;
+
+  @Prop({
+    type: String,
+    enum: Object.values(PaymentMethodType),
+    default: PaymentMethodType.CARD,
+    required: true,
+  })
+  paymentMethodType: PaymentMethodType;
 }
 
 const InvoiceSchema = SchemaFactory.createForClass(Invoice);
@@ -109,8 +177,36 @@ const InvoiceSchema = SchemaFactory.createForClass(Invoice);
 InvoiceSchema.virtual('paymentMethod', {
   ref: 'PaymentMethod',
   localField: 'paymentMethodId',
-  foreignField: 'paymentMethodId',
+  foreignField: '_id',
   justOne: true,
+});
+
+InvoiceSchema.virtual('residence', {
+  ref: 'Residence',
+  localField: 'residenceId',
+  foreignField: '_id',
+  justOne: true,
+});
+
+InvoiceSchema.virtual('invoiceSchedule', {
+  ref: 'InvoiceSchedule',
+  localField: 'invoiceScheduleId',
+  foreignField: '_id',
+  justOne: true,
+});
+
+InvoiceSchema.virtual('developer', {
+  ref: 'User',
+  localField: 'developerId',
+  foreignField: '_id',
+  justOne: true,
+});
+
+InvoiceSchema.virtual('invoiceItems', {
+  ref: 'InvoiceItem',
+  localField: '_id',
+  foreignField: 'invoiceId',
+  justOne: false,
 });
 
 InvoiceSchema.statics.generateInvoiceNumber = async function () {
