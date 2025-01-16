@@ -15,6 +15,7 @@ import { InvoiceModule } from 'src/invoice/invoice.module';
 import { InvoiceSchema } from 'src/stripe/schema/invoice.schema';
 import { Invoice } from 'src/stripe/schema/invoice.schema';
 import { StripeModule } from 'src/stripe/stripe.module';
+import { ServiceConfig } from 'src/config';
 
 @Module({
   imports: [
@@ -30,7 +31,7 @@ import { StripeModule } from 'src/stripe/stripe.module';
     InvoiceModule,
     StripeModule,
   ],
-  providers: [InvoiceScheduleService],
+  providers: [ServiceConfig, InvoiceScheduleService],
   controllers: [InvoiceScheduleController],
 })
 export class InvoiceScheduleModule {}

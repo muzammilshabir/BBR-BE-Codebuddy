@@ -69,6 +69,7 @@ import { EditorNoteModule } from './editor-note/editor-note.module';
 import { BespokeRequestModule } from './bespokeRequests/bespokeRequests.module';
 import { StateModule } from './state/state.module';
 import { InvoiceScheduleModule } from './invoice-schedule/invoiceSchedule.module';
+import { MessageScheduleModule } from './message-schedule/message-schedule.module';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -137,6 +138,7 @@ import { InvoiceScheduleModule } from './invoice-schedule/invoiceSchedule.module
     BespokeRequestModule,
     StateModule,
     InvoiceScheduleModule,
+    MessageScheduleModule,
   ],
   controllers: [AppController],
   providers: [

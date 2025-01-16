@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
+import { SendMessageRequest } from './types/comet-chat.type';
 
 @Injectable()
 export class CometChatService {
@@ -32,7 +33,7 @@ export class CometChatService {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
           },
-        },
+        }
       );
       return response.data;
     } catch (error) {
@@ -55,7 +56,7 @@ export class CometChatService {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
           },
-        },
+        }
       );
       return response.data;
     } catch (error) {
@@ -72,17 +73,13 @@ export class CometChatService {
     metadata?: any;
   }) {
     try {
-      const response = await axios.post(
-        `${this.baseUrl}/groups`,
-        groupData,
-        {
-          headers: {
-            'apiKey': this.apiKey,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
+      const response = await axios.post(`${this.baseUrl}/groups`, groupData, {
+        headers: {
+          'apiKey': this.apiKey,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
-      );
+      });
       return response.data;
     } catch (error) {
       console.error('CometChat group creation failed:', error.response?.data || error.message);
@@ -101,7 +98,7 @@ export class CometChatService {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
           },
-        },
+        }
       );
       return response.data;
     } catch (error) {
@@ -110,22 +107,52 @@ export class CometChatService {
     }
   }
 
-  async updateGroup(groupId: string, updateData: {
-    name?: string;
-    avatar?: string;
-    metadata?: any;
-  }) {
+  async updateGroup(
+    groupId: string,
+    updateData: {
+      name?: string;
+      avatar?: string;
+      metadata?: any;
+    }
+  ) {
     try {
-      const response = await axios.put(
-        `${this.baseUrl}/groups/${groupId}`,
-        updateData,
+      const response = await axios.put(`${this.baseUrl}/groups/${groupId}`, updateData, {
+        headers: {
+          'apiKey': this.apiKey,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      });
+      return response.data;
+    } catch (error) {
+      console.error('CometChat group update failed:', error.response?.data || error.message);
+      throw error;
+    }
+  }
+
+  async sendMessage(message: SendMessageRequest) {
+    try {
+      console.log(`${this.baseUrl}/messages`);
+
+      const response = await axios.post(
+        `${this.baseUrl}/messages`,
+        {
+          category: 'message',
+          type: 'text',
+          data: {
+            text: message.message,
+          },
+          receiver: message.receiverId,
+          receiverType: message.receiverType,
+        },
         {
           headers: {
-            'apiKey': this.apiKey,
+            apiKey: this.apiKey,
             'Content-Type': 'application/json',
-            'Accept': 'application/json',
+            Accept: 'application/json',
+            onBehalfOf: message.senderId,
           },
-        },
+        }
       );
       return response.data;
     } catch (error) {
@@ -133,4 +160,4 @@ export class CometChatService {
       throw error;
     }
   }
-} 
+}

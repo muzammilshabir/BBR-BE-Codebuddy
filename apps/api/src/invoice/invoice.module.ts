@@ -47,6 +47,7 @@ import {
   InvoiceSchedule,
   InvoiceScheduleSchema,
 } from 'src/invoice-schedule/invoiceSchedule.schema';
+import { ServiceConfig } from 'src/config';
 
 @Module({
   imports: [
@@ -93,7 +94,7 @@ import {
     forwardRef(() => AuthModule),
     UserModule,
   ],
-  providers: [InvoiceService, InvoicePostPaymentActionService],
+  providers: [ServiceConfig, InvoiceService, InvoicePostPaymentActionService],
   exports: [InvoiceService, InvoicePostPaymentActionService],
 })
 export class InvoiceModule {}
