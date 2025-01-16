@@ -6,7 +6,7 @@ import { Document, Types } from 'mongoose';
 
 export class QuickReplies extends Document{
 
-    @Prop({type: Types.ObjectId ,required: true, index: true})
+    @Prop({type: Types.ObjectId ,required: true})
     userId: Types.ObjectId;
 
     @Prop({ required: true})
