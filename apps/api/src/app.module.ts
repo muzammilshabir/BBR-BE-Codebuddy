@@ -70,6 +70,7 @@ import { BespokeRequestModule } from './bespokeRequests/bespokeRequests.module';
 import { StateModule } from './state/state.module';
 import { InvoiceScheduleModule } from './invoice-schedule/invoiceSchedule.module';
 import { MessageScheduleModule } from './message-schedule/message-schedule.module';
+import { QuickRepliesModule } from './quick-replies/quick-replies.module';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -139,6 +140,7 @@ import { MessageScheduleModule } from './message-schedule/message-schedule.modul
     StateModule,
     InvoiceScheduleModule,
     MessageScheduleModule,
+    QuickRepliesModule,
   ],
   controllers: [AppController],
   providers: [
