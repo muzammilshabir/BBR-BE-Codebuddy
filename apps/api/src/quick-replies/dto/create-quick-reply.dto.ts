@@ -18,12 +18,6 @@ export class CreateQuickReplyDto {
     type: String,
   })
   message: string;
-
-  // @ApiProperty({
-  //   description: 'User ID of the creator',
-  //   example: '63c8b8f72cfa4b1d4c93f122',
-  //   required: false,
-  //   type: String,
-  // })
+  
   userId?: string;
 }
