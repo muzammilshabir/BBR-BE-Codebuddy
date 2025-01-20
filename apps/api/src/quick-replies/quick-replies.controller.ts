@@ -1,5 +1,5 @@
 import { Body, Controller, Post, Get, Patch, Param, UsePipes } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { QuickRepliesService } from './quick-replies.service';
 import { CreateQuickReplyDto, createQuickReplySchema } from './dto/create-quick-reply.dto';
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
@@ -7,6 +7,7 @@ import { ResponseService } from '@bbr/api-core/modules/response/response.service
 import { GetCurrentUserId } from '../auth/decorators/getCurrentUserId.decorator';
 
 @ApiTags('Quick Replies')
+@ApiBearerAuth()
 @Controller('quick-replies')
 export class QuickRepliesController {
   constructor(private readonly quickRepliesService: QuickRepliesService) {}
