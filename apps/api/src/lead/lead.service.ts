@@ -15,6 +15,7 @@ import { JwtPayloadType } from '../auth/type/jwt-payload.type';
 import { CometChatService } from '../users/comet-chat.service';
 import { ConfigService } from '@nestjs/config';
 import { User } from 'src/users/schema/user.schema';
+import { Residence } from 'src/residences/schema/residences.schema';
 import { UploadRepository } from 'src/upload/upload.repository';
 import { InjectModel } from '@nestjs/mongoose';
 
@@ -24,6 +25,7 @@ export class LeadService {
 
   constructor(
     @InjectModel(User.name) private readonly userModel: Model<User>,
+    @InjectModel(Residence.name) private readonly residenceModel: Model<Residence>,
     private readonly leadRepository: LeadRepository,
     private readonly residenceRepository: ResidenceRepository,
     private readonly unitRepository: UnitRepository,
@@ -155,13 +157,55 @@ export class LeadService {
 
     const lead = await this.leadRepository.create(transformedDto);
 
-    const user = await this.userModel.findOne({ email: lead.email });
-    if (user) {
-      const residence = lead.residenceId ? 
-        await this.residenceRepository.findById(lead.residenceId.toString()) : 
-        null;
+    const findDetail = await this.userModel.findOne({ email: transformedDto.email, role: "BUYER" });
 
-      await this.createCometChatLeadGroup(lead, user, residence);
+    if(findDetail){
+
+      // Create group data
+      const groupData: any = {
+        guid: lead.id.toString() + "-leadUser-Admin",
+        name: transformedDto.name,
+        type: 'private',
+      };
+
+      // Create the group
+      await this.cometChatService.createGroup(groupData);
+
+      // Add participants
+      const participants = [this.customerSupportUserId, findDetail._id.toString()];
+
+      // Add participants to group
+      await this.cometChatService.addMembersToGroup(lead.id.toString() + "-leadUser-Admin", participants);
+
+
+      // Create Group If Residence Id Present
+
+      if(transformedDto.residenceId){
+
+        const findResidence = await this.residenceModel.findById({_id: transformedDto.residenceId});
+  
+        if(findResidence){
+  
+        // Create group data
+        const groupData: any = {
+          guid: lead.id.toString() + "-leadUser-Developer",
+          name: lead.name,
+          type: 'private',
+        };
+
+        // Create the group
+        await this.cometChatService.createGroup(groupData);
+  
+        // Add participants
+        const participants = [findResidence.developerId.toString(), findDetail._id.toString()];
+  
+        // Add participants to group
+        await this.cometChatService.addMembersToGroup(lead.id.toString() + "-leadUser-Admin", participants);
+  
+        }
+  
+      }
+
     }
 
     return lead;
