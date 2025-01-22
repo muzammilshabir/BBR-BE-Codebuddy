@@ -50,7 +50,7 @@ export class RankingRequestService {
     private readonly devResidenceActivityLogRepository: DevResidenceActivityLogRepository,
     private readonly developerProfileActivityLogRepository: DeveloperProfileActivityLogRepository,
     private readonly rankingActivityLogRepository: RankingActivityLogRepository,
-    private readonly devRankingActivityLogRepository: DevRankingActivityLogRepository,
+    private readonly devRankingActivityLogRepository: DevRankingActivityLogRepository
   ) {}
 
   async findAll(listRankingRequestDto: ListRankingRequestDto) {
@@ -198,7 +198,7 @@ export class RankingRequestService {
 
     if (isRankingRequestExist) {
       throw new BadRequestException(
-        `Ranking category with rankingCategoryId:${createRankingRequestDto.rankingCategoryId} and
+        `Ranking request with rankingCategoryId:${createRankingRequestDto.rankingCategoryId} and
          residenceId:${createRankingRequestDto.residenceId} is already exist`
       );
     }
@@ -398,7 +398,13 @@ export class RankingRequestService {
         plainUpdatedDrafRequest.residenceId
       );
 
+      const previousRankingRequest = await this.rankingRequestRepository.find({
+        rankingCategoryId: new Types.ObjectId(residence?.highestRankingCategoryId),
+        residenceId: new Types.ObjectId(plainUpdatedDrafRequest.residenceId),
+      });
+
       if (
+        previousRankingRequest?.isDeleted ||
         !residence?.highestBbrScore ||
         residence.highestBbrScore < plainUpdatedDrafRequest.bbrScore
       ) {
@@ -1021,6 +1027,7 @@ export class RankingRequestService {
       updatedRankingRequest.residenceId._id.toString()
     );
     if (
+      !residence.highestRankingCategoryId ||
       residence.highestRankingCategoryId.toString() ===
         rankingRequest.rankingCategoryId.toString() ||
       residence.highestBbrScore < newBbrSCore

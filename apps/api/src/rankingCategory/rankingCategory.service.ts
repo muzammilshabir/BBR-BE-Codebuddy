@@ -154,7 +154,11 @@ export class RankingCategoryService {
       },
       {
         path: 'cityId',
-        select: 'name state',
+        select: 'name state upload',
+        populate: {
+          path: 'upload.ImageId',
+          select: 'originalFileKey fileKey url mimeType',
+        },
         model: 'City',
       },
       {
@@ -170,11 +174,19 @@ export class RankingCategoryService {
       {
         path: 'geoGraphyId',
         select: 'type upload name',
+        populate: {
+          path: 'upload.ImageId',
+          select: 'originalFileKey fileKey url mimeType',
+        },
         model: 'GeographicalAreas',
       },
       {
         path: 'lifeStyleId',
-        select: 'name category',
+        select: 'name category upload',
+        populate: {
+          path: 'upload.ImageId',
+          select: 'originalFileKey fileKey url mimeType',
+        },
         model: 'LifeStyle',
       },
       {

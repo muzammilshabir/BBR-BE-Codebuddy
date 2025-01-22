@@ -31,6 +31,7 @@ import { BrandDraftRepository } from '../brandDraft/brandDraft.repository';
 import { RankingCategoryDraftRepository } from '../rankingCategoryDraft/rankingCategoryDraft.repository';
 import { ResidenceDraftRepository } from '../residencesDraft/residencesDraft.repository';
 import { RankingRequestDraftRepository } from '../rankingRequestDraft/rankingRequestDraft.repository';
+import { RankingRequest } from 'src/rankingRequest/schema/rankingRequest.schema';
 
 interface Residence {
   residence_id: string;
@@ -456,7 +457,7 @@ export class ResidenceSeederService {
               'geographical_area_id',
             ];
             //Todo: check this logic
-            const foundIdField = idFields.find((field) => rankingCategoryTyped[field] != null);
+            const foundIdField = idFields.find((field) => Boolean(rankingCategoryTyped[field]));
 
             if (!foundIdField) {
               throw new Error(
@@ -653,16 +654,21 @@ export class ResidenceSeederService {
                   rankingCategoryId: scoreDoc.rankingCategoryId,
                   residenceId: scoreDoc.residenceId,
                 });
+                const residence = await this.residenceRepository.findById(scoreDoc.residenceId);
+                let rankingRequest: RankingRequest;
 
                 if (existingRequest) {
                   const plainResidencExistingRequest = existingRequest.toJSON();
                   delete plainResidencExistingRequest._id;
-                  await this.rankingRequestRepository.update(existingRequest._id.toString(), {
-                    ...plainResidencExistingRequest,
-                    criteriaScores: scoreDoc.criteriaScores,
-                    bbrScore: scoreDoc.bbrScore,
-                    updatedAt: new Date(),
-                  });
+                  rankingRequest = await this.rankingRequestRepository.update(
+                    existingRequest._id.toString(),
+                    {
+                      ...plainResidencExistingRequest,
+                      criteriaScores: scoreDoc.criteriaScores,
+                      bbrScore: scoreDoc.bbrScore,
+                      updatedAt: new Date(),
+                    }
+                  );
 
                   const rankingRequestDraft = await this.rankingRequestDraftRepository.findLatest({
                     rankingRequestId: existingRequest._id,
@@ -685,10 +691,20 @@ export class ResidenceSeederService {
                     );
                   }
                 } else {
-                  await this.rankingRequestRepository.create(scoreDoc);
+                  rankingRequest = await this.rankingRequestRepository.create(scoreDoc);
                   await this.rankingRequestDraftRepository.create({
                     ...scoreDoc,
                     rankingRequestId: new Types.ObjectId(scoreDoc.id),
+                  });
+                }
+
+                if (
+                  !residence?.highestBbrScore ||
+                  residence.highestBbrScore < rankingRequest.bbrScore
+                ) {
+                  await this.residenceRepository.update(residence.id, {
+                    highestBbrScore: rankingRequest.bbrScore,
+                    highestRankingCategoryId: new Types.ObjectId(rankingRequest.rankingCategoryId),
                   });
                 }
               }
