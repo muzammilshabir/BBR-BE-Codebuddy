@@ -1,6 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
 import * as Joi from 'joi';
-import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
 import { CometChatReceiverType } from 'src/users/types/comet-chat.type';
 
 export class ToggleConversationDto {
@@ -32,5 +31,5 @@ export const toggleConversationDtoSchema = Joi.object({
     .valid(...Object.values(CometChatReceiverType))
     .required(),
   id: Joi.string().required(),
-  onBehalfOfUserId: Joi.string().custom(joiObjectIdValidator('onBehalfOfUserId')).required(),
+  onBehalfOfUserId: Joi.string().required(),
 });
