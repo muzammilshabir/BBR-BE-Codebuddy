@@ -1008,6 +1008,12 @@ export class ResidenceService {
       );
     }
 
+    if (filtersDto.residenceTypeIds && filtersDto.residenceTypeIds.length > 0) {
+      matchStage.residenceTypeIds = {
+        $in: filtersDto.residenceTypeIds.map((id) => new Types.ObjectId(id)),
+      };
+    }
+
     pipeline.push({ $match: matchStage });
 
     // Add lookups and projections as needed

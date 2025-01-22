@@ -64,7 +64,7 @@ export class ListResidenceDto extends ListPropsDto {
 export const listResidenceSchema = PaginationSchema.append({
   locationId: Joi.string().custom(joiObjectIdValidator('locationId')).optional(),
   developerId: Joi.string().custom(joiObjectIdValidator('developerId')).optional(),
-  search:Joi.string().optional(),
+  search: Joi.string().optional(),
   status: Joi.string()
     .valid(...Object.values(ResidenceStatus))
     .required(),
@@ -110,7 +110,7 @@ export class ListResidenceByFiltersDto {
     type: [String],
   })
   countryId?: string;
-  
+
   @ApiProperty({
     description: 'Filter by state IDs',
     example: ['60b6c0f53b5a5c1f88d25a1b'],
@@ -223,7 +223,6 @@ export class ListResidenceByFiltersDto {
   })
   yearOfBuild?: number[];
 
-
   @ApiProperty({
     description: 'Filter by price ranges',
     example: [{ startRange: 100000, endRange: 500000 }],
@@ -239,14 +238,24 @@ export class ListResidenceByFiltersDto {
     type: [Object],
   })
   roomCountRange?: { minRooms: number; maxRooms: number }[];
+
+  @ApiProperty({
+    description: 'Filter by Residence Type IDs',
+    example: ['60b6c0f53b5a5c1f88d25a1b'],
+    required: false,
+    type: [String],
+  })
+  residenceTypeIds?: string[];
 }
 
 export const listResidenceByFiltersSchema = Joi.object({
   roomCountRange: Joi.array()
-    .items(Joi.object({
-      minRooms: Joi.number().required(),
-      maxRooms: Joi.number().required()
-    }))
+    .items(
+      Joi.object({
+        minRooms: Joi.number().required(),
+        maxRooms: Joi.number().required(),
+      })
+    )
     .optional(),
   cities: Joi.array()
     .items(Joi.string().custom(joiObjectIdValidator('cities')))
@@ -279,30 +288,25 @@ export const listResidenceByFiltersSchema = Joi.object({
   featureIds: Joi.array()
     .items(Joi.string().custom(joiObjectIdValidator('featureIds')))
     .optional(),
-  developmentStatus: Joi.array()
-    .items(Joi.string())
-    .optional(),
-  rentalPotential: Joi.array()
-    .items(Joi.string())
-    .optional(),
-  petPolicy: Joi.array()
-    .items(Joi.string())
-    .optional(),
-  floorAreaSqFt: Joi.array()
-    .items(Joi.number())
-    .optional(),
+  developmentStatus: Joi.array().items(Joi.string()).optional(),
+  rentalPotential: Joi.array().items(Joi.string()).optional(),
+  petPolicy: Joi.array().items(Joi.string()).optional(),
+  floorAreaSqFt: Joi.array().items(Joi.number()).optional(),
   amenitiesList: Joi.array()
     .items(Joi.string().custom(joiObjectIdValidator('amenitiesList')))
     .optional(),
-  yearOfBuild: Joi.array()
-    .items(Joi.number())
+  yearOfBuild: Joi.array().items(Joi.number()).optional(),
+  priceRange: Joi.array()
+    .items(
+      Joi.object({
+        startRange: Joi.number().min(0).required(),
+        endRange: Joi.number().min(0).greater(Joi.ref('startRange')).required(),
+      })
+    )
     .optional(),
-  priceRange: Joi.array().items(
-    Joi.object({
-      startRange: Joi.number().min(0).required(),
-      endRange: Joi.number().min(0).greater(Joi.ref('startRange')).required()
-    })
-  ).optional(),
+  residenceTypeIds: Joi.array()
+    .items(Joi.string().custom(joiObjectIdValidator('residenceTypeId')))
+    .optional(),
 });
 
 export class ListResidenceWithDraftDto extends ListPropsDto {
