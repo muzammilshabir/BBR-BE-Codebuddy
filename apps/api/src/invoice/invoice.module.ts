@@ -48,6 +48,7 @@ import {
   InvoiceScheduleSchema,
 } from 'src/invoice-schedule/invoiceSchedule.schema';
 import { ServiceConfig } from 'src/config';
+import { CometChatService } from 'src/users/comet-chat.service';
 
 @Module({
   imports: [
@@ -94,7 +95,7 @@ import { ServiceConfig } from 'src/config';
     forwardRef(() => AuthModule),
     UserModule,
   ],
-  providers: [ServiceConfig, InvoiceService, InvoicePostPaymentActionService],
+  providers: [ServiceConfig, InvoiceService, InvoicePostPaymentActionService, CometChatService],
   exports: [InvoiceService, InvoicePostPaymentActionService],
 })
 export class InvoiceModule {}

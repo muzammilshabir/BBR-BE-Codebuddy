@@ -9,3 +9,9 @@ export type SendMessageRequest = {
   message: string;
   receiverType: CometChatReceiverType;
 };
+
+export enum ConversationTag {
+  PINNED = 'pinned',
+  ARCHIVED = 'archived',
+  ACTIVE = 'active',
+}

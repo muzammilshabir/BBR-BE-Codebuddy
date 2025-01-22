@@ -18,6 +18,7 @@ import { User } from 'src/users/schema/user.schema';
 import { Residence } from 'src/residences/schema/residences.schema';
 import { UploadRepository } from 'src/upload/upload.repository';
 import { InjectModel } from '@nestjs/mongoose';
+import { CometChatReceiverType, ConversationTag } from 'src/users/types/comet-chat.type';
 
 @Injectable()
 export class LeadService {
@@ -36,47 +37,12 @@ export class LeadService {
     this.customerSupportUserId = this.configService.get<string>('COMET_CHAT_CUSTOMER_SUPPORT_ID');
   }
 
-  private async createCometChatLeadGroup(lead: Lead, buyer: User, residence?: any) {
-    try {
-      // Create group data
-      const groupData: any = {
-        guid: lead._id.toString(),
-        name: lead.name,
-        type: 'private',
-      };
-
-      if (residence) {
-        groupData.metadata = {
-          residenceId: residence._id.toString(),
-          residenceName: residence.name,
-        };
-      }
-
-      if (buyer?.avatarImage) {
-        const avatarUpload = await this.uploadRepository.findOne(buyer.avatarImage.toString());
-        groupData.avatar = avatarUpload ? avatarUpload.url : undefined;
-      }
-
-      // Create the group
-      await this.cometChatService.createGroup(groupData);
-
-      // Add participants
-      const participants = [this.customerSupportUserId, buyer._id.toString()];
-      
-      // Add developer if present
-      if (lead.developerId) {
-        participants.push(lead.developerId.toString());
-      }
-
-      // Add participants to group
-      await this.cometChatService.addMembersToGroup(lead._id.toString(), participants);
-
-    } catch (error) {
-      console.error('Failed to create CometChat lead group:', error);
-    }
-  }
-
-  private async updateCometChatLeadGroup(leadId: string, updateData: any, buyer: User, residence?: any) {
+  private async updateCometChatLeadGroup(
+    leadId: string,
+    updateData: any,
+    buyer: User,
+    residence?: any
+  ) {
     try {
       const groupData: any = {};
 
@@ -99,7 +65,6 @@ export class LeadService {
       if (Object.keys(groupData).length > 0) {
         await this.cometChatService.updateGroup(leadId, groupData);
       }
-
     } catch (error) {
       console.error('Failed to update CometChat lead group:', error);
     }
@@ -157,10 +122,9 @@ export class LeadService {
 
     const lead = await this.leadRepository.create(transformedDto);
 
-    const leadUser = await this.userModel.findOne({ email: transformedDto.email, role: "BUYER" });
+    const leadUser = await this.userModel.findOne({ email: transformedDto.email, role: 'BUYER' });
 
-    if(leadUser){
-
+    if (leadUser) {
       // Create group data
 
       const groupName = `${lead.id.toString()}-leadUser-Admin`;
@@ -172,45 +136,63 @@ export class LeadService {
       };
 
       // Create the group
-      await this.cometChatService.createGroup(groupData);
+      const cGroup1 = await this.cometChatService.createGroup(groupData);
+      console.log(JSON.stringify(cGroup1, null, 2));
 
       // Add participants
       const participants = [this.customerSupportUserId, leadUser._id.toString()];
+      console.log(JSON.stringify(participants, null, 2));
 
       // Add participants to group
       await this.cometChatService.addMembersToGroup(groupName, participants);
 
+      await Promise.all(
+        participants.map((participant) =>
+          this.cometChatService.updateConversationTags(
+            CometChatReceiverType.GROUP,
+            cGroup1.data.guid,
+            participant,
+            [ConversationTag.ACTIVE]
+          )
+        )
+      );
 
       // Create Group If Residence Id Present
 
-      if(transformedDto.residenceId){
+      if (transformedDto.residenceId) {
+        const residence = await this.residenceModel.findById({ _id: transformedDto.residenceId });
 
-        const residence = await this.residenceModel.findById({_id: transformedDto.residenceId});
-  
-        if(residence){
+        if (residence) {
+          const groupName2 = `${lead.id.toString()}-leadUser-Developer`;
 
-        const groupName2 = `${lead.id.toString()}-leadUser-Developer`;
-  
-        // Create group data
-        const groupData: any = {
-          guid: groupName2,
-          name: lead.name,
-          type: 'private',
-        };
+          // Create group data
+          const groupData: any = {
+            guid: groupName2,
+            name: lead.name,
+            type: 'private',
+          };
 
-        // Create the group
-        await this.cometChatService.createGroup(groupData);
-  
-        // Add participants
-        const participants = [residence.developerId.toString(), leadUser._id.toString()];
-  
-        // Add participants to group
-        await this.cometChatService.addMembersToGroup(groupName2, participants);
-  
+          // Create the group
+          const cGroup2 = await this.cometChatService.createGroup(groupData);
+
+          // Add participants
+          const participants = [residence.developerId.toString(), leadUser._id.toString()];
+
+          // Add participants to group
+          await this.cometChatService.addMembersToGroup(groupName2, participants);
+
+          await Promise.all(
+            participants.map((participant) =>
+              this.cometChatService.updateConversationTags(
+                CometChatReceiverType.GROUP,
+                cGroup2.data.guid,
+                participant,
+                [ConversationTag.ACTIVE]
+              )
+            )
+          );
         }
-  
       }
-
     }
 
     return lead;
@@ -270,9 +252,9 @@ export class LeadService {
     // If lead has associated user, update CometChat group
     const user = await this.userModel.findOne({ email: lead.email });
     if (user) {
-      const residence = lead.residenceId ? 
-        await this.residenceRepository.findById(lead.residenceId.toString()) : 
-        null;
+      const residence = lead.residenceId
+        ? await this.residenceRepository.findById(lead.residenceId.toString())
+        : null;
       await this.updateCometChatLeadGroup(leadId, updateLeadDto, user, residence);
     }
 

@@ -71,6 +71,7 @@ import { StateModule } from './state/state.module';
 import { InvoiceScheduleModule } from './invoice-schedule/invoiceSchedule.module';
 import { MessageScheduleModule } from './message-schedule/message-schedule.module';
 import { QuickRepliesModule } from './quick-replies/quick-replies.module';
+import { ConversationsModule } from './conversations/conversations.module';
 @Module({
   imports: [
     BbrConfigModule.forRoot({
@@ -141,6 +142,7 @@ import { QuickRepliesModule } from './quick-replies/quick-replies.module';
     InvoiceScheduleModule,
     MessageScheduleModule,
     QuickRepliesModule,
+    ConversationsModule,
   ],
   controllers: [AppController],
   providers: [

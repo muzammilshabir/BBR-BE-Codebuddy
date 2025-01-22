@@ -32,6 +32,7 @@ import { BbrVerification } from 'src/bbr-verification/schema/bbr-verification.sc
 import { CustomerSupportService } from 'src/customer-support/customer-support.service';
 import { BespokeRequest } from '../bespokeRequests/schema/bespokeRequests.schema';
 import { VerificationType } from 'src/bbr-verification/enum/verification-type.enum';
+import { CometChatService } from 'src/users/comet-chat.service';
 
 @Injectable()
 export class InvoicePostPaymentActionService {
@@ -64,7 +65,8 @@ export class InvoicePostPaymentActionService {
     private bespokeRequestModel: Model<BespokeRequest>,
     private authService: AuthService,
     private userService: UserService,
-    private readonly customerSupportService: CustomerSupportService
+    private readonly customerSupportService: CustomerSupportService,
+    private readonly cometChatService: CometChatService
   ) {}
 
   async create(
@@ -110,6 +112,15 @@ export class InvoicePostPaymentActionService {
           role: UserRole.SELLER,
           stripeCustomerId: userDetails.stripeCustomerId,
         });
+
+        try {
+          await this.cometChatService.createUser(user._id.toString(), user.fullName, 'seller');
+          user.cometChatIntegrated = true;
+          await user.save();
+        } catch (error) {
+          console.error('Failed to create CometChat user:', error);
+        }
+
         user = await this.userService.assignVerificationToken(userDetails.email);
         this.authService.sendVerificationEmail(user.email, user.verificationToken, user.role);
 
@@ -225,7 +236,8 @@ export class InvoicePostPaymentActionService {
           planId: bbrVerificationRequestDetails.bbrVerificationPlantId,
           residenceId: bbrVerificationRequestDetails.residenceId,
           paymentStatus: PaymentStatus.PAID,
-          verificationType: bbrVerificationRequestDetails.verificationType?? VerificationType.E_VERIFICATION,
+          verificationType:
+            bbrVerificationRequestDetails.verificationType ?? VerificationType.E_VERIFICATION,
         };
 
         const bbrVerificationRequest = await this.bbrVerificationModel.create(bodyData);
