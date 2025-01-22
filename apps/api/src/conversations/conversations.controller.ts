@@ -1,0 +1,31 @@
+import { Controller, Post, Body, UsePipes } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
+import { ResponseService } from '@bbr/api-core/modules/response/response.service';
+import { ConversationsService } from './conversations.service';
+import { ToggleConversationDto } from './dto/toggle-conversation.dto';
+import { toggleConversationDtoSchema } from './dto/toggle-conversation.dto';
+
+@ApiTags('Conversations')
+@Controller('conversations')
+export class ConversationsController {
+  constructor(private readonly conversationsService: ConversationsService) {}
+
+  @Post('toggle-pin')
+  @ApiOperation({ summary: 'Toggle pin status of a conversation' })
+  @ApiBearerAuth()
+  @UsePipes(new JoiValidationPipe(toggleConversationDtoSchema, 'body'))
+  async togglePinConversation(@Body() dto: ToggleConversationDto) {
+    const result = await this.conversationsService.togglePinConversation(dto);
+    return ResponseService.buildResponse({ result }, 'Successfully toggled pin status');
+  }
+
+  @Post('toggle-archive')
+  @ApiOperation({ summary: 'Toggle archive status of a conversation' })
+  @ApiBearerAuth()
+  @UsePipes(new JoiValidationPipe(toggleConversationDtoSchema, 'body'))
+  async toggleArchiveConversation(@Body() dto: ToggleConversationDto) {
+    const result = await this.conversationsService.toggleArchiveConversation(dto);
+    return ResponseService.buildResponse({ result }, 'Successfully toggled archive status');
+  }
+}

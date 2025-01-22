@@ -1,7 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
-import { SendMessageRequest } from './types/comet-chat.type';
+import {
+  CometChatReceiverType,
+  ConversationTag,
+  SendMessageRequest,
+} from './types/comet-chat.type';
 
 @Injectable()
 export class CometChatService {
@@ -68,7 +72,7 @@ export class CometChatService {
   async createGroup(groupData: {
     guid: string;
     name: string;
-    type: string;
+    type: CometChatReceiverType;
     avatar?: string;
     metadata?: any;
   }) {
@@ -159,5 +163,47 @@ export class CometChatService {
       console.error('CometChat group update failed:', error.response?.data || error.message);
       throw error;
     }
+  }
+
+  async getConversation(type: CometChatReceiverType, id: string, onBehalfOfUserId: string) {
+    const url =
+      type === CometChatReceiverType.USER
+        ? `${this.baseUrl}/users/${id}/conversation`
+        : `${this.baseUrl}/groups/${id}/conversation`;
+
+    const response = await axios.get(url, {
+      headers: {
+        apiKey: this.apiKey,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        onBehalfOf: onBehalfOfUserId,
+      },
+    });
+    return response.data;
+  }
+
+  async updateConversationTags(
+    type: CometChatReceiverType,
+    id: string,
+    onBehalfOfUserId: string,
+    tags: ConversationTag[]
+  ) {
+    const url =
+      type === CometChatReceiverType.USER
+        ? `${this.baseUrl}/users/${id}/conversation`
+        : `${this.baseUrl}/groups/${id}/conversation`;
+
+    await axios.put(
+      url,
+      { tags },
+      {
+        headers: {
+          apiKey: this.apiKey,
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          onBehalfOf: onBehalfOfUserId,
+        },
+      }
+    );
   }
 }
