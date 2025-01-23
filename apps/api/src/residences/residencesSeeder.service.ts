@@ -212,6 +212,7 @@ export class ResidenceSeederService {
             if (!countryDoc) {
               const countryData: any = {
                 name: country.name,
+                countryCode: country.country_code,
                 active: true,
                 isDeleted: false,
               };
@@ -720,6 +721,7 @@ export class ResidenceSeederService {
       }
 
       console.log('File processing completed:', file.originalname);
+      console.log('Errors:', errors);
 
       return {
         success: true,
