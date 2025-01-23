@@ -7,6 +7,7 @@ import { ToggleConversationDto } from './dto/toggle-conversation.dto';
 import { toggleConversationDtoSchema } from './dto/toggle-conversation.dto';
 import { listConversationMessagesDtoSchema } from './dto/list-conversation-messages.dto';
 import { ListConversationMessagesDto } from './dto/list-conversation-messages.dto';
+import { SendMessageDto, sendMessageDtoSchema } from './dto/send-message.dto';
 
 @ApiTags('Conversations')
 @Controller('conversations')
@@ -38,5 +39,14 @@ export class ConversationsController {
   async listConversationMessages(@Query() dto: ListConversationMessagesDto) {
     const result = await this.conversationsService.listConversationMessages(dto);
     return ResponseService.buildResponse({ result }, 'Successfully listed messages');
+  }
+
+  @Post('send-message')
+  @ApiOperation({ summary: 'Send message to a conversation' })
+  @ApiBearerAuth()
+  @UsePipes(new JoiValidationPipe(sendMessageDtoSchema, 'body'))
+  async sendMessage(@Body() dto: SendMessageDto) {
+    await this.conversationsService.sendMessage(dto);
+    return ResponseService.buildResponse({}, 'Successfully sent message');
   }
 }

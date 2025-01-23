@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CometChatService } from 'src/users/comet-chat.service';
 import {
+  CometChatReceiverType,
   ConversationTag,
   ListConversationMessagesDirectionCometChat,
 } from 'src/users/types/comet-chat.type';
@@ -9,6 +10,7 @@ import {
   ListConversationMessagesDirection,
   ListConversationMessagesDto,
 } from './dto/list-conversation-messages.dto';
+import { SendMessageDto } from './dto/send-message.dto';
 
 @Injectable()
 export class ConversationsService {
@@ -134,5 +136,16 @@ export class ConversationsService {
     );
 
     return updatedConversation.data.tags;
+  }
+
+  async sendMessage(dto: SendMessageDto) {
+    const { senderId, receiverId, receiverType, messageText } = dto;
+
+    await this.cometChatService.sendMessage({
+      senderId,
+      receiverId,
+      receiverType: receiverType as CometChatReceiverType,
+      message: messageText,
+    });
   }
 }
