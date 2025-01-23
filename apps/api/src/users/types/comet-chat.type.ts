@@ -15,3 +15,8 @@ export enum ConversationTag {
   ARCHIVED = 'archived',
   ACTIVE = 'active',
 }
+
+export enum ListConversationMessagesDirectionCometChat {
+  BEFORE = 'prepend',
+  AFTER = 'append',
+}

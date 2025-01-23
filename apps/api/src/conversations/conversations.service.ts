@@ -1,10 +1,63 @@
 import { Injectable } from '@nestjs/common';
 import { CometChatService } from 'src/users/comet-chat.service';
-import { ConversationTag } from 'src/users/types/comet-chat.type';
+import {
+  ConversationTag,
+  ListConversationMessagesDirectionCometChat,
+} from 'src/users/types/comet-chat.type';
 import { ToggleConversationDto } from './dto/toggle-conversation.dto';
+import {
+  ListConversationMessagesDirection,
+  ListConversationMessagesDto,
+} from './dto/list-conversation-messages.dto';
 
 @Injectable()
 export class ConversationsService {
+  async listConversationMessages(dto: ListConversationMessagesDto) {
+    const { conversationId, types, cursor, direction, limit, category } = dto;
+
+    const resp = await this.cometChatService.listConversationMessages(
+      conversationId,
+      types,
+      cursor,
+      direction,
+      limit,
+      category
+    );
+
+    const messages = resp.data.map((message) => ({
+      id: message.id,
+      attachments: message.data.attachments,
+      category: message.category,
+      type: message.type,
+    }));
+
+    const meta = {
+      ...(resp.meta.previous && {
+        previous: {
+          direction:
+            resp.meta.previous.affix === ListConversationMessagesDirectionCometChat.BEFORE
+              ? ListConversationMessagesDirection.BEFORE
+              : ListConversationMessagesDirection.AFTER,
+          id: resp.meta.previous.id,
+        },
+      }),
+      current: {
+        limit: resp.meta.current.limit,
+        count: resp.meta.current.count,
+      },
+      ...(resp.meta.next && {
+        next: {
+          direction:
+            resp.meta.next.affix === ListConversationMessagesDirectionCometChat.BEFORE
+              ? ListConversationMessagesDirection.BEFORE
+              : ListConversationMessagesDirection.AFTER,
+          id: resp.meta.next.id,
+        },
+      }),
+    };
+
+    return { messages, meta };
+  }
   constructor(private readonly cometChatService: CometChatService) {}
 
   async togglePinConversation(dto: ToggleConversationDto) {
