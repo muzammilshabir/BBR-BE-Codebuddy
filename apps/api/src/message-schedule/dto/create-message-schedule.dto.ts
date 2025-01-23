@@ -1,5 +1,4 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
 import * as joi from 'joi';
 import JoiDate from '@joi/date';
 
@@ -26,8 +25,8 @@ export class CreateMessageScheduleDto {
 }
 
 export const createMessageScheduleSchema = Joi.object({
-  senderId: Joi.string().required().custom(joiObjectIdValidator('senderId')),
-  receiverId: Joi.string().required().custom(joiObjectIdValidator('receiverId')),
+  senderId: Joi.string().required(),
+  receiverId: Joi.string().required(),
   receiverType: Joi.string().valid('user', 'group').required(),
   messageText: Joi.string().required(),
   date: Joi.date().format('YYYY-MM-DD').raw().required(),
