@@ -4,8 +4,10 @@ import axios from 'axios';
 import {
   CometChatReceiverType,
   ConversationTag,
+  ListConversationMessagesDirectionCometChat,
   SendMessageRequest,
 } from './types/comet-chat.type';
+import { ListConversationMessagesDirection } from 'src/conversations/dto/list-conversation-messages.dto';
 
 @Injectable()
 export class CometChatService {
@@ -205,5 +207,45 @@ export class CometChatService {
         },
       }
     );
+  }
+
+  async listConversationMessages(
+    conversationId: string,
+    types: string,
+    cursor: string,
+    direction: ListConversationMessagesDirection,
+    limit: number,
+    category: string
+  ) {
+    const url = new URL(`${this.baseUrl}/messages`);
+    url.searchParams.set('limit', limit.toString());
+    url.searchParams.set('conversationId', conversationId);
+
+    if (types?.length) {
+      url.searchParams.set('types', types);
+    }
+
+    if (cursor) {
+      url.searchParams.set('id', cursor);
+    }
+
+    if (direction === ListConversationMessagesDirection.BEFORE) {
+      url.searchParams.set('affix', ListConversationMessagesDirectionCometChat.BEFORE);
+    } else if (direction === ListConversationMessagesDirection.AFTER) {
+      url.searchParams.set('affix', ListConversationMessagesDirectionCometChat.AFTER);
+    }
+
+    if (category) {
+      url.searchParams.set('category', category);
+    }
+
+    const response = await axios.get(url.toString(), {
+      headers: {
+        apiKey: this.apiKey,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+    });
+    return response.data;
   }
 }
