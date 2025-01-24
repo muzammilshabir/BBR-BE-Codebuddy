@@ -13,6 +13,7 @@ import { BrandDraftRepository } from '../brandDraft/brandDraft.repository';
 import { ResidenceModule } from '../residences/residences.module';
 import { BrandActivityLog, BrandActivityLogSchema } from 'src/brand-activity-log/schema/brand-activity-log.schema';
 import { BrandActivityLogRepository } from 'src/brand-activity-log/brand-activity-log.repository';
+import { RedisModule } from 'src/redis/redis.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { BrandActivityLogRepository } from 'src/brand-activity-log/brand-activit
     MongooseModule.forFeature([{ name: BrandDraft.name, schema: BrandDraftSchema }]),
     MongooseModule.forFeature([{ name: BrandActivityLog.name, schema: BrandActivityLogSchema }]),
     ResidenceModule,
+    RedisModule
   ],
   providers: [
     BrandService,
