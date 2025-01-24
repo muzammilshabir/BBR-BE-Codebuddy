@@ -159,7 +159,7 @@ export class PatchResidenceDto {
         {
           amenityId: '60d9c6a0a11c3c6c6a9a1a1d',
           generalDescription: 'Luxury spa with ocean views',
-          imageId: '60d9c6a0a11c3c6c6a9a1a1e'
+          ImageId: '60d9c6a0a11c3c6c6a9a1a1e'
         }
       ]
     }
@@ -169,7 +169,7 @@ export class PatchResidenceDto {
     highlightedAmenities?: {
       amenityId: Types.ObjectId;
       generalDescription: string;
-      imageId: Types.ObjectId;
+      ImageId: Types.ObjectId;
     }[];
   };
 }
@@ -239,7 +239,7 @@ export class PatchResidenceDto {
           Joi.object({
             amenityId: Joi.string().custom(joiObjectIdValidator('amenityId')).optional(),
             generalDescription: Joi.string().optional(),
-            imageId: Joi.string().custom(joiObjectIdValidator('imageId'))
+            ImageId: Joi.string().custom(joiObjectIdValidator('ImageId'))
           })
         )
         .optional()

@@ -9,7 +9,7 @@ export class Amenity extends Document {
   @Prop({
     type: [
       {
-        imageId: { type: Types.ObjectId, ref: 'Upload' },
+        ImageId: { type: Types.ObjectId, ref: 'Upload' },
         type: { type: String, required: false },
       },
     ],
@@ -17,7 +17,7 @@ export class Amenity extends Document {
     default: [],
   })
   upload?: {
-    imageId: Types.ObjectId;
+    ImageId: Types.ObjectId;
     type?: string;
   }[];
 

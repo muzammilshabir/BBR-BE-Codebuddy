@@ -369,8 +369,8 @@ export class ResidenceService {
           amenityId: highlightedAmenity.amenityId
             ? new Types.ObjectId(highlightedAmenity.amenityId)
             : undefined,
-          imageId: highlightedAmenity.imageId
-            ? new Types.ObjectId(highlightedAmenity.imageId)
+          ImageId: highlightedAmenity.ImageId
+            ? new Types.ObjectId(highlightedAmenity.ImageId)
             : undefined,
         })
       ),
@@ -575,7 +575,7 @@ export class ResidenceService {
       { path: 'nearbyAmenities.amenitiesList', select: 'name', model: 'Amenity' },
       { path: 'nearbyAmenities.highlightedAmenities.amenityId', select: 'name', model: 'Amenity' },
       {
-        path: 'nearbyAmenities.highlightedAmenities.imageId',
+        path: 'nearbyAmenities.highlightedAmenities.ImageId',
         select: 'originalFileKey fileKey url mimeType',
         model: 'Upload',
       },
@@ -1152,7 +1152,7 @@ export class ResidenceService {
       {
         $lookup: {
           from: 'uploads',
-          localField: 'nearbyAmenities.highlightedAmenities.imageId',
+          localField: 'nearbyAmenities.highlightedAmenities.ImageId',
           foreignField: '_id',
           as: 'highlightedAmenitiesImages',
         },
@@ -1178,13 +1178,13 @@ export class ResidenceService {
                       0,
                     ],
                   },
-                  imageId: {
+                  ImageId: {
                     $arrayElemAt: [
                       {
                         $filter: {
                           input: '$highlightedAmenitiesImages',
                           as: 'image',
-                          cond: { $eq: ['$$image._id', '$$highlighted.imageId'] },
+                          cond: { $eq: ['$$image._id', '$$highlighted.ImageId'] },
                         },
                       },
                       0,
@@ -1690,7 +1690,7 @@ export class ResidenceService {
       { path: 'nearbyAmenities.amenitiesList', select: 'name', model: 'Amenity' },
       { path: 'nearbyAmenities.highlightedAmenities.amenityId', select: 'name', model: 'Amenity' },
       {
-        path: 'nearbyAmenities.highlightedAmenities.imageId',
+        path: 'nearbyAmenities.highlightedAmenities.ImageId',
         select: 'originalFileKey fileKey url mimeType',
         model: 'Upload',
       },
@@ -2001,8 +2001,8 @@ export class ResidenceService {
           amenityId: highlightedAmenity.amenityId
             ? new Types.ObjectId(highlightedAmenity.amenityId)
             : undefined,
-          imageId: highlightedAmenity.imageId
-            ? new Types.ObjectId(highlightedAmenity.imageId)
+          ImageId: highlightedAmenity.ImageId
+            ? new Types.ObjectId(highlightedAmenity.ImageId)
             : undefined,
         })
       ),
@@ -2159,7 +2159,7 @@ export class ResidenceService {
           ? patchResidenceDto.nearbyAmenities.highlightedAmenities.map((amenity) => ({
               ...amenity,
               amenityId: new Types.ObjectId(amenity.amenityId),
-              imageId: new Types.ObjectId(amenity.imageId),
+              ImageId: new Types.ObjectId(amenity.ImageId),
             }))
           : undefined,
       };

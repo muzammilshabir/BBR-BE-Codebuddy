@@ -65,7 +65,7 @@ export class ResidenceDraftService {
       { path: 'nearbyAmenities.amenitiesList', select: 'name', model: 'Amenity' },
       { path: 'nearbyAmenities.highlightedAmenities.amenityId', select: 'name', model: 'Amenity' },
       {
-        path: 'nearbyAmenities.highlightedAmenities.imageId',
+        path: 'nearbyAmenities.highlightedAmenities.ImageId',
         select: 'originalFileKey fileKey url mimeType',
         model: 'Upload',
       },
@@ -229,20 +229,20 @@ export class ResidenceDraftService {
   }
 
   private hasNearbyAmenitiesImageChanged(
-    nearbyAmenities1?: { highlightedAmenities: { imageId: Types.ObjectId }[] }[],
-    nearbyAmenities2?: { highlightedAmenities: { imageId: Types.ObjectId }[] }[]
+    nearbyAmenities1?: { highlightedAmenities: { ImageId: Types.ObjectId }[] }[],
+    nearbyAmenities2?: { highlightedAmenities: { ImageId: Types.ObjectId }[] }[]
   ): boolean {
     if (!nearbyAmenities1 && !nearbyAmenities2) return false; // Both undefined or null, treat as identical
     if (!nearbyAmenities1 || !nearbyAmenities2) return true; // One exists and the other doesn't, consider as changed
     if (nearbyAmenities1.length !== nearbyAmenities2.length) return true; // Different number of amenities, consider as changed
 
-    // Compare each highlighted amenity's imageId
+    // Compare each highlighted amenity's ImageId
     return nearbyAmenities1.some((amenity, index) => {
       const draftAmenity = nearbyAmenities2[index];
       return amenity.highlightedAmenities.some(
         (highlightedAmenity, i) =>
-          highlightedAmenity.imageId.toString() !==
-          draftAmenity.highlightedAmenities[i]?.imageId.toString()
+          highlightedAmenity.ImageId.toString() !==
+          draftAmenity.highlightedAmenities[i]?.ImageId.toString()
       );
     });
   }

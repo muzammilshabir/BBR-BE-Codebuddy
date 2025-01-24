@@ -55,7 +55,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
           path: 'nearbyAmenities.amenitiesList',
           model: 'Amenity',
           populate: {
-            path: 'upload.imageId',
+            path: 'upload.ImageId',
             select: 'originalFileKey fileKey url mimeType',
             model: 'Upload',
           },
@@ -64,13 +64,13 @@ export class ResidenceRepository extends BaseRepository<Residence> {
           path: 'nearbyAmenities.highlightedAmenities.amenityId',
           model: 'Amenity',
           populate: {
-            path: 'upload.imageId',
+            path: 'upload.ImageId',
             select: 'originalFileKey fileKey url mimeType',
             model: 'Upload',
           },
         },
         {
-          path: 'nearbyAmenities.highlightedAmenities.imageId',
+          path: 'nearbyAmenities.highlightedAmenities.ImageId',
           select: 'originalFileKey fileKey url mimeType',
           model: 'Upload',
         },
@@ -146,7 +146,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
           path: 'nearbyAmenities.amenitiesList',
           model: 'Amenity',
           populate: {
-            path: 'upload.imageId',
+            path: 'upload.ImageId',
             select: 'originalFileKey fileKey url mimeType',
             model: 'Upload',
           },
@@ -155,13 +155,13 @@ export class ResidenceRepository extends BaseRepository<Residence> {
           path: 'nearbyAmenities.highlightedAmenities.amenityId',
           model: 'Amenity',
           populate: {
-            path: 'upload.imageId',
+            path: 'upload.ImageId',
             select: 'originalFileKey fileKey url mimeType',
             model: 'Upload',
           },
         },
         {
-          path: 'nearbyAmenities.highlightedAmenities.imageId',
+          path: 'nearbyAmenities.highlightedAmenities.ImageId',
           select: 'originalFileKey fileKey url mimeType',
           model: 'Upload',
         },
@@ -414,7 +414,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
         {
           $lookup: {
             from: 'uploads',
-            localField: 'latestDraft.nearbyAmenities.highlightedAmenities.imageId',
+            localField: 'latestDraft.nearbyAmenities.highlightedAmenities.ImageId',
             foreignField: '_id',
             as: 'highlightedAmenitiesImage',
           },
@@ -481,7 +481,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
               amenitiesList: '$amenitiesList',
               highlightedAmenities: {
                 amenityId: '$highlightedAmenities',
-                imageId: '$highlightedAmenitiesImage',
+                ImageId: '$highlightedAmenitiesImage',
               },
             },
             rejectionReason: '$latestDraft.rejectionReason',
@@ -779,7 +779,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
         {
           $lookup: {
             from: 'uploads',
-            localField: 'nearbyAmenities.highlightedAmenities.imageId',
+            localField: 'nearbyAmenities.highlightedAmenities.ImageId',
             foreignField: '_id',
             as: 'highlightedAmenitiesImage',
           },
@@ -816,7 +816,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
               amenitiesList: '$amenitiesList',
               highlightedAmenities: {
                 amenityId: '$highlightedAmenities',
-                imageId: '$highlightedAmenitiesImage',
+                ImageId: '$highlightedAmenitiesImage',
               },
             },
             rejectionReason: 1,
@@ -1124,7 +1124,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
       { $skip: skip },
       { $limit: batchSize }
     ];
-  
+
     return this.residenceModel
       .aggregate(pipeline)
       .collation({ locale: 'en', strength: 1 })

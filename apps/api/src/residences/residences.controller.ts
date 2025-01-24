@@ -636,6 +636,33 @@ export class ResidenceController {
 
   @Public()
   @ApiOperation({
+    summary: 'Upload Amenities images',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+    },
+  })
+  @Post('upload-amenities-images')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadBulkAmenitiesImages(@UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      throw new HttpException('File is required', HttpStatus.BAD_REQUEST);
+    }
+
+    const result = await this.residenceSeederService.processAmenitiesImages(file);
+    return ResponseService.buildResponse(result);
+  }
+
+  @Public()
+  @ApiOperation({
     summary: 'Upload Ranking Category images',
   })
   @ApiConsumes('multipart/form-data')

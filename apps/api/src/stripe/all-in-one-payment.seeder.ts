@@ -333,7 +333,7 @@ export class AllInOnePaymentSeeder extends AbstractSeeder {
               amenityId: new Types.ObjectId('60d5f485f7c6a4b2b8e8b5fd'),
               generalDescription:
                 'The remarkable structure features a single, 15-story tower, boasting a total of 30 exclusive units',
-              imageId: new Types.ObjectId('60d5f485f7c6a4b2b8e8b5fe'),
+              ImageId: new Types.ObjectId('60d5f485f7c6a4b2b8e8b5fe'),
             },
           ],
         },
@@ -393,7 +393,7 @@ export class AllInOnePaymentSeeder extends AbstractSeeder {
             {
               amenityId: new Types.ObjectId('60d5f485f7c6a4b2b8e8b5fd'),
               generalDescription: 'Convenient and secure valet parking service',
-              imageId: new Types.ObjectId('60d5f485f7c6a4b2b8e8b608'),
+              ImageId: new Types.ObjectId('60d5f485f7c6a4b2b8e8b608'),
             },
           ],
         },
@@ -451,7 +451,7 @@ export class AllInOnePaymentSeeder extends AbstractSeeder {
             {
               amenityId: new Types.ObjectId('60d5f485f7c6a4b2b8e8b611'),
               generalDescription: 'Direct access to a private beach',
-              imageId: new Types.ObjectId('60d5f485f7c6a4b2b8e8b612'),
+              ImageId: new Types.ObjectId('60d5f485f7c6a4b2b8e8b612'),
             },
           ],
         },
@@ -510,7 +510,7 @@ export class AllInOnePaymentSeeder extends AbstractSeeder {
             {
               amenityId: new Types.ObjectId('60d5f485f7c6a4b2b8e8b61c'),
               generalDescription: 'Private ski-in/ski-out access to exclusive slopes',
-              imageId: new Types.ObjectId('60d5f485f7c6a4b2b8e8b61d'),
+              ImageId: new Types.ObjectId('60d5f485f7c6a4b2b8e8b61d'),
             },
           ],
         },
@@ -569,7 +569,7 @@ export class AllInOnePaymentSeeder extends AbstractSeeder {
             {
               amenityId: new Types.ObjectId('60d5f485f7c6a4b2b8e8b627'),
               generalDescription: 'State-of-the-art fitness center with personal trainers',
-              imageId: new Types.ObjectId('60d5f485f7c6a4b2b8e8b628'),
+              ImageId: new Types.ObjectId('60d5f485f7c6a4b2b8e8b628'),
             },
           ],
         },

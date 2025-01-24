@@ -377,7 +377,7 @@ export class UserService {
           model: 'Amenity',
         },
         {
-          path: 'nearbyAmenities.highlightedAmenities.imageId',
+          path: 'nearbyAmenities.highlightedAmenities.ImageId',
           select: 'originalFileKey fileKey url mimeType',
           model: 'Upload',
         },

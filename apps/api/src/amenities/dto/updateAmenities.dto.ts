@@ -23,7 +23,7 @@ export class UpdateAmenityDto {
     required: false,
   })
   upload?: {
-    imageId: Types.ObjectId;
+    ImageId: Types.ObjectId;
     type?: string;
   }[];
 
@@ -41,7 +41,7 @@ export const updateAmenitySchema = Joi.object({
   upload: Joi.array()
     .items(
       Joi.object({
-        imageId: Joi.string().optional().custom(joiObjectIdValidator('imageId')),
+        ImageId: Joi.string().optional().custom(joiObjectIdValidator('ImageId')),
         type: Joi.string().trim().optional(),
       })
     )

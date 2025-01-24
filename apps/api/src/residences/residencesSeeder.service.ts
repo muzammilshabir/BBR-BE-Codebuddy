@@ -2285,6 +2285,87 @@ export class ResidenceSeederService {
     }
   }
 
+  // amenities
+  async processAmenitiesImages(file: Express.Multer.File) {
+    console.log('Starting Amenities image processing:', file.originalname);
+
+    // Return immediately that processing has started
+    setTimeout(() => {
+      this.processAmenitiesImagesInBackground(file);
+    }, 0);
+
+    return {
+      success: true,
+      message: 'Image processing started',
+    };
+  }
+
+  async processAmenitiesImagesInBackground(file: Express.Multer.File) {
+    const BATCH_SIZE = 10;
+
+    const workbook = XLSX.read(file.buffer, { type: 'buffer' });
+    const sheets = {
+      amenities: XLSX.utils.sheet_to_json(workbook.Sheets['Amenities']),
+    };
+
+    console.log('Processing Amenities Images...');
+    for (let i = 0; i < sheets.amenities.length; i += BATCH_SIZE) {
+      console.log(
+        `Processing Images batch ${i / BATCH_SIZE + 1} of ${Math.ceil(sheets.amenities.length / BATCH_SIZE)}`
+      );
+      const batch = sheets.amenities.slice(i, i + BATCH_SIZE);
+
+      if (i > 0) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+
+      for (const singleAmenity of batch) {
+        const amenity = singleAmenity as any;
+        const uploadArray = [];
+
+        try {
+          // Process logo image
+          if (amenity.logo_image) {
+            const lastValue = amenity.icon_path.split('/').pop();
+            const logoPath = `${lastValue}/${amenity.logo_image}`.trim();
+            const logoUpload = await this.processImage(logoPath, 'logo');
+            if (logoUpload) uploadArray.push(logoUpload);
+          }
+
+          // Process first image
+          if (amenity.image1) {
+            const lastValue = amenity.image_path.split('/').pop();
+            const image1Path = `${lastValue}/${amenity.image1}`;
+            const image1Upload = await this.processImage(image1Path, 'image1');
+            if (image1Upload) uploadArray.push(image1Upload);
+          }
+
+          // Process second image
+          if (amenity.image2) {
+            const lastValue = amenity.image_path.split('/').pop();
+            const image2Path = `${lastValue}/${amenity.image2}`;
+            const image2Upload = await this.processImage(image2Path, 'image2');
+            if (image2Upload) uploadArray.push(image2Upload);
+          }
+
+          // Update amenity document if any images were processed
+          if (uploadArray.length > 0) {
+            await this.amenityRepository.updateWithFilter(
+              { name: amenity.name, isDeleted: false },
+              {
+                $set: {
+                  upload: uploadArray,
+                },
+              }
+            );
+          }
+        } catch (error) {
+          console.error(`Error processing images for amenity ${amenity.name}:`, error);
+        }
+      }
+    }
+  }
+
   private async processImage(imagePath: string, imageType: string) {
     try {
       const s3Object = await this.listS3Object(imagePath);

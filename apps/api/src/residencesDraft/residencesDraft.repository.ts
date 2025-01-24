@@ -45,13 +45,13 @@ export class ResidenceDraftRepository extends BaseRepository<ResidenceDraft> {
         path: 'nearbyAmenities.amenitiesList',
         model: 'Amenity',
         populate: {
-          path: 'upload.imageId',
+          path: 'upload.ImageId',
           model: 'Upload',
         },
       },
       { path: 'nearbyAmenities.highlightedAmenities.amenityId', select: 'name', model: 'Amenity' },
       {
-        path: 'nearbyAmenities.highlightedAmenities.imageId',
+        path: 'nearbyAmenities.highlightedAmenities.ImageId',
         select: 'originalFileKey fileKey url mimeType',
         model: 'Upload',
       },
@@ -102,7 +102,7 @@ export class ResidenceDraftRepository extends BaseRepository<ResidenceDraft> {
           path: 'nearbyAmenities.amenitiesList',
           model: 'Amenity',
           populate: {
-            path: 'upload.imageId',
+            path: 'upload.ImageId',
             select: 'originalFileKey fileKey url mimeType',
             model: 'Upload',
           },
@@ -111,13 +111,13 @@ export class ResidenceDraftRepository extends BaseRepository<ResidenceDraft> {
           path: 'nearbyAmenities.highlightedAmenities.amenityId',
           model: 'Amenity',
           populate: {
-            path: 'upload.imageId',
+            path: 'upload.ImageId',
             select: 'originalFileKey fileKey url mimeType',
             model: 'Upload',
           },
         },
         {
-          path: 'nearbyAmenities.highlightedAmenities.imageId',
+          path: 'nearbyAmenities.highlightedAmenities.ImageId',
           select: 'originalFileKey fileKey url mimeType',
           model: 'Upload',
         },

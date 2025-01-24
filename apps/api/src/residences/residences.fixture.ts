@@ -81,7 +81,7 @@ export class ResidencesFixture extends AbstractFixture {
           {
             amenityId: amenitiesListId,
             generalDescription: 'Access to a private beach.',
-            imageId: mainGalleryPhotosId,
+            ImageId: mainGalleryPhotosId,
           },
         ],
       },

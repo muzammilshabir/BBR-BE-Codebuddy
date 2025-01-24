@@ -15,7 +15,7 @@ export class UpdateNearbyAmenitiesDto {
       {
         amenityId: '66ab4bd5161117eabe919e57',
         generalDescription: 'A large public park with playgrounds.',
-        imageId: '66acda8b857c576159b74da4',
+        ImageId: '66acda8b857c576159b74da4',
       },
     ],
     required: false,
@@ -23,7 +23,7 @@ export class UpdateNearbyAmenitiesDto {
   highlightedAmenities: {
     amenityId: Types.ObjectId;
     generalDescription: string;
-    imageId?: Types.ObjectId;
+    ImageId?: Types.ObjectId;
   }[];
 }
 
@@ -36,7 +36,7 @@ export const updateNearbyAmenitiesSchema = Joi.object({
       Joi.object({
         amenityId: Joi.string().custom(joiObjectIdValidator('amenityId')).optional(),
         generalDescription: Joi.string().optional(),
-        imageId: Joi.string().optional().custom(joiObjectIdValidator('imageId')),
+        ImageId: Joi.string().optional().custom(joiObjectIdValidator('ImageId')),
       })
     )
     .optional(),

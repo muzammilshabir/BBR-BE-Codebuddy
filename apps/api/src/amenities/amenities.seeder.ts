@@ -41,7 +41,7 @@ export class AmenitySeeder extends AbstractSeeder {
         }
 
         // Set up `upload` field in Amenity document if image was found
-        const uploadField = upload ? [{ imageId: upload._id as Types.ObjectId, type: 'logo' }] : [];
+        const uploadField = upload ? [{ ImageId: upload._id as Types.ObjectId, type: 'logo' }] : [];
 
         await this.amenityRepository.upsert(
           { name: amenity.name },
