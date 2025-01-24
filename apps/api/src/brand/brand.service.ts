@@ -14,6 +14,7 @@ import { ResidenceService } from '../residences/residences.service';
 import { ResidenceStatus } from '../residences/enum/residence-enum';
 import { PipelineStage } from 'mongoose';
 import { BrandActivityLogRepository } from 'src/brand-activity-log/brand-activity-log.repository';
+import { RedisService } from 'src/redis/redis.service';
 
 @Injectable()
 export class BrandService {
@@ -21,13 +22,16 @@ export class BrandService {
     private readonly brandRepository: BrandRepository,
     private readonly brandDraftRepository: BrandDraftRepository,
     private readonly residenceService: ResidenceService,
-    private readonly brandActivityLogRepository: BrandActivityLogRepository
+    private readonly brandActivityLogRepository: BrandActivityLogRepository,
+    private readonly redisService: RedisService
   ) {}
 
   async findAll(listBrandDto: ListBrandDto) {
     try {
       const { status, brandCategoryId, search } = listBrandDto;
       const paginationOptions = PaginationService.prepareOptions(listBrandDto);
+
+      const key = `${JSON.stringify(listBrandDto)}:${JSON.stringify(paginationOptions)}`
 
       const pipeline: PipelineStage[] = [
         // Initial match for non-deleted brands
@@ -264,11 +268,23 @@ export class BrandService {
         },
       ];
 
+      const redisData = await this.redisService.get({ prefix: 'brands-cache', key });
+
+      if (redisData) {
+        try {
+          return JSON.parse(redisData)
+        } catch (error) {
+          console.log('Error while parsing data for brand', { params: listBrandDto })
+        }
+      }
+
       const result = await this.brandRepository.aggregate(pipeline);
       const count = result[0]?.totalCount || 0;
       const data = result[0]?.data || [];
 
       const { pagination } = PaginationService.paginate({ rows: data, count }, listBrandDto);
+
+      await this.redisService.set({ prefix: 'brands-cache', key, value: JSON.stringify({ pagination, brands: data }), expiry: 900 });
 
       return { pagination, brands: data };
     } catch (error) {
