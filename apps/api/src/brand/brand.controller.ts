@@ -40,6 +40,17 @@ export class BrandController {
     return ResponseService.buildResponse(data);
   }
 
+  @Get('details')
+  @ApiOperation({
+    summary: 'List all brand',
+  })
+  @Public()
+  @UsePipes(new JoiValidationPipe(listBrandSchema, 'query'))
+  async listDetails(@Query() listBrandDto: ListBrandDto) {
+    const data = await this.brandService.findAllWithDetails(listBrandDto);
+    return ResponseService.buildResponse(data);
+  }
+
   @Patch(':id')
   @ApiOperation({
     summary: 'Update an Brand by ID',

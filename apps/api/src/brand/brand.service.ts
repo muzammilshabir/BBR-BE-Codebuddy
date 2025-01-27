@@ -44,6 +44,134 @@ export class BrandService {
           },
         },
 
+        // Lookup uploads for images
+        {
+          $lookup: {
+            from: 'uploads',
+            let: { uploads: '$upload' },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $in: [
+                      '$_id',
+                      {
+                        $map: {
+                          input: '$$uploads',
+                          as: 'upload',
+                          in: '$$upload.ImageId',
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+              {
+                $project: {
+                  _id: 1,
+                  originalFileKey: 1,
+                  fileKey: 1,
+                  url: 1,
+                  mimeType: 1,
+                  id: '$_id',
+                },
+              },
+            ],
+            as: 'uploadDocs',
+          },
+        },
+        {
+          $addFields: {
+            upload: {
+              $map: {
+                input: '$upload',
+                as: 'uploadItem',
+                in: {
+                  ImageId: {
+                    $arrayElemAt: [
+                      {
+                        $filter: {
+                          input: '$uploadDocs',
+                          cond: { $eq: ['$$this._id', '$$uploadItem.ImageId'] },
+                        },
+                      },
+                      0,
+                    ],
+                  },
+                  type: '$$uploadItem.type',
+                },
+              },
+            },
+          },
+        },
+
+        // Apply sorting
+        {
+          $sort: paginationOptions.sort.reduce((acc, [field, order]) => {
+            acc[field] = order;
+            return acc;
+          }, {}),
+        },
+
+        // Pagination and total count using facet
+        {
+          $facet: {
+            data: [{ $skip: paginationOptions.offset }, { $limit: paginationOptions.limit }],
+            totalCount: [{ $count: 'count' }],
+          },
+        },
+
+        // Final projection to format the response
+        {
+          $project: {
+            data: 1,
+            totalCount: { $arrayElemAt: ['$totalCount.count', 0] },
+          },
+        },
+      ];
+
+      const redisData = await this.redisService.get({ prefix: 'brands-cache', key });
+
+      if (redisData) {
+        try {
+          return JSON.parse(redisData)
+        } catch (error) {
+          console.log('Error while parsing data for brand', { params: listBrandDto })
+        }
+      }
+
+      const result = await this.brandRepository.aggregate(pipeline);
+      const count = result[0]?.totalCount || 0;
+      const data = result[0]?.data || [];
+
+      const { pagination } = PaginationService.paginate({ rows: data, count }, listBrandDto);
+
+      await this.redisService.set({ prefix: 'brands-cache', key, value: JSON.stringify({ pagination, brands: data }), expiry: 900 });
+
+      return { pagination, brands: data };
+    } catch (error) {
+      throw new Error(`Error while fetching brand list: ${error}`);
+    }
+  }
+
+  async findAllWithDetails(listBrandDto: ListBrandDto) {
+    try {
+      const { status, brandCategoryId, search } = listBrandDto;
+      const paginationOptions = PaginationService.prepareOptions(listBrandDto);
+
+      const key = `${JSON.stringify(listBrandDto)}:${JSON.stringify(paginationOptions)}`
+
+      const pipeline: PipelineStage[] = [
+        // Initial match for non-deleted brands
+        {
+          $match: {
+            isDeleted: { $ne: true },
+            ...(status ? { status: status } : {}),
+            ...(brandCategoryId ? { brandCategoryId: new Types.ObjectId(brandCategoryId) } : {}),
+            ...(search ? { name: { $regex: search, $options: 'i' } } : {}),
+          },
+        },
+
         // Lookup brand category
         {
           $lookup: {
