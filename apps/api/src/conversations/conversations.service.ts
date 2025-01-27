@@ -11,6 +11,7 @@ import {
   ListConversationMessagesDto,
 } from './dto/list-conversation-messages.dto';
 import { SendMessageDto } from './dto/send-message.dto';
+import { ToggleGroupDto } from './dto/toggle-group.dto';
 
 @Injectable()
 export class ConversationsService {
@@ -147,5 +148,59 @@ export class ConversationsService {
       receiverType: receiverType as CometChatReceiverType,
       message: messageText,
     });
+  }
+
+  async togglePinGroupConversation(dto: ToggleGroupDto) {
+    const { guid, onBehalfOfUserId } = dto;
+
+    const group = await this.cometChatService.getGroup(guid);
+
+    let { tags } = group.data;
+    if (!tags) {
+      tags = [];
+    }
+
+    // const activeTag = `${onBehalfOfUserId}-${ConversationTag.ACTIVE}`;
+    const pinnedTag = `${onBehalfOfUserId}-${ConversationTag.PINNED}`;
+    // const archivedTag = `${onBehalfOfUserId}-${ConversationTag.ARCHIVED}`;
+
+    if (tags.includes(pinnedTag)) {
+      //   remove pinned tag
+      tags = tags.filter((tag) => tag !== pinnedTag);
+    } else {
+      //   add pinned tag
+      tags.push(pinnedTag);
+    }
+
+    await this.cometChatService.updateGroupTags(guid, tags);
+  }
+
+  async toggleArchiveGroupConversation(dto: ToggleGroupDto) {
+    const { guid, onBehalfOfUserId } = dto;
+
+    const group = await this.cometChatService.getGroup(guid);
+
+    let { tags } = group.data;
+    if (!tags) {
+      tags = [];
+    }
+
+    const activeTag = `${onBehalfOfUserId}-${ConversationTag.ACTIVE}`;
+    const archivedTag = `${onBehalfOfUserId}-${ConversationTag.ARCHIVED}`;
+    const pinnedTag = `${onBehalfOfUserId}-${ConversationTag.PINNED}`;
+
+    if (tags.includes(archivedTag)) {
+      //   remove archived tag
+      tags = tags.filter((tag) => tag !== archivedTag);
+      // add active tag
+      tags.push(activeTag);
+    } else {
+      //   add archived tag
+      tags.push(archivedTag);
+      // remove active tag
+      tags = tags.filter((tag) => ![activeTag, pinnedTag].includes(tag));
+    }
+
+    await this.cometChatService.updateGroupTags(guid, tags);
   }
 }

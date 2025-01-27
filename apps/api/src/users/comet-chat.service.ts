@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import {
+  CometChatCreateGroup,
   CometChatReceiverType,
   ConversationTag,
   ListConversationMessagesDirectionCometChat,
@@ -71,13 +72,7 @@ export class CometChatService {
     }
   }
 
-  async createGroup(groupData: {
-    guid: string;
-    name: string;
-    type: CometChatReceiverType;
-    avatar?: string;
-    metadata?: any;
-  }) {
+  async createGroup(groupData: CometChatCreateGroup) {
     try {
       const response = await axios.post(`${this.baseUrl}/groups`, groupData, {
         headers: {
@@ -209,6 +204,20 @@ export class CometChatService {
     );
   }
 
+  async updateGroupTags(groupId: string, tags: string[]) {
+    await axios.put(
+      `${this.baseUrl}/groups/${groupId}`,
+      { tags },
+      {
+        headers: {
+          apiKey: this.apiKey,
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+      }
+    );
+  }
+
   async listConversationMessages(
     conversationId: string,
     types: string,
@@ -240,6 +249,17 @@ export class CometChatService {
     }
 
     const response = await axios.get(url.toString(), {
+      headers: {
+        apiKey: this.apiKey,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+    });
+    return response.data;
+  }
+
+  async getGroup(guid: string) {
+    const response = await axios.get(`${this.baseUrl}/groups/${guid}`, {
       headers: {
         apiKey: this.apiKey,
         'Content-Type': 'application/json',

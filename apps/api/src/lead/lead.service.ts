@@ -18,7 +18,7 @@ import { User } from 'src/users/schema/user.schema';
 import { Residence } from 'src/residences/schema/residences.schema';
 import { UploadRepository } from 'src/upload/upload.repository';
 import { InjectModel } from '@nestjs/mongoose';
-import { CometChatReceiverType, ConversationTag } from 'src/users/types/comet-chat.type';
+import { CometChatCreateGroup, ConversationTag } from 'src/users/types/comet-chat.type';
 
 @Injectable()
 export class LeadService {
@@ -129,32 +129,27 @@ export class LeadService {
 
       const groupName = `${lead.id.toString()}-leadUser-Admin`;
 
-      const groupData: any = {
+      const groupData: CometChatCreateGroup = {
         guid: groupName,
         name: transformedDto.name,
         type: 'private',
+        members: {
+          admins: [this.customerSupportUserId, leadUser._id.toString()],
+        },
       };
 
       // Create the group
       const cGroup1 = await this.cometChatService.createGroup(groupData);
-      console.log(JSON.stringify(cGroup1, null, 2));
 
       // Add participants
       const participants = [this.customerSupportUserId, leadUser._id.toString()];
-      console.log(JSON.stringify(participants, null, 2));
 
       // Add participants to group
       await this.cometChatService.addMembersToGroup(groupName, participants);
 
-      await Promise.all(
-        participants.map((participant) =>
-          this.cometChatService.updateConversationTags(
-            CometChatReceiverType.GROUP,
-            cGroup1.data.guid,
-            participant,
-            [ConversationTag.ACTIVE]
-          )
-        )
+      await this.cometChatService.updateGroupTags(
+        cGroup1.data.guid,
+        participants.map((participant) => `${participant}-${ConversationTag.ACTIVE}`)
       );
 
       // Create Group If Residence Id Present
@@ -166,10 +161,13 @@ export class LeadService {
           const groupName2 = `${lead.id.toString()}-leadUser-Developer`;
 
           // Create group data
-          const groupData: any = {
+          const groupData: CometChatCreateGroup = {
             guid: groupName2,
             name: lead.name,
             type: 'private',
+            members: {
+              admins: [this.customerSupportUserId, leadUser._id.toString()],
+            },
           };
 
           // Create the group
@@ -181,15 +179,9 @@ export class LeadService {
           // Add participants to group
           await this.cometChatService.addMembersToGroup(groupName2, participants);
 
-          await Promise.all(
-            participants.map((participant) =>
-              this.cometChatService.updateConversationTags(
-                CometChatReceiverType.GROUP,
-                cGroup2.data.guid,
-                participant,
-                [ConversationTag.ACTIVE]
-              )
-            )
+          await this.cometChatService.updateGroupTags(
+            cGroup2.data.guid,
+            participants.map((participant) => `${participant}-${ConversationTag.ACTIVE}`)
           );
         }
       }
