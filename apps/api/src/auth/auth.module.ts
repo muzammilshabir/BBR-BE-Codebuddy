@@ -18,6 +18,7 @@ import { StripeModule } from 'src/stripe/stripe.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { LoginAttempt, LoginAttemptSchema } from '../loginAttempt/schema/loginAttempt.schema';
 import { LoginAttemptRepository } from '../loginAttempt/loginAttempt.repository';
+import { LoginAttemptService } from './login-attempt.service';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { LoginAttemptRepository } from '../loginAttempt/loginAttempt.repository'
     CaptchaGuard,
     TokenService,
     LoginAttemptRepository,
+    LoginAttemptService,
   ],
   controllers: [AuthController],
   exports: [TokenService, AuthService],

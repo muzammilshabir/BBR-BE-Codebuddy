@@ -65,15 +65,17 @@ export class RankingCategoryService {
       lifeStyleId,
       geoGraphyId,
       brandId,
+      page = 1,
+      limit = 10,
     } = rankingCategoryDto;
 
-    const query: any = {
+    const matchStage: any = {
       isDeleted: { $ne: DeletionStatus.DELETED },
     };
 
     // Text search for name or description fields
     if (search) {
-      query.$or = [
+      matchStage.$or = [
         { title: { $regex: search, $options: 'i' } },
         { description: { $regex: search, $options: 'i' } },
       ];
@@ -81,128 +83,361 @@ export class RankingCategoryService {
 
     // Filter by status
     if (status) {
-      query.status = status;
+      matchStage.status = status;
     }
 
     // Filter by category type
     if (categoryType) {
       const categoryTypes = Array.isArray(categoryType) ? categoryType : [categoryType];
-      query.categoryType = { $in: categoryTypes };
+      matchStage.categoryType = { $in: categoryTypes };
     }
+
     // Filter by createdById
     if (createdById) {
-      query.createdById = new Types.ObjectId(createdById);
+      matchStage.createdById = new Types.ObjectId(createdById);
     }
 
     // Additional filters based on IDs
     if (countryId) {
-      query.countryId = new Types.ObjectId(countryId);
+      matchStage.countryId = new Types.ObjectId(countryId);
     }
 
     if (cityId) {
-      query.cityId = new Types.ObjectId(cityId);
+      matchStage.cityId = new Types.ObjectId(cityId);
     }
 
     if (stateId) {
-      query.stateId = new Types.ObjectId(stateId);
+      matchStage.stateId = new Types.ObjectId(stateId);
     }
 
     if (locationId) {
-      query.locationId = new Types.ObjectId(locationId);
+      matchStage.locationId = new Types.ObjectId(locationId);
     }
 
     if (propertyTypeId) {
-      query.propertyTypeId = new Types.ObjectId(propertyTypeId);
+      matchStage.propertyTypeId = new Types.ObjectId(propertyTypeId);
     }
 
     if (lifeStyleId) {
-      query.lifeStyleId = new Types.ObjectId(lifeStyleId);
+      matchStage.lifeStyleId = new Types.ObjectId(lifeStyleId);
     }
 
     if (geoGraphyId) {
-      query.geoGraphyId = new Types.ObjectId(geoGraphyId);
+      matchStage.geoGraphyId = new Types.ObjectId(geoGraphyId);
     }
 
     if (brandId) {
-      query.brandId = new Types.ObjectId(brandId);
+      matchStage.brandId = new Types.ObjectId(brandId);
     }
 
-    const options = PaginationService.prepareOptions(rankingCategoryDto);
+    const pipeline: PipelineStage[] = [
+      {
+        $match: matchStage,
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'createdById',
+          foreignField: '_id',
+          pipeline: [
+            {
+              $project: {
+                fullName: 1,
+                email: 1,
+                role: 1,
+              },
+            },
+          ],
+          as: 'createdById',
+        },
+      },
+      {
+        $lookup: {
+          from: 'uploads',
+          let: { imageIds: '$upload.ImageId' },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $in: ['$_id', '$$imageIds'],
+                },
+              },
+            },
+            {
+              $project: {
+                originalFileKey: 1,
+                fileKey: 1,
+                url: 1,
+                mimeType: 1,
+              },
+            },
+          ],
+          as: 'uploadDetails',
+        },
+      },
+      {
+        $lookup: {
+          from: 'countries',
+          localField: 'countryId',
+          foreignField: '_id',
+          pipeline: [
+            {
+              $project: {
+                name: 1,
+                code: 1,
+              },
+            },
+          ],
+          as: 'countryId',
+        },
+      },
+      {
+        $lookup: {
+          from: 'states',
+          localField: 'stateId',
+          foreignField: '_id',
+          pipeline: [
+            {
+              $project: {
+                name: 1,
+                stateCode: 1,
+              },
+            },
+          ],
+          as: 'stateId',
+        },
+      },
+      {
+        $lookup: {
+          from: 'cities',
+          localField: 'cityId',
+          foreignField: '_id',
+          pipeline: [
+            {
+              $project: {
+                name: 1,
+                state: 1,
+              },
+            },
+          ],
+          as: 'cityId',
+        },
+      },
+      {
+        $lookup: {
+          from: 'locations',
+          localField: 'locationId',
+          foreignField: '_id',
+          pipeline: [
+            {
+              $project: {
+                name: 1,
+                coordinates: 1,
+              },
+            },
+          ],
+          as: 'locationId',
+        },
+      },
+      {
+        $lookup: {
+          from: 'propertytypes',
+          localField: 'propertyTypeId',
+          foreignField: '_id',
+          pipeline: [
+            {
+              $project: {
+                name: 1,
+                type: 1,
+                description: 1,
+              },
+            },
+          ],
+          as: 'propertyTypeId',
+        },
+      },
+      {
+        $lookup: {
+          from: 'geographicalareas',
+          localField: 'geoGraphyId',
+          foreignField: '_id',
+          pipeline: [
+            {
+              $project: {
+                type: 1,
+                upload: 1,
+                name: 1,
+              },
+            },
+          ],
+          as: 'geoGraphyId',
+        },
+      },
+      {
+        $lookup: {
+          from: 'lifestyles',
+          localField: 'lifeStyleId',
+          foreignField: '_id',
+          pipeline: [
+            {
+              $project: {
+                name: 1,
+                category: 1,
+              },
+            },
+          ],
+          as: 'lifeStyleId',
+        },
+      },
+      {
+        $lookup: {
+          from: 'rankingrequests',
+          let: { rankingCategoryId: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ['$rankingCategoryId', '$$rankingCategoryId'] },
+                    { $eq: ['$status', RankingRequestStatus.ACTIVE] },
+                  ],
+                },
+              },
+            },
+            {
+              $sort: { bbrScore: -1 },
+            },
+          ],
+          as: 'rankingRequests',
+        },
+      },
+      {
+        $lookup: {
+          from: 'brands',
+          localField: 'brandId',
+          foreignField: '_id',
+          pipeline: [
+            {
+              $project: {
+                name: 1,
+                logo: 1,
+                description: 1,
+              },
+            },
+          ],
+          as: 'brandId',
+        },
+      },
+      {
+        $unwind: {
+          path: '$createdById',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $unwind: {
+          path: '$countryId',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $unwind: {
+          path: '$stateId',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $unwind: {
+          path: '$cityId',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $unwind: {
+          path: '$locationId',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $unwind: {
+          path: '$propertyTypeId',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $unwind: {
+          path: '$geoGraphyId',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $unwind: {
+          path: '$lifeStyleId',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $unwind: {
+          path: '$brandId',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $addFields: {
+          upload: {
+            $map: {
+              input: '$upload',
+              as: 'uploadItem',
+              in: {
+                $mergeObjects: [
+                  '$$uploadItem',
+                  {
+                    ImageId: {
+                      $arrayElemAt: [
+                        {
+                          $filter: {
+                            input: '$uploadDetails',
+                            as: 'detail',
+                            cond: { $eq: ['$$detail._id', '$$uploadItem.ImageId'] },
+                          },
+                        },
+                        0,
+                      ],
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        },
+      },
+      {
+        $facet: {
+          metadata: [{ $count: 'total' }],
+          data: [
+            { $skip: (page - 1) * limit },
+            { $limit: limit },
+          ],
+        },
+      },
+    ];
 
-    const { data, count } = await this.rankingCategoryRepository.findAll(query, options, [
-      {
-        path: 'createdById',
-        select: 'fullName email role',
-        model: 'User',
-      },
-      {
-        path: 'upload.ImageId',
-        select: 'originalFileKey fileKey url mimeType',
-        model: 'Upload',
-      },
-      {
-        path: 'countryId',
-        select: 'name code',
-        model: 'Country',
-      },
-      {
-        path: 'stateId',
-        select: 'name stateCode',
-        model: 'State',
-      },
-      {
-        path: 'cityId',
-        select: 'name state',
-        model: 'City',
-      },
-      {
-        path: 'locationId',
-        select: 'name coordinates',
-        model: 'Location',
-      },
-      {
-        path: 'propertyTypeId',
-        select: 'name type description',
-        model: 'PropertyType',
-      },
-      {
-        path: 'geoGraphyId',
-        select: 'type upload name',
-        model: 'GeographicalAreas',
-      },
-      {
-        path: 'lifeStyleId',
-        select: 'name category',
-        model: 'LifeStyle',
-      },
-      {
-        path: 'rankingRequests',
-        match: { status: RankingRequestStatus.ACTIVE },
-        options: { sort: { bbrScore: -1 } },
-      },
-      {
-        path: 'brandId',
-        select: 'name logo description',
-        model: 'Brand',
-      },
-    ]);
+    const [result] = await this.rankingCategoryModel.aggregate(pipeline);
+    const count = result.metadata[0]?.total || 0;
+    const data = result.data;
 
-    const updatedData = [];
-    for (const rankingCategory of data) {
-      const cleanRankingCategory = rankingCategory.toObject();
+    const updatedData = data.map((rankingCategory) => ({
+      ...rankingCategory,
+      engagementScore: this.calculateEngagementScore(
+        this.getMatrixWeight(),
+        this.generateRandomMetrics()
+      ),
+    }));
 
-      updatedData.push({
-        ...cleanRankingCategory,
-        // This is a sample analytics function to calculate engagement score
-        // Once the analytics module is complete, this logic may be updated
-        engagementScore: this.calculateEngagementScore(
-          this.getMatrixWeight(),
-          this.generateRandomMetrics()
-        ),
-      });
-    }
-
-    const { pagination } = PaginationService.paginate({ rows: data, count }, rankingCategoryDto);
+    const { pagination } = PaginationService.paginate(
+      { rows: data, count },
+      rankingCategoryDto
+    );
 
     return { pagination, rankingCategories: updatedData };
   }

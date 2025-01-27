@@ -9,3 +9,6 @@ export class RankingCategoryDraft extends RankingCategory {
 }
 
 export const RankingCategoryDraftSchema = SchemaFactory.createForClass(RankingCategoryDraft);
+
+RankingCategoryDraftSchema.index({ rankingCategoryId: 1 });
+RankingCategoryDraftSchema.index({ createdAt: -1 });

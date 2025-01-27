@@ -9,3 +9,6 @@ export class RankingRequestDraft extends RankingRequest {
 }
 
 export const RankingRequestDraftSchema = SchemaFactory.createForClass(RankingRequestDraft);
+
+RankingRequestDraftSchema.index({ createdAt: -1 });
+RankingRequestDraftSchema.index({ rankingRequestId: 1 });

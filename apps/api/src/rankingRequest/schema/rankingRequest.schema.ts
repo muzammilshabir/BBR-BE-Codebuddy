@@ -93,3 +93,5 @@ export class RankingRequest extends Document {
 }
 
 export const RankingRequestSchema = SchemaFactory.createForClass(RankingRequest);
+
+RankingRequestSchema.index({ createdAt: -1 });

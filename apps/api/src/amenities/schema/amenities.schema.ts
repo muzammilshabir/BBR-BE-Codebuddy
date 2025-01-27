@@ -35,3 +35,8 @@ export class Amenity extends Document {
 }
 
 export const AmenitySchema = SchemaFactory.createForClass(Amenity);
+
+// Add indexes for common query patterns
+AmenitySchema.index({ createdAt: -1 });
+AmenitySchema.index({ name: 1 });
+AmenitySchema.index({ isDeleted: 1, createdAt: -1 });

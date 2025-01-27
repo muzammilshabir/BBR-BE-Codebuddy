@@ -1130,4 +1130,538 @@ export class ResidenceRepository extends BaseRepository<Residence> {
       .collation({ locale: 'en', strength: 1 })
       .exec();
   }
+
+  async listResidencesAggregation(filter: any, options: any) {
+    const pipeline: PipelineStage[] = [
+      // Initial match stage for basic filtering
+      {
+        $match: {
+          ...filter
+        }
+      },
+
+      // Lookup stages for related data
+      {
+        $lookup: {
+          from: 'residencetypes',
+          localField: 'residenceTypeIds',
+          foreignField: '_id',
+          as: 'residenceTypes'
+        }
+      },
+      {
+        $lookup: {
+          from: 'cities',
+          localField: 'cityId',
+          foreignField: '_id',
+          as: 'city'
+        }
+      },
+      {
+        $lookup: {
+          from: 'countries',
+          localField: 'countryId',
+          foreignField: '_id',
+          as: 'country'
+        }
+      },
+      {
+        $lookup: {
+          from: 'states',
+          localField: 'stateId',
+          foreignField: '_id',
+          as: 'state'
+        }
+      },
+      {
+        $lookup: {
+          from: 'brands',
+          localField: 'associatedBrandId',
+          foreignField: '_id',
+          as: 'associatedBrand'
+        }
+      },
+      {
+        $lookup: {
+          from: 'uploads',
+          let: {
+            mainPhotos: '$visuals.mainPhotos',
+            mainGalleryPhotos: '$visuals.mainGalleryPhotos',
+            secondGalleryPhotos: '$visuals.secondGalleryPhotos',
+            videoTour: '$visuals.videoTour'
+          },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $in: [
+                    '$_id',
+                    {
+                      $concatArrays: [
+                        { $ifNull: ['$$mainPhotos', []] },
+                        { $ifNull: ['$$mainGalleryPhotos', []] },
+                        { $ifNull: ['$$secondGalleryPhotos', []] },
+                        { $ifNull: [['$$videoTour'], []] }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              $project: {
+                originalFileKey: 1,
+                fileKey: 1,
+                url: 1,
+                mimeType: 1
+              }
+            }
+          ],
+          as: 'uploadedFiles'
+        }
+      },
+      {
+        $lookup: {
+          from: 'amenities',
+          localField: 'nearbyAmenities.amenitiesList',
+          foreignField: '_id',
+          as: 'amenitiesList'
+        }
+      },
+      {
+        $lookup: {
+          from: 'amenities',
+          localField: 'nearbyAmenities.highlightedAmenities.amenityId',
+          foreignField: '_id',
+          as: 'highlightedAmenities'
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'createdById',
+          foreignField: '_id',
+          as: 'createdBy'
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'developerId',
+          foreignField: '_id',
+          as: 'developer'
+        }
+      },
+      {
+        $lookup: {
+          from: 'rankingcategories',
+          localField: 'highestRankingCategoryId',
+          foreignField: '_id',
+          as: 'highestRankingCategory'
+        }
+      },
+
+      // Add fields stage to restructure visuals
+      {
+        $addFields: {
+          visuals: {
+            mainPhotos: {
+              $filter: {
+                input: '$uploadedFiles',
+                as: 'file',
+                cond: { $in: ['$$file._id', { $ifNull: ['$visuals.mainPhotos', []] }] }
+              }
+            },
+            mainGalleryPhotos: {
+              $filter: {
+                input: '$uploadedFiles',
+                as: 'file',
+                cond: { $in: ['$$file._id', { $ifNull: ['$visuals.mainGalleryPhotos', []] }] }
+              }
+            },
+            secondGalleryPhotos: {
+              $filter: {
+                input: '$uploadedFiles',
+                as: 'file',
+                cond: { $in: ['$$file._id', { $ifNull: ['$visuals.secondGalleryPhotos', []] }] }
+              }
+            },
+            videoTour: {
+              $arrayElemAt: [
+                {
+                  $filter: {
+                    input: '$uploadedFiles',
+                    as: 'file',
+                    cond: { $eq: ['$$file._id', '$visuals.videoTour'] }
+                  }
+                },
+                0
+              ]
+            }
+          }
+        }
+      },
+
+      // Project stage to shape the final output
+      {
+        $project: {
+          _id: 1,
+          name: 1,
+          residenceTypes: 1,
+          city: { $arrayElemAt: ['$city', 0] },
+          country: { $arrayElemAt: ['$country', 0] },
+          state: { $arrayElemAt: ['$state', 0] },
+          associatedBrand: { $arrayElemAt: ['$associatedBrand', 0] },
+          visuals: 1,
+          nearbyAmenities: {
+            amenitiesList: '$amenitiesList',
+            highlightedAmenities: {
+              $map: {
+                input: '$nearbyAmenities.highlightedAmenities',
+                as: 'highlighted',
+                in: {
+                  amenityId: {
+                    $arrayElemAt: [
+                      {
+                        $filter: {
+                          input: '$highlightedAmenities',
+                          as: 'amenity',
+                          cond: { $eq: ['$$amenity._id', '$$highlighted.amenityId'] }
+                        }
+                      },
+                      0
+                    ]
+                  },
+                  imageId: '$$highlighted.imageId'
+                }
+              }
+            }
+          },
+          createdBy: {
+            $arrayElemAt: ['$createdBy', 0]
+          },
+          developer: {
+            $arrayElemAt: ['$developer', 0]
+          },
+          highestRankingCategory: {
+            $arrayElemAt: ['$highestRankingCategory', 0]
+          },
+          status: 1,
+          featured: 1,
+          budgetLimitationsRange: 1,
+          residenceKeyFeatures: 1,
+          createdAt: 1,
+          updatedAt: 1
+        }
+      },
+
+      // Facet stage for pagination
+      {
+        $facet: {
+          data: [
+            { $sort: options.sort || { createdAt: -1 } },
+            { $skip: options.offset || 0 },
+            { $limit: options.limit || 10 }
+          ],
+          totalCount: [{ $count: 'count' }]
+        }
+      },
+
+      // Final project to get the count
+      {
+        $project: {
+          data: 1,
+          totalCount: { $arrayElemAt: ['$totalCount.count', 0] }
+        }
+      }
+    ];
+
+    return this.residenceModel.aggregate(pipeline).collation({ locale: 'en', strength: 1 });
+  }
+
+  async getTopResidencesAggregation(filter: any, options: any) {
+    const pipeline: PipelineStage[] = [
+      // Initial match stage for basic filtering
+      {
+        $match: {
+          ...filter,
+          highestBbrScore: { $exists: true }
+        }
+      },
+
+      // Sort by BBR score first
+      {
+        $sort: {
+          highestBbrScore: -1
+        }
+      },
+
+      // Lookup stages for related data
+      {
+        $lookup: {
+          from: 'residencetypes',
+          localField: 'residenceTypeIds',
+          foreignField: '_id',
+          as: 'residenceTypes'
+        }
+      },
+      {
+        $lookup: {
+          from: 'cities',
+          localField: 'cityId',
+          foreignField: '_id',
+          as: 'city'
+        }
+      },
+      {
+        $lookup: {
+          from: 'countries',
+          localField: 'countryId',
+          foreignField: '_id',
+          as: 'country'
+        }
+      },
+      {
+        $lookup: {
+          from: 'states',
+          localField: 'stateId',
+          foreignField: '_id',
+          as: 'state'
+        }
+      },
+      {
+        $lookup: {
+          from: 'brands',
+          localField: 'associatedBrandId',
+          foreignField: '_id',
+          as: 'associatedBrand'
+        }
+      },
+      {
+        $lookup: {
+          from: 'uploads',
+          let: {
+            mainPhotos: '$visuals.mainPhotos',
+            mainGalleryPhotos: '$visuals.mainGalleryPhotos',
+            secondGalleryPhotos: '$visuals.secondGalleryPhotos',
+            videoTour: '$visuals.videoTour'
+          },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $in: [
+                    '$_id',
+                    {
+                      $concatArrays: [
+                        { $ifNull: ['$$mainPhotos', []] },
+                        { $ifNull: ['$$mainGalleryPhotos', []] },
+                        { $ifNull: ['$$secondGalleryPhotos', []] },
+                        { $ifNull: [['$$videoTour'], []] }
+                      ]
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              $project: {
+                originalFileKey: 1,
+                fileKey: 1,
+                url: 1,
+                mimeType: 1
+              }
+            }
+          ],
+          as: 'uploadedFiles'
+        }
+      },
+      {
+        $lookup: {
+          from: 'amenities',
+          localField: 'nearbyAmenities.amenitiesList',
+          foreignField: '_id',
+          as: 'amenitiesList'
+        }
+      },
+      {
+        $lookup: {
+          from: 'amenities',
+          localField: 'nearbyAmenities.highlightedAmenities.amenityId',
+          foreignField: '_id',
+          as: 'highlightedAmenities'
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'createdById',
+          foreignField: '_id',
+          as: 'createdBy'
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'developerId',
+          foreignField: '_id',
+          as: 'developer'
+        }
+      },
+      {
+        $lookup: {
+          from: 'rankingcategories',
+          localField: 'highestRankingCategoryId',
+          foreignField: '_id',
+          as: 'highestRankingCategory'
+        }
+      },
+      {
+        $lookup: {
+          from: 'rankingrequests',
+          let: { residenceId: '$_id', rankingCategoryId: '$highestRankingCategoryId' },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ['$residenceId', '$$residenceId'] },
+                    { $eq: ['$rankingCategoryId', '$$rankingCategoryId'] }
+                  ]
+                },
+                isDeleted: { $ne: true },
+                bbrScore: { $exists: true }
+              }
+            },
+            { $sort: { bbrScore: -1 } }
+          ],
+          as: 'rankingRequests'
+        }
+      },
+
+      // Add fields stage to restructure visuals
+      {
+        $addFields: {
+          visuals: {
+            mainPhotos: {
+              $filter: {
+                input: '$uploadedFiles',
+                as: 'file',
+                cond: { $in: ['$$file._id', { $ifNull: ['$visuals.mainPhotos', []] }] }
+              }
+            },
+            mainGalleryPhotos: {
+              $filter: {
+                input: '$uploadedFiles',
+                as: 'file',
+                cond: { $in: ['$$file._id', { $ifNull: ['$visuals.mainGalleryPhotos', []] }] }
+              }
+            },
+            secondGalleryPhotos: {
+              $filter: {
+                input: '$uploadedFiles',
+                as: 'file',
+                cond: { $in: ['$$file._id', { $ifNull: ['$visuals.secondGalleryPhotos', []] }] }
+              }
+            },
+            videoTour: {
+              $arrayElemAt: [
+                {
+                  $filter: {
+                    input: '$uploadedFiles',
+                    as: 'file',
+                    cond: { $eq: ['$$file._id', '$visuals.videoTour'] }
+                  }
+                },
+                0
+              ]
+            }
+          },
+          position: {
+            $indexOfArray: [
+              '$rankingRequests.residenceId',
+              '$_id'
+            ]
+          }
+        }
+      },
+
+      // Project stage to shape the final output
+      {
+        $project: {
+          _id: 1,
+          name: 1,
+          residenceTypes: 1,
+          city: { $arrayElemAt: ['$city', 0] },
+          country: { $arrayElemAt: ['$country', 0] },
+          state: { $arrayElemAt: ['$state', 0] },
+          associatedBrand: { $arrayElemAt: ['$associatedBrand', 0] },
+          visuals: 1,
+          nearbyAmenities: {
+            amenitiesList: '$amenitiesList',
+            highlightedAmenities: {
+              $map: {
+                input: '$nearbyAmenities.highlightedAmenities',
+                as: 'highlighted',
+                in: {
+                  amenityId: {
+                    $arrayElemAt: [
+                      {
+                        $filter: {
+                          input: '$highlightedAmenities',
+                          as: 'amenity',
+                          cond: { $eq: ['$$amenity._id', '$$highlighted.amenityId'] }
+                        }
+                      },
+                      0
+                    ]
+                  },
+                  imageId: '$$highlighted.imageId'
+                }
+              }
+            }
+          },
+          createdBy: {
+            $arrayElemAt: ['$createdBy', 0]
+          },
+          developer: {
+            $arrayElemAt: ['$developer', 0]
+          },
+          highestRankingCategory: {
+            $arrayElemAt: ['$highestRankingCategory', 0]
+          },
+          status: 1,
+          featured: 1,
+          budgetLimitationsRange: 1,
+          residenceKeyFeatures: 1,
+          createdAt: 1,
+          updatedAt: 1,
+          highestBbrScore: 1,
+          position: 1,
+          rankingRequests: 1
+        }
+      },
+
+      // Facet stage for pagination
+      {
+        $facet: {
+          data: [
+            { $skip: options.offset || 0 },
+            { $limit: options.limit || 10 }
+          ],
+          totalCount: [{ $count: 'count' }]
+        }
+      },
+
+      // Final project to get the count
+      {
+        $project: {
+          data: 1,
+          totalCount: { $arrayElemAt: ['$totalCount.count', 0] }
+        }
+      }
+    ];
+
+    return this.residenceModel.aggregate(pipeline).collation({ locale: 'en', strength: 1 });
+  }
 }
