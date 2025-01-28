@@ -26,3 +26,9 @@ export class ActivityLog extends Document {
 }
 
 export const ActivityLogSchema = SchemaFactory.createForClass(ActivityLog);
+
+// Add compound indexes for common query patterns
+ActivityLogSchema.index({ createdAt: -1 });
+ActivityLogSchema.index({ leadId: 1, createdAt: -1 });
+ActivityLogSchema.index({ userId: 1, createdAt: -1 });
+ActivityLogSchema.index({ isDeleted: 1, createdAt: -1 });

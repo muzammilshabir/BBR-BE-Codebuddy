@@ -20,3 +20,5 @@ export class AdminNote extends Document {
 }
 
 export const AdminNoteSchema = SchemaFactory.createForClass(AdminNote);
+
+AdminNoteSchema.index({ createdAt: -1 });

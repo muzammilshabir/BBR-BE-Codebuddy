@@ -470,59 +470,19 @@ export class ResidenceService {
     }
     const options = PaginationService.prepareOptions(listResidenceDto);
 
-    const { data, count } = await this.residenceRepository.findAll(filter, options, [
-      {
-        path: 'residenceTypeIds',
-        select: 'type',
-        model: 'ResidenceType',
-      },
-      { path: 'cityId', select: 'name countryId upload' },
-      { path: 'countryId', select: 'name geographicalAreasId upload' },
-      { path: 'stateId', select: 'name stateCode upload' },
-      { path: 'associatedBrandId', select: 'name' },
-      {
-        path: 'visuals.mainPhotos',
-        select: 'originalFileKey fileKey url mimeType',
-        model: 'Upload',
-      },
-      {
-        path: 'visuals.mainGalleryPhotos',
-        select: 'originalFileKey fileKey url mimeType',
-        model: 'Upload',
-      },
-      {
-        path: 'visuals.secondGalleryPhotos',
-        select: 'originalFileKey fileKey url mimeType',
-        model: 'Upload',
-      },
-      {
-        path: 'visuals.videoTour',
-        select: 'originalFileKey fileKey url mimeType',
-        model: 'Upload',
-      },
-      { path: 'nearbyAmenities.amenitiesList', select: 'name', model: 'Amenity' },
-      { path: 'nearbyAmenities.highlightedAmenities.amenityId', select: 'name', model: 'Amenity' },
-      {
-        path: 'nearbyAmenities.highlightedAmenities.imageId',
-        select: 'originalFileKey fileKey url mimeType',
-        model: 'Upload',
-      },
-      { path: 'createdById', select: 'fullName email role', model: 'User' },
-      { path: 'developerId', select: 'fullName email role', model: 'User' },
-      { path: 'highestRankingCategoryId', model: 'RankingCategory', select: 'title' },
-    ]);
+    const result = await this.residenceRepository.listResidencesAggregation(filter, options);
+    const data = result[0]?.data || [];
+    const count = result[0]?.totalCount || 0;
 
-    const updatedData = data.map((residence) => {
-      const cleanResidence = residence.toObject();
+    const updatedData = data.map((residence) => ({
+      ...residence,
+      views: 0,
+      saves: 0,
+      inquiries: 0,
+    }));
 
-      return {
-        ...cleanResidence,
-        views: 0,
-        saves: 0,
-        inquiries: 0,
-      };
-    });
     const transformedResidence = await this.transformResidences(updatedData);
+
     if (listResidenceDto.isDownload) {
       if (listResidenceDto.fileType === 'csv') {
         return this.generateCsv(transformedResidence);
@@ -530,6 +490,7 @@ export class ResidenceService {
         return this.generateExcel(transformedResidence);
       }
     }
+
     const { pagination } = PaginationService.paginate({ rows: data, count }, listResidenceDto);
 
     return { pagination, residences: transformedResidence };
@@ -1539,104 +1500,28 @@ export class ResidenceService {
     const filter: any = {
       isDeleted: { $ne: DeletionStatus.DELETED },
       status: ResidenceStatus.ACTIVE,
-      highestBbrScore: { $exists: true },
       ...(listTopResidencesDto.countryId
         ? { countryId: new Types.ObjectId(listTopResidencesDto.countryId) }
-        : {}),
+        : {})
     };
+
     const options = PaginationService.prepareOptions(listTopResidencesDto);
+    
+    const result = await this.residenceRepository.getTopResidencesAggregation(filter, options);
+    const data = result[0]?.data || [];
+    const count = result[0]?.totalCount || 0;
 
-    const { data, count } = await this.residenceRepository.findAll(filter, options, [
-      {
-        path: 'residenceTypeIds',
-        select: 'type',
-        model: 'ResidenceType',
-      },
-      { path: 'cityId', select: 'name countryId upload' },
-      { path: 'countryId', select: 'name geographicalAreasId upload' },
-      { path: 'stateId', select: 'name stateCode upload' },
-      { path: 'associatedBrandId', select: 'name' },
-      {
-        path: 'visuals.mainPhotos',
-        select: 'originalFileKey fileKey url mimeType',
-        model: 'Upload',
-      },
-      {
-        path: 'visuals.mainGalleryPhotos',
-        select: 'originalFileKey fileKey url mimeType',
-        model: 'Upload',
-      },
-      {
-        path: 'visuals.secondGalleryPhotos',
-        select: 'originalFileKey fileKey url mimeType',
-        model: 'Upload',
-      },
-      {
-        path: 'visuals.videoTour',
-        select: 'originalFileKey fileKey url mimeType',
-        model: 'Upload',
-      },
-      { path: 'nearbyAmenities.amenitiesList', select: 'name', model: 'Amenity' },
-      { path: 'nearbyAmenities.highlightedAmenities.amenityId', select: 'name', model: 'Amenity' },
-      {
-        path: 'nearbyAmenities.highlightedAmenities.imageId',
-        select: 'originalFileKey fileKey url mimeType',
-        model: 'Upload',
-      },
-      { path: 'createdById', select: 'fullName email role', model: 'User' },
-      { path: 'developerId', select: 'fullName email role', model: 'User' },
-      { path: 'highestRankingCategoryId', model: 'RankingCategory', select: 'title' },
-    ]);
+    const updatedData = data.map((residence) => ({
+      ...residence,
+      views: 0,
+      saves: 0,
+      inquiries: 0
+    }));
 
-    const updatedData = data.map((residence) => {
-      const cleanResidence = residence.toObject();
-
-      return {
-        ...cleanResidence,
-        views: 0,
-        saves: 0,
-        inquiries: 0,
-      };
-    });
     const transformedResidence = await this.transformResidences(updatedData);
-
     const { pagination } = PaginationService.paginate({ rows: data, count }, listTopResidencesDto);
 
-    const response = [];
-
-    for (let index = 0; index < transformedResidence.length; index++) {
-      const residence = transformedResidence[index];
-      const newRankingRequests = await this.rankingRequestRepository.findAll(
-        {
-          rankingCategoryId: new Types.ObjectId(
-            residence?.highestRankingCategoryId?.['_id'].toString()
-          ),
-          isDeleted: { $ne: DeletionStatus.DELETED },
-          bbrScore: { $exists: true },
-          status: {
-            $in: [
-              RankingCategoryStatus.ACTIVE,
-              RankingCategoryStatus.DRAFT,
-              RankingCategoryStatus.PENDING,
-            ],
-          },
-        },
-        {
-          sort: {
-            'bbrScore': -1,
-          },
-        }
-      );
-      const position = await this.getCurrentPosition(
-        newRankingRequests.data,
-        residence?._id.toString()
-      );
-      response.push({
-        ...residence,
-        position,
-      });
-    }
-    return { pagination, residences: response };
+    return { pagination, residences: transformedResidence };
   }
 
   async getResidencesTotalCount(query: ListResidenceWithDraftCountDto) {
