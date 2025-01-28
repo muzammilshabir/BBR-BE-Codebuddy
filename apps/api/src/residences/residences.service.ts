@@ -450,38 +450,263 @@ export class ResidenceService {
   }
 
   async listResidences(listResidenceDto: ListResidenceDto) {
-    const filter: any = {
+    const pipeline: any[] = [];
+    
+    // Match stage
+    const matchStage: any = {
       isDeleted: { $ne: DeletionStatus.DELETED },
     };
+    
     if (listResidenceDto.status) {
-      filter.status = listResidenceDto.status;
+      matchStage.status = listResidenceDto.status;
     }
     if (listResidenceDto.locationId) {
-      filter.locationId = new Types.ObjectId(listResidenceDto.locationId);
+      matchStage.locationId = new Types.ObjectId(listResidenceDto.locationId);
     }
     if (listResidenceDto.developerId) {
-      filter.developerId = new Types.ObjectId(listResidenceDto.developerId);
+      matchStage.developerId = new Types.ObjectId(listResidenceDto.developerId);
     }
     if (listResidenceDto.featured) {
-      filter.featured = listResidenceDto.featured;
+      matchStage.featured = listResidenceDto.featured;
     }
     if (listResidenceDto.search) {
-      filter.name = { $regex: listResidenceDto.search, $options: 'i' };
+      matchStage.name = { $regex: listResidenceDto.search, $options: 'i' };
     }
+
+    pipeline.push({ $match: matchStage });
+
+    // Lookup stages
+    pipeline.push(
+      {
+        $lookup: {
+          from: 'residencetypes',
+          localField: 'residenceTypeIds',
+          foreignField: '_id',
+          pipeline: [{ $project: { _id: 1, type: 1 } }],
+          as: 'residenceTypeIds'
+        }
+      },
+      {
+        $lookup: {
+          from: 'cities',
+          localField: 'cityId',
+          foreignField: '_id',
+          pipeline: [{ 
+            $project: { 
+              _id: 1, 
+              name: 1, 
+              countryId: 1,
+              upload: 1
+            } 
+          }],
+          as: 'cityId'
+        }
+      },
+      {
+        $lookup: {
+          from: 'countries',
+          localField: 'countryId',
+          foreignField: '_id',
+          pipeline: [{ 
+            $project: { 
+              _id: 1, 
+              name: 1,
+              upload: 1
+            } 
+          }],
+          as: 'countryId'
+        }
+      },
+      {
+        $lookup: {
+          from: 'states',
+          localField: 'stateId',
+          foreignField: '_id',
+          pipeline: [{ 
+            $project: { 
+              _id: 1, 
+              name: 1, 
+              stateCode: 1,
+              upload: 1
+            } 
+          }],
+          as: 'stateId'
+        }
+      },
+      {
+        $lookup: {
+          from: 'brands',
+          localField: 'associatedBrandId',
+          foreignField: '_id',
+          pipeline: [{ $project: { _id: 1, name: 1 } }],
+          as: 'associatedBrandId',
+        },
+      },
+      {
+        $lookup: {
+          from: 'rankingcategories',
+          localField: 'highestRankingCategoryId',
+          foreignField: '_id',
+          pipeline: [{ $project: { _id: 1, title: 1 } }],
+          as: 'highestRankingCategoryId'
+        }
+      },
+      {
+        $lookup: {
+          from: 'uploads',
+          let: {
+            mainPhotos: '$visuals.mainPhotos',
+            mainGalleryPhotos: '$visuals.mainGalleryPhotos',
+            secondGalleryPhotos: '$visuals.secondGalleryPhotos',
+            videoTour: '$visuals.videoTour'
+          },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $in: ['$_id', {
+                    $concatArrays: [
+                      { $ifNull: ['$$mainPhotos', []] },
+                      { $ifNull: ['$$mainGalleryPhotos', []] },
+                      { $ifNull: ['$$secondGalleryPhotos', []] },
+                      { $ifNull: [['$$videoTour'], []] }
+                    ]
+                  }]
+                }
+              }
+            },
+            {
+              $project: {
+                _id: 1,
+                originalFileKey: 1,
+                fileKey: 1,
+                url: 1,
+                mimeType: 1
+              }
+            }
+          ],
+          as: 'uploadedFiles'
+        }
+      },
+      {
+        $lookup: {
+          from: 'amenities',
+          localField: 'nearbyAmenities.amenitiesList',
+          foreignField: '_id',
+          pipeline: [{ 
+            $project: { 
+              _id: 1, 
+              name: 1,
+              id: { $toString: '$_id' }
+            } 
+          }],
+          as: 'amenitiesList'
+        }
+      },
+      {
+        $lookup: {
+          from: 'amenities',
+          localField: 'nearbyAmenities.highlightedAmenities.amenityId',
+          foreignField: '_id',
+          pipeline: [{ 
+            $project: { 
+              _id: 1, 
+              name: 1,
+              id: { $toString: '$_id' }
+            } 
+          }],
+          as: 'highlightedAmenities'
+        }
+      },
+      {
+        $lookup:{
+          from:'users',
+          localField:'createdById',
+          foreignField:'_id',
+          pipeline:[{$project:{_id:1,fullName:1}}],
+          as:'createdById'
+        }
+      },
+      {
+        $lookup:{
+          from:'users',
+          localField:'developerId',
+          foreignField:'_id',
+          pipeline:[{$project:{_id:1,fullName:1}}],
+          as:'developerId'
+        }
+      }
+    );
+
+    // Structure the response
+    pipeline.push(
+      {
+        $addFields: {
+          'nearbyAmenities.amenitiesList': '$amenitiesList',
+          'nearbyAmenities.highlightedAmenities': {
+            $map: {
+              input: '$nearbyAmenities.highlightedAmenities',
+              as: 'highlighted',
+              in: {
+                amenityId: {
+                  $arrayElemAt: [{
+                    $filter: {
+                      input: '$highlightedAmenities',
+                      as: 'amenity',
+                      cond: { $eq: ['$$amenity._id', '$$highlighted.amenityId'] }
+                    }
+                  }, 0]
+                },
+                generalDescription: '$$highlighted.generalDescription'
+              }
+            }
+          },
+          'cityId': { $arrayElemAt: ['$cityId', 0] },
+          'countryId': { $arrayElemAt: ['$countryId', 0] },
+          'stateId': { $arrayElemAt: ['$stateId', 0] },
+          'associatedBrandId': { $arrayElemAt: ['$associatedBrandId', 0] },
+          'highestRankingCategoryId': { $arrayElemAt: ['$highestRankingCategoryId', 0] },
+          'views': 0,
+          'saves': 0,
+          'inquiries': 0,
+          'createdById': { $arrayElemAt: ['$createdById', 0] },
+          'developerId': { $arrayElemAt: ['$developerId', 0] }
+        }
+      },
+      {
+        $project: {
+          amenitiesList: 0,
+          highlightedAmenities: 0,
+          uploadedFiles: 0
+        }
+      }
+    );
+
+    // Pagination stages
     const options = PaginationService.prepareOptions(listResidenceDto);
+    pipeline.push(
+      {
+        $facet: {
+          data: [
+            { $skip: options.offset },
+            { $limit: options.limit }
+          ],
+          totalCount: [{ $count: 'count' }]
+        }
+      },
+      {
+        $project: {
+          data: 1,
+          totalCount: { $arrayElemAt: ['$totalCount.count', 0] }
+        }
+      }
+    );
 
-    const result = await this.residenceRepository.listResidencesAggregation(filter, options);
-    const data = result[0]?.data || [];
-    const count = result[0]?.totalCount || 0;
+    const [result] = await this.residenceRepository.aggregate(pipeline);
+    const data = result?.data || [];
+    const count = result?.totalCount || 0;
 
-    const updatedData = data.map((residence) => ({
-      ...residence,
-      views: 0,
-      saves: 0,
-      inquiries: 0,
-    }));
-
-    const transformedResidence = await this.transformResidences(updatedData);
+    const transformedResidence = await this.transformResidences(data);
 
     if (listResidenceDto.isDownload) {
       if (listResidenceDto.fileType === 'csv') {
@@ -1500,28 +1725,104 @@ export class ResidenceService {
     const filter: any = {
       isDeleted: { $ne: DeletionStatus.DELETED },
       status: ResidenceStatus.ACTIVE,
+      highestBbrScore: { $exists: true },
       ...(listTopResidencesDto.countryId
         ? { countryId: new Types.ObjectId(listTopResidencesDto.countryId) }
-        : {})
+        : {}),
     };
-
     const options = PaginationService.prepareOptions(listTopResidencesDto);
-    
-    const result = await this.residenceRepository.getTopResidencesAggregation(filter, options);
-    const data = result[0]?.data || [];
-    const count = result[0]?.totalCount || 0;
 
-    const updatedData = data.map((residence) => ({
-      ...residence,
-      views: 0,
-      saves: 0,
-      inquiries: 0
-    }));
+    const { data, count } = await this.residenceRepository.findAll(filter, options, [
+      {
+        path: 'residenceTypeIds',
+        select: 'type',
+        model: 'ResidenceType',
+      },
+      { path: 'cityId', select: 'name countryId upload' },
+      { path: 'countryId', select: 'name geographicalAreasId upload' },
+      { path: 'stateId', select: 'name stateCode upload' },
+      { path: 'associatedBrandId', select: 'name' },
+      {
+        path: 'visuals.mainPhotos',
+        select: 'originalFileKey fileKey url mimeType',
+        model: 'Upload',
+      },
+      {
+        path: 'visuals.mainGalleryPhotos',
+        select: 'originalFileKey fileKey url mimeType',
+        model: 'Upload',
+      },
+      {
+        path: 'visuals.secondGalleryPhotos',
+        select: 'originalFileKey fileKey url mimeType',
+        model: 'Upload',
+      },
+      {
+        path: 'visuals.videoTour',
+        select: 'originalFileKey fileKey url mimeType',
+        model: 'Upload',
+      },
+      { path: 'nearbyAmenities.amenitiesList', select: 'name', model: 'Amenity' },
+      { path: 'nearbyAmenities.highlightedAmenities.amenityId', select: 'name', model: 'Amenity' },
+      {
+        path: 'nearbyAmenities.highlightedAmenities.imageId',
+        select: 'originalFileKey fileKey url mimeType',
+        model: 'Upload',
+      },
+      { path: 'createdById', select: 'fullName email role', model: 'User' },
+      { path: 'developerId', select: 'fullName email role', model: 'User' },
+      { path: 'highestRankingCategoryId', model: 'RankingCategory', select: 'title' },
+    ]);
 
+    const updatedData = data.map((residence) => {
+      const cleanResidence = residence.toObject();
+
+      return {
+        ...cleanResidence,
+        views: 0,
+        saves: 0,
+        inquiries: 0,
+      };
+    });
     const transformedResidence = await this.transformResidences(updatedData);
+
     const { pagination } = PaginationService.paginate({ rows: data, count }, listTopResidencesDto);
 
-    return { pagination, residences: transformedResidence };
+    const response = [];
+
+    for (let index = 0; index < transformedResidence.length; index++) {
+      const residence = transformedResidence[index];
+      const newRankingRequests = await this.rankingRequestRepository.findAll(
+        {
+          rankingCategoryId: new Types.ObjectId(
+            residence?.highestRankingCategoryId?.['_id'].toString()
+          ),
+          isDeleted: { $ne: DeletionStatus.DELETED },
+          bbrScore: { $exists: true },
+          status: {
+            $in: [
+              RankingCategoryStatus.ACTIVE,
+              RankingCategoryStatus.DRAFT,
+              RankingCategoryStatus.PENDING,
+            ],
+          },
+        },
+        {
+          sort: {
+            'bbrScore': -1,
+          },
+        }
+      );
+      const position = await this.getCurrentPosition(
+        newRankingRequests.data,
+        residence?._id.toString()
+      );
+      response.push({
+        ...residence,
+        position,
+      });
+    }
+    return { pagination, residences: response };
   }
 
   async getResidencesTotalCount(query: ListResidenceWithDraftCountDto) {

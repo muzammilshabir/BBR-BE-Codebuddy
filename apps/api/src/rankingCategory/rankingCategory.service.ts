@@ -130,6 +130,12 @@ export class RankingCategoryService {
       matchStage.brandId = new Types.ObjectId(brandId);
     }
 
+    const paginationOptions = PaginationService.prepareOptions(rankingCategoryDto);
+    const sortObject = paginationOptions.sort.reduce((acc, [field, order]) => {
+      acc[field] = order;
+      return acc;
+    }, {});
+
     const pipeline: PipelineStage[] = [
       {
         $match: matchStage,
@@ -410,6 +416,9 @@ export class RankingCategoryService {
             },
           },
         },
+      },
+      {
+        $sort: sortObject,
       },
       {
         $facet: {
