@@ -131,7 +131,7 @@ export class LeadService {
 
       const groupData: CometChatCreateGroup = {
         guid: groupName,
-        name: transformedDto.name,
+        name: `${transformedDto.name}, Customer Support`,
         type: 'private',
         members: {
           admins: [this.customerSupportUserId, leadUser._id.toString()],
@@ -155,7 +155,9 @@ export class LeadService {
       // Create Group If Residence Id Present
 
       if (transformedDto.residenceId) {
-        const residence = await this.residenceModel.findById({ _id: transformedDto.residenceId });
+        const residence = (await this.residenceModel
+          .findById({ _id: transformedDto.residenceId })
+          .populate('developerId')) as any;
 
         if (residence) {
           const groupName2 = `${lead.id.toString()}-leadUser-Developer`;
@@ -163,10 +165,10 @@ export class LeadService {
           // Create group data
           const groupData: CometChatCreateGroup = {
             guid: groupName2,
-            name: lead.name,
+            name: `${transformedDto.name}, ${residence.developerId.fullName}`,
             type: 'private',
             members: {
-              admins: [this.customerSupportUserId, leadUser._id.toString()],
+              admins: [residence.developerId._id.toString(), leadUser._id.toString()],
             },
           };
 
@@ -174,7 +176,7 @@ export class LeadService {
           const cGroup2 = await this.cometChatService.createGroup(groupData);
 
           // Add participants
-          const participants = [residence.developerId.toString(), leadUser._id.toString()];
+          const participants = [residence.developerId._id.toString(), leadUser._id.toString()];
 
           // Add participants to group
           await this.cometChatService.addMembersToGroup(groupName2, participants);
