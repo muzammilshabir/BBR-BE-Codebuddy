@@ -21,6 +21,9 @@ export class LifeStyle extends Document {
     type?: string;
   }[];
 
+  @Prop({ required: false })
+  displayOrder?: number;
+
   @Prop({ type: Types.ObjectId, ref: 'User', required: false })
   createdBy?: Types.ObjectId;
 

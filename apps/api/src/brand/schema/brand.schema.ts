@@ -36,6 +36,9 @@ export class Brand extends Document {
   })
   status: string;
 
+  @Prop({ required: false })
+  displayOrder?: number;
+
   @Prop({ type: Boolean, default: false })
   isDeleted: boolean;
 
