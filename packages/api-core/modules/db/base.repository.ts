@@ -8,7 +8,10 @@ export class BaseRepository<T extends Document> {
     options?: any,
     populateOptions?: any[]
   ): Promise<{ data: T[]; count: number }> {
-    let query = this.model.find({ ...filter, [options?.sort?.[0]?.[0] || '']: { $exists: true } });
+    let query = this.model.find({
+      ...filter,
+      ...(options?.sort?.[0]?.[0] ? { [options?.sort?.[0]?.[0] || '']: { $exists: true } } : {}),
+    });
     if (options) {
       query.sort(options.sort).skip(options.offset).limit(options.limit);
     }
