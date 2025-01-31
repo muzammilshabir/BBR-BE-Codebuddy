@@ -80,11 +80,25 @@ import { DevLeadsActivityLogModule } from './dev-leads-activity-log/dev-leads-ac
 import { RankingActivityLogModule } from './ranking-activity-log/ranking-activity-log.module';
 import { DevRankingActivityLogModule } from './dev-ranking-activity-log/dev-ranking-activity-log.module';
 import { InvoiceScheduleModule } from './invoice-schedule/invoiceSchedule.module';
+import { JobsModule } from './backgroundJobs/backgroundJobs.module';
+import { BullModule } from '@nestjs/bullmq';
+import { BullBoardModule } from '@bull-board/nestjs';
+import { ExpressAdapter } from '@bull-board/express';
 
 @Module({
   imports: [
-    BbrConfigModule.forRoot({
-      useClass: ServiceConfig,
+    BbrConfigModule.forRoot({ useClass: ServiceConfig }),
+    BullModule.forRoot({
+      connection: {
+        host: process.env.APP_REDIS_HOST,
+        port: Number(process.env.APP_REDIS_PORT),
+        username: process.env.APP_REDIS_USER,
+        password: process.env.APP_REDIS_PASSWORD,
+      },
+    }),
+    BullBoardModule.forRoot({
+      route: '/queues',
+      adapter: ExpressAdapter,
     }),
     EventEmitterModule.forRoot(),
     JwtModule.register(jwtConfig),
@@ -160,6 +174,7 @@ import { InvoiceScheduleModule } from './invoice-schedule/invoiceSchedule.module
     DevLeadsActivityLogModule,
     DevRankingActivityLogModule,
     InvoiceScheduleModule,
+    JobsModule,
   ],
   controllers: [AppController],
   providers: [
