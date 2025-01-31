@@ -1738,6 +1738,7 @@ export class ResidenceService {
           },
         }
       );
+      console.log({ residence, newRankingRequests });
       const position = await this.getCurrentPosition(
         newRankingRequests.data,
         residence?._id.toString()
