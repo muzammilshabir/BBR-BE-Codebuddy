@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
+import slugify from 'slugify';
 
 @Schema({ timestamps: true, virtuals: true })
 export class Residence extends Document {
@@ -259,6 +260,9 @@ export class Residence extends Document {
 
   @Prop({ type: Boolean, default: false })
   isFeatured: boolean;
+
+  @Prop({ required: false })
+  slug?: string;
 }
 
 export const ResidenceSchema = SchemaFactory.createForClass(Residence);
@@ -272,3 +276,31 @@ ResidenceSchema.virtual('activeInvoiceSchedule', {
 });
 ResidenceSchema.set('toJSON', { virtuals: true });
 ResidenceSchema.set('toObject', { virtuals: true });
+
+// Add pre-save middleware to generate slug
+ResidenceSchema.pre('save', async function (next) {
+  const residence = this as Residence;
+
+  // Only generate slug if name is new or modified
+  if (!residence.isModified('name')) return next();
+
+  try {
+    let cityName = '';
+
+    // Populate cityId to get the city name
+    if (residence.cityId) {
+      const city = (await this.model('City')
+        .findById(residence.cityId)
+        .select('name')
+        .exec()) as any;
+      cityName = city?.name || '';
+    }
+
+    // Generate the slug using residence name and city name
+    residence.slug = slugify(`${residence.name} ${cityName}`, { lower: true });
+
+    next();
+  } catch (error) {
+    next(error);
+  }
+});

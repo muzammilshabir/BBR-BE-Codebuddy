@@ -11,11 +11,25 @@ import {
 } from './dto/list-ranking-request.dto';
 import { PaginationService } from '../../../../packages/api-core/modules/pagination/pagination.service';
 import { RankingCategoryStatus } from '../rankingCategory/enum/rankingCategory-status.enum';
+import { Country } from 'src/country/schema/country.schema';
+import { City } from 'src/city/schema/city.schema';
+import { GeographicalAreas } from 'src/geographicalAreas/schema/geographicalAreas.schema';
+import { Brand } from 'src/brand/schema/brand.schema';
+import { LifeStyle } from 'src/lifestyles/schema/lifeStyle.schema';
+import { PropertyType } from 'src/propertyType/schema/propertyType.schema';
+import { Residence } from 'src/residences/schema/residences.schema';
 
 @Injectable()
 export class RankingRequestRepository extends BaseRepository<RankingRequest> {
   constructor(
-    @InjectModel(RankingRequest.name) private readonly rankingRequestModel: Model<RankingRequest>
+    @InjectModel(RankingRequest.name) private readonly rankingRequestModel: Model<RankingRequest>,
+    @InjectModel(Country.name) private readonly countryModel: Model<Country>,
+    @InjectModel(City.name) private readonly cityModel: Model<City>,
+    @InjectModel(GeographicalAreas.name) private readonly geographyModel: Model<GeographicalAreas>,
+    @InjectModel(Brand.name) private readonly brandModel: Model<Brand>,
+    @InjectModel(LifeStyle.name) private readonly lifeStyleModel: Model<LifeStyle>,
+    @InjectModel(PropertyType.name) private readonly propertyTypeModel: Model<PropertyType>,
+    @InjectModel(Residence.name) private readonly residenceModel: Model<Residence>
   ) {
     super(rankingRequestModel);
   }
@@ -771,8 +785,13 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
       countryId,
       locationId,
       geoGraphyId,
-      residenceId,
+      residenceId: residenceIdOrSlug,
     } = listRankingRequestForUserDto;
+    let residenceId;
+
+    if (residenceIdOrSlug) {
+      residenceId = this.getIdBySlugOrObjectId(this.residenceModel, residenceIdOrSlug);
+    }
     const paginationOptions = PaginationService.prepareOptions(listRankingRequestForUserDto);
 
     const sortObject = paginationOptions.sort.reduce((acc, [field, order]) => {
@@ -800,7 +819,7 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
     if (residenceId) {
       pipeline.push({
         $match: {
-          residenceId: new Types.ObjectId(residenceId),
+          residenceId: residenceId,
         },
       });
     }
@@ -884,7 +903,15 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
         },
       },
       { $unwind: { path: '$residence.city', preserveNullAndEmptyArrays: true } },
-
+      {
+        $lookup: {
+          from: 'brands',
+          localField: 'residence.associatedBrandId',
+          foreignField: '_id',
+          as: 'residence.associatedBrand',
+        },
+      },
+      { $unwind: { path: '$residence.associatedBrand', preserveNullAndEmptyArrays: true } },
       {
         $lookup: {
           from: 'users',
@@ -934,55 +961,75 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
         },
       });
     }
-
     if (lifeStyleIds && lifeStyleIds.length > 0) {
-      pipeline.push({
-        $match: {
-          'rankingCategory.lifeStyleId': {
-            $in: lifeStyleIds.map((lifeStyleId) => new Types.ObjectId(lifeStyleId)),
+      const resolvedLifeStyleIds = await Promise.all(
+        lifeStyleIds.map((idOrSlug) => this.getIdBySlugOrObjectId(this.lifeStyleModel, idOrSlug))
+      );
+
+      const validLifeStyleIds = resolvedLifeStyleIds.filter((id) => id !== null);
+
+      if (validLifeStyleIds.length > 0) {
+        pipeline.push({
+          $match: {
+            'rankingCategory.lifeStyleId': { $in: validLifeStyleIds },
           },
-        },
-      });
+        });
+      }
     }
 
     if (brandIds && brandIds.length > 0) {
-      pipeline.push({
-        $match: {
-          'rankingCategory.brandId': {
-            $in: brandIds.map((brandId) => new Types.ObjectId(brandId)),
+      const resolvedBrandIds = await Promise.all(
+        brandIds.map((idOrSlug) => this.getIdBySlugOrObjectId(this.brandModel, idOrSlug))
+      );
+
+      const validBrandIds = resolvedBrandIds.filter((id) => id !== null);
+
+      if (validBrandIds.length > 0) {
+        pipeline.push({
+          $match: {
+            'rankingCategory.brandId': { $in: validBrandIds },
           },
-        },
-      });
+        });
+      }
     }
 
     if (residenceTypeIds && residenceTypeIds.length > 0) {
-      pipeline.push({
-        $match: {
-          'residence.residenceTypeIds': {
-            $in: residenceTypeIds.map((residenceTypeId) => new Types.ObjectId(residenceTypeId)),
-          },
-        },
-      });
+      const resolvedResidenceTypeIds = await Promise.all(
+        residenceTypeIds.map((idOrSlug) =>
+          this.getIdBySlugOrObjectId(this.propertyTypeModel, idOrSlug)
+        )
+      );
+
+      // Filter out any null values in case a slug or ObjectId is not found
+      const validResidenceTypeIds = resolvedResidenceTypeIds.filter(Boolean);
+
+      if (validResidenceTypeIds.length > 0) {
+        pipeline.push({ $match: { 'residence.residenceTypeIds': { $in: validResidenceTypeIds } } });
+      }
     }
 
     if (countryId) {
-      pipeline.push({
-        $match: {
-          'rankingCategory.countryId': {
-            $eq: new Types.ObjectId(countryId),
+      const countryIdOrSlug = await this.getIdBySlugOrObjectId(this.countryModel, countryId);
+
+      if (countryIdOrSlug) {
+        pipeline.push({
+          $match: {
+            'rankingCategory.countryId': { $eq: countryIdOrSlug },
           },
-        },
-      });
+        });
+      }
     }
 
     if (cityId) {
-      pipeline.push({
-        $match: {
-          'rankingCategory.cityId': {
-            $eq: new Types.ObjectId(cityId),
+      const cityIdOrObjectId = await this.getIdBySlugOrObjectId(this.cityModel, cityId);
+
+      if (cityIdOrObjectId) {
+        pipeline.push({
+          $match: {
+            'rankingCategory.cityId': { $eq: cityIdOrObjectId },
           },
-        },
-      });
+        });
+      }
     }
 
     if (locationId) {
@@ -996,13 +1043,16 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
     }
 
     if (geoGraphyId) {
-      pipeline.push({
-        $match: {
-          'rankingCategory.geoGraphyId': {
-            $eq: new Types.ObjectId(geoGraphyId),
-          },
-        },
-      });
+      const geoGraphyIdOrObjectId = await this.getIdBySlugOrObjectId(
+        this.geographyModel,
+        geoGraphyId
+      );
+
+      if (geoGraphyIdOrObjectId) {
+        pipeline.push({
+          $match: { 'rankingCategory.geoGraphyId': { $eq: geoGraphyIdOrObjectId } },
+        });
+      }
     }
 
     pipeline.push(
@@ -1044,7 +1094,6 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
       $sort: sortObject,
     });
 
-
     // Count total documents
     pipeline.push(
       {
@@ -1062,5 +1111,20 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
     );
 
     return await this.rankingRequestModel.aggregate(pipeline).exec();
+  }
+
+  async getIdBySlugOrObjectId(
+    model: Model<any>,
+    idOrSlug: string,
+    selectField = '_id'
+  ): Promise<Types.ObjectId | null> {
+    if (Types.ObjectId.isValid(idOrSlug)) {
+      // If it's a valid ObjectId, return it directly
+      return new Types.ObjectId(idOrSlug);
+    }
+
+    // Otherwise, find by slug
+    const result = await model.findOne({ slug: idOrSlug }).select(selectField).exec();
+    return result ? result[selectField] : null;
   }
 }

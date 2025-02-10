@@ -20,8 +20,13 @@ export class CountryRepository extends BaseRepository<Country> {
   }
 
   async findByIdInDetail(countryId: string): Promise<any> {
+    const isObjectId = Types.ObjectId.isValid(countryId);
     const country = await this.countryModel
-      .findOne({ _id: new Types.ObjectId(countryId), isDeleted: { $ne: DeletionStatus.DELETED }, active:true })
+      .findOne({
+        ...(isObjectId ? { _id: new Types.ObjectId(countryId) } : { slug: countryId }),
+        isDeleted: { $ne: DeletionStatus.DELETED },
+        active: true,
+      })
       .populate([
         { path: 'geographicalAreasId' },
         { path: 'createdBy', model: 'User', select: 'fullName email role' },

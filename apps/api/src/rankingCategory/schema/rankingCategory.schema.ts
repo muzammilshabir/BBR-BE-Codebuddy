@@ -81,6 +81,9 @@ export class RankingCategory extends Document {
     type?: string;
   }[];
 
+  @Prop({ required: false })
+  displayOrder?: number;
+
   @Prop({ type: Number, default: 0 })
   totalRequests: number;
 

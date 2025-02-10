@@ -199,7 +199,16 @@ export class ResidenceSeederService {
 
         for (const singleCountry of batch) {
           try {
+            let geographicalArea;
+
             const country = singleCountry as any;
+
+            if (country.geographical_area_id) {
+              geographicalArea = await this.processGeographicalArea(
+                country,
+                sheets.geographicalArea
+              );
+            }
 
             let countryDoc = await this.countryModel.findOne({
               name: {
@@ -215,7 +224,14 @@ export class ResidenceSeederService {
                 countryCode: country.country_code,
                 active: true,
                 isDeleted: false,
+                displayOrder: !isNaN(Number(country.display_order))
+                  ? Number(country.display_order)
+                  : undefined,
               };
+
+              if (geographicalArea) {
+                countryData.geographicalAreasId = new Types.ObjectId(geographicalArea._id);
+              }
 
               countryDoc = await this.countryModel.create(countryData);
             } else if (countryDoc.active === false) {
@@ -282,6 +298,9 @@ export class ResidenceSeederService {
                 name: city.name,
                 active: true,
                 isDeleted: false,
+                displayOrder: !isNaN(Number(city.display_order))
+                  ? Number(city.display_order)
+                  : undefined,
               };
 
               if (countryId) {
@@ -400,6 +419,9 @@ export class ResidenceSeederService {
                 registeredDate: new Date(),
                 status: 'active',
                 brandCategoryId: await this.processBrandCategory(brand, sheets.brandCategories),
+                displayOrder: !isNaN(Number(brand.display_order))
+                  ? Number(brand.display_order)
+                  : undefined,
               };
 
               brandDoc = await this.brandRepository.create(brandData);
@@ -1111,6 +1133,9 @@ export class ResidenceSeederService {
     if (!propertyTypeDoc) {
       const propertyData: any = {
         name: matchingPropertyType.name,
+        displayOrder: !isNaN(Number(matchingPropertyType.display_order))
+          ? Number(matchingPropertyType.display_order)
+          : undefined,
       };
 
       propertyTypeDoc = await this.propertyTypeRepository.create(propertyData);
@@ -1131,6 +1156,9 @@ export class ResidenceSeederService {
     if (!geographicalAreaDoc) {
       const areaData: any = {
         name: matchingArea.name,
+        displayOrder: !isNaN(Number(matchingArea.display_order))
+          ? Number(matchingArea.display_order)
+          : undefined,
       };
 
       geographicalAreaDoc = await this.geographicalAreasRepository.create(areaData);
@@ -1255,6 +1283,9 @@ export class ResidenceSeederService {
         registeredDate: new Date(),
         status: 'active',
         brandCategoryId: await this.processBrandCategory(matchingBrand, brandCategories),
+        displayOrder: !isNaN(Number(matchingBrand.display_order))
+          ? Number(matchingBrand.display_order)
+          : undefined,
       };
 
       brandDoc = await this.brandRepository.create(brandData);
@@ -1361,6 +1392,9 @@ export class ResidenceSeederService {
     if (!cityDoc) {
       const cityData: any = {
         name: matchingCity.name,
+        displayOrder: !isNaN(Number(matchingCity.display_order))
+          ? Number(matchingCity.display_order)
+          : undefined,
         active: true,
       };
 
@@ -1450,6 +1484,9 @@ export class ResidenceSeederService {
     if (!countryDoc) {
       const countryData: any = {
         name: matchingCountry.name,
+        displayOrder: !isNaN(Number(matchingCountry.display_order))
+          ? Number(matchingCountry.display_order)
+          : undefined,
         active: true,
       };
 
@@ -1544,6 +1581,9 @@ export class ResidenceSeederService {
     if (!lifeStyleDoc) {
       const lifestyleData: any = {
         name: matchingLifestyle.name,
+        displayOrder: !isNaN(Number(matchingLifestyle.display_order))
+          ? Number(matchingLifestyle.display_order)
+          : undefined,
       };
 
       lifeStyleDoc = await this.lifeStyleRepository.create(lifestyleData);
@@ -2431,6 +2471,14 @@ export class ResidenceSeederService {
       const price = Number(rankingCategory.ranking_price);
       if (!isNaN(price)) {
         baseData.price = price;
+      }
+    }
+
+    // Handle display order
+    if (rankingCategory.display_order?.toString().trim()) {
+      const displayOrder = Number(rankingCategory.display_order);
+      if (!isNaN(displayOrder)) {
+        baseData.displayOrder = displayOrder;
       }
     }
 

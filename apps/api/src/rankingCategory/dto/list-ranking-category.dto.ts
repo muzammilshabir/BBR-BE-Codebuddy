@@ -14,14 +14,14 @@ export const rankingCategorySchema = PaginationSchema.append({
     .valid(...Object.values(CategoryType))
     .optional(),
   createdById: Joi.string().custom(joiObjectIdValidator('createdById')).optional(),
-  countryId: Joi.string().custom(joiObjectIdValidator('countryId')).optional(),
+  countryId: Joi.string().optional(),
   stateId: Joi.string().custom(joiObjectIdValidator('stateId')).optional(),
-  cityId: Joi.string().custom(joiObjectIdValidator('cityId')).optional(),
+  cityId: Joi.string().optional(),
   locationId: Joi.string().custom(joiObjectIdValidator('locationId')).optional(),
-  propertyTypeId: Joi.string().custom(joiObjectIdValidator('propertyTypeId')).optional(),
-  lifeStyleId: Joi.string().custom(joiObjectIdValidator('lifeStyleId')).optional(),
-  geoGraphyId: Joi.string().custom(joiObjectIdValidator('geoGraphyId')).optional(),
-  brandId: Joi.string().custom(joiObjectIdValidator('geoGraphyId')).optional(),
+  propertyTypeId: Joi.string().optional(),
+  lifestyleId: Joi.string().optional(),
+  geoGraphyId: Joi.string().optional(),
+  brandId: Joi.string().optional(),
 });
 
 export const popularRankingCategorySchema = PaginationSchema.fork(['sortBy', 'sortOrder'], () =>
@@ -107,7 +107,7 @@ export class RankingCategoryListDto extends ListPropsDto {
     required: false,
     type: String,
   })
-  lifeStyleId?: string;
+  lifestyleId?: string;
 
   @ApiProperty({
     description: 'Filter by geoGraphy ID',

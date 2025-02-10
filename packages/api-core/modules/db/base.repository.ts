@@ -8,9 +8,12 @@ export class BaseRepository<T extends Document> {
     options?: any,
     populateOptions?: any[]
   ): Promise<{ data: T[]; count: number }> {
-    let query = this.model.find(filter);
+    let query = this.model.find({
+      ...filter,
+      ...(options?.sort?.[0]?.[0] ? { [options?.sort?.[0]?.[0] || '']: { $exists: true } } : {}),
+    });
     if (options) {
-      query.skip(options.offset).limit(options.limit).sort(options.sort);
+      query.sort(options.sort).skip(options.offset).limit(options.limit);
     }
 
     // If populate options are provided, apply them to the query
@@ -31,7 +34,7 @@ export class BaseRepository<T extends Document> {
     return await this.model.findById(id);
   }
 
-  async findAllByFilter(filter: any): Promise<T[]> { 
+  async findAllByFilter(filter: any): Promise<T[]> {
     return await this.model.find(filter);
   }
 
@@ -43,7 +46,7 @@ export class BaseRepository<T extends Document> {
   async createMany(createDtos: any[]): Promise<T[]> {
     const createdEntities = await this.model.insertMany(createDtos);
     return createdEntities;
-}
+  }
 
   async update(id: string, updateDto: any): Promise<T> {
     return await this.model.findByIdAndUpdate(id, updateDto, { new: true });

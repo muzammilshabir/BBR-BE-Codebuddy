@@ -13,6 +13,16 @@ import {
 } from '../rankingRequest/schema/rankingRequest.schema';
 import { RankingRequestModule } from '../rankingRequest/rankingRequest.module';
 import { RankingRequestRepository } from '../rankingRequest/rankingRequest.repository';
+import { Country, CountrySchema } from 'src/country/schema/country.schema';
+import { City, CitySchema } from 'src/city/schema/city.schema';
+import { Brand, BrandSchema } from 'src/brand/schema/brand.schema';
+import {
+  GeographicalAreas,
+  GeographicalAreasSchema,
+} from 'src/geographicalAreas/schema/geographicalAreas.schema';
+import { LifeStyle, LifeStyleSchema } from 'src/lifestyles/schema/lifeStyle.schema';
+import { PropertyType, PropertyTypeSchema } from 'src/propertyType/schema/propertyType.schema';
+import { Residence, ResidenceSchema } from 'src/residences/schema/residences.schema';
 
 @Module({
   imports: [
@@ -21,6 +31,13 @@ import { RankingRequestRepository } from '../rankingRequest/rankingRequest.repos
     ]),
     RankingRequestModule,
     MongooseModule.forFeature([{ name: RankingRequest.name, schema: RankingRequestSchema }]),
+    MongooseModule.forFeature([{ name: Country.name, schema: CountrySchema }]),
+    MongooseModule.forFeature([{ name: City.name, schema: CitySchema }]),
+    MongooseModule.forFeature([{ name: GeographicalAreas.name, schema: GeographicalAreasSchema }]),
+    MongooseModule.forFeature([{ name: Brand.name, schema: BrandSchema }]),
+    MongooseModule.forFeature([{ name: LifeStyle.name, schema: LifeStyleSchema }]),
+    MongooseModule.forFeature([{ name: PropertyType.name, schema: PropertyTypeSchema }]),
+    MongooseModule.forFeature([{ name: Residence.name, schema: ResidenceSchema }]),
   ],
   providers: [RankingRequestDraftService, RankingRequestDraftRepository, RankingRequestRepository],
   exports: [RankingRequestDraftService],

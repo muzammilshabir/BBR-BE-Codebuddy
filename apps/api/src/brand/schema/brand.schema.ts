@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
+import slugify from 'slugify';
 
 @Schema({ timestamps: true })
 export class Brand extends Document {
@@ -36,11 +37,29 @@ export class Brand extends Document {
   })
   status: string;
 
+  @Prop({ required: false })
+  displayOrder?: number;
+
   @Prop({ type: Boolean, default: false })
   isDeleted: boolean;
+
+  @Prop({ required: false })
+  slug?: string;
 
   createdAt: Date;
   updatedAt: Date;
 }
 
 export const BrandSchema = SchemaFactory.createForClass(Brand);
+
+// Add pre-save middleware to generate slug
+BrandSchema.pre('save', async function (next) {
+  const brand = this as Brand;
+
+  // Only generate slug if name is new or modified
+  if (!brand.isModified('name')) return next();
+
+  brand.slug = slugify(brand.name, { lower: true });
+
+  next();
+});

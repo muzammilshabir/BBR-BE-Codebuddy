@@ -1,6 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
 import * as Joi from 'joi';
-import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
 
 export class GetResidenceByIdDto {
   @ApiProperty({
@@ -12,7 +11,7 @@ export class GetResidenceByIdDto {
 }
 
 export const getResidenceByIdSchema = Joi.object({
-  id: Joi.string().custom(joiObjectIdValidator('id')).required(),
+  id: Joi.string().required(),
 });
 
 export class GetResidenceByKeyDto {

@@ -1,10 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import * as Joi from 'joi';
-import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
 
-export const getBrandByIdSchema = Joi.object({
-  brandId: Joi.string().custom(joiObjectIdValidator('brandId')).required(),
-});
+export const getBrandByIdSchema = Joi.object({ brandId: Joi.string().required() });
 
 export class GetBrandByIdDto {
   @ApiProperty({

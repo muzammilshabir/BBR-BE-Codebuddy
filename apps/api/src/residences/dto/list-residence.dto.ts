@@ -257,27 +257,15 @@ export const listResidenceByFiltersSchema = Joi.object({
       })
     )
     .optional(),
-  cities: Joi.array()
-    .items(Joi.string().custom(joiObjectIdValidator('cities')))
-    .optional(),
-  geographicalAreasId: Joi.array()
-    .items(Joi.string().custom(joiObjectIdValidator('geographicalAreasId')))
-    .optional(),
-  countryId: Joi.array()
-    .items(Joi.string().custom(joiObjectIdValidator('countryId')))
-    .optional(),
+  cities: Joi.array().items(Joi.string()).optional(),
+  geographicalAreasId: Joi.array().items(Joi.string()).optional(),
+  countryId: Joi.array().items(Joi.string()).optional(),
   stateId: Joi.array()
     .items(Joi.string().custom(joiObjectIdValidator('stateId')))
     .optional(),
-  lifestyles: Joi.array()
-    .items(Joi.string().custom(joiObjectIdValidator('lifestyles')))
-    .optional(),
-  brands: Joi.array()
-    .items(Joi.string().custom(joiObjectIdValidator('brands')))
-    .optional(),
-  propertyTypes: Joi.array()
-    .items(Joi.string().custom(joiObjectIdValidator('propertyTypes')))
-    .optional(),
+  lifestyles: Joi.array().items(Joi.string()).optional(),
+  brands: Joi.array().items(Joi.string()).optional(),
+  propertyTypes: Joi.array().items(Joi.string()).optional(),
   developerId: Joi.string().custom(joiObjectIdValidator('developerId')).optional(),
   status: Joi.string()
     .valid(...Object.values(ResidenceStatus))

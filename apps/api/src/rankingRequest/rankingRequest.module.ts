@@ -39,7 +39,16 @@ import {
 } from 'src/ranking-activity-log/schema/ranking-activity-log.schema';
 import { RankingActivityLogRepository } from 'src/ranking-activity-log/ranking-activity-log.repository';
 import { DevRankingActivityLogRepository } from 'src/dev-ranking-activity-log/dev-ranking-activity-log.repository';
-import { DevRankingActivityLog, DevRankingActivityLogSchema } from 'src/dev-ranking-activity-log/schema/dev-ranking-activity-log.schema';
+import {
+  DevRankingActivityLog,
+  DevRankingActivityLogSchema,
+} from 'src/dev-ranking-activity-log/schema/dev-ranking-activity-log.schema';
+import { Country, CountrySchema } from 'src/country/schema/country.schema';
+import { City, CitySchema } from 'src/city/schema/city.schema';
+import { Brand, BrandSchema } from 'src/brand/schema/brand.schema';
+import { GeographicalAreas, GeographicalAreasSchema } from 'src/geographicalAreas/schema/geographicalAreas.schema';
+import { LifeStyle, LifeStyleSchema } from 'src/lifestyles/schema/lifeStyle.schema';
+import { PropertyType, PropertyTypeSchema } from 'src/propertyType/schema/propertyType.schema';
 
 @Module({
   imports: [
@@ -65,6 +74,12 @@ import { DevRankingActivityLog, DevRankingActivityLogSchema } from 'src/dev-rank
     MongooseModule.forFeature([
       { name: DevRankingActivityLog.name, schema: DevRankingActivityLogSchema },
     ]),
+    MongooseModule.forFeature([{ name: Country.name, schema: CountrySchema }]),
+    MongooseModule.forFeature([{ name: City.name, schema: CitySchema }]),
+    MongooseModule.forFeature([{ name: GeographicalAreas.name, schema: GeographicalAreasSchema }]),
+    MongooseModule.forFeature([{ name: Brand.name, schema: BrandSchema }]),
+    MongooseModule.forFeature([{ name: LifeStyle.name, schema: LifeStyleSchema }]),
+    MongooseModule.forFeature([{ name: PropertyType.name, schema: PropertyTypeSchema }]),
   ],
   controllers: [RankingRequestController],
   providers: [

@@ -1,7 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import * as Joi from 'joi';
 import { ListPropsDto, PaginationSchema } from '@bbr/api-core/modules/dto/listProps.dto';
-import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/custome-validations';
 import { ResidenceStatus } from '../../residences/enum/residence-enum';
 
 export class ListUnitDto extends ListPropsDto {
@@ -31,7 +30,7 @@ export class ListUnitDto extends ListPropsDto {
 }
 
 export const listUnitSchema = PaginationSchema.append({
-  residenceId: Joi.string().custom(joiObjectIdValidator('residenceId')).optional(),
+  residenceId: Joi.string().optional(),
   status: Joi.string()
     .valid(...Object.values(ResidenceStatus))
     .optional(),

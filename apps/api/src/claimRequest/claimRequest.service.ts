@@ -529,8 +529,9 @@ export class ClaimRequestService {
 
   async getOpenRequests(residenceId: string): Promise<{ 'open-requests': number }> {
     // Fetch the residence by ID
+    const isObjectId = Types.ObjectId.isValid(residenceId);
     const residence = await this.residenceRepository.find({
-      _id: new Types.ObjectId(residenceId),
+      ...(isObjectId ? { _id: new Types.ObjectId(residenceId) } : { slug: residenceId }),
     });
 
     if (!residence) {
@@ -539,7 +540,7 @@ export class ClaimRequestService {
 
     // Count open claim requests for the residence
     const openRequestsCount = await this.claimRequestRepository.count({
-      residenceId: new Types.ObjectId(residenceId),
+      residenceId: new Types.ObjectId(residence.id),
       status: ClaimRequestStatus.Pending,
     });
 

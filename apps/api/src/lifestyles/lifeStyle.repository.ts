@@ -12,10 +12,14 @@ export class LifeStyleRepository extends BaseRepository<LifeStyle> {
   }
 
   async findByIdInDetail(lifeStyleId: string): Promise<any> {
+    const isObjectId = Types.ObjectId.isValid(lifeStyleId);
     const lifeStyle: any = await this.lifeStyleModel
-      .findOne({ _id: new Types.ObjectId(lifeStyleId), isDeleted: { $ne: DeletionStatus.DELETED } })
+      .findOne({
+        ...(isObjectId ? { _id: new Types.ObjectId(lifeStyleId) } : { slug: lifeStyleId }),
+        isDeleted: { $ne: DeletionStatus.DELETED },
+      })
       .populate([
-        { path: 'upload.ImageId', select: 'originalFileKey fileKey url mimeType', model: 'Upload' }
+        { path: 'upload.ImageId', select: 'originalFileKey fileKey url mimeType', model: 'Upload' },
       ]);
 
     return lifeStyle;

@@ -16,9 +16,10 @@ export class GeographicalAreasRepository extends BaseRepository<GeographicalArea
   }
 
   async findByIdInDetail(geographicalAreasId: string): Promise<any> {
+    const isObjectId = Types.ObjectId.isValid(geographicalAreasId);
     const geographicalAreas = await this.geographicalAreasModel
       .findOne({
-        _id: new Types.ObjectId(geographicalAreasId),
+        ...(isObjectId ? { _id: new Types.ObjectId(geographicalAreasId) } : { slug: geographicalAreasId }),
         isDeleted: { $ne: DeletionStatus.DELETED },
       })
       .populate([

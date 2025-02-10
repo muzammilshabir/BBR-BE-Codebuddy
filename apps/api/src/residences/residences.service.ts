@@ -58,6 +58,11 @@ import { ResidenceActivityLogRepository } from 'src/residence-activity-log/resid
 import { DeveloperProfileActivityLogRepository } from 'src/developer-profile-activity-log/developer-profile-activity-log.repository';
 import { BrandActivityLogRepository } from 'src/brand-activity-log/brand-activity-log.repository';
 import { DevResidenceActivityLogRepository } from 'src/dev-residence-activity-log/dev-residence-activity-log.repository';
+import { City } from 'src/city/schema/city.schema';
+import { Brand } from 'src/brand/schema/brand.schema';
+import { GeographicalAreas } from 'src/geographicalAreas/schema/geographicalAreas.schema';
+import { LifeStyle } from 'src/lifestyles/schema/lifeStyle.schema';
+import { PropertyType } from 'src/propertyType/schema/propertyType.schema';
 
 @Injectable()
 export class ResidenceService {
@@ -78,8 +83,12 @@ export class ResidenceService {
     private readonly devResidenceActivityLogRepository: DevResidenceActivityLogRepository,
     private readonly developerProfileActivityLogRepository: DeveloperProfileActivityLogRepository,
     private readonly brandActivityLogRepository: BrandActivityLogRepository,
-    @InjectModel(Country.name)
-    private readonly countryModel: Model<Country>
+    @InjectModel(Country.name) private readonly countryModel: Model<Country>,
+    @InjectModel(City.name) private readonly cityModel: Model<City>,
+    @InjectModel(GeographicalAreas.name) private readonly geographyModel: Model<GeographicalAreas>,
+    @InjectModel(Brand.name) private readonly brandModel: Model<Brand>,
+    @InjectModel(LifeStyle.name) private readonly lifeStyleModel: Model<LifeStyle>,
+    @InjectModel(PropertyType.name) private readonly propertyTypeModel: Model<PropertyType>
   ) {}
 
   async create(createResidenceDto: CreateResidenceDto, user: JwtPayloadType): Promise<any> {
@@ -791,14 +800,31 @@ export class ResidenceService {
     };
 
     if (filtersDto.cities && filtersDto.cities.length > 0) {
-      matchStage.cityId = { $in: filtersDto.cities.map((city) => new Types.ObjectId(city)) };
+      const resolvedCityIds = await Promise.all(
+        filtersDto.cities.map((idOrSlug) => this.getIdBySlugOrObjectId(this.cityModel, idOrSlug))
+      );
+
+      const validCityIds = resolvedCityIds.filter(Boolean);
+
+      if (validCityIds.length) {
+        matchStage.cityId = { $in: validCityIds };
+      }
     }
 
     if (filtersDto.countryId) {
       const countryIds = Array.isArray(filtersDto.countryId)
         ? filtersDto.countryId
         : [filtersDto.countryId];
-      matchStage.countryId = { $in: countryIds.map((id) => new Types.ObjectId(id)) };
+
+      const resolvedCountryIds = await Promise.all(
+        countryIds.map((idOrSlug) => this.getIdBySlugOrObjectId(this.countryModel, idOrSlug))
+      );
+
+      const validCountryIds = resolvedCountryIds.filter(Boolean);
+
+      if (validCountryIds.length) {
+        matchStage.countryId = { $in: validCountryIds };
+      }
     }
 
     if (filtersDto.stateId) {
@@ -813,23 +839,37 @@ export class ResidenceService {
     }
 
     if (filtersDto.geographicalAreasId && filtersDto.geographicalAreasId.length > 0) {
-      const countriesInAreas = await this.countryModel
-        .find({
-          geographicalAreasId: {
-            $in: filtersDto.geographicalAreasId.map((id) => new Types.ObjectId(id)),
-          },
-        })
-        .select('_id');
+      const resolvedGeographyIds = await Promise.all(
+        filtersDto.geographicalAreasId.map((idOrSlug) =>
+          this.getIdBySlugOrObjectId(this.geographyModel, idOrSlug)
+        )
+      );
 
-      matchStage.countryId = {
-        $in: countriesInAreas.map((country) => country._id),
-      };
+      const validGeographyIds = resolvedGeographyIds.filter(Boolean);
+
+      if (validGeographyIds.length) {
+        const countriesInAreas = await this.countryModel
+          .find({ geographicalAreasId: { $in: validGeographyIds } })
+          .select('_id');
+
+        matchStage.countryId = {
+          $in: countriesInAreas.map((country) => country._id),
+        };
+      }
     }
 
     if (filtersDto.lifestyles && filtersDto.lifestyles.length > 0) {
-      matchStage.lifeStyleId = {
-        $in: filtersDto.lifestyles.map((lifestyle) => new Types.ObjectId(lifestyle)),
-      };
+      const resolvedLifeStyleIds = await Promise.all(
+        filtersDto.lifestyles.map((idOrSlug) =>
+          this.getIdBySlugOrObjectId(this.lifeStyleModel, idOrSlug)
+        )
+      );
+
+      const validLifeStyleIds = resolvedLifeStyleIds.filter(Boolean);
+
+      if (validLifeStyleIds.length) {
+        matchStage.lifeStyleId = { $in: validLifeStyleIds };
+      }
     }
 
     if (filtersDto.status) {
@@ -837,15 +877,29 @@ export class ResidenceService {
     }
 
     if (filtersDto.brands && filtersDto.brands.length > 0) {
-      matchStage.associatedBrandId = {
-        $in: filtersDto.brands.map((brand) => new Types.ObjectId(brand)),
-      };
+      const resolvedBrandIds = await Promise.all(
+        filtersDto.brands.map((idOrSlug) => this.getIdBySlugOrObjectId(this.brandModel, idOrSlug))
+      );
+
+      const validBrandIds = resolvedBrandIds.filter(Boolean);
+
+      if (validBrandIds.length) {
+        matchStage.associatedBrandId = { $in: validBrandIds };
+      }
     }
 
     if (filtersDto.propertyTypes && filtersDto.propertyTypes.length > 0) {
-      matchStage.residenceTypeIds = {
-        $in: filtersDto.propertyTypes.map((propertyType) => new Types.ObjectId(propertyType)),
-      };
+      const resolvedPropertyTypeIds = await Promise.all(
+        filtersDto.propertyTypes.map((idOrSlug) =>
+          this.getIdBySlugOrObjectId(this.propertyTypeModel, idOrSlug)
+        )
+      );
+
+      const validPropertyTypeIds = resolvedPropertyTypeIds.filter(Boolean);
+
+      if (validPropertyTypeIds.length) {
+        matchStage.residenceTypeIds = { $in: validPropertyTypeIds };
+      }
     }
 
     if (filtersDto.petPolicy && filtersDto.petPolicy.length > 0) {
@@ -1034,6 +1088,7 @@ export class ResidenceService {
           as: 'city',
         },
       },
+      { $unwind: { path: '$city', preserveNullAndEmptyArrays: true } },
       {
         $lookup: {
           from: 'states',
@@ -1058,6 +1113,7 @@ export class ResidenceService {
           as: 'associatedBrand',
         },
       },
+      { $unwind: { path: '$associatedBrand', preserveNullAndEmptyArrays: true } },
       {
         $lookup: {
           from: 'uploads',
@@ -1301,6 +1357,7 @@ export class ResidenceService {
           createdAt: 1,
           updatedAt: 1,
           bbrScore: 1,
+          slug: 1,
         },
       }
     );
@@ -1615,6 +1672,7 @@ export class ResidenceService {
       city: {
         name: item.city[0]?.name[0] || null, // Extracts the first element from name array, or null if not present
         countryId: item.city[0]?.countryId[0] || null, // Extracts the first element from countryId array, or null if not present
+        slug: item.city[0]?.slug[0] || null, // Extracts the first element from countryId array, or null if not present
       },
       country: {
         name: item.country[0]?.name[0] || null, // Extracts the first element from name array, or null if not present
@@ -1663,10 +1721,10 @@ export class ResidenceService {
         select: 'type',
         model: 'ResidenceType',
       },
-      { path: 'cityId', select: 'name countryId upload' },
+      { path: 'cityId', select: 'name countryId upload slug' },
       { path: 'countryId', select: 'name geographicalAreasId upload' },
       { path: 'stateId', select: 'name stateCode upload' },
-      { path: 'associatedBrandId', select: 'name' },
+      { path: 'associatedBrandId', select: 'name slug' },
       {
         path: 'visuals.mainPhotos',
         select: 'originalFileKey fileKey url mimeType',
@@ -1738,6 +1796,7 @@ export class ResidenceService {
           },
         }
       );
+      console.log({ residence, newRankingRequests });
       const position = await this.getCurrentPosition(
         newRankingRequests.data,
         residence?._id.toString()
@@ -2201,5 +2260,20 @@ export class ResidenceService {
       residenceId: new Types.ObjectId(foundResidence._id.toString()),
       status: ResidenceStatus.DRAFT,
     });
+  }
+
+  async getIdBySlugOrObjectId(
+    model: Model<any>,
+    idOrSlug: string,
+    selectField = '_id'
+  ): Promise<Types.ObjectId | null> {
+    if (Types.ObjectId.isValid(idOrSlug)) {
+      // If it's a valid ObjectId, return it directly
+      return new Types.ObjectId(idOrSlug);
+    }
+
+    // Otherwise, find by slug
+    const result = await model.findOne({ slug: idOrSlug }).select(selectField).exec();
+    return result ? result[selectField] : null;
   }
 }

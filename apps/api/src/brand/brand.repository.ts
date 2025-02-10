@@ -13,9 +13,10 @@ export class BrandRepository extends BaseRepository<Brand> {
   }
 
   async getBrandById(brandDraftId: string) {
+    const isObjectId = Types.ObjectId.isValid(brandDraftId);
     const brandDraft = await this.brandModel
       .findOne({
-        _id: new Types.ObjectId(brandDraftId),
+        ...(isObjectId ? { _id: new Types.ObjectId(brandDraftId) } : { slug: brandDraftId }),
         isDeleted: { $ne: DeletionStatus.DELETED },
       })
       .populate([

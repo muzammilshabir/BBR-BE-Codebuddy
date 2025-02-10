@@ -35,6 +35,12 @@ import { BrandRepository } from '../brand/brand.repository';
 import { InjectModel } from '@nestjs/mongoose';
 import { StateRepository } from 'src/state/state.repository';
 import { RankingActivityLogRepository } from 'src/ranking-activity-log/ranking-activity-log.repository';
+import { Brand } from 'src/brand/schema/brand.schema';
+import { City } from 'src/city/schema/city.schema';
+import { Country } from 'src/country/schema/country.schema';
+import { GeographicalAreas } from 'src/geographicalAreas/schema/geographicalAreas.schema';
+import { LifeStyle } from 'src/lifestyles/schema/lifeStyle.schema';
+import { PropertyType } from 'src/propertyType/schema/propertyType.schema';
 
 @Injectable()
 export class RankingCategoryService {
@@ -50,7 +56,14 @@ export class RankingCategoryService {
     private readonly geographicalAreasRepository: GeographicalAreasRepository,
     private readonly brandRepository: BrandRepository,
     private readonly rankingActivityLogRepository: RankingActivityLogRepository,
-    @InjectModel(RankingCategory.name) private readonly rankingCategoryModel: Model<RankingCategory>
+    @InjectModel(RankingCategory.name)
+    private readonly rankingCategoryModel: Model<RankingCategory>,
+    @InjectModel(Country.name) private readonly countryModel: Model<Country>,
+    @InjectModel(City.name) private readonly cityModel: Model<City>,
+    @InjectModel(GeographicalAreas.name) private readonly geographyModel: Model<GeographicalAreas>,
+    @InjectModel(Brand.name) private readonly brandModel: Model<Brand>,
+    @InjectModel(LifeStyle.name) private readonly lifeStyleModel: Model<LifeStyle>,
+    @InjectModel(PropertyType.name) private readonly propertyTypeModel: Model<PropertyType>
   ) {}
 
   async findAll(rankingCategoryDto: RankingCategoryListDto) {
@@ -64,7 +77,7 @@ export class RankingCategoryService {
       cityId,
       locationId,
       propertyTypeId,
-      lifeStyleId,
+      lifestyleId,
       geoGraphyId,
       brandId,
     } = rankingCategoryDto;
@@ -98,11 +111,11 @@ export class RankingCategoryService {
 
     // Additional filters based on IDs
     if (countryId) {
-      query.countryId = new Types.ObjectId(countryId);
+      query.countryId = this.getIdBySlugOrObjectId(this.countryModel, countryId);
     }
 
     if (cityId) {
-      query.cityId = new Types.ObjectId(cityId);
+      query.cityId = this.getIdBySlugOrObjectId(this.cityModel, cityId);
     }
 
     if (stateId) {
@@ -114,19 +127,19 @@ export class RankingCategoryService {
     }
 
     if (propertyTypeId) {
-      query.propertyTypeId = new Types.ObjectId(propertyTypeId);
+      query.propertyTypeId = this.getIdBySlugOrObjectId(this.propertyTypeModel, propertyTypeId);
     }
 
-    if (lifeStyleId) {
-      query.lifeStyleId = new Types.ObjectId(lifeStyleId);
+    if (lifestyleId) {
+      query.lifeStyleId = this.getIdBySlugOrObjectId(this.lifeStyleModel, lifestyleId);
     }
 
     if (geoGraphyId) {
-      query.geoGraphyId = new Types.ObjectId(geoGraphyId);
+      query.geoGraphyId = this.getIdBySlugOrObjectId(this.geographyModel, geoGraphyId);
     }
 
     if (brandId) {
-      query.brandId = new Types.ObjectId(brandId);
+      query.brandId = this.getIdBySlugOrObjectId(this.brandModel, brandId);
     }
 
     const options = PaginationService.prepareOptions(rankingCategoryDto);
@@ -144,8 +157,12 @@ export class RankingCategoryService {
       },
       {
         path: 'countryId',
-        select: 'name code',
+        select: 'name code slug',
         model: 'Country',
+        populate: {
+          path: 'geographicalAreasId',
+          select: 'slug',
+        },
       },
       {
         path: 'stateId',
@@ -154,11 +171,21 @@ export class RankingCategoryService {
       },
       {
         path: 'cityId',
-        select: 'name state upload',
-        populate: {
-          path: 'upload.ImageId',
-          select: 'originalFileKey fileKey url mimeType',
-        },
+        select: 'name state upload slug',
+        populate: [
+          {
+            path: 'upload.ImageId',
+            select: 'originalFileKey fileKey url mimeType',
+          },
+          {
+            path: 'countryId',
+            select: 'slug',
+            populate: {
+              path: 'geographicalAreasId',
+              select: 'slug',
+            },
+          },
+        ],
         model: 'City',
       },
       {
@@ -168,12 +195,12 @@ export class RankingCategoryService {
       },
       {
         path: 'propertyTypeId',
-        select: 'name type description',
+        select: 'name type description slug',
         model: 'PropertyType',
       },
       {
         path: 'geoGraphyId',
-        select: 'type upload name',
+        select: 'type upload name slug',
         populate: {
           path: 'upload.ImageId',
           select: 'originalFileKey fileKey url mimeType',
@@ -182,7 +209,7 @@ export class RankingCategoryService {
       },
       {
         path: 'lifeStyleId',
-        select: 'name category upload',
+        select: 'name category upload slug',
         populate: {
           path: 'upload.ImageId',
           select: 'originalFileKey fileKey url mimeType',
@@ -196,7 +223,7 @@ export class RankingCategoryService {
       },
       {
         path: 'brandId',
-        select: 'name logo description',
+        select: 'name logo description slug',
         model: 'Brand',
       },
     ]);
@@ -911,5 +938,20 @@ export class RankingCategoryService {
     };
 
     return { pagination: paginationObject, rankingCategories: result[0] };
+  }
+
+  async getIdBySlugOrObjectId(
+    model: Model<any>,
+    idOrSlug: string,
+    selectField = '_id'
+  ): Promise<Types.ObjectId | null> {
+    if (Types.ObjectId.isValid(idOrSlug)) {
+      // If it's a valid ObjectId, return it directly
+      return new Types.ObjectId(idOrSlug);
+    }
+
+    // Otherwise, find by slug
+    const result = await model.findOne({ slug: idOrSlug }).select(selectField).exec();
+    return result ? result[selectField] : null;
   }
 }

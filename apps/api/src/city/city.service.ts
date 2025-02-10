@@ -14,7 +14,7 @@ export class CityService {
   constructor(
     private readonly cityRepository: CityRepository,
     private readonly stateRepository: StateRepository,
-    private readonly countryRepository: CountryRepository,
+    private readonly countryRepository: CountryRepository
   ) {}
 
   async findAll(listCityDto: ListCityDto) {
@@ -33,6 +33,11 @@ export class CityService {
 
     const { data, count } = await this.cityRepository.findAll(filter, options, [
       { path: 'upload.ImageId', select: 'originalFileKey fileKey url mimeType', model: 'Upload' },
+      {
+        path: 'countryId',
+        select: 'slug',
+        populate: { path: 'geographicalAreasId', select: 'slug' },
+      },
     ]);
 
     const { pagination } = PaginationService.paginate({ rows: data, count }, listCityDto);
@@ -57,12 +62,12 @@ export class CityService {
   async processCitySeeder(file: Express.Multer.File) {
     // Start processing in background
     this.processInBackground(file);
-  
+
     // Return immediately
     return {
       success: true,
-      message: "City seeding process started. Please wait and check after sometime.",
-      status: "PROCESSING"
+      message: 'City seeding process started. Please wait and check after sometime.',
+      status: 'PROCESSING',
     };
   }
 
@@ -72,100 +77,99 @@ export class CityService {
         const workbook = XLSX.read(file.buffer, { type: 'buffer' });
         const worksheet = workbook.Sheets[workbook.SheetNames[0]];
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
-  
+
         const BATCH_SIZE = 75;
         const DELAY_BETWEEN_BATCHES = 700;
-        
+
         for (let i = 0; i < jsonData.length; i += BATCH_SIZE) {
           console.log(new Date().toISOString());
           const batch = jsonData.slice(i, i + BATCH_SIZE);
-          console.log(`Processing batch ${i / BATCH_SIZE + 1} of ${Math.ceil(jsonData.length / BATCH_SIZE)}`);
-  
+          console.log(
+            `Processing batch ${i / BATCH_SIZE + 1} of ${Math.ceil(jsonData.length / BATCH_SIZE)}`
+          );
+
           try {
-            const cityPromises = batch.map(async row => {
+            const cityPromises = batch.map(async (row) => {
               // First, verify that both state and country exist
               let stateId = undefined;
               let countryId = undefined;
-  
+
               // Verify country exists
               if (row['country_code']) {
-                const country = await this.countryRepository.find({ 
+                const country = await this.countryRepository.find({
                   countryCode: row['country_code'],
-                  isDeleted: false 
+                  isDeleted: false,
                 });
                 if (country) {
                   countryId = country._id;
                 } else {
-                  console.warn(`Country with code ${row['country_code']} not found, skipping city ${row['name']}`);
+                  console.warn(
+                    `Country with code ${row['country_code']} not found, skipping city ${row['name']}`
+                  );
                   return;
                 }
               }
-  
+
               // Verify state exists if state_code is provided
               if (row['state_code'] && countryId) {
-                const state = await this.stateRepository.find({ 
+                const state = await this.stateRepository.find({
                   stateCode: row['state_code'],
                   countryId: countryId,
-                  isDeleted: false 
+                  isDeleted: false,
                 });
                 if (state) {
                   stateId = state._id;
                 } else {
-                  console.warn(`State with code ${row['state_code']} not found for country ${row['country_code']}, skipping city ${row['name']}`);
+                  console.warn(
+                    `State with code ${row['state_code']} not found for country ${row['country_code']}, skipping city ${row['name']}`
+                  );
                   return;
                 }
               }
-  
+
               const cityData = {
                 name: row['name'],
                 stateCode: row['state_code'],
                 countryCode: row['country_code'],
                 stateId: stateId,
-                countryId: countryId, 
+                countryId: countryId,
                 active: false,
-                isDeleted: false
+                isDeleted: false,
               };
-            
+
               // Skip if required countryId is missing
               if (!cityData.countryId) {
                 console.warn(`Missing required countryId for city ${cityData.name}, skipping`);
                 return;
               }
-  
-              const foundCity = await this.cityRepository.find({ 
-                name: { 
-                  $regex: `^${cityData.name.replace(/[()]/g, '\\$&')}$`, 
-                  $options: 'i' 
+
+              const foundCity = await this.cityRepository.find({
+                name: {
+                  $regex: `^${cityData.name.replace(/[()]/g, '\\$&')}$`,
+                  $options: 'i',
                 },
                 countryId: cityData.countryId,
-                isDeleted: false
+                isDeleted: false,
               });
-  
-              if(foundCity) {
-                await this.cityRepository.update(
-                  foundCity._id.toString(),
-                  cityData
-                );
+
+              if (foundCity) {
+                await this.cityRepository.update(foundCity._id.toString(), cityData);
               } else {
                 await this.cityRepository.create(cityData);
               }
             });
-  
-             await Promise.all(cityPromises);
-            
-          
-            
-            await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_BATCHES));
-  
+
+            await Promise.all(cityPromises);
+
+            await new Promise((resolve) => setTimeout(resolve, DELAY_BETWEEN_BATCHES));
           } catch (error) {
             console.error(`Error in batch ${i / BATCH_SIZE + 1}:`, error);
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await new Promise((resolve) => setTimeout(resolve, 1000));
             i -= BATCH_SIZE;
             continue;
           }
         }
 
-  
         const cities = [
           { name: 'Miami', active: true, isDeleted: false },
           { name: 'Dubai', active: true, isDeleted: false },
@@ -246,32 +250,29 @@ export class CityService {
           { name: 'Cartagena', active: true, isDeleted: false },
           { name: 'Lima', active: true, isDeleted: false },
           { name: 'Santo Domingo', active: true, isDeleted: false },
-          { name: 'Medellin', active: true, isDeleted: false }
+          { name: 'Medellin', active: true, isDeleted: false },
         ];
-        
-  
+
         for (const cityData of cities) {
-          const city = await this.cityRepository.find({ 
-            name: { 
-              $regex: `^${cityData.name.replace(/[()]/g, '\\$&')}$`, 
-              $options: 'i' 
+          const city = await this.cityRepository.find({
+            name: {
+              $regex: `^${cityData.name.replace(/[()]/g, '\\$&')}$`,
+              $options: 'i',
             },
-            isDeleted: false 
+            isDeleted: false,
           });
-    
+
           if (city) {
             await this.cityRepository.update(city._id.toString(), { active: true });
-    
+
             if (city.stateId) {
               await this.stateRepository.update(city.stateId.toString(), { active: true });
             }
           }
         }
-        
       } catch (error) {
         console.error('Error processing cities:', error);
       }
     }, 0);
   }
-
 }
