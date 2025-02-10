@@ -22,6 +22,6 @@ export class GetSimilarResidenceDto extends ListPropsDto {
 }
 
 export const getSimilarResidenceSchema = PaginationSchema.append({
-  residenceId: Joi.string().custom(joiObjectIdValidator('residenceId')).required(),
+  residenceId: Joi.string().required(),
   rankingCategoryId: Joi.string().custom(joiObjectIdValidator('rankingCategoryId')).optional(),
 });

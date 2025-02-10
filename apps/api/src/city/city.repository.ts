@@ -19,8 +19,13 @@ export class CityRepository extends BaseRepository<City> {
   }
 
   async findByIdInDetail(cityId: string): Promise<any> {
+    const isObjectId = Types.ObjectId.isValid(cityId);
     const city = await this.cityModel
-      .findOne({ _id: new Types.ObjectId(cityId), isDeleted: { $ne: DeletionStatus.DELETED }, active: true })
+      .findOne({
+        ...(isObjectId ? { _id: new Types.ObjectId(cityId) } : { slug: cityId }),
+        isDeleted: { $ne: DeletionStatus.DELETED },
+        active: true,
+      })
       .populate([
         { path: 'countryId' },
         { path: 'createdBy', model: 'User', select: 'fullName email role' },

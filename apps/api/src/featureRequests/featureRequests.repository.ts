@@ -25,7 +25,7 @@ export class FeatureRequestRepository extends BaseRepository<FeatureRequest> {
           featuredFrom: { $lte: currentDate },
           featuredTo: { $gte: currentDate },
           isDeleted: false,
-        }
+        },
       },
       // Lookup and unwind stages for related documents
       {
@@ -37,6 +37,24 @@ export class FeatureRequestRepository extends BaseRepository<FeatureRequest> {
         },
       },
       { $unwind: { path: '$residence', preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: 'cities',
+          localField: 'residence.cityId',
+          foreignField: '_id',
+          as: 'residence.city',
+        },
+      },
+      { $unwind: { path: '$residence.city', preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: 'brands',
+          localField: 'associatedBrandId',
+          foreignField: '_id',
+          as: 'residence.associatedBrand',
+        },
+      },
+      { $unwind: { path: '$residence.brand', preserveNullAndEmptyArrays: true } },
       {
         $lookup: {
           from: 'uploads',
@@ -154,8 +172,8 @@ export class FeatureRequestRepository extends BaseRepository<FeatureRequest> {
       },
       { $sample: { size: 5 } }, // Get random 5 documents
       {
-        $sort: { featuredFrom: -1 }
-      }
+        $sort: { featuredFrom: -1 },
+      },
     ];
 
     return await this.featureRequestModel.aggregate(pipeline).exec();
@@ -366,7 +384,7 @@ export class FeatureRequestRepository extends BaseRepository<FeatureRequest> {
     return await this.featureRequestModel.aggregate(pipeline).exec();
   }
 
-  async findByIdInDetail(id: string) {  
+  async findByIdInDetail(id: string) {
     // Build the aggregation pipeline
     const pipeline: any[] = [
       {
@@ -376,7 +394,6 @@ export class FeatureRequestRepository extends BaseRepository<FeatureRequest> {
         },
       },
     ];
-
 
     // Lookup and unwind stages for related documents
     pipeline.push(
@@ -513,7 +530,6 @@ export class FeatureRequestRepository extends BaseRepository<FeatureRequest> {
         },
       }
     );
-
 
     // Count total documents
     pipeline.push(

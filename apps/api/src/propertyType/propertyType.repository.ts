@@ -15,9 +15,10 @@ export class PropertyTypeRepository extends BaseRepository<PropertyType> {
   }
 
   async findByIdInDetail(propertyTypeId: string): Promise<any> {
+    const isObjectId = Types.ObjectId.isValid(propertyTypeId);
     const propertyType = await this.propertyTypeModel
       .findOne({
-        _id: new Types.ObjectId(propertyTypeId),
+        ...(isObjectId ? { _id: new Types.ObjectId(propertyTypeId) } : { slug: propertyTypeId }),
         isDeleted: { $ne: DeletionStatus.DELETED },
       })
       .populate([

@@ -66,5 +66,5 @@ export class GetOpenRequestsDto {
 }
 
 export const getOpenRequestsSchema = Joi.object({
-  residenceId: Joi.string().custom(joiObjectIdValidator('residenceId')).required(),
+  residenceId: Joi.string().required(),
 });

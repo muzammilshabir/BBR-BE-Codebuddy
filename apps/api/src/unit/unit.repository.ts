@@ -7,10 +7,14 @@ import { ListUnitDto } from './dto/list-unit.dto';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
 import { ListExclusiveOfferDto } from './dto/list-exclusive-offer.dto';
 import { ListPropsDto } from '../../../../packages/api-core/modules/dto/listProps.dto';
+import { Residence } from 'src/residences/schema/residences.schema';
 
 @Injectable()
 export class UnitRepository extends BaseRepository<Unit> {
-  constructor(@InjectModel(Unit.name) private readonly unitModel: Model<Unit>) {
+  constructor(
+    @InjectModel(Unit.name) private readonly unitModel: Model<Unit>,
+    @InjectModel(Residence.name) private readonly residenceModel: Model<Residence>
+  ) {
     super(unitModel);
   }
 
@@ -34,7 +38,8 @@ export class UnitRepository extends BaseRepository<Unit> {
 
   async listUnitsWithDraft(listUnitDto: ListUnitDto): Promise<any[]> {
     try {
-      const { status, residenceId, search } = listUnitDto;
+      const { status, residenceId: residenceIdOrSlug, search } = listUnitDto;
+      const residenceId = this.getIdBySlugOrObjectId(this.residenceModel, residenceIdOrSlug);
 
       const paginationOptions = PaginationService.prepareOptions(listUnitDto);
       const sortObject = paginationOptions.sort.reduce((acc, [field, order]) => {
@@ -45,7 +50,7 @@ export class UnitRepository extends BaseRepository<Unit> {
       const pipeline: PipelineStage[] = [
         {
           $match: {
-            ...(residenceId ? { residenceId: new Types.ObjectId(residenceId) } : {}),
+            ...(residenceId ? { residenceId: residenceId } : {}),
             isDeleted: false,
           },
         },
@@ -68,6 +73,41 @@ export class UnitRepository extends BaseRepository<Unit> {
             'drafts.createdAt': -1,
           },
         },
+
+        // Lookup residence
+        {
+          $lookup: {
+            from: 'residences',
+            localField: 'residenceId',
+            foreignField: '_id',
+            as: 'residence',
+          },
+        },
+        // Unwind residence
+        { $unwind: { path: '$residence', preserveNullAndEmptyArrays: true } },
+        // Lookup brand
+        {
+          $lookup: {
+            from: 'brands',
+            localField: 'residence.associatedBrandId',
+            foreignField: '_id',
+            as: 'associatedBrand',
+          },
+        },
+
+        // Unwind brand
+        { $unwind: { path: '$brand', preserveNullAndEmptyArrays: true } },
+        // Lookup city
+        {
+          $lookup: {
+            from: 'cities',
+            localField: 'residence.cityId',
+            foreignField: '_id',
+            as: 'residence.city',
+          },
+        },
+        { $unwind: { path: '$residence.city', preserveNullAndEmptyArrays: true } },
+
         // Group by unitId and keep only the latest draft
         {
           $group: {
@@ -407,6 +447,17 @@ export class UnitRepository extends BaseRepository<Unit> {
           },
         },
 
+        // Lookup city
+        {
+          $lookup: {
+            from: 'cities',
+            localField: 'residence.cityId',
+            foreignField: '_id',
+            as: 'residence.city',
+          },
+        },
+        { $unwind: { path: '$residence.city', preserveNullAndEmptyArrays: true } },
+
         // Search and filter conditions
         {
           $match: {
@@ -423,7 +474,9 @@ export class UnitRepository extends BaseRepository<Unit> {
                         $and: [
                           {
                             'residence.residenceTypeIds': {
-                              $in: propertyTypes.map((propertyType) => new Types.ObjectId(propertyType)),
+                              $in: propertyTypes.map(
+                                (propertyType) => new Types.ObjectId(propertyType)
+                              ),
                             },
                           },
                         ],
@@ -436,7 +489,9 @@ export class UnitRepository extends BaseRepository<Unit> {
                         $and: [
                           {
                             'residence.residenceTypeIds': {
-                              $in: propertyTypes.map((propertyType) => new Types.ObjectId(propertyType)),
+                              $in: propertyTypes.map(
+                                (propertyType) => new Types.ObjectId(propertyType)
+                              ),
                             },
                           },
                         ],
@@ -805,5 +860,20 @@ export class UnitRepository extends BaseRepository<Unit> {
     } catch (error) {
       throw new Error(`Error while fetching exclusive offers: ${error}`);
     }
+  }
+
+  async getIdBySlugOrObjectId(
+    model: Model<any>,
+    idOrSlug: string,
+    selectField = '_id'
+  ): Promise<Types.ObjectId | null> {
+    if (Types.ObjectId.isValid(idOrSlug)) {
+      // If it's a valid ObjectId, return it directly
+      return new Types.ObjectId(idOrSlug);
+    }
+
+    // Otherwise, find by slug
+    const result = await model.findOne({ slug: idOrSlug }).select(selectField).exec();
+    return result ? result[selectField] : null;
   }
 }

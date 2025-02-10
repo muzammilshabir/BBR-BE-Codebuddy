@@ -251,21 +251,12 @@ export const listRankingRequestForUserSchema = PaginationSchema.append({
 
   rankingCategoryId: Joi.string().custom(joiObjectIdValidator('rankingCategoryId')).optional(),
 
-  residenceTypeIds: Joi.array()
-    .items(Joi.string().custom(joiObjectIdValidator('residenceTypeId')))
-    .optional(),
-
-  lifeStyleIds: Joi.array()
-    .items(Joi.string().custom(joiObjectIdValidator('lifeStyleId')))
-    .optional(),
-
-  brandIds: Joi.array()
-    .items(Joi.string().custom(joiObjectIdValidator('brandId')))
-    .optional(),
-
-  countryId: Joi.string().custom(joiObjectIdValidator('countryId')).optional(),
-  cityId: Joi.string().custom(joiObjectIdValidator('cityId')).optional(),
+  residenceTypeIds: Joi.array().items(Joi.string()).optional(),
+  lifeStyleIds: Joi.array().items(Joi.string()).optional(),
+  brandIds: Joi.array().items(Joi.string()).optional(),
+  countryId: Joi.string().optional(),
+  cityId: Joi.string().optional(),
   locationId: Joi.string().custom(joiObjectIdValidator('locationId')).optional(),
-  geoGraphyId: Joi.string().custom(joiObjectIdValidator('geoGraphyId')).optional(),
-  residenceId: Joi.string().custom(joiObjectIdValidator('residenceId')).optional(),
+  geoGraphyId: Joi.string().optional(),
+  residenceId: Joi.string().optional(),
 });

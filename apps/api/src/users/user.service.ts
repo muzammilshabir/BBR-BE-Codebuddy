@@ -320,7 +320,20 @@ export class UserService {
       filter._id = { $in: user.favouritesUnitIds };
 
       const { data, count } = await this.unitRepository.findAll(filter, options, [
-        { path: 'residenceId' },
+        {
+          path: 'residenceId',
+          populate: [
+            {
+              path: 'associatedBrandId',
+              select: 'slug',
+              as: 'associatedBrand'
+            },
+            {
+              path: 'cityId',
+              select: 'slug',
+            },
+          ],
+        },
         { path: 'visuals.mainPhotos', model: 'Upload' },
         { path: 'visuals.mainGalleryPhotos', model: 'Upload' },
         { path: 'visuals.secondGalleryPhotos', model: 'Upload' },

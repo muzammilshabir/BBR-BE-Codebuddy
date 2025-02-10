@@ -22,6 +22,7 @@ export class CountryService {
 
     const { data, count } = await this.countryRepository.findAll(filter, options, [
       { path: 'upload.ImageId', select: 'originalFileKey fileKey url mimeType', model: 'Upload' },
+      { path: 'geographicalAreasId', select: 'slug' },
     ]);
 
     const { pagination } = PaginationService.paginate({ rows: data, count }, listCountryDto);
@@ -43,66 +44,60 @@ export class CountryService {
     return await this.countryRepository.findByIdInDetail(countryId);
   }
 
-
   async processCountrySeeder(file: Express.Multer.File) {
     try {
       // Read the CSV file using XLSX
       const workbook = XLSX.read(file.buffer, { type: 'buffer' });
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
-  
+
       const BATCH_SIZE = 1000;
       let processedCount = 0;
       let savedCount = 0;
-  
+
       // Process in batches
       for (let i = 0; i < jsonData.length; i += BATCH_SIZE) {
         const batch = jsonData.slice(i, i + BATCH_SIZE);
-        
+
         // Log progress
-        console.log(`Processing batch ${i / BATCH_SIZE + 1} of ${Math.ceil(jsonData.length / BATCH_SIZE)}`);
-  
+        console.log(
+          `Processing batch ${i / BATCH_SIZE + 1} of ${Math.ceil(jsonData.length / BATCH_SIZE)}`
+        );
+
         try {
           // Process each country in the batch
-          const countryPromises = batch.map(async row => {
+          const countryPromises = batch.map(async (row) => {
             const countryData = {
               name: row['name']?.toString(),
               countryCode: row['iso2']?.toString(),
               phoneCode: row['phone_code']?.toString(),
               active: false,
-              isDeleted: false
+              isDeleted: false,
             };
-          
-            const foundCountry = await this.countryRepository.find({ 
-              name: { 
-                  $regex: `^${countryData.name.replace(/[()]/g, '\\$&')}$`, 
-                  $options: 'i' 
+
+            const foundCountry = await this.countryRepository.find({
+              name: {
+                $regex: `^${countryData.name.replace(/[()]/g, '\\$&')}$`,
+                $options: 'i',
               },
-              isDeleted: false 
-          });
-            if(foundCountry){
-              await this.countryRepository.update(
-                foundCountry._id,
-                countryData
-              );
+              isDeleted: false,
+            });
+            if (foundCountry) {
+              await this.countryRepository.update(foundCountry._id, countryData);
+            } else {
+              await this.countryRepository.create(countryData);
             }
-
-            else{
-                await this.countryRepository.create(countryData);
-            }
-
           });
-  
+
           // Save batch
           const savedBatch = await Promise.all(countryPromises);
           processedCount += batch.length;
           savedCount += savedBatch.length;
-  
+
           console.log(`Saved ${savedBatch.length} countries. Total processed: ${processedCount}`);
-  
+
           // Optional: Add small delay between batches
-          await new Promise(resolve => setTimeout(resolve, 100));
-  
+          await new Promise((resolve) => setTimeout(resolve, 100));
         } catch (error) {
           console.error(`Error in batch ${i / BATCH_SIZE + 1}:`, error);
           continue; // Continue with next batch even if current fails
@@ -153,11 +148,9 @@ export class CountryService {
         { name: 'Turks and Caicos', active: true, isDeleted: false },
         { name: 'Puerto Rico', active: true, isDeleted: false },
         { name: 'Colombia', active: true, isDeleted: false },
-        { name: 'Peru', active: true, isDeleted: false }
+        { name: 'Peru', active: true, isDeleted: false },
       ];
-      
 
-    
       for (const country of countries) {
         await this.countryRepository.updateWithFilter(
           { name: { $regex: `^${country.name.replace(/[()]/g, '\\$&')}$` }, isDeleted: false },
@@ -165,14 +158,12 @@ export class CountryService {
         );
       }
 
-  
       return {
         success: true,
         message: `Successfully processed ${processedCount} rows and saved ${savedCount} countries`,
         totalProcessed: processedCount,
-        savedCount: savedCount
+        savedCount: savedCount,
       };
-  
     } catch (error) {
       console.error('Error processing CSV:', error);
       throw new Error(`Failed to process country seeder: ${error.message}`);

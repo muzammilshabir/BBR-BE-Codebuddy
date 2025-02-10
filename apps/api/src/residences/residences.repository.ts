@@ -22,8 +22,12 @@ export class ResidenceRepository extends BaseRepository<Residence> {
   }
 
   async findByIdInDetail(residenceId: string): Promise<any> {
+    const isObjectId = Types.ObjectId.isValid(residenceId);
     let residence: any = await this.residenceModel
-      .findOne({ _id: new Types.ObjectId(residenceId), isDeleted: { $ne: DeletionStatus.DELETED } })
+      .findOne({
+        ...(isObjectId ? { _id: new Types.ObjectId(residenceId) } : { slug: residenceId }),
+        isDeleted: { $ne: DeletionStatus.DELETED },
+      })
       .populate([
         { path: 'residenceTypeIds', select: 'type', model: 'ResidenceType' },
         { path: 'cityId', select: 'name type countryId' },
@@ -90,7 +94,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
 
     residence = residence.toObject();
     const units = await this.residenceModel.aggregate([
-      { $match: { _id: new Types.ObjectId(residenceId) } },
+      { $match: { _id: new Types.ObjectId(residence._id) } },
 
       {
         $lookup: {
@@ -466,7 +470,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
             name: '$latestDraft.name',
             residenceTypeIds: '$residenceTypes',
             websiteLink: '$latestDraft.websiteLink',
-            associatedBrand: '$associatedBrand.name',
+            associatedBrand: { name: '$associatedBrand.name', slug: '$associatedBrand.slug' },
             briefOverview: '$latestDraft.briefOverview',
             comprehensiveOverview: '$latestDraft.comprehensiveOverview',
             budgetLimitationsRange: '$latestDraft.budgetLimitationsRange',
@@ -485,7 +489,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
               },
             },
             rejectionReason: '$latestDraft.rejectionReason',
-            city: { name: '$city.name', type: '$city.type', countryId: '$city.countryId' },
+            city: { name: '$city.name', slug: '$city.slug', countryId: '$city.countryId' },
             country: { name: '$country.name', type: '$country.type' },
             state: { name: '$state.name' },
             lifeStyleId: '$latestDraft.lifeStyleId',
@@ -519,6 +523,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
             },
             claimrequest: 1,
             isDeleted: '$residence.isDeleted',
+            slug: '$residence.slug',
           },
         },
 
@@ -560,9 +565,12 @@ export class ResidenceRepository extends BaseRepository<Residence> {
 
   async getSimilarResidences(getSimilarResidenceDto: GetSimilarResidenceDto) {
     try {
+      const isObjectId = Types.ObjectId.isValid(getSimilarResidenceDto.residenceId);
       const selectedResidence = await this.residenceModel
         .findOne({
-          _id: new Types.ObjectId(getSimilarResidenceDto.residenceId),
+          ...(isObjectId
+            ? { _id: new Types.ObjectId(getSimilarResidenceDto.residenceId) }
+            : { slug: getSimilarResidenceDto.residenceId }),
           isDeleted: { $ne: DeletionStatus.DELETED },
         })
         .exec();
@@ -617,10 +625,7 @@ export class ResidenceRepository extends BaseRepository<Residence> {
                 ],
               },
               {
-                $and: [
-                  { stateId: { $exists: true } },
-                  { stateId: selectedResidence.stateId },
-                ],
+                $and: [{ stateId: { $exists: true } }, { stateId: selectedResidence.stateId }],
               },
               {
                 $and: [
@@ -1025,72 +1030,72 @@ export class ResidenceRepository extends BaseRepository<Residence> {
       {
         $match: {
           uniqueUrl: { $exists: true, $ne: null },
-          isDeleted: { $ne: true }
-        }
+          isDeleted: { $ne: true },
+        },
       },
       {
         $lookup: {
           from: 'residencedrafts',
           localField: '_id',
           foreignField: 'residenceId',
-          as: 'drafts'
-        }
+          as: 'drafts',
+        },
       },
       {
         $unwind: {
           path: '$drafts',
-          preserveNullAndEmptyArrays: true
-        }
+          preserveNullAndEmptyArrays: true,
+        },
       },
       {
         $sort: {
-          'drafts.createdAt': -1
-        }
+          'drafts.createdAt': -1,
+        },
       },
       {
         $group: {
           _id: '$_id',
           latestDraft: { $first: '$drafts' },
-          residenceData: { $first: '$$ROOT' }
-        }
+          residenceData: { $first: '$$ROOT' },
+        },
       },
       {
         $lookup: {
           from: 'users',
           localField: 'residenceData.developerId',
           foreignField: '_id',
-          as: 'developer'
-        }
+          as: 'developer',
+        },
       },
       {
         $unwind: {
           path: '$developer',
-          preserveNullAndEmptyArrays: true
-        }
+          preserveNullAndEmptyArrays: true,
+        },
       },
       {
         $lookup: {
           from: 'cities',
           localField: 'residenceData.cityId',
           foreignField: '_id',
-          as: 'city'
-        }
+          as: 'city',
+        },
       },
       {
         $lookup: {
           from: 'countries',
           localField: 'residenceData.countryId',
           foreignField: '_id',
-          as: 'country'
-        }
+          as: 'country',
+        },
       },
       {
         $lookup: {
           from: 'states',
           localField: 'residenceData.stateId',
           foreignField: '_id',
-          as: 'state'
-        }
+          as: 'state',
+        },
       },
       {
         $project: {
@@ -1099,35 +1104,32 @@ export class ResidenceRepository extends BaseRepository<Residence> {
           status: { $ifNull: ['$latestDraft.status', '$residenceData.status'] },
           uniqueUrl: '$residenceData.uniqueUrl',
           city: {
-            name: { $arrayElemAt: ['$city.name', 0] }
+            name: { $arrayElemAt: ['$city.name', 0] },
           },
           country: {
-            name: { $arrayElemAt: ['$country.name', 0] }
+            name: { $arrayElemAt: ['$country.name', 0] },
           },
           state: {
-            name: { $arrayElemAt: ['$state.name', 0] }
+            name: { $arrayElemAt: ['$state.name', 0] },
           },
           developer: {
             fullName: '$developer.fullName',
             email: '$developer.email',
-            contactInfo: '$developer.contactInfo'
+            contactInfo: '$developer.contactInfo',
           },
           createdAt: { $ifNull: ['$latestDraft.createdAt', '$residenceData.createdAt'] },
-          lastUpdated: { $ifNull: ['$latestDraft.updatedAt', '$residenceData.updatedAt'] }
-        }
+          lastUpdated: { $ifNull: ['$latestDraft.updatedAt', '$residenceData.updatedAt'] },
+        },
       },
       {
         $sort: {
-          createdAt: -1
-        }
+          createdAt: -1,
+        },
       },
       { $skip: skip },
-      { $limit: batchSize }
+      { $limit: batchSize },
     ];
 
-    return this.residenceModel
-      .aggregate(pipeline)
-      .collation({ locale: 'en', strength: 1 })
-      .exec();
+    return this.residenceModel.aggregate(pipeline).collation({ locale: 'en', strength: 1 }).exec();
   }
 }

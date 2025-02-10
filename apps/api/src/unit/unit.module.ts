@@ -14,6 +14,7 @@ import { ResidenceServiceSchema } from '../residenceService/schema/residenceServ
 import { ResidenceServiceRepository } from '../residenceService/residenceService.repository';
 import { UnitDraft, UnitDraftSchema } from '../unitDraft/schema/unitDraft.schema';
 import { UnitDraftRepository } from '../unitDraft/unitDraft.repository';
+import { Residence, ResidenceSchema } from 'src/residences/schema/residences.schema';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { UnitDraftRepository } from '../unitDraft/unitDraft.repository';
     UploadModule,
     ResidenceModule,
     MongooseModule.forFeature([{ name: UnitDraft.name, schema: UnitDraftSchema }]),
+    MongooseModule.forFeature([{ name: Residence.name, schema: ResidenceSchema }]),
   ],
   providers: [
     UnitService,

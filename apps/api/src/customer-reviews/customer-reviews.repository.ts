@@ -23,17 +23,24 @@ export class CustomerReviewRepository extends BaseRepository<CustomerReview> {
         {
           path: 'residence',
           model: 'Residence',
-          select: 'name associatedBrandId',
-          populate: {
-            path: 'associatedBrandId',
-            model: 'Brand',
-            select: 'name description upload',
-            populate: {
-              path: 'upload.ImageId',
-              model: 'Upload',
-              select: 'originalFileKey fileKey url mimeType'
-            }
-          }
+          select: 'name associatedBrandId cityId slug',
+          populate: [
+            {
+              path: 'associatedBrandId',
+              model: 'Brand',
+              select: 'name description upload slug',
+              populate: {
+                path: 'upload.ImageId',
+                model: 'Upload',
+                select: 'originalFileKey fileKey url mimeType',
+              },
+            },
+            {
+              path: 'cityId',
+              model: 'City',
+              select: 'name slug',
+            },
+          ],
         },
         { path: 'photos', model: 'Upload' },
         { path: 'developer', model: 'User', select: 'fullName' },
@@ -83,9 +90,9 @@ export class CustomerReviewRepository extends BaseRepository<CustomerReview> {
                 populate: {
                   path: 'upload.ImageId',
                   model: 'Upload',
-                  select: 'originalFileKey fileKey url mimeType'
-                }
-              }
+                  select: 'originalFileKey fileKey url mimeType',
+                },
+              },
             ],
           },
           {
@@ -110,14 +117,20 @@ export class CustomerReviewRepository extends BaseRepository<CustomerReview> {
         { $group: { _id: null, avgOverallRating: { $avg: '$overallRating' } } },
       ]),
     ]);
-  
+
     const avgOverallRating = avgOverallRatingResult[0]?.avgOverallRating || 0;
-  
+
     return { data, count, avgOverallRating };
   }
 
   async findOne(query: any): Promise<CustomerReview | null> {
-    return (await this.customerReviewModel.find(query).sort({ createdAt: -1 }).limit(1).lean<CustomerReview>())[0];
+    return (
+      await this.customerReviewModel
+        .find(query)
+        .sort({ createdAt: -1 })
+        .limit(1)
+        .lean<CustomerReview>()
+    )[0];
   }
 
   async aggregate(search: any) {

@@ -199,7 +199,16 @@ export class ResidenceSeederService {
 
         for (const singleCountry of batch) {
           try {
+            let geographicalArea;
+
             const country = singleCountry as any;
+
+            if (country.geographical_area_id) {
+              geographicalArea = await this.processGeographicalArea(
+                country,
+                sheets.geographicalArea
+              );
+            }
 
             let countryDoc = await this.countryModel.findOne({
               name: {
@@ -219,6 +228,10 @@ export class ResidenceSeederService {
                   ? Number(country.display_order)
                   : undefined,
               };
+
+              if (geographicalArea) {
+                countryData.geographicalAreasId = new Types.ObjectId(geographicalArea._id);
+              }
 
               countryDoc = await this.countryModel.create(countryData);
             } else if (countryDoc.active === false) {
