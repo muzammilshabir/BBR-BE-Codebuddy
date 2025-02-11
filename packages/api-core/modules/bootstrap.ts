@@ -1,3 +1,5 @@
+import { ApiKeyGuard } from './../../../apps/api/src/auth/guards/apiKey.guard';
+import { SwaggerGuard } from './../../../apps/api/src/auth/guards/swagger.guard';
 import { Logger as NestJsLogger } from '@nestjs/common';
 import { HttpAdapterHost, NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerCustomOptions, SwaggerModule } from '@nestjs/swagger';
@@ -48,7 +50,35 @@ export async function bootstrap(appModule: any) {
       scheme: 'bearer',
       bearerFormat: 'Bearer',
     })
+    .addSecurity('ApiKeyAuth', {
+      type: 'apiKey',
+      in: 'header',
+      name: 'x-api-key',
+    })
+    .addSecurityRequirements('ApiKeyAuth')
     .build();
+
+  app.use('/api', (req, res, next) => {
+    const guard = new SwaggerGuard();
+
+    try {
+      const canAccess = guard.canActivate({
+        switchToHttp: () => ({ getRequest: () => req }),
+      } as any);
+
+      if (canAccess) {
+        return next(); // Allow access if API key/password is valid
+      }
+    } catch (e) {
+      // Always return 401 with WWW-Authenticate header to trigger prompt
+      return res
+        .status(401)
+        .header('WWW-Authenticate', 'Basic realm="Swagger API"')
+        .send('Unauthorized');
+    }
+  });
+
+  app.useGlobalGuards(new ApiKeyGuard());
 
   const options: SwaggerCustomOptions = {
     swaggerOptions: {
@@ -57,6 +87,7 @@ export async function bootstrap(appModule: any) {
     },
   };
   const document = SwaggerModule.createDocument(app, config);
+
   SwaggerModule.setup('api', app, document, options);
 
   const loggerService = new NestJsLogger('Main');
