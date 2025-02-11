@@ -1004,7 +1004,9 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
       const validResidenceTypeIds = resolvedResidenceTypeIds.filter(Boolean);
 
       if (validResidenceTypeIds.length > 0) {
-        pipeline.push({ $match: { 'residence.residenceTypeIds': { $in: validResidenceTypeIds } } });
+        pipeline.push({
+          $match: { 'residence.residenceTypeIds': { $all: validResidenceTypeIds } },
+        });
       }
     }
 

@@ -613,6 +613,7 @@ export class ResidenceSeederService {
               residence.highlighted_amenity_id3
                 ? await this.findAmenities(residence, sheets.amenities)
                 : [];
+            const propertyTypeDoc = await this.processProperty(residence, sheets.propertyTypes);
 
             const residenceData = this.createResidenceData(residence, {
               residenceTypeDoc,
@@ -624,6 +625,7 @@ export class ResidenceSeederService {
               highlightedAmenities,
               lifeStyleDoc,
               placeDetails,
+              propertyTypeDoc,
             });
 
             let foundResidence = await this.residenceRepository.find({
@@ -783,6 +785,7 @@ export class ResidenceSeederService {
       highlightedAmenities: any[];
       lifeStyleDoc: any;
       placeDetails: any;
+      propertyTypeDoc: any;
     }
   ) {
     const baseData: any = {
@@ -812,6 +815,10 @@ export class ResidenceSeederService {
     // Handle required IDs and basic fields
     if (data.residenceTypeDoc?._id) {
       baseData.residenceTypeIds = [new Types.ObjectId(data.residenceTypeDoc._id)];
+    }
+
+    if (data.propertyTypeDoc?._id) {
+      baseData.propertyTypeIds = [new Types.ObjectId(data.propertyTypeDoc._id)];
     }
 
     if (residence.website_link?.toString().trim()) {

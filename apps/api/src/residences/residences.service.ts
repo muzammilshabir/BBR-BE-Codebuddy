@@ -898,7 +898,7 @@ export class ResidenceService {
       const validPropertyTypeIds = resolvedPropertyTypeIds.filter(Boolean);
 
       if (validPropertyTypeIds.length) {
-        matchStage.residenceTypeIds = { $in: validPropertyTypeIds };
+        matchStage.propertyTypeIds = { $all: validPropertyTypeIds };
       }
     }
 
