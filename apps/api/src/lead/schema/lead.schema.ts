@@ -20,7 +20,7 @@ export class Lead extends Document {
   @Prop({ required: true })
   name: string;
 
-  @Prop({ required: true })
+  @Prop({ required: false })
   phoneNumber: PhoneNumber;
 
   @Prop({ required: true })
@@ -30,7 +30,7 @@ export class Lead extends Document {
   contactInfo: LeadUserContactInfo;
 
   @Prop({ required: false, type: Object })
-  other: Object;
+  other: unknown;
 
   @Prop({ type: Types.ObjectId, ref: 'Residence', required: false })
   residenceId?: Types.ObjectId;
