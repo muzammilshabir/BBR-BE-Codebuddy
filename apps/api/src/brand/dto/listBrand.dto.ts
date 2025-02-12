@@ -10,6 +10,7 @@ export const listBrandSchema = PaginationSchema.append({
   status: Joi.string()
     .valid(...Object.values(BrandStatus))
     .optional(),
+  hasRankingCategory: Joi.boolean().optional(),
 });
 
 export class ListBrandDto extends ListPropsDto {
@@ -36,4 +37,12 @@ export class ListBrandDto extends ListPropsDto {
     required: false,
   })
   status?: BrandStatus;
+
+  @ApiProperty({
+    description: 'Filter brands that have a ranking category',
+    example: true,
+    required: false,
+    type: Boolean,
+  })
+  hasRankingCategory?: boolean;
 }

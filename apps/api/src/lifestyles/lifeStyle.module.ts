@@ -6,9 +6,13 @@ import { LifeStyleController } from './lifeStyles.controller';
 import { LifeStyleRepository } from './lifeStyle.repository';
 import { LifeStyleSeeder } from './lifeStyle.seeder';
 import { LifeStyleFixture } from './lifeStyle.fixture';
+import { RankingCategory, RankingCategorySchema } from 'src/rankingCategory/schema/rankingCategory.schema';
 
 @Module({
-  imports: [MongooseModule.forFeature([{ name: LifeStyle.name, schema: LifeStyleSchema }])],
+  imports: [
+    MongooseModule.forFeature([{ name: LifeStyle.name, schema: LifeStyleSchema }]),
+    MongooseModule.forFeature([{ name: RankingCategory.name, schema: RankingCategorySchema }]),
+  ],
   providers: [ListLifeStyleService, LifeStyleRepository, LifeStyleSeeder, LifeStyleFixture],
   exports: [LifeStyleSeeder, LifeStyleFixture],
   controllers: [LifeStyleController],

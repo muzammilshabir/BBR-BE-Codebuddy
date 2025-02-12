@@ -97,12 +97,16 @@ export class CustomerSupportService {
 
     const support = await this.customerSupportRepository.create(transformedDto);
 
-    await this.developerProfileActivityLogRepository.create({
-      developerId: await this.getDeveloperId(createCustomerSupportDto),
-      activityType: 'Support request submitted',
-      userId: await this.getDeveloperId(createCustomerSupportDto),
-      createdAt: new Date(),
-    });
+    const developerId = await this.getDeveloperId(createCustomerSupportDto);
+
+    if (developerId) {
+      await this.developerProfileActivityLogRepository.create({
+        developerId: await this.getDeveloperId(createCustomerSupportDto),
+        activityType: 'Support request submitted',
+        userId: await this.getDeveloperId(createCustomerSupportDto),
+        createdAt: new Date(),
+      });
+    }
 
     await this.supportActivityLogRepository.create({
       supportId: new Types.ObjectId(support.id),

@@ -4,6 +4,7 @@ import * as Joi from 'joi';
 
 export const listLifeStylesSchema = PaginationSchema.append({
   search: Joi.string().trim().max(100),
+  hasRankingCategory: Joi.boolean().optional(),
 });
 
 export class ListLifeStylesDto extends ListPropsDto {
@@ -14,4 +15,12 @@ export class ListLifeStylesDto extends ListPropsDto {
     type: String,
   })
   search?: string;
+
+  @ApiProperty({
+    description: 'Filter lifestyles that have a ranking category',
+    example: true,
+    required: false,
+    type: Boolean,
+  })
+  hasRankingCategory?: boolean;
 }

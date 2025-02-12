@@ -10,14 +10,26 @@ import { CountryRepository } from '../country/country.repository';
 import { State, StateSchema } from 'src/state/schema/state.schema';
 import { StateRepository } from 'src/state/state.repository';
 import { ActivateCitySeeder } from './activateCity.seeder';
+import {
+  RankingCategory,
+  RankingCategorySchema,
+} from 'src/rankingCategory/schema/rankingCategory.schema';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: City.name, schema: CitySchema }]),
     MongooseModule.forFeature([{ name: Country.name, schema: CountrySchema }]),
     MongooseModule.forFeature([{ name: State.name, schema: StateSchema }]),
+    MongooseModule.forFeature([{ name: RankingCategory.name, schema: RankingCategorySchema }]),
   ],
-  providers: [CityService, CityRepository, CitySeeder, CountryRepository, StateRepository, ActivateCitySeeder],
+  providers: [
+    CityService,
+    CityRepository,
+    CitySeeder,
+    CountryRepository,
+    StateRepository,
+    ActivateCitySeeder,
+  ],
   exports: [CitySeeder],
   controllers: [CityController],
 })

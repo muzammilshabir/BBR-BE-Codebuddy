@@ -7,7 +7,7 @@ import { BadRequestException, NotFoundException } from '@bbr/api-core/modules/ex
 import { CreateBrandApplyDto, CreateBrandDraftDto } from './dto/createBrandDraft.dto';
 import { BrandDraftRepository } from '../brandDraft/brandDraft.repository';
 import { BrandStatus } from './enum/brand-enum';
-import { Types } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Brand } from './schema/brand.schema';
 import { DeletionStatus } from '../unit/enum/unit-enum';
 import { ResidenceService } from '../residences/residences.service';
@@ -15,6 +15,8 @@ import { ResidenceStatus } from '../residences/enum/residence-enum';
 import { PipelineStage } from 'mongoose';
 import { BrandActivityLogRepository } from 'src/brand-activity-log/brand-activity-log.repository';
 import { RedisService } from 'src/redis/redis.service';
+import { InjectModel } from '@nestjs/mongoose';
+import { RankingCategory } from 'src/rankingCategory/schema/rankingCategory.schema';
 
 @Injectable()
 export class BrandService {
@@ -23,26 +25,35 @@ export class BrandService {
     private readonly brandDraftRepository: BrandDraftRepository,
     private readonly residenceService: ResidenceService,
     private readonly brandActivityLogRepository: BrandActivityLogRepository,
-    private readonly redisService: RedisService
+    private readonly redisService: RedisService,
+    @InjectModel(RankingCategory.name) private readonly rankingCategoryModel: Model<RankingCategory>
   ) {}
 
   async findAll(listBrandDto: ListBrandDto) {
     try {
-      const { status, brandCategoryId, search } = listBrandDto;
+      const { status, brandCategoryId, search, hasRankingCategory } = listBrandDto;
       const paginationOptions = PaginationService.prepareOptions(listBrandDto);
 
-      const key = `${JSON.stringify(listBrandDto)}:${JSON.stringify(paginationOptions)}`
+      const key = `${JSON.stringify(listBrandDto)}:${JSON.stringify(paginationOptions)}`;
+
+      const matchFilter: any = {
+        isDeleted: { $ne: true },
+        ...(status ? { status: status } : {}),
+        ...(brandCategoryId ? { brandCategoryId: new Types.ObjectId(brandCategoryId) } : {}),
+        ...(search ? { name: { $regex: search, $options: 'i' } } : {}),
+      };
+
+      // If hasRankingCategory is true, fetch relevant brands
+      if (hasRankingCategory) {
+        const rankingBrands = await this.rankingCategoryModel.distinct('brandId', {});
+
+        if (rankingBrands.length) {
+          matchFilter._id = { $in: rankingBrands };
+        }
+      }
 
       const pipeline: PipelineStage[] = [
-        // Initial match for non-deleted brands
-        {
-          $match: {
-            isDeleted: { $ne: true },
-            ...(status ? { status: status } : {}),
-            ...(brandCategoryId ? { brandCategoryId: new Types.ObjectId(brandCategoryId) } : {}),
-            ...(search ? { name: { $regex: search, $options: 'i' } } : {}),
-          },
-        },
+        { $match: matchFilter },
 
         // Lookup uploads for images
         {
@@ -134,9 +145,9 @@ export class BrandService {
 
       if (redisData) {
         try {
-          return JSON.parse(redisData)
+          return JSON.parse(redisData);
         } catch (error) {
-          console.log('Error while parsing data for brand', { params: listBrandDto })
+          console.log('Error while parsing data for brand', { params: listBrandDto });
         }
       }
 
@@ -146,7 +157,12 @@ export class BrandService {
 
       const { pagination } = PaginationService.paginate({ rows: data, count }, listBrandDto);
 
-      await this.redisService.set({ prefix: 'brands-cache', key, value: JSON.stringify({ pagination, brands: data }), expiry: 900 });
+      await this.redisService.set({
+        prefix: 'brands-cache',
+        key,
+        value: JSON.stringify({ pagination, brands: data }),
+        expiry: 900,
+      });
 
       return { pagination, brands: data };
     } catch (error) {
@@ -159,7 +175,7 @@ export class BrandService {
       const { status, brandCategoryId, search } = listBrandDto;
       const paginationOptions = PaginationService.prepareOptions(listBrandDto);
 
-      const key = `${JSON.stringify(listBrandDto)}:${JSON.stringify(paginationOptions)}`
+      const key = `${JSON.stringify(listBrandDto)}:${JSON.stringify(paginationOptions)}`;
 
       const pipeline: PipelineStage[] = [
         // Initial match for non-deleted brands
@@ -400,9 +416,9 @@ export class BrandService {
 
       if (redisData) {
         try {
-          return JSON.parse(redisData)
+          return JSON.parse(redisData);
         } catch (error) {
-          console.log('Error while parsing data for brand', { params: listBrandDto })
+          console.log('Error while parsing data for brand', { params: listBrandDto });
         }
       }
 
@@ -412,7 +428,12 @@ export class BrandService {
 
       const { pagination } = PaginationService.paginate({ rows: data, count }, listBrandDto);
 
-      await this.redisService.set({ prefix: 'brands-cache', key, value: JSON.stringify({ pagination, brands: data }), expiry: 900 });
+      await this.redisService.set({
+        prefix: 'brands-cache',
+        key,
+        value: JSON.stringify({ pagination, brands: data }),
+        expiry: 900,
+      });
 
       return { pagination, brands: data };
     } catch (error) {

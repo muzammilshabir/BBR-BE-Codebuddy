@@ -11,9 +11,16 @@ import { BrandCategory, BrandCategorySchema } from '../brandCategory/schema/bran
 import { BrandDraft, BrandDraftSchema } from '../brandDraft/schema/brandDraft.schema';
 import { BrandDraftRepository } from '../brandDraft/brandDraft.repository';
 import { ResidenceModule } from '../residences/residences.module';
-import { BrandActivityLog, BrandActivityLogSchema } from 'src/brand-activity-log/schema/brand-activity-log.schema';
+import {
+  BrandActivityLog,
+  BrandActivityLogSchema,
+} from 'src/brand-activity-log/schema/brand-activity-log.schema';
 import { BrandActivityLogRepository } from 'src/brand-activity-log/brand-activity-log.repository';
 import { RedisModule } from 'src/redis/redis.module';
+import {
+  RankingCategory,
+  RankingCategorySchema,
+} from 'src/rankingCategory/schema/rankingCategory.schema';
 
 @Module({
   imports: [
@@ -21,8 +28,9 @@ import { RedisModule } from 'src/redis/redis.module';
     MongooseModule.forFeature([{ name: BrandCategory.name, schema: BrandCategorySchema }]),
     MongooseModule.forFeature([{ name: BrandDraft.name, schema: BrandDraftSchema }]),
     MongooseModule.forFeature([{ name: BrandActivityLog.name, schema: BrandActivityLogSchema }]),
+    MongooseModule.forFeature([{ name: RankingCategory.name, schema: RankingCategorySchema }]),
     ResidenceModule,
-    RedisModule
+    RedisModule,
   ],
   providers: [
     BrandService,

@@ -5,12 +5,13 @@ import { joiObjectIdValidator } from '@bbr/api-core/modules/custome-validations/
 
 export const listCitySchema = PaginationSchema.append({
   search: Joi.string().trim().max(100),
-  countryId: Joi.string().custom(joiObjectIdValidator('leadId')),
+  countryId: Joi.string().custom(joiObjectIdValidator('countryId')).optional(),
+  hasRankingCategory: Joi.boolean().optional(), // ✅ Added validation for hasRankingCategory
 });
 
 export class ListCityDto extends ListPropsDto {
   @ApiProperty({
-    description: 'Search by City ',
+    description: 'Search by City',
     example: 'test',
     required: false,
     type: String,
@@ -24,4 +25,12 @@ export class ListCityDto extends ListPropsDto {
     type: String,
   })
   countryId?: string;
+
+  @ApiProperty({
+    description: 'Filter cities that have a ranking category',
+    example: true,
+    required: false,
+    type: Boolean,
+  })
+  hasRankingCategory?: boolean;
 }

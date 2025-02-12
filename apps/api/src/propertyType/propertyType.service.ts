@@ -4,17 +4,31 @@ import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.s
 import { PropertyTypeDto } from './dto/propertyType.dto';
 import { UpdatePropertyTypeDto } from './dto/updatePropertyType.dto';
 import { NotFoundException } from '@bbr/api-core/modules/exceptions';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { RankingCategory } from 'src/rankingCategory/schema/rankingCategory.schema';
 
 @Injectable()
 export class PropertyTypeService {
-  constructor(private readonly propertyTypeRepository: PropertyTypeRepository) {}
+  constructor(
+    private readonly propertyTypeRepository: PropertyTypeRepository,
+    @InjectModel(RankingCategory.name) private readonly rankingCategoryModel: Model<RankingCategory>
+  ) {}
 
   async findAll(propertyTypeDto: PropertyTypeDto) {
-    const filter = propertyTypeDto.search
-      ? {
-          $or: [{ name: { $regex: propertyTypeDto.search, $options: 'i' } }],
-        }
-      : {};
+    const { search, hasRankingCategory } = propertyTypeDto;
+
+    // Base filter: search criteria
+    const filter: any = search ? { $or: [{ name: { $regex: search, $options: 'i' } }] } : {};
+
+    // If hasRankingCategory is true, fetch relevant property types
+    if (hasRankingCategory) {
+      const rankingPropertyTypes = await this.rankingCategoryModel.distinct('propertyTypeId', {});
+
+      if (rankingPropertyTypes.length) {
+        filter._id = { $in: rankingPropertyTypes };
+      }
+    }
 
     const options = PaginationService.prepareOptions(propertyTypeDto);
 

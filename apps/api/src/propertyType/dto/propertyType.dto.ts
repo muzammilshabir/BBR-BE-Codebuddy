@@ -4,6 +4,7 @@ import * as Joi from 'joi';
 
 export const propertyTypeSchema = PaginationSchema.append({
   search: Joi.string().trim().max(100),
+  hasRankingCategory: Joi.boolean().optional(),
 });
 
 export class PropertyTypeDto extends ListPropsDto {
@@ -14,4 +15,12 @@ export class PropertyTypeDto extends ListPropsDto {
     type: String,
   })
   search?: string;
+
+  @ApiProperty({
+    description: 'Filter property types that have a ranking category',
+    example: true,
+    required: false,
+    type: Boolean,
+  })
+  hasRankingCategory?: boolean;
 }

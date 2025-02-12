@@ -4,29 +4,44 @@ import { ListCityDto } from './dto/listCity.dto';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
 import { UpdateCityDto } from './dto/updateCity.dto';
 import { NotFoundException } from '@bbr/api-core/modules/exceptions';
-import mongoose from 'mongoose';
+import mongoose, { Model } from 'mongoose';
 import * as XLSX from 'xlsx';
 import { StateRepository } from 'src/state/state.repository';
 import { CountryRepository } from 'src/country/country.repository';
+import { InjectModel } from '@nestjs/mongoose';
+import { RankingCategory } from 'src/rankingCategory/schema/rankingCategory.schema';
 
 @Injectable()
 export class CityService {
   constructor(
     private readonly cityRepository: CityRepository,
     private readonly stateRepository: StateRepository,
-    private readonly countryRepository: CountryRepository
+    private readonly countryRepository: CountryRepository,
+    @InjectModel(RankingCategory.name) private readonly rankingCategoryModel: Model<RankingCategory>
   ) {}
 
   async findAll(listCityDto: ListCityDto) {
-    let filter: any = listCityDto.search
+    const { search, countryId, hasRankingCategory } = listCityDto;
+
+    // Base filter: search & active status
+    let filter: any = search
       ? {
-          $or: [{ name: { $regex: listCityDto.search, $options: 'i' } }],
+          $or: [{ name: { $regex: search, $options: 'i' } }],
           active: true,
         }
       : { active: true };
 
-    if (listCityDto.countryId) {
-      filter = { ...filter, countryId: new mongoose.Types.ObjectId(listCityDto.countryId) };
+    if (countryId) {
+      filter = { ...filter, countryId: new mongoose.Types.ObjectId(countryId) };
+    }
+
+    // If hasRankingCategory is true, fetch relevant cities
+    if (hasRankingCategory) {
+        const rankingCities = await this.rankingCategoryModel.distinct('cityId', {});
+
+        if (rankingCities.length) {
+            filter._id = { $in: rankingCities };
+        }
     }
 
     const options = PaginationService.prepareOptions(listCityDto);
@@ -35,7 +50,7 @@ export class CityService {
       { path: 'upload.ImageId', select: 'originalFileKey fileKey url mimeType', model: 'Upload' },
       {
         path: 'countryId',
-        select: 'slug',
+        select: 'slug name',
         populate: { path: 'geographicalAreasId', select: 'slug' },
       },
     ]);
@@ -43,7 +58,7 @@ export class CityService {
     const { pagination } = PaginationService.paginate({ rows: data, count }, listCityDto);
 
     return { pagination, cities: data };
-  }
+}
 
   async update(id: string, updateCityDto: UpdateCityDto) {
     const city = await this.cityRepository.findById(id);

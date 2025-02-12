@@ -5,18 +5,36 @@ import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.s
 import { NotFoundException } from '@bbr/api-core/modules/exceptions';
 import { UpdateCountryDto } from './dto/updateCountry.dto';
 import * as XLSX from 'xlsx';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { RankingCategory } from 'src/rankingCategory/schema/rankingCategory.schema';
 
 @Injectable()
 export class CountryService {
-  constructor(private readonly countryRepository: CountryRepository) {}
+  constructor(
+    private readonly countryRepository: CountryRepository,
+    @InjectModel(RankingCategory.name) private readonly rankingCategoryModel: Model<RankingCategory>
+  ) {}
 
   async findAll(listCountryDto: ListCountryDto) {
-    const filter = listCountryDto.search
+    const { search, hasRankingCategory } = listCountryDto;
+
+    // Base filter: search & active status
+    const filter: any = search
       ? {
-          $or: [{ name: { $regex: listCountryDto.search, $options: 'i' } }],
+          $or: [{ name: { $regex: search, $options: 'i' } }],
           active: true,
         }
       : { active: true };
+
+    // If hasRankingCategory is true, fetch relevant countries
+    if (hasRankingCategory) {
+      const rankingCountries = await this.rankingCategoryModel.distinct('countryId', {});
+
+      if (rankingCountries.length) {
+        filter._id = { $in: rankingCountries };
+      }
+    }
 
     const options = PaginationService.prepareOptions(listCountryDto);
 

@@ -32,6 +32,8 @@ import { RankingCategoryDraftRepository } from '../rankingCategoryDraft/rankingC
 import { ResidenceDraftRepository } from '../residencesDraft/residencesDraft.repository';
 import { RankingRequestDraftRepository } from '../rankingRequestDraft/rankingRequestDraft.repository';
 import { RankingRequest } from 'src/rankingRequest/schema/rankingRequest.schema';
+import { Brand } from 'src/brand/schema/brand.schema';
+import { PropertyType } from 'src/propertyType/schema/propertyType.schema';
 
 interface Residence {
   residence_id: string;
@@ -124,7 +126,11 @@ export class ResidenceSeederService {
     @InjectModel(Location.name)
     private readonly locationModel: Model<Location>,
     @InjectModel(RankingCategory.name)
-    private readonly rankingCategoryModel: Model<RankingCategory>
+    private readonly rankingCategoryModel: Model<RankingCategory>,
+    @InjectModel(Brand.name) private readonly brandModel: Model<Brand>,
+    @InjectModel(PropertyType.name) private readonly propertyTypeModel: Model<PropertyType>,
+    @InjectModel(PropertyType.name) private readonly geographicalAreasModel: Model<PropertyType>,
+    @InjectModel(PropertyType.name) private readonly lifestyleModel: Model<PropertyType>
   ) {
     this.s3Client = new S3Client({
       region: process.env.AWS_S3_BUCKET_REGION,
@@ -237,7 +243,22 @@ export class ResidenceSeederService {
             } else if (countryDoc.active === false) {
               countryDoc = await this.countryModel.findByIdAndUpdate(
                 countryDoc._id,
-                { active: true },
+                {
+                  active: true,
+                  displayOrder: !isNaN(Number(country.display_order))
+                    ? Number(country.display_order)
+                    : undefined,
+                },
+                { new: true }
+              );
+            } else {
+              countryDoc = await this.countryModel.findByIdAndUpdate(
+                countryDoc._id,
+                {
+                  displayOrder: !isNaN(Number(country.display_order))
+                    ? Number(country.display_order)
+                    : undefined,
+                },
                 { new: true }
               );
             }
@@ -312,7 +333,12 @@ export class ResidenceSeederService {
               // Update city status
               cityDoc = await this.cityModel.findByIdAndUpdate(
                 cityDoc._id,
-                { active: true },
+                {
+                  active: true,
+                  displayOrder: !isNaN(Number(city.display_order))
+                    ? Number(city.display_order)
+                    : undefined,
+                },
                 { new: true }
               );
 
@@ -362,6 +388,16 @@ export class ResidenceSeederService {
                   );
                 }
               }
+            } else {
+              cityDoc = await this.cityModel.findByIdAndUpdate(
+                cityDoc._id,
+                {
+                  displayOrder: !isNaN(Number(city.display_order))
+                    ? Number(city.display_order)
+                    : undefined,
+                },
+                { new: true }
+              );
             }
           } catch (error) {
             errors.residences.push({
@@ -394,6 +430,15 @@ export class ResidenceSeederService {
             });
 
             if (brandDoc) {
+              brandDoc = await this.brandModel.findByIdAndUpdate(
+                brandDoc._id,
+                {
+                  displayOrder: !isNaN(Number(brand.display_order))
+                    ? Number(brand.display_order)
+                    : undefined,
+                },
+                { new: true }
+              );
               const brandDraftDoc = await this.brandDraftRepository.findLatest({
                 brandId: new Types.ObjectId(brandDoc.id),
               });
@@ -1146,6 +1191,16 @@ export class ResidenceSeederService {
       };
 
       propertyTypeDoc = await this.propertyTypeRepository.create(propertyData);
+    } else {
+      propertyTypeDoc = await this.propertyTypeModel.findByIdAndUpdate(
+        propertyTypeDoc._id,
+        {
+          displayOrder: !isNaN(Number(matchingPropertyType.display_order))
+            ? Number(matchingPropertyType.display_order)
+            : undefined,
+        },
+        { new: true }
+      );
     }
 
     return propertyTypeDoc;
@@ -1169,6 +1224,16 @@ export class ResidenceSeederService {
       };
 
       geographicalAreaDoc = await this.geographicalAreasRepository.create(areaData);
+    } else {
+      geographicalAreaDoc = await this.geographicalAreasModel.findByIdAndUpdate(
+        geographicalAreaDoc._id,
+        {
+          displayOrder: !isNaN(Number(matchingArea.display_order))
+            ? Number(matchingArea.display_order)
+            : undefined,
+        },
+        { new: true }
+      );
     }
     return geographicalAreaDoc;
   }
@@ -1262,6 +1327,16 @@ export class ResidenceSeederService {
     });
 
     if (brandDoc) {
+      brandDoc = await this.brandModel.findByIdAndUpdate(
+        brandDoc._id,
+        {
+          displayOrder: !isNaN(Number(matchingBrand.display_order))
+            ? Number(matchingBrand.display_order)
+            : undefined,
+        },
+        { new: true }
+      );
+
       const brandDraftDoc = await this.brandDraftRepository.findLatest({
         brandId: new Types.ObjectId(brandDoc.id),
       });
@@ -1414,7 +1489,12 @@ export class ResidenceSeederService {
       // Update city status
       cityDoc = await this.cityModel.findByIdAndUpdate(
         cityDoc._id,
-        { active: true },
+        {
+          active: true,
+          displayOrder: !isNaN(Number(matchingCity.display_order))
+            ? Number(matchingCity.display_order)
+            : undefined,
+        },
         { new: true }
       );
 
@@ -1465,6 +1545,16 @@ export class ResidenceSeederService {
           );
         }
       }
+    } else {
+      cityDoc = await this.cityModel.findByIdAndUpdate(
+        cityDoc._id,
+        {
+          displayOrder: !isNaN(Number(matchingCity.display_order))
+            ? Number(matchingCity.display_order)
+            : undefined,
+        },
+        { new: true }
+      );
     }
     return cityDoc;
   }
@@ -1501,7 +1591,22 @@ export class ResidenceSeederService {
     } else if (countryDoc.active === false) {
       countryDoc = await this.countryModel.findByIdAndUpdate(
         countryDoc._id,
-        { active: true },
+        {
+          active: true,
+          displayOrder: !isNaN(Number(matchingCountry.display_order))
+            ? Number(matchingCountry.display_order)
+            : undefined,
+        },
+        { new: true }
+      );
+    } else {
+      countryDoc = await this.countryModel.findByIdAndUpdate(
+        countryDoc._id,
+        {
+          displayOrder: !isNaN(Number(matchingCountry.display_order))
+            ? Number(matchingCountry.display_order)
+            : undefined,
+        },
         { new: true }
       );
     }
@@ -1594,6 +1699,16 @@ export class ResidenceSeederService {
       };
 
       lifeStyleDoc = await this.lifeStyleRepository.create(lifestyleData);
+    } else {
+      lifeStyleDoc = await this.lifestyleModel.findByIdAndUpdate(
+        lifeStyleDoc._id,
+        {
+          displayOrder: !isNaN(Number(matchingLifestyle.display_order))
+            ? Number(matchingLifestyle.display_order)
+            : undefined,
+        },
+        { new: true }
+      );
     }
 
     return lifeStyleDoc;
