@@ -817,7 +817,7 @@ export class ResidenceSeederService {
       'city_id': 'cityId',
       'lifestyle_id': 'lifeStyleId',
       'brand_id': 'brandId',
-      'property_id': 'propertyTypeId',
+      'property_type_id': 'propertyTypeId',
       'geographical_area_id': 'geoGraphyId',
     };
     return fieldMapping[idField];
