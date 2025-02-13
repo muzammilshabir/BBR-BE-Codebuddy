@@ -20,6 +20,8 @@ import {
 } from 'src/support-activity-log/schema/support-activity-log.schema';
 import { SupportActivityLogRepository } from 'src/support-activity-log/support-activity-log.repository';
 import { User, UserSchema } from 'src/users/schema/user.schema';
+import { CustomerSupportConversation, CustomerSupportConversationSchema } from 'src/customer-support-conversation/schema/customer-support-conversation.schema';
+import { CustomerSupportConversationRepository } from 'src/customer-support-conversation/customer-support-conversation.repository';
 import { UserRepository } from 'src/users/user.repository';
 
 @Module({
@@ -35,6 +37,7 @@ import { UserRepository } from 'src/users/user.repository';
     ]),
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
     CounterModule,
+    MongooseModule.forFeature([{ name: CustomerSupportConversation.name, schema: CustomerSupportConversationSchema }]),
   ],
   providers: [
     CustomerSupportService,
@@ -44,6 +47,7 @@ import { UserRepository } from 'src/users/user.repository';
     DeveloperProfileActivityLogRepository,
     SupportActivityLogRepository,
     UserRepository,
+    CustomerSupportConversationRepository,
   ],
   exports: [CustomerSupportService],
   controllers: [CustomerSupportController],

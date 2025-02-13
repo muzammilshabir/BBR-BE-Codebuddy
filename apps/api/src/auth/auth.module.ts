@@ -23,6 +23,7 @@ import {
   DeveloperProfileActivityLogSchema,
 } from 'src/developer-profile-activity-log/schema/developer-profile-activity-log.schema';
 import { DeveloperProfileActivityLogRepository } from 'src/developer-profile-activity-log/developer-profile-activity-log.repository';
+import { LoginAttemptService } from './login-attempt.service';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { DeveloperProfileActivityLogRepository } from 'src/developer-profile-act
     TokenService,
     LoginAttemptRepository,
     DeveloperProfileActivityLogRepository,
+    LoginAttemptService,
   ],
   controllers: [AuthController],
   exports: [TokenService, AuthService],

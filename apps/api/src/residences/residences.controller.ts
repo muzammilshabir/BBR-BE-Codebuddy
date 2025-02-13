@@ -50,6 +50,8 @@ import {
   UpdateFeaturedDto,
   updateFeaturedSchema,
   UpdateResidenceDto,
+  UpdateResidenceProfileDto,
+  updateResidenceProfileSchema,
   updateResidenceSchema,
   UpdateResidenceStatusDto,
   updateResidenceStatusSchema,
@@ -172,6 +174,30 @@ export class ResidenceController {
     return ResponseService.buildResponse(
       { residenceDraft: residence },
       'Residence nearby amenities updated successfully'
+    );
+  }
+
+  @Patch('/:id/update-plan')
+  @ApiOperation({
+    summary: 'Update residence plan',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @Permissions('residence', PermissionLevel.EDIT)
+  @UsePipes(new JoiValidationPipe(getResidenceByIdSchema, 'param'))
+  @UsePipes(new JoiValidationPipe(updateResidenceProfileSchema, 'body'))
+  async upgradeResidence(
+    @Param() params: GetResidenceByIdDto,
+    @Body() updatePlanDto: UpdateResidenceProfileDto
+  ) {
+    const residence = await this.residenceService.upgradeResidence(
+      params.id,
+      updatePlanDto.planId,
+      updatePlanDto.subscriptionId
+    );
+    return ResponseService.buildResponse(
+      { residenceDraft: residence },
+      'Residence updated successfully'
     );
   }
 
@@ -313,10 +339,7 @@ export class ResidenceController {
       listResidenceByFiltersDto
     );
 
-    return ResponseService.buildResponse(
-      { residences: result },
-      'Residence retrieved successfully'
-    );
+    return ResponseService.buildResponse(result, 'Residence retrieved successfully');
   }
 
   @Patch('/:id/update-status')
@@ -686,5 +709,24 @@ export class ResidenceController {
 
     const result = await this.residenceSeederService.processRankingCategoryImages(file);
     return ResponseService.buildResponse(result);
+  }
+
+  @Post('/process-bbr-scores')
+  @ApiOperation({
+    summary: 'Process all residences BBR scores in background',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  @Public()
+  async processBbrScores() {
+    // Start background processing
+    setTimeout(() => {
+      this.residenceService.processBbrScores();
+    }, 0);
+
+    return ResponseService.buildResponse(
+      null,
+      'BBR score processing started in background'
+    );
   }
 }

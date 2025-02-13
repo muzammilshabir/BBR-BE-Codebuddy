@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { ApplyAdditionalServiceRequestDto } from './apply-additional-service-request.dto';
 import { RankingCategoryRepository } from 'src/rankingCategory/rankingCategory.repository';
 import { InvoiceService } from 'src/invoice/invoice.service';
@@ -113,6 +113,7 @@ export class ApplyAdditionalServiceRequestService {
             fullName: body.userDetails.fullName,
             email: body.userDetails.email,
           },
+          verificationType: body.verificationType,
         },
         1
       );

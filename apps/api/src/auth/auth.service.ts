@@ -51,6 +51,7 @@ import { LoginAttemptRepository } from '../loginAttempt/loginAttempt.repository'
 import { LoginStatus } from '../loginAttempt/schema/loginAttempt.schema';
 import * as CryptoJS from 'crypto-js';
 import { DeveloperProfileActivityLogRepository } from 'src/developer-profile-activity-log/developer-profile-activity-log.repository';
+import { LoginAttemptEvent } from './events/login-attempt.event';
 
 @Injectable()
 export class AuthService {
@@ -195,8 +196,12 @@ export class AuthService {
         value: String(Number(failedCount) + 1),
       });
 
-      // Use the helper function to create a failed login attempt
-      await this.loginAttemptRepository.createLoginAttempt(undefined, LoginStatus.FAILED);
+      this.eventEmitter.emit(
+        LoginAttemptEvent.event,
+        new LoginAttemptEvent({
+          status: LoginStatus.FAILED
+        })
+      );
 
       throw new NotFoundException('Invalid credentials');
     }
@@ -204,8 +209,13 @@ export class AuthService {
     if (!user.isVerified) {
       await this.resendVerificationEmail({ email: user.email });
 
-      // Log the failed login attempt
-      await this.loginAttemptRepository.createLoginAttempt(user.id, LoginStatus.FAILED);
+      this.eventEmitter.emit(
+        LoginAttemptEvent.event,
+        new LoginAttemptEvent({
+          userId: user.id,
+          status: LoginStatus.FAILED
+        })
+      );
 
       return {
         errorCode: ExceptionCodes.UnverifiedUser,
@@ -222,8 +232,13 @@ export class AuthService {
         value: String(Number(failedCount) + 1),
       });
 
-      // Log the failed login attempt
-      await this.loginAttemptRepository.createLoginAttempt(user.id, LoginStatus.FAILED);
+      this.eventEmitter.emit(
+        LoginAttemptEvent.event,
+        new LoginAttemptEvent({
+          userId: user.id,
+          status: LoginStatus.FAILED
+        })
+      );
 
       throw new ForbiddenException('Invalid credentials');
     }
@@ -231,8 +246,13 @@ export class AuthService {
     await this.redisService.delete({ prefix: CaptchaEnum.PREFIX, key: ip });
 
     if (user.role === UserRole.SELLER && user.acceptBBRCommitment !== true) {
-      // Log successful login attempt
-      await this.loginAttemptRepository.createLoginAttempt(user.id, LoginStatus.SUCCESS);
+      this.eventEmitter.emit(
+        LoginAttemptEvent.event,
+        new LoginAttemptEvent({
+          userId: user.id,
+          status: LoginStatus.SUCCESS
+        })
+      );
 
       return {
         tokens: await this.generateJwtToken(user),
@@ -242,20 +262,22 @@ export class AuthService {
     }
 
     try {
-      console.log('I am here 11 :>> ');
       const loginDetails: any = { ip, loginTime: new Date() };
       if (loginDto?.address) {
         loginDetails.loginAddress = loginDto.address;
       }
-      console.log('loginDetails :>> ', loginDetails);
-
-      const updatedUser = await this.userService.updateUser(user.id, loginDetails);
-      console.log('updatedUser :>> ', updatedUser);
+      await this.userService.updateUser(user.id, loginDetails);
     } catch (error) {
-      console.log('error :>> ', error);
+      console.error('Error updating login details:', error);
     }
-    // Log successful login attempt
-    await this.loginAttemptRepository.createLoginAttempt(user.id, LoginStatus.SUCCESS);
+
+    this.eventEmitter.emit(
+      LoginAttemptEvent.event,
+      new LoginAttemptEvent({
+        userId: user.id,
+        status: LoginStatus.SUCCESS
+      })
+    );
 
     return { tokens: await this.generateJwtToken(user) };
   }

@@ -85,6 +85,9 @@ import { BullModule } from '@nestjs/bullmq';
 import { BullBoardModule } from '@bull-board/nestjs';
 import { ExpressAdapter } from '@bull-board/express';
 
+import { MessageScheduleModule } from './message-schedule/message-schedule.module';
+import { QuickRepliesModule } from './quick-replies/quick-replies.module';
+import { ConversationsModule } from './conversations/conversations.module';
 @Module({
   imports: [
     BbrConfigModule.forRoot({ useClass: ServiceConfig }),
@@ -175,6 +178,9 @@ import { ExpressAdapter } from '@bull-board/express';
     DevRankingActivityLogModule,
     InvoiceScheduleModule,
     JobsModule,
+    MessageScheduleModule,
+    QuickRepliesModule,
+    ConversationsModule,
   ],
   controllers: [AppController],
   providers: [

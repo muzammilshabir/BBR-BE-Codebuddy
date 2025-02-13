@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { RankingCategoryDraftRepository } from './rankingCategoryDraft.repository';
 import { ListRankingCategoryDraftDto } from './dto/listRankingCategoryDraft.dto';
 import { Types } from 'mongoose';
@@ -102,10 +102,7 @@ export class RankingCategoryDraftService {
         }
       }
     } catch (error) {
-      throw new InternalServerErrorException(
-        'An error occurred while creating approval request for the ranking category',
-        error
-      );
+      throw error;
     }
   }
 

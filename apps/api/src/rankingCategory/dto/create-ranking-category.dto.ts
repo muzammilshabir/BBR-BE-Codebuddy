@@ -23,6 +23,14 @@ export class RankingCriteriaDto {
   weight: number;
 
   @ApiProperty({
+    description: 'Description of the ranking criteria',
+    example: 'Affordability',
+    required: false,
+    type: String,
+  })
+  description: string;
+
+  @ApiProperty({
     description: 'Array of score guides for this criteria',
     example: [
       { score: 1, description: 'Very Expensive' },
@@ -76,6 +84,7 @@ export class CreateRankingCategoryDto {
       {
         name: 'Affordability',
         weight: 30,
+        description: 'Affordability',
         scoreGuide: [
           { score: 1, description: 'Very Expensive' },
           { score: 10, description: 'Very Affordable' },
@@ -185,6 +194,7 @@ export const createRankingCategorySchema = Joi.object({
       Joi.object({
         name: Joi.string().required(),
         weight: Joi.number().required(),
+        description: Joi.string().optional(),
         scoreGuide: Joi.array()
           .items(
             Joi.object({
@@ -199,12 +209,11 @@ export const createRankingCategorySchema = Joi.object({
     .custom((criteria, helpers) => {
       const totalWeight = criteria.reduce((sum, crit) => sum + crit.weight, 0);
       if (totalWeight !== 100) {
-        return helpers.error('any.invalid', {
-          message: 'The total weight of criteria must be exactly 100',
-        });
+        throw new Error('The total weight of criteria must be exactly 100');
       }
       return criteria;
-    }),
+    }, 'Total weight validation'),
+
   price: Joi.number().required(),
   residenceLimitation: Joi.number().required(),
   upload: Joi.array()
@@ -218,15 +227,13 @@ export const createRankingCategorySchema = Joi.object({
     )
     .optional(),
 
-  locationId: Joi.string()
-    .custom(joiObjectIdValidator('locationId'))
-    .optional(),
+  locationId: Joi.string().custom(joiObjectIdValidator('locationId')).optional(),
 
   countryId: Joi.string()
     .custom(joiObjectIdValidator('countryId'))
     .when('categoryType', { is: CategoryType.COUNTRY, then: Joi.required() }),
 
-    stateId: Joi.string()
+  stateId: Joi.string()
     .custom(joiObjectIdValidator('stateId'))
     .when('categoryType', { is: CategoryType.STATE, then: Joi.required() }),
 

@@ -30,6 +30,11 @@ import {
   DeveloperProfileActivityLogSchema,
 } from 'src/developer-profile-activity-log/schema/developer-profile-activity-log.schema';
 import { DeveloperProfileActivityLogRepository } from 'src/developer-profile-activity-log/developer-profile-activity-log.repository';
+import { CometChatService } from './comet-chat.service';
+import { Upload } from 'src/upload/schema/upload.schema';
+import { UploadSchema } from 'src/upload/schema/upload.schema';
+import { UploadRepository } from 'src/upload/upload.repository';
+
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
@@ -46,9 +51,11 @@ import { DeveloperProfileActivityLogRepository } from 'src/developer-profile-act
     MongooseModule.forFeature([
       { name: DeveloperProfileActivityLog.name, schema: DeveloperProfileActivityLogSchema },
     ]),
+    MongooseModule.forFeature([{ name: Upload.name, schema: UploadSchema }]),
   ],
   controllers: [UserController],
   providers: [
+    CometChatService,
     UserService,
     ServiceConfig,
     UserRepository,
@@ -62,6 +69,7 @@ import { DeveloperProfileActivityLogRepository } from 'src/developer-profile-act
     LoginAttemptRepository,
     ClaimRequestRepository,
     DeveloperProfileActivityLogRepository,
+    UploadRepository,
   ],
   exports: [UserService, UserFixture, SuperAdminSeeder],
 })

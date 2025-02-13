@@ -70,4 +70,8 @@ export class ServiceConfig extends BbrStatefulServiceConfig {
   readonly calendly = {
     webhookSecret: this.getOrThrow('CALENDLY_WEBHOOK_SECRET'),
   };
+
+  readonly timezone = {
+    timezone: this.getOrThrow('TIMEZONE'),
+  };
 }

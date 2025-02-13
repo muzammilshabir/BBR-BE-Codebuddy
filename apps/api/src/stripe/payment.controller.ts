@@ -37,6 +37,10 @@ import {
 import { ListInvoicesV2Dto, listInvoicesV2Schema } from './dto/list-invoices-v2.dto';
 import { CreateRefundRequestDto, createRefundRequestSchema } from './dto/create-refund-request.dto';
 import { ListRefundRequestsDto, listRefundRequestsSchema } from './dto/list-refund-requests.dto';
+import {
+  ListResidencePaymentsDto,
+  listResidencePaymentsSchema,
+} from './dto/list-residence-payments.dto';
 
 @ApiTags('Payment')
 @Controller('payment')
@@ -490,8 +494,12 @@ export class PaymentController {
   })
   @ApiBearerAuth()
   @Roles(UserRole.SELLER)
-  async getResidencePayments(@GetCurrentUserId() userId: string) {
-    const residences = await this.paymentService.getResidencePayments(userId);
+  @UsePipes(new JoiValidationPipe(listResidencePaymentsSchema, 'query'))
+  async getResidencePayments(
+    @GetCurrentUserId() userId: string,
+    @Query() query: ListResidencePaymentsDto
+  ) {
+    const residences = await this.paymentService.getResidencePayments(userId, query);
     return ResponseService.buildResponse(
       { residences },
       'Residence payments retrieved successfully'

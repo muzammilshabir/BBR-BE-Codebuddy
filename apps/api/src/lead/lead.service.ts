@@ -17,12 +17,21 @@ import { ResidenceActivityLogRepository } from 'src/residence-activity-log/resid
 import { DeveloperProfileActivityLogRepository } from 'src/developer-profile-activity-log/developer-profile-activity-log.repository';
 import { DevResidenceActivityLogRepository } from 'src/dev-residence-activity-log/dev-residence-activity-log.repository';
 import { DevLeadsActivityLogRepository } from 'src/dev-leads-activity-log/dev-leads-activity-log.repository';
-import { InjectModel } from '@nestjs/mongoose';
+import { CometChatService } from '../users/comet-chat.service';
+import { ConfigService } from '@nestjs/config';
+import { User } from 'src/users/schema/user.schema';
 import { Residence } from 'src/residences/schema/residences.schema';
+import { UploadRepository } from 'src/upload/upload.repository';
+import { InjectModel } from '@nestjs/mongoose';
+import { CometChatCreateGroup, ConversationTag } from 'src/users/types/comet-chat.type';
 
 @Injectable()
 export class LeadService {
+  private readonly customerSupportUserId: string;
+
   constructor(
+    @InjectModel(User.name) private readonly userModel: Model<User>,
+    @InjectModel(Residence.name) private readonly residenceModel: Model<Residence>,
     private readonly leadRepository: LeadRepository,
     private readonly residenceRepository: ResidenceRepository,
     private readonly unitRepository: UnitRepository,
@@ -31,8 +40,46 @@ export class LeadService {
     private readonly developerProfileActivityLogRepository: DeveloperProfileActivityLogRepository,
     private readonly leadsActivityLogRepository: LeadsActivityLogRepository,
     private readonly devLeadsActivityLogRepository: DevLeadsActivityLogRepository,
-    @InjectModel(Residence.name) private readonly residenceModel: Model<Residence>
-  ) {}
+    private readonly cometChatService: CometChatService,
+    private readonly configService: ConfigService,
+    private readonly uploadRepository: UploadRepository
+  ) {
+    this.customerSupportUserId = this.configService.get<string>('COMET_CHAT_CUSTOMER_SUPPORT_ID');
+  }
+
+  private async updateCometChatLeadGroup(
+    leadId: string,
+    updateData: any,
+    buyer: User,
+    residence?: any
+  ) {
+    try {
+      const groupData: any = {};
+
+      if (updateData.name) {
+        groupData.name = updateData.name;
+      }
+
+      if (residence) {
+        groupData.metadata = {
+          residenceId: residence._id.toString(),
+          residenceName: residence.name,
+        };
+      }
+
+      if (buyer?.avatarImage) {
+        const avatarUpload = await this.uploadRepository.findOne(buyer.avatarImage.toString());
+        groupData.avatar = avatarUpload ? avatarUpload.url : undefined;
+      }
+
+      if (Object.keys(groupData).length > 0) {
+        await this.cometChatService.updateGroup(leadId, groupData);
+      }
+    } catch (error) {
+      console.error('Failed to update CometChat lead group:', error);
+    }
+  }
+
   async getDeveloperId(createLeadDto: CreateLeadDto) {
     if (createLeadDto.developerId) {
       return new Types.ObjectId(createLeadDto.developerId);
@@ -93,13 +140,80 @@ export class LeadService {
       },
     };
 
-    const result = await this.leadRepository.create(transformedDto);
+    const lead = await this.leadRepository.create(transformedDto);
+
+    const leadUser = await this.userModel.findOne({ email: transformedDto.email, role: 'BUYER' });
+
+    if (leadUser) {
+      // Create group data
+
+      const groupName = `${lead.id.toString()}-leadUser-Admin`;
+
+      const groupData: CometChatCreateGroup = {
+        guid: groupName,
+        name: `${transformedDto.name}, Customer Support`,
+        type: 'private',
+        members: {
+          admins: [this.customerSupportUserId, leadUser._id.toString()],
+        },
+      };
+
+      // Create the group
+      const cGroup1 = await this.cometChatService.createGroup(groupData);
+
+      // Add participants
+      const participants = [this.customerSupportUserId, leadUser._id.toString()];
+
+      // Add participants to group
+      await this.cometChatService.addMembersToGroup(groupName, participants);
+
+      await this.cometChatService.updateGroupTags(
+        cGroup1.data.guid,
+        participants.map((participant) => `${participant}-${ConversationTag.ACTIVE}`)
+      );
+
+      // Create Group If Residence Id Present
+
+      if (transformedDto.residenceId) {
+        const residence = (await this.residenceModel
+          .findById({ _id: transformedDto.residenceId })
+          .populate('developerId')) as any;
+
+        if (residence) {
+          const groupName2 = `${lead.id.toString()}-leadUser-Developer`;
+
+          // Create group data
+          const groupData: CometChatCreateGroup = {
+            guid: groupName2,
+            name: `${transformedDto.name}, ${residence.developerId.fullName}`,
+            type: 'private',
+            members: {
+              admins: [residence.developerId._id.toString(), leadUser._id.toString()],
+            },
+          };
+
+          // Create the group
+          const cGroup2 = await this.cometChatService.createGroup(groupData);
+
+          // Add participants
+          const participants = [residence.developerId._id.toString(), leadUser._id.toString()];
+
+          // Add participants to group
+          await this.cometChatService.addMembersToGroup(groupName2, participants);
+
+          await this.cometChatService.updateGroupTags(
+            cGroup2.data.guid,
+            participants.map((participant) => `${participant}-${ConversationTag.ACTIVE}`)
+          );
+        }
+      }
+    }
 
     await this.residenceActivityLogRepository.create({
       residenceId,
       activityType: 'The new lead received',
       details: {
-        id: result.id,
+        id: lead.id,
       },
       userId: new Types.ObjectId(userId),
       createdAt: new Date(),
@@ -109,27 +223,27 @@ export class LeadService {
       residenceId,
       activityType: 'The new lead received',
       details: {
-        id: result.id,
+        id: lead.id,
       },
       userId: new Types.ObjectId(userId),
       createdAt: new Date(),
     });
 
     await this.leadsActivityLogRepository.create({
-      leadId: new Types.ObjectId(result.id),
+      leadId: new Types.ObjectId(lead.id),
       activityType: 'Lead received',
       userId: new Types.ObjectId(userId),
       createdAt: new Date(),
     });
 
     await this.devLeadsActivityLogRepository.create({
-      leadId: new Types.ObjectId(result.id),
+      leadId: new Types.ObjectId(lead.id),
       activityType: 'Lead received',
       userId: new Types.ObjectId(userId),
       createdAt: new Date(),
     });
 
-    return result;
+    return lead;
   }
 
   async getLeads(filterDto: ListLeadDto, developerId?: string) {
@@ -181,6 +295,17 @@ export class LeadService {
       },
     };
 
+    const lead = await this.leadRepository.update(leadId, transformedDto);
+
+    // If lead has associated user, update CometChat group
+    const user = await this.userModel.findOne({ email: lead.email });
+    if (user) {
+      const residence = lead.residenceId
+        ? await this.residenceRepository.findById(lead.residenceId.toString())
+        : null;
+      await this.updateCometChatLeadGroup(leadId, updateLeadDto, user, residence);
+    }
+
     if (updateLeadDto.status !== existingLead.status) {
       await this.leadsActivityLogRepository.create({
         leadId: new Types.ObjectId(leadId),
@@ -196,8 +321,6 @@ export class LeadService {
         createdAt: new Date(),
       });
     }
-
-    const lead = await this.leadRepository.update(leadId, transformedDto);
 
     await this.developerProfileActivityLogRepository.create({
       developerId: new Types.ObjectId(userId),

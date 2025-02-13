@@ -78,6 +78,9 @@ export class Lead extends Document {
   dealPercentage?: number;
 
   @Prop({ required: false })
+  dealValue?: number;
+
+  @Prop({ required: false })
   note?: string;
 
   @Prop({ required: false, enum: LeadSource, default: LeadSource.WEBSITE_FORM })

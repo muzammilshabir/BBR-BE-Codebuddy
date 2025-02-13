@@ -9,3 +9,6 @@ export class ResidenceDraft extends Residence {
 }
 
 export const ResidenceDraftSchema = SchemaFactory.createForClass(ResidenceDraft);
+
+ResidenceDraftSchema.index({ residenceId: 1 });
+ResidenceDraftSchema.index({ createdAt: -1 });

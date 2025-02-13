@@ -178,17 +178,14 @@ export class BrandService {
       const key = `${JSON.stringify(listBrandDto)}:${JSON.stringify(paginationOptions)}`;
 
       const pipeline: PipelineStage[] = [
-        // Initial match for non-deleted brands
         {
           $match: {
             isDeleted: { $ne: true },
-            ...(status ? { status: status } : {}),
+            ...(status ? { status } : {}),
             ...(brandCategoryId ? { brandCategoryId: new Types.ObjectId(brandCategoryId) } : {}),
             ...(search ? { name: { $regex: search, $options: 'i' } } : {}),
           },
         },
-
-        // Lookup brand category
         {
           $lookup: {
             from: 'brandcategories',
@@ -197,46 +194,12 @@ export class BrandService {
             as: 'brandCategoryId',
           },
         },
-        {
-          $unwind: {
-            path: '$brandCategoryId',
-            preserveNullAndEmptyArrays: true,
-          },
-        },
-
-        // Lookup uploads for images
+        { $unwind: { path: '$brandCategoryId', preserveNullAndEmptyArrays: true } },
         {
           $lookup: {
             from: 'uploads',
-            let: { uploads: '$upload' },
-            pipeline: [
-              {
-                $match: {
-                  $expr: {
-                    $in: [
-                      '$_id',
-                      {
-                        $map: {
-                          input: '$$uploads',
-                          as: 'upload',
-                          in: '$$upload.ImageId',
-                        },
-                      },
-                    ],
-                  },
-                },
-              },
-              {
-                $project: {
-                  _id: 1,
-                  originalFileKey: 1,
-                  fileKey: 1,
-                  url: 1,
-                  mimeType: 1,
-                  id: '$_id',
-                },
-              },
-            ],
+            localField: 'upload.ImageId',
+            foreignField: '_id',
             as: 'uploadDocs',
           },
         },
@@ -252,7 +215,8 @@ export class BrandService {
                       {
                         $filter: {
                           input: '$uploadDocs',
-                          cond: { $eq: ['$$this._id', '$$uploadItem.ImageId'] },
+                          as: 'doc',
+                          cond: { $eq: ['$$doc._id', '$$uploadItem.ImageId'] },
                         },
                       },
                       0,
@@ -264,8 +228,6 @@ export class BrandService {
             },
           },
         },
-
-        // Lookup brand drafts and their images
         {
           $lookup: {
             from: 'branddrafts',
@@ -274,7 +236,7 @@ export class BrandService {
             pipeline: [
               { $sort: { createdAt: -1 } },
               { $limit: 1 },
-              // Add lookup for brandCategoryId
+
               {
                 $lookup: {
                   from: 'brandcategories',
@@ -289,7 +251,6 @@ export class BrandService {
                   preserveNullAndEmptyArrays: true,
                 },
               },
-              // Add lookup for draft images
               {
                 $lookup: {
                   from: 'uploads',
@@ -298,16 +259,7 @@ export class BrandService {
                     {
                       $match: {
                         $expr: {
-                          $in: [
-                            '$_id',
-                            {
-                              $map: {
-                                input: '$$uploads',
-                                as: 'upload',
-                                in: '$$upload.ImageId',
-                              },
-                            },
-                          ],
+                          $in: ['$_id', '$$uploads.ImageId'],
                         },
                       },
                     },
@@ -325,7 +277,6 @@ export class BrandService {
                   as: 'uploadDocs',
                 },
               },
-              // Map the upload docs to the upload array
               {
                 $addFields: {
                   upload: {
@@ -338,7 +289,8 @@ export class BrandService {
                             {
                               $filter: {
                                 input: '$uploadDocs',
-                                cond: { $eq: ['$$this._id', '$$uploadItem.ImageId'] },
+                                as: 'doc',
+                                cond: { $eq: ['$$doc._id', '$$uploadItem.ImageId'] },
                               },
                             },
                             0,
@@ -354,8 +306,6 @@ export class BrandService {
             as: 'brandDrafts',
           },
         },
-
-        // Lookup residences count - Moved before $facet
         {
           $lookup: {
             from: 'residences',
@@ -372,9 +322,7 @@ export class BrandService {
                   },
                 },
               },
-              {
-                $count: 'total',
-              },
+              { $count: 'total' },
             ],
             as: 'residenceCount',
           },
@@ -387,23 +335,18 @@ export class BrandService {
           },
         },
 
-        // Apply sorting
         {
           $sort: paginationOptions.sort.reduce((acc, [field, order]) => {
             acc[field] = order;
             return acc;
           }, {}),
         },
-
-        // Pagination and total count using facet
         {
           $facet: {
             data: [{ $skip: paginationOptions.offset }, { $limit: paginationOptions.limit }],
             totalCount: [{ $count: 'count' }],
           },
         },
-
-        // Final projection to format the response
         {
           $project: {
             data: 1,
@@ -427,13 +370,6 @@ export class BrandService {
       const data = result[0]?.data || [];
 
       const { pagination } = PaginationService.paginate({ rows: data, count }, listBrandDto);
-
-      await this.redisService.set({
-        prefix: 'brands-cache',
-        key,
-        value: JSON.stringify({ pagination, brands: data }),
-        expiry: 900,
-      });
 
       return { pagination, brands: data };
     } catch (error) {

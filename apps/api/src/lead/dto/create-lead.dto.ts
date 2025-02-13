@@ -72,6 +72,7 @@ export class CreateLeadDto {
   @ApiProperty({
     description: 'The phone number of the lead, in international format.',
     required: false,
+    type: PhoneNumber,
   })
   phoneNumber?: PhoneNumber;
 
@@ -94,6 +95,13 @@ export class CreateLeadDto {
     required: false,
   })
   dealPercentage?: number;
+
+  @ApiProperty({
+    description: 'value of the deal',
+    example: 25,
+    required: false,
+  })
+  dealValue?: number;
 
   @ApiProperty({ example: '60d9c6a0a11c3c6c6a9a1a2b', required: false, type: String })
   unitId?: Types.ObjectId;
@@ -202,6 +210,7 @@ export const createLeadSchema = Joi.object({
   companyOrOrgLink: Joi.string().uri().optional(),
   unitPrice: Joi.number().optional(),
   dealPercentage: Joi.number().optional(),
+  dealValue: Joi.number().optional(),
   expectedCloseDate: Joi.date().optional(),
   pageUrl: Joi.string().optional().uri(),
   country: Joi.string().optional(),

@@ -12,3 +12,6 @@ export class BrandDraft extends Brand {
 }
 
 export const BrandDraftSchema = SchemaFactory.createForClass(BrandDraft);
+
+BrandDraftSchema.index({ createdAt: -1 });
+BrandDraftSchema.index({ brandId: 1 });

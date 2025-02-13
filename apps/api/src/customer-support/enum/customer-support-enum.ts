@@ -11,6 +11,8 @@ export enum CustomerSupportSource {
   GUEST_REQUEST_PREMIUM_PROFILE = 'guest-request-premium-profile',
   GUEST_REQUEST_A_VISIT = 'guest-request-a-visit',
   MARKETING_SOLUTION_CONTACT_US = 'marketing-solution-contact-us',
+  DEV_MORE_LEADS_REQUEST = 'dev-more-leads-request',
+  SUGGESTION = 'suggestion',
 }
 
 export enum CustomerSupportStatus {

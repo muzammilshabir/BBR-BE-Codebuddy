@@ -8,23 +8,20 @@ import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi
 import { ResidenceIdDto } from './dto/upgrade-option.dto';
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
 
-
 @ApiTags('Marketing-opportunities')
 @Controller('marketing')
 export class MarketingController {
+  constructor(private readonly marketingService: MarketingService) {}
 
-    constructor(private readonly marketingService: MarketingService) {}
-
-    @Get('/:residenceId')
-    @ApiOperation({
-        summary: 'Fetch current features and upgrade options',
-    })
-    @ApiBearerAuth()
-    @Roles(UserRole.SELLER)
-    @UsePipes(new JoiValidationPipe(residenceIdSchema, 'param'))
-    async getFeatures(@Param() residenceId: ResidenceIdDto) {
-        const result = await this.marketingService.getFeatures(residenceId);
-        return ResponseService.buildResponse( result );
-    }
-
+  @Get('/:residenceId')
+  @ApiOperation({
+    summary: 'Fetch current features and upgrade options',
+  })
+  @ApiBearerAuth()
+  @Roles(UserRole.SELLER, UserRole.ADMIN)
+  @UsePipes(new JoiValidationPipe(residenceIdSchema, 'param'))
+  async getFeatures(@Param() residenceId: ResidenceIdDto) {
+    const result = await this.marketingService.getFeatures(residenceId);
+    return ResponseService.buildResponse(result);
+  }
 }

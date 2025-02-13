@@ -29,6 +29,12 @@ import { LeadsActivityLog, LeadsActivityLogSchema } from 'src/leads-activity-log
 import { LeadsActivityLogRepository } from 'src/leads-activity-log/leads-activity-log.repository';
 import { DevLeadsActivityLogRepository } from 'src/dev-leads-activity-log/dev-leads-activity-log.repository';
 import { DevLeadsActivityLog, DevLeadsActivityLogSchema } from 'src/dev-leads-activity-log/schema/dev-leads-activity-log.schema';
+import { UploadSchema } from 'src/upload/schema/upload.schema';
+import { Upload } from 'src/upload/schema/upload.schema';
+import { UploadRepository } from 'src/upload/upload.repository';
+import { CometChatService } from 'src/users/comet-chat.service';
+import { UserSchema } from 'src/users/schema/user.schema';
+import { User } from 'src/users/schema/user.schema';
 
 @Module({
   imports: [
@@ -51,6 +57,8 @@ import { DevLeadsActivityLog, DevLeadsActivityLogSchema } from 'src/dev-leads-ac
       { name: DevLeadsActivityLog.name, schema: DevLeadsActivityLogSchema },
     ]),
     CounterModule,
+    MongooseModule.forFeature([{ name: Upload.name, schema: UploadSchema }]),
+    MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
   ],
   providers: [
     LeadService,
@@ -63,6 +71,9 @@ import { DevLeadsActivityLog, DevLeadsActivityLogSchema } from 'src/dev-leads-ac
     DeveloperProfileActivityLogRepository,
     LeadsActivityLogRepository,
     DevLeadsActivityLogRepository,
+    UploadRepository,
+    CometChatService,
+    ResidenceRepository,
   ],
   exports: [LeadSeeder, LeadService],
   controllers: [LeadController],

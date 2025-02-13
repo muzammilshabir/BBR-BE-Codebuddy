@@ -498,6 +498,8 @@ export class RankingRequestService {
         views: Math.floor(Math.random() * 11),
         save: Math.floor(Math.random() * 11),
         inquiries: Math.floor(Math.random() * 11),
+        rankings: Math.floor(Math.random() * 11),
+        leads: Math.floor(Math.random() * 11),
       };
     });
 
@@ -713,7 +715,7 @@ export class RankingRequestService {
     return bbrScore;
   }
 
-  private async generateCsv(residences): Promise<Buffer> {
+  private async generateCsv(rankingRequests): Promise<Buffer> {
     const csvStream = format({ headers: true });
     const bufferStream = new Writable();
     const data: Buffer[] = [];
@@ -725,7 +727,7 @@ export class RankingRequestService {
 
     csvStream.pipe(bufferStream);
 
-    residences.forEach((rankingRequest: any) => {
+    rankingRequests.forEach((rankingRequest: any) => {
       csvStream.write({
         'Residence Name': rankingRequest?.residence?.name || '',
         'Location': rankingRequest?.location?.name || '',
@@ -733,6 +735,9 @@ export class RankingRequestService {
         'Views': rankingRequest?.views || 0,
         'Saves': rankingRequest?.saves || 0,
         'Inquiries': rankingRequest?.inquiries || 0,
+        'Rankings': rankingRequest?.rankings,
+        'Leads': rankingRequest?.leads,
+        'Ranking Category name': rankingRequest?.rankingCategory?.title || '',
       });
     });
 
@@ -752,11 +757,14 @@ export class RankingRequestService {
     const worksheetData = rankingRequests.map((rankingRequest: any) => {
       return {
         'Residence Name': rankingRequest?.residence?.name || '',
-        'Location': rankingRequest?.location?.name || '',
-        'Developer': rankingRequest?.developer?.fullName || '',
+        'Location': rankingRequest?.residence?.location?.name || '',
+        'Developer': rankingRequest?.residence?.developer?.fullName || '',
         'Views': rankingRequest?.views || 0,
         'Saves': rankingRequest?.saves || 0,
         'Inquiries': rankingRequest?.inquiries || 0,
+        'Rankings': rankingRequest?.rankings,
+        'Leads': rankingRequest?.leads,
+        'Ranking Category name': rankingRequest?.rankingCategory?.title || '',
       };
     });
 

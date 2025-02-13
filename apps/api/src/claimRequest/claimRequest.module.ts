@@ -39,6 +39,10 @@ import {
 } from 'src/developer-profile-activity-log/schema/developer-profile-activity-log.schema';
 import { DevResidenceActivityLog, DevResidenceActivityLogSchema } from 'src/dev-residence-activity-log/schema/dev-residence-activity-log.schema';
 import { DevResidenceActivityLogRepository } from 'src/dev-residence-activity-log/dev-residence-activity-log.repository';
+import { CometChatService } from 'src/users/comet-chat.service';
+import { UploadRepository } from 'src/upload/upload.repository';
+import { UploadSchema } from 'src/upload/schema/upload.schema';
+import { Upload } from '@aws-sdk/lib-storage';
 
 @Module({
   imports: [
@@ -61,6 +65,7 @@ import { DevResidenceActivityLogRepository } from 'src/dev-residence-activity-lo
     MongooseModule.forFeature([
       { name: DeveloperProfileActivityLog.name, schema: DeveloperProfileActivityLogSchema },
     ]),
+    MongooseModule.forFeature([{ name: Upload.name, schema: UploadSchema }]),
   ],
   providers: [
     ClaimRequestService,
@@ -79,6 +84,8 @@ import { DevResidenceActivityLogRepository } from 'src/dev-residence-activity-lo
     ResidenceActivityLogRepository,
     DeveloperProfileActivityLogRepository,
     DevResidenceActivityLogRepository,
+    CometChatService,
+    UploadRepository,
   ],
   exports: [],
   controllers: [ClaimRequestController],

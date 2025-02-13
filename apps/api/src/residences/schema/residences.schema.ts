@@ -270,6 +270,27 @@ export class Residence extends Document {
 
 export const ResidenceSchema = SchemaFactory.createForClass(Residence);
 
+// Add indexes for optimized queries
+ResidenceSchema.index(
+  { status: 1, isDeleted: 1, createdAt: -1 },
+  { name: 'residence_listing_index' }
+);
+
+ResidenceSchema.index(
+  { name: 1, status: 1, countryId: 1, cityId: 1 },
+  { name: 'residence_search_index' }
+);
+
+ResidenceSchema.index(
+  { status: 1, isDeleted: 1, highestBbrScore: -1 },
+  { name: 'top_residences_index' }
+);
+
+ResidenceSchema.index(
+  { uniqueUrl: 1 },
+  { name: 'unique_url_index', sparse: true }
+);
+
 // Add virtual field for activeInvoiceSchedule
 ResidenceSchema.virtual('activeInvoiceSchedule', {
   ref: 'InvoiceSchedule',

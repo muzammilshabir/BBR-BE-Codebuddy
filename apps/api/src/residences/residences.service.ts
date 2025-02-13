@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { ResidenceRepository } from './residences.repository';
 import { CreateResidenceDto } from './dto/create-residence.dto';
 import { Residence } from './schema/residences.schema';
@@ -63,9 +63,12 @@ import { Brand } from 'src/brand/schema/brand.schema';
 import { GeographicalAreas } from 'src/geographicalAreas/schema/geographicalAreas.schema';
 import { LifeStyle } from 'src/lifestyles/schema/lifeStyle.schema';
 import { PropertyType } from 'src/propertyType/schema/propertyType.schema';
+import { RankingRequestStatus } from 'src/rankingRequest/enum/rankingRequest-status.enum';
 
 @Injectable()
 export class ResidenceService {
+  private readonly logger = new Logger('ResidenceService');
+
   constructor(
     private readonly residenceRepository: ResidenceRepository,
     private readonly cityRepository: CityRepository,
@@ -435,10 +438,10 @@ export class ResidenceService {
     return residences;
   }
 
-  async upgradeResidence(residenceId: string, subscriptionId: string, planId: string) {
+  async upgradeResidence(residenceId: string, planId: string, subscriptionId?: string) {
     const residence = await this.residenceRepository.findById(residenceId);
     return this.residenceRepository.update(residence.id, {
-      subscriptionId: new Types.ObjectId(subscriptionId),
+      ...(subscriptionId ? { subscriptionId: new Types.ObjectId(subscriptionId) } : {}),
       planId: new Types.ObjectId(planId),
     });
   }
@@ -531,79 +534,264 @@ export class ResidenceService {
   }
 
   async listResidences(listResidenceDto: ListResidenceDto) {
-    const filter: any = {
+    const pipeline: any[] = [];
+
+    // Match stage
+    const matchStage: any = {
       isDeleted: { $ne: DeletionStatus.DELETED },
     };
+
     if (listResidenceDto.status) {
-      filter.status = listResidenceDto.status;
+      matchStage.status = listResidenceDto.status;
     }
     if (listResidenceDto.locationId) {
-      filter.locationId = new Types.ObjectId(listResidenceDto.locationId);
+      matchStage.locationId = new Types.ObjectId(listResidenceDto.locationId);
     }
     if (listResidenceDto.developerId) {
-      filter.developerId = new Types.ObjectId(listResidenceDto.developerId);
+      matchStage.developerId = new Types.ObjectId(listResidenceDto.developerId);
     }
     if (listResidenceDto.featured) {
-      filter.featured = listResidenceDto.featured;
+      matchStage.featured = listResidenceDto.featured;
     }
     if (listResidenceDto.search) {
-      filter.name = { $regex: listResidenceDto.search, $options: 'i' };
+      matchStage.name = { $regex: listResidenceDto.search, $options: 'i' };
     }
+
+    pipeline.push({ $match: matchStage });
+
+    // Lookup stages
+    pipeline.push(
+      {
+        $lookup: {
+          from: 'residencetypes',
+          localField: 'residenceTypeIds',
+          foreignField: '_id',
+          pipeline: [{ $project: { _id: 1, type: 1 } }],
+          as: 'residenceTypeIds'
+        }
+      },
+      {
+        $lookup: {
+          from: 'cities',
+          localField: 'cityId',
+          foreignField: '_id',
+          pipeline: [{
+            $project: {
+              _id: 1,
+              name: 1,
+              countryId: 1,
+              upload: 1
+            }
+          }],
+          as: 'cityId'
+        }
+      },
+      {
+        $lookup: {
+          from: 'countries',
+          localField: 'countryId',
+          foreignField: '_id',
+          pipeline: [{
+            $project: {
+              _id: 1,
+              name: 1,
+              upload: 1
+            }
+          }],
+          as: 'countryId'
+        }
+      },
+      {
+        $lookup: {
+          from: 'states',
+          localField: 'stateId',
+          foreignField: '_id',
+          pipeline: [{
+            $project: {
+              _id: 1,
+              name: 1,
+              stateCode: 1,
+              upload: 1
+            }
+          }],
+          as: 'stateId'
+        }
+      },
+      {
+        $lookup: {
+          from: 'brands',
+          localField: 'associatedBrandId',
+          foreignField: '_id',
+          pipeline: [{ $project: { _id: 1, name: 1 } }],
+          as: 'associatedBrandId',
+        },
+      },
+      {
+        $lookup: {
+          from: 'rankingcategories',
+          localField: 'highestRankingCategoryId',
+          foreignField: '_id',
+          pipeline: [{ $project: { _id: 1, title: 1 } }],
+          as: 'highestRankingCategoryId'
+        }
+      },
+      {
+        $lookup: {
+          from: 'uploads',
+          let: {
+            mainPhotos: '$visuals.mainPhotos',
+            mainGalleryPhotos: '$visuals.mainGalleryPhotos',
+            secondGalleryPhotos: '$visuals.secondGalleryPhotos',
+            videoTour: '$visuals.videoTour'
+          },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $in: ['$_id', {
+                    $concatArrays: [
+                      { $ifNull: ['$$mainPhotos', []] },
+                      { $ifNull: ['$$mainGalleryPhotos', []] },
+                      { $ifNull: ['$$secondGalleryPhotos', []] },
+                      { $ifNull: [['$$videoTour'], []] }
+                    ]
+                  }]
+                }
+              }
+            },
+            {
+              $project: {
+                _id: 1,
+                originalFileKey: 1,
+                fileKey: 1,
+                url: 1,
+                mimeType: 1
+              }
+            }
+          ],
+          as: 'uploadedFiles'
+        }
+      },
+      {
+        $lookup: {
+          from: 'amenities',
+          localField: 'nearbyAmenities.amenitiesList',
+          foreignField: '_id',
+          pipeline: [{
+            $project: {
+              _id: 1,
+              name: 1,
+              id: { $toString: '$_id' }
+            }
+          }],
+          as: 'amenitiesList'
+        }
+      },
+      {
+        $lookup: {
+          from: 'amenities',
+          localField: 'nearbyAmenities.highlightedAmenities.amenityId',
+          foreignField: '_id',
+          pipeline: [{
+            $project: {
+              _id: 1,
+              name: 1,
+              id: { $toString: '$_id' }
+            }
+          }],
+          as: 'highlightedAmenities'
+        }
+      },
+      {
+        $lookup:{
+          from:'users',
+          localField:'createdById',
+          foreignField:'_id',
+          pipeline:[{$project:{_id:1,fullName:1}}],
+          as:'createdById'
+        }
+      },
+      {
+        $lookup:{
+          from:'users',
+          localField:'developerId',
+          foreignField:'_id',
+          pipeline:[{$project:{_id:1,fullName:1}}],
+          as:'developerId'
+        }
+      }
+    );
+
+    // Structure the response
+    pipeline.push(
+      {
+        $addFields: {
+          'nearbyAmenities.amenitiesList': '$amenitiesList',
+          'nearbyAmenities.highlightedAmenities': {
+            $map: {
+              input: '$nearbyAmenities.highlightedAmenities',
+              as: 'highlighted',
+              in: {
+                amenityId: {
+                  $arrayElemAt: [{
+                    $filter: {
+                      input: '$highlightedAmenities',
+                      as: 'amenity',
+                      cond: { $eq: ['$$amenity._id', '$$highlighted.amenityId'] }
+                    }
+                  }, 0]
+                },
+                generalDescription: '$$highlighted.generalDescription'
+              }
+            }
+          },
+          'cityId': { $arrayElemAt: ['$cityId', 0] },
+          'countryId': { $arrayElemAt: ['$countryId', 0] },
+          'stateId': { $arrayElemAt: ['$stateId', 0] },
+          'associatedBrandId': { $arrayElemAt: ['$associatedBrandId', 0] },
+          'highestRankingCategoryId': { $arrayElemAt: ['$highestRankingCategoryId', 0] },
+          'views': 0,
+          'saves': 0,
+          'inquiries': 0,
+          'createdById': { $arrayElemAt: ['$createdById', 0] },
+          'developerId': { $arrayElemAt: ['$developerId', 0] }
+        }
+      },
+      {
+        $project: {
+          amenitiesList: 0,
+          highlightedAmenities: 0,
+          uploadedFiles: 0
+        }
+      }
+    );
+
+    // Pagination stages
     const options = PaginationService.prepareOptions(listResidenceDto);
+    pipeline.push(
+      {
+        $facet: {
+          data: [
+            { $skip: options.offset },
+            { $limit: options.limit }
+          ],
+          totalCount: [{ $count: 'count' }]
+        }
+      },
+      {
+        $project: {
+          data: 1,
+          totalCount: { $arrayElemAt: ['$totalCount.count', 0] }
+        }
+      }
+    );
 
-    const { data, count } = await this.residenceRepository.findAll(filter, options, [
-      {
-        path: 'residenceTypeIds',
-        select: 'type',
-        model: 'ResidenceType',
-      },
-      { path: 'cityId', select: 'name countryId upload' },
-      { path: 'countryId', select: 'name geographicalAreasId upload' },
-      { path: 'stateId', select: 'name stateCode upload' },
-      { path: 'associatedBrandId', select: 'name' },
-      {
-        path: 'visuals.mainPhotos',
-        select: 'originalFileKey fileKey url mimeType',
-        model: 'Upload',
-      },
-      {
-        path: 'visuals.mainGalleryPhotos',
-        select: 'originalFileKey fileKey url mimeType',
-        model: 'Upload',
-      },
-      {
-        path: 'visuals.secondGalleryPhotos',
-        select: 'originalFileKey fileKey url mimeType',
-        model: 'Upload',
-      },
-      {
-        path: 'visuals.videoTour',
-        select: 'originalFileKey fileKey url mimeType',
-        model: 'Upload',
-      },
-      { path: 'nearbyAmenities.amenitiesList', select: 'name', model: 'Amenity' },
-      { path: 'nearbyAmenities.highlightedAmenities.amenityId', select: 'name', model: 'Amenity' },
-      {
-        path: 'nearbyAmenities.highlightedAmenities.ImageId',
-        select: 'originalFileKey fileKey url mimeType',
-        model: 'Upload',
-      },
-      { path: 'createdById', select: 'fullName email role', model: 'User' },
-      { path: 'developerId', select: 'fullName email role', model: 'User' },
-      { path: 'highestRankingCategoryId', model: 'RankingCategory', select: 'title' },
-    ]);
+    const [result] = await this.residenceRepository.aggregate(pipeline);
+    const data = result?.data || [];
+    const count = result?.totalCount || 0;
 
-    const updatedData = data.map((residence) => {
-      const cleanResidence = residence.toObject();
+    const transformedResidence = await this.transformResidences(data);
 
-      return {
-        ...cleanResidence,
-        views: 0,
-        saves: 0,
-        inquiries: 0,
-      };
-    });
-    const transformedResidence = await this.transformResidences(updatedData);
     if (listResidenceDto.isDownload) {
       if (listResidenceDto.fileType === 'csv') {
         return this.generateCsv(transformedResidence);
@@ -611,6 +799,7 @@ export class ResidenceService {
         return this.generateExcel(transformedResidence);
       }
     }
+
     const { pagination } = PaginationService.paginate({ rows: data, count }, listResidenceDto);
 
     return { pagination, residences: transformedResidence };
@@ -1327,11 +1516,6 @@ export class ResidenceService {
       },
       {
         $project: {
-          rankings: 0,
-        },
-      },
-      {
-        $project: {
           _id: 1,
           name: 1,
           residenceTypes: 1,
@@ -1358,6 +1542,7 @@ export class ResidenceService {
           updatedAt: 1,
           bbrScore: 1,
           slug: 1,
+          rankings: 1,
         },
       }
     );
@@ -1380,9 +1565,13 @@ export class ResidenceService {
     );
 
     const result = await this.residenceRepository.aggregate(pipeline);
-    const { data, totalCount } = result[0];
+    const totalCount = result[0]?.totalCount || 0;
+    const data = result[0]?.data || [];
 
-    const pagination = PaginationService.paginate({ rows: data, count: totalCount }, listPropsDto);
+    const { pagination } = PaginationService.paginate(
+      { rows: data, count: totalCount },
+      listPropsDto
+    );
 
     const updatedData = [];
     const rankingMap: Map<string, RankingRequest[]> = new Map();
@@ -1391,7 +1580,6 @@ export class ResidenceService {
       const residence = data[index];
       const residenceWithRankings = {
         ...residence,
-        rankings: [],
       };
 
       if (residence.rankings && residence.rankings.length > 0) {
@@ -2275,5 +2463,71 @@ export class ResidenceService {
     // Otherwise, find by slug
     const result = await model.findOne({ slug: idOrSlug }).select(selectField).exec();
     return result ? result[selectField] : null;
+  }
+  async processBbrScores() {
+    const BATCH_SIZE = 50; // Optimal batch size
+    let skip = 0;
+    let totalProcessed = 0;
+
+    try {
+      this.logger.log('Starting BBR score processing...');
+
+      while (true) {
+        // Get batch of residences
+        const { data: residences } = await this.residenceRepository.findAll(
+          {
+            isDeleted: { $ne: DeletionStatus.DELETED },
+          },
+          {
+            offset:skip,
+            limit: BATCH_SIZE,
+          }
+        );
+
+        if (residences.length === 0) {
+          break; // No more residences to process
+        }
+
+        for (const residence of residences) {
+          try {
+            // Get active ranking requests for this residence
+            const { data: rankingRequests } = await this.rankingRequestRepository.findAll({
+              residenceId: residence._id,
+              status: RankingRequestStatus.ACTIVE,
+              isDeleted: { $ne: DeletionStatus.DELETED },
+            });
+
+            if (rankingRequests.length > 0) {
+              // Find highest BBR score and its category
+              const highestRanking = rankingRequests.reduce((highest, current) => {
+                return current.bbrScore > highest.bbrScore ? current : highest;
+              });
+
+              // Update residence with highest BBR score
+              await this.residenceRepository.update(residence._id.toString(), {
+                highestBbrScore: highestRanking.bbrScore,
+                highestRankingCategoryId: highestRanking.rankingCategoryId,
+              });
+
+              totalProcessed++;
+            }
+
+            // Add small delay to prevent overwhelming the server
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+          } catch (error) {
+            this.logger.error(`Error processing residence ${residence._id}: ${error.message}`);
+          }
+        }
+
+        this.logger.log(`Processed ${totalProcessed} residences so far...`);
+        skip += BATCH_SIZE;
+      }
+
+      this.logger.log(`BBR score processing completed. Total processed: ${totalProcessed}`);
+
+    } catch (error) {
+      this.logger.error('Error in BBR score processing:', error);
+    }
   }
 }

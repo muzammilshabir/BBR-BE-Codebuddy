@@ -34,6 +34,7 @@ import { RankingRequestDraftRepository } from '../rankingRequestDraft/rankingReq
 import { RankingRequest } from 'src/rankingRequest/schema/rankingRequest.schema';
 import { Brand } from 'src/brand/schema/brand.schema';
 import { PropertyType } from 'src/propertyType/schema/propertyType.schema';
+import { Plan } from '../subscription-plan/schema/plan.schema';
 
 interface Residence {
   residence_id: string;
@@ -119,6 +120,8 @@ export class ResidenceSeederService {
     private readonly residenceTypeModel: Model<ResidenceType>,
     @InjectModel(Country.name)
     private readonly countryModel: Model<Country>,
+    @InjectModel(Plan.name)
+    private readonly planModel: Model<Plan>,
     @InjectModel(State.name)
     private readonly stateModel: Model<State>,
     private readonly uploadRepository: UploadRepository,
@@ -631,6 +634,7 @@ export class ResidenceSeederService {
 
             const cityDoc = await this.processCity(residence, sheets.cities, sheets.countries);
 
+            const freePlan = await this.planModel.findById(process.env.FREE_RESIDENCE_PLAN_ID);
             const countryDoc = await this.processCountry(residence, sheets.countries);
             await new Promise((resolve) => setTimeout(resolve, 100));
             const lifeStyleDoc = residence.lifestyle_id
@@ -671,6 +675,7 @@ export class ResidenceSeederService {
               lifeStyleDoc,
               placeDetails,
               propertyTypeDoc,
+              freePlan,
             });
 
             let foundResidence = await this.residenceRepository.find({
@@ -831,6 +836,7 @@ export class ResidenceSeederService {
       lifeStyleDoc: any;
       placeDetails: any;
       propertyTypeDoc: any;
+      freePlan: any;
     }
   ) {
     const baseData: any = {
@@ -842,6 +848,7 @@ export class ResidenceSeederService {
       status: 'active',
       eVerification: true,
       verifiedOn: new Date(),
+      planId: new Types.ObjectId(data.freePlan.id),
     };
 
     // Add required reference IDs
@@ -1827,8 +1834,13 @@ export class ResidenceSeederService {
 
             const cityDoc = await this.processCity(residence, sheets.cities, sheets.countries);
 
-            await this.residenceRepository.updateWithFilter(
+            const residenceDoc = await this.residenceRepository.updateWithFilter(
               { name: residence.name, cityId: new Types.ObjectId(cityDoc._id), isDeleted: false },
+              { $set: visualsUpdate }
+            );
+
+            await this.residenceDraftRepository.updateWithFilter(
+              { residenceId: new Types.ObjectId(residenceDoc?.id) },
               { $set: visualsUpdate }
             );
           }

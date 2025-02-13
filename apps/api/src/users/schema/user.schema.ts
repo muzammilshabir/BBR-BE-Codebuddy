@@ -160,6 +160,9 @@ export class User extends Document {
 
   @Prop({ type: Date })
   loginTime: Date;
+
+  @Prop({ required: false, default: false })
+  cometChatIntegrated: boolean;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

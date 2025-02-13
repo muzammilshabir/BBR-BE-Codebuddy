@@ -14,6 +14,7 @@ import { PaymentMethod } from 'src/stripe/schema/payment-method.schema';
 import * as dayjs from 'dayjs';
 import { PaymentAttempt } from 'src/stripe/schema/payment-attempt.schema';
 import { PaymentAttemptStatus } from 'src/stripe/enum/payment-attempt-status.enum';
+import { ServiceConfig } from 'src/config';
 
 @Injectable()
 export class InvoiceService {
@@ -30,7 +31,8 @@ export class InvoiceService {
     @InjectModel(Plan.name) private readonly planModel: Model<Plan>,
 
     @InjectModel(InvoiceSchedule.name)
-    private readonly invoiceScheduleModel: Model<InvoiceSchedule>
+    private readonly invoiceScheduleModel: Model<InvoiceSchedule>,
+    private readonly config: ServiceConfig
   ) {}
 
   async createInvoice() {
@@ -103,7 +105,7 @@ export class InvoiceService {
       const stripeLineItem = await this.stripeService.createInvoiceLineItem(
         stripeCustomerId,
         stripeProduct.id,
-        lineItem.unitAmount,
+        lineItem.unitAmount * 100,
         stripeInvoiceId
       );
       await this.lineItemModel.findByIdAndUpdate(lineItem.id, {
@@ -301,7 +303,7 @@ export class InvoiceService {
           status: InvoiceStatus.FAILED,
         });
       } else {
-        const todayStartPST = dayjs().tz('Asia/Kolkata').startOf('day');
+        const todayStartPST = dayjs().tz(this.config.timezone.timezone).startOf('day');
         const nextAutoPaymentAttemptAt = todayStartPST.add(invoice.paymentFrequency, 'days');
         await this.invoiceModel.findByIdAndUpdate(invoice.id, {
           nextAutoPaymentAttemptAt,
@@ -323,7 +325,7 @@ export class InvoiceService {
           status: InvoiceStatus.FAILED,
         });
       } else {
-        const todayStartPST = dayjs().tz('Asia/Kolkata').startOf('day');
+        const todayStartPST = dayjs().tz(this.config.timezone.timezone).startOf('day');
         const nextAutoPaymentAttemptAt = todayStartPST.add(invoice.paymentFrequency, 'days');
         await this.invoiceModel.findByIdAndUpdate(invoice.id, {
           nextAutoPaymentAttemptAt,

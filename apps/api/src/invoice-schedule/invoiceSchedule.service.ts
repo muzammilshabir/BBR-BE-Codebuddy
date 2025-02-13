@@ -17,6 +17,7 @@ import { InvoiceService } from 'src/invoice/invoice.service';
 import { Invoice } from 'src/stripe/schema/invoice.schema';
 import { InvoiceStatus } from 'src/stripe/enum/invoice-status.enum';
 import { PaymentService } from 'src/stripe/payment.service';
+import { ServiceConfig } from 'src/config';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -47,11 +48,13 @@ export class InvoiceScheduleService {
 
     private readonly invoiceService: InvoiceService,
 
-    private readonly paymentService: PaymentService
+    private readonly paymentService: PaymentService,
+
+    private readonly config: ServiceConfig
   ) {}
 
   @Cron('0 0 * * *', {
-    timeZone: 'Asia/Kolkata',
+    timeZone: process.env.TIMEZONE,
   })
   //   @Cron('*/30 * * * * *', {
   //     timeZone: 'America/Los_Angeles',
@@ -59,7 +62,7 @@ export class InvoiceScheduleService {
   async handleMidnightTasks() {
     console.log(`Cron job running at ${new Date().toISOString()}`);
 
-    const startOfDayPST = dayjs().tz('Asia/Kolkata').startOf('day');
+    const startOfDayPST = dayjs().tz(this.config.timezone.timezone).startOf('day');
     const endOfDayPST = startOfDayPST.endOf('day');
     console.log(startOfDayPST.toDate(), endOfDayPST.toDate());
 
@@ -233,8 +236,8 @@ export class InvoiceScheduleService {
     }
 
     // Convert incoming PST date to dayjs object and validate it's not in the past
-    const pstDate = dayjs.tz(issueDate, 'Asia/Kolkata');
-    const todayStartPST = dayjs().tz('Asia/Kolkata').startOf('day');
+    const pstDate = dayjs.tz(issueDate, this.config.timezone.timezone);
+    const todayStartPST = dayjs().tz(this.config.timezone.timezone).startOf('day');
 
     if (pstDate.isBefore(todayStartPST)) {
       throw new BadRequestException('Issue date cannot be in the past');
@@ -243,7 +246,7 @@ export class InvoiceScheduleService {
     // Convert PST date to UTC for storage
     const utcDate = pstDate.utc().toDate();
 
-    const dueDatePST = dayjs.tz(dueDate, 'Asia/Kolkata');
+    const dueDatePST = dayjs.tz(dueDate, this.config.timezone.timezone);
     if (dueDatePST.isBefore(pstDate, 'day')) {
       throw new BadRequestException('Due date cannot be before issue date');
     }
@@ -337,13 +340,10 @@ export class InvoiceScheduleService {
           { new: true }
         );
         // TODO: Delete draft invoice
-        const draftInvoices = await this.invoiceModel.find({
+        await this.invoiceModel.deleteMany({
           invoiceScheduleId: existingDraft._id,
           status: InvoiceStatus.DRAFT,
         });
-        for (const inv of draftInvoices) {
-          await this.paymentService.cancelInvoice(inv.id);
-        }
 
         // TODO: Create draft invoice
         const invoice = await this.invoiceService.createInvoiceFromSchedule(
@@ -375,12 +375,17 @@ export class InvoiceScheduleService {
       // TODO: Cancel active/draft invoices
       const invoices = await this.invoiceModel.find({
         invoiceScheduleId: existingActiveSchedules._id,
+        status: InvoiceStatus.ACTIVE,
       });
       for (const inv of invoices) {
-        if (inv.status === InvoiceStatus.ACTIVE || inv.status === InvoiceStatus.DRAFT) {
+        if (inv.status === InvoiceStatus.ACTIVE) {
           await this.paymentService.cancelInvoice(inv.id);
         }
       }
+      await this.invoiceModel.deleteMany({
+        invoiceScheduleId: existingActiveSchedules._id,
+        status: InvoiceStatus.DRAFT,
+      });
 
       // TODO: Create new active schedule
       existingActiveSchedules = await this.invoiceScheduleModel.create({
@@ -398,7 +403,7 @@ export class InvoiceScheduleService {
 
       if (
         dayjs(existingActiveSchedules.issueDate)
-          .tz('Asia/Kolkata')
+          .tz(this.config.timezone.timezone)
           .startOf('day')
           .isSame(todayStartPST)
       ) {
@@ -445,7 +450,7 @@ export class InvoiceScheduleService {
         invoice = inv;
         if (
           dayjs(existingActiveSchedules.issueDate)
-            .tz('Asia/Kolkata')
+            .tz(this.config.timezone.timezone)
             .startOf('day')
             .isSame(todayStartPST)
         ) {
@@ -490,7 +495,7 @@ export class InvoiceScheduleService {
 
       if (
         dayjs(existingActiveSchedules.issueDate)
-          .tz('Asia/Kolkata')
+          .tz(this.config.timezone.timezone)
           .startOf('day')
           .isSame(todayStartPST)
       ) {

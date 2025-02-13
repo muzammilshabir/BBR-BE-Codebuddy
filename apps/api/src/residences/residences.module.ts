@@ -90,6 +90,7 @@ import {
   DevResidenceActivityLog,
   DevResidenceActivityLogSchema,
 } from 'src/dev-residence-activity-log/schema/dev-residence-activity-log.schema';
+import { Plan, PlanSchema } from '../subscription-plan/schema/plan.schema';
 
 @Module({
   imports: [
@@ -114,6 +115,7 @@ import {
     MongooseModule.forFeature([{ name: State.name, schema: StateSchema }]),
     MongooseModule.forFeature([{ name: Location.name, schema: LocationSchema }]),
     MongooseModule.forFeature([{ name: BrandDraft.name, schema: BrandDraftSchema }]),
+    MongooseModule.forFeature([{ name: Plan.name, schema: PlanSchema }]),
     MongooseModule.forFeature([
       { name: RankingCategoryDraft.name, schema: RankingCategoryDraftSchema },
     ]),

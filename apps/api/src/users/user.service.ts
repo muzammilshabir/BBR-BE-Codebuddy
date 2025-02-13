@@ -40,6 +40,8 @@ import { LoginAttemptRepository } from '../loginAttempt/loginAttempt.repository'
 import { ClaimRequestRepository } from '../claimRequest/claimRequest.repository';
 import { ClaimRequestStatus } from '../claimRequest/enum/claimReques-enum';
 import { DeveloperProfileActivityLogRepository } from 'src/developer-profile-activity-log/developer-profile-activity-log.repository';
+import { CometChatService } from './comet-chat.service';
+import { UploadRepository } from 'src/upload/upload.repository';
 
 @Injectable()
 export class UserService {
@@ -51,9 +53,11 @@ export class UserService {
     private readonly residenceRepository: ResidenceRepository,
     private readonly unitRepository: UnitRepository,
     private readonly roleRepository: RoleRepository,
+    private readonly cometChatService: CometChatService,
     private readonly loginAttemptRepository: LoginAttemptRepository,
     private readonly claimRequestRepository: ClaimRequestRepository,
-    private readonly developerProfileActivityLogRepository: DeveloperProfileActivityLogRepository
+    private readonly developerProfileActivityLogRepository: DeveloperProfileActivityLogRepository,
+    private readonly uploadRepository: UploadRepository
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
@@ -78,6 +82,20 @@ export class UserService {
     try {
       // Save the user to the database
       await newUser.save();
+
+      if ([UserRole.SELLER, UserRole.BUYER].includes(newUser.role)) {
+        try {
+          await this.cometChatService.createUser(
+            newUser._id.toString(),
+            newUser.fullName,
+            newUser.role === UserRole.SELLER ? 'seller' : 'buyer'
+          );
+          newUser.cometChatIntegrated = true;
+          await newUser.save();
+        } catch (error) {
+          console.error('Failed to create CometChat user:', error);
+        }
+      }
 
       return newUser;
     } catch (error) {
@@ -195,7 +213,24 @@ export class UserService {
       throw new UnauthorizedException('Invalid token');
     }
 
-    return await this.userRepository.update(id, updateUserDto);
+    // Update CometChat user if name or avatar changed
+    if (user.cometChatIntegrated && (updateUserDto.fullName || updateUserDto.avatarImage)) {
+      try {
+        const avatarUpload = await this.uploadRepository.findOne(
+          updateUserDto?.avatarImage?.toString()
+        );
+
+        await this.cometChatService.updateUser(id, {
+          name: updateUserDto.fullName,
+          avatarUrl: avatarUpload ? avatarUpload.url : undefined,
+        });
+      } catch (error) {
+        console.error('Failed to update CometChat user:', error);
+      }
+    }
+
+    const updatedUser = await this.userRepository.update(id, updateUserDto);
+    return updatedUser;
   }
 
   async acceptBbrCommitment(
@@ -252,6 +287,25 @@ export class UserService {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
 
+    // Update CometChat user if name or avatar changed
+    if (
+      user.cometChatIntegrated &&
+      (updateSellerProfileDto.fullName || updateSellerProfileDto.avatarImage)
+    ) {
+      try {
+        const avatarUpload = await this.uploadRepository.findOne(
+          updateSellerProfileDto?.avatarImage?.toString()
+        );
+
+        await this.cometChatService.updateUser(id, {
+          name: updateSellerProfileDto.fullName,
+          avatarUrl: avatarUpload ? avatarUpload.url : undefined,
+        });
+      } catch (error) {
+        console.error('Failed to update CometChat user:', error);
+      }
+    }
+
     return updatedUser;
   }
 
@@ -259,7 +313,24 @@ export class UserService {
     try {
       const verificationToken = this.tokenService.generateVerificationToken();
       userDetails.verificationToken = verificationToken;
-      return await this.userRepository.create(userDetails);
+      const user = await this.userRepository.create(userDetails);
+
+      if ([UserRole.BUYER, UserRole.SELLER].includes(userDetails.role)) {
+        try {
+          await this.cometChatService.createUser(
+            user._id.toString(),
+            user.fullName,
+            user.role === UserRole.SELLER ? 'seller' : 'buyer'
+          );
+          user.cometChatIntegrated = true;
+          await user.save();
+          return user;
+        } catch (error) {
+          console.error('Failed to create CometChat user:', error);
+        }
+      }
+
+      return user;
     } catch (error) {
       console.error('Error creating user:', error);
       throw error;
@@ -326,7 +397,7 @@ export class UserService {
             {
               path: 'associatedBrandId',
               select: 'slug',
-              as: 'associatedBrand'
+              as: 'associatedBrand',
             },
             {
               path: 'cityId',
@@ -695,6 +766,24 @@ export class UserService {
       userId: new Types.ObjectId(user.id),
       createdAt: new Date(),
     });
+    // Update CometChat user if name or avatar changed
+    if (
+      user.cometChatIntegrated &&
+      (updateSellerByIdDto.fullName || updateSellerByIdDto.avatarImage)
+    ) {
+      try {
+        const avatarUpload = await this.uploadRepository.findOne(
+          updateSellerByIdDto?.avatarImage?.toString()
+        );
+
+        await this.cometChatService.updateUser(sellerId, {
+          name: updateSellerByIdDto.fullName,
+          avatarUrl: avatarUpload ? avatarUpload.url : undefined,
+        });
+      } catch (error) {
+        console.error('Failed to update CometChat user:', error);
+      }
+    }
 
     return updatedUser;
   }

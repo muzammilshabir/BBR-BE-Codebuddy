@@ -17,6 +17,7 @@ import { UpdateCalendlyDetailsDto } from './dto/update-calendly-details.dto';
 import { DeveloperProfileActivityLogRepository } from 'src/developer-profile-activity-log/developer-profile-activity-log.repository';
 import { CustomerSupportStatus } from './enum/customer-support-enum';
 import { SupportActivityLogRepository } from 'src/support-activity-log/support-activity-log.repository';
+import { CustomerSupportConversationRepository } from 'src/customer-support-conversation/customer-support-conversation.repository';
 import { UserRepository } from 'src/users/user.repository';
 
 @Injectable()
@@ -27,6 +28,7 @@ export class CustomerSupportService {
     private readonly unitRepository: UnitRepository,
     private readonly developerProfileActivityLogRepository: DeveloperProfileActivityLogRepository,
     private readonly supportActivityLogRepository: SupportActivityLogRepository,
+    private readonly customerSupportConversationRepository: CustomerSupportConversationRepository,
     private readonly userRepository: UserRepository
   ) {}
   async getDeveloperId(createCustomerSupportDto: CreateCustomerSupportDto) {
@@ -95,7 +97,14 @@ export class CustomerSupportService {
       })),
     };
 
-    const support = await this.customerSupportRepository.create(transformedDto);
+    const customerSupport = await this.customerSupportRepository.create(transformedDto);
+
+    const user = await this.userRepository.find({ email: createCustomerSupportDto.email });
+    await this.customerSupportConversationRepository.create({
+      customerSupportId: customerSupport._id,
+      message: createCustomerSupportDto?.message || 'Hello',
+      userId: user?._id,
+    });
 
     const developerId = await this.getDeveloperId(createCustomerSupportDto);
 
@@ -109,13 +118,13 @@ export class CustomerSupportService {
     }
 
     await this.supportActivityLogRepository.create({
-      supportId: new Types.ObjectId(support.id),
+      supportId: new Types.ObjectId(customerSupport.id),
       activityType: 'Submitted',
       userId: await this.getDeveloperId(createCustomerSupportDto),
       createdAt: new Date(),
     });
 
-    return support;
+    return customerSupport;
   }
 
   async createForGuest(createCustomerSupportForGuestDto: CreateCustomerSupportForGuestDto) {
