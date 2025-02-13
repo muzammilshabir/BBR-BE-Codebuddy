@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { LeadRepository } from './lead.repository';
 import { CreateLeadDto } from './dto/create-lead.dto';
 import { Lead } from './schema/lead.schema';
-import { Types } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { ListLeadDto } from './dto/list-lead.dto';
 import { PaginationService } from '@bbr/api-core/modules/pagination/pagination.service';
 import { ResidenceRepository } from '../residences/residences.repository';
@@ -17,6 +17,8 @@ import { ResidenceActivityLogRepository } from 'src/residence-activity-log/resid
 import { DeveloperProfileActivityLogRepository } from 'src/developer-profile-activity-log/developer-profile-activity-log.repository';
 import { DevResidenceActivityLogRepository } from 'src/dev-residence-activity-log/dev-residence-activity-log.repository';
 import { DevLeadsActivityLogRepository } from 'src/dev-leads-activity-log/dev-leads-activity-log.repository';
+import { InjectModel } from '@nestjs/mongoose';
+import { Residence } from 'src/residences/schema/residences.schema';
 
 @Injectable()
 export class LeadService {
@@ -28,15 +30,19 @@ export class LeadService {
     private readonly devResidenceActivityLogRepository: DevResidenceActivityLogRepository,
     private readonly developerProfileActivityLogRepository: DeveloperProfileActivityLogRepository,
     private readonly leadsActivityLogRepository: LeadsActivityLogRepository,
-    private readonly devLeadsActivityLogRepository: DevLeadsActivityLogRepository
+    private readonly devLeadsActivityLogRepository: DevLeadsActivityLogRepository,
+    @InjectModel(Residence.name) private readonly residenceModel: Model<Residence>
   ) {}
   async getDeveloperId(createLeadDto: CreateLeadDto) {
     if (createLeadDto.developerId) {
       return new Types.ObjectId(createLeadDto.developerId);
     }
     if (createLeadDto.residenceId) {
-      return (await this.residenceRepository.findById(createLeadDto.residenceId.toString()))
-        .developerId;
+      const residenceId = await this.getIdBySlugOrObjectId(
+        this.residenceModel,
+        createLeadDto.residenceId
+      );
+      return (await this.residenceRepository.findById(residenceId.toString())).developerId;
     }
     if (createLeadDto.unitId) {
       const residenceId = (await this.unitRepository.findById(createLeadDto.unitId.toString()))
@@ -47,11 +53,18 @@ export class LeadService {
   }
 
   async create(createLeadDto: CreateLeadDto, userId: string): Promise<Lead> {
+    let residenceId;
+
+    if (createLeadDto.residenceId) {
+      residenceId = await this.getIdBySlugOrObjectId(
+        this.residenceModel,
+        createLeadDto.residenceId
+      );
+    }
+
     const transformedDto = {
       ...createLeadDto,
-      residenceId: createLeadDto.residenceId
-        ? new Types.ObjectId(createLeadDto.residenceId)
-        : undefined,
+      residenceId: residenceId || undefined,
       unitId: createLeadDto.unitId ? new Types.ObjectId(createLeadDto.unitId) : undefined,
       developerId: await this.getDeveloperId(createLeadDto),
       preferences: {
@@ -83,7 +96,7 @@ export class LeadService {
     const result = await this.leadRepository.create(transformedDto);
 
     await this.residenceActivityLogRepository.create({
-      residenceId: new Types.ObjectId(createLeadDto.residenceId),
+      residenceId,
       activityType: 'The new lead received',
       details: {
         id: result.id,
@@ -93,7 +106,7 @@ export class LeadService {
     });
 
     await this.devResidenceActivityLogRepository.create({
-      residenceId: new Types.ObjectId(createLeadDto.residenceId),
+      residenceId,
       activityType: 'The new lead received',
       details: {
         id: result.id,
@@ -103,14 +116,14 @@ export class LeadService {
     });
 
     await this.leadsActivityLogRepository.create({
-      leadId: new Types.ObjectId(createLeadDto.residenceId),
+      leadId: new Types.ObjectId(result.id),
       activityType: 'Lead received',
       userId: new Types.ObjectId(userId),
       createdAt: new Date(),
     });
 
     await this.devLeadsActivityLogRepository.create({
-      leadId: new Types.ObjectId(createLeadDto.residenceId),
+      leadId: new Types.ObjectId(result.id),
       activityType: 'Lead received',
       userId: new Types.ObjectId(userId),
       createdAt: new Date(),
@@ -612,5 +625,20 @@ export class LeadService {
     return user.role === UserRole.SELLER
       ? await this.deleteLead(leadId, user.sub)
       : await this.deleteLead(leadId);
+  }
+
+  async getIdBySlugOrObjectId(
+    model: Model<any>,
+    idOrSlug: string,
+    selectField = '_id'
+  ): Promise<Types.ObjectId | null> {
+    if (Types.ObjectId.isValid(idOrSlug)) {
+      // If it's a valid ObjectId, return it directly
+      return new Types.ObjectId(idOrSlug);
+    }
+
+    // Otherwise, find by slug
+    const result = await model.findOne({ slug: idOrSlug }).select(selectField).exec();
+    return result ? result[selectField] : null;
   }
 }

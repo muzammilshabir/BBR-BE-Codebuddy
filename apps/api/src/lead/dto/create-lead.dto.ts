@@ -79,7 +79,7 @@ export class CreateLeadDto {
   email: string;
 
   @ApiProperty({ example: '60d9c6a0a11c3c6c6a9a1a2a', required: false, type: String })
-  residenceId?: Types.ObjectId;
+  residenceId?: string;
 
   @ApiProperty({
     description: 'Price of the unit',
@@ -191,7 +191,7 @@ export const createLeadSchema = Joi.object({
   phoneNumber: phoneSchema.optional(),
   email: Joi.string().required().email(),
   other: Joi.object().optional(),
-  residenceId: Joi.string().optional().custom(joiObjectIdValidator('residenceId')),
+  residenceId: Joi.string().optional(),
   unitId: Joi.string().optional().custom(joiObjectIdValidator('unitId')),
   developerId: Joi.string().optional().custom(joiObjectIdValidator('developerId')),
   contactInfo: contactInfoSchema.optional(),
