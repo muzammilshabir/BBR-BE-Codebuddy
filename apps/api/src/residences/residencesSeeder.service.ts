@@ -1911,6 +1911,7 @@ export class ResidenceSeederService {
       message: 'Image processing started',
     };
   }
+
   async processCityImagesInBackground(file: Express.Multer.File) {
     const BATCH_SIZE = 10;
 
@@ -1918,48 +1919,77 @@ export class ResidenceSeederService {
     const sheets = {
       cities: XLSX.utils.sheet_to_json(workbook.Sheets['Cities']),
     };
+
     console.log('Processing City Images...');
     for (let i = 0; i < sheets.cities.length; i += BATCH_SIZE) {
       console.log(
         `Processing Images batch ${i / BATCH_SIZE + 1} of ${Math.ceil(sheets.cities.length / BATCH_SIZE)}`
       );
       const batch = sheets.cities.slice(i, i + BATCH_SIZE);
+
       if (i > 0) {
         await new Promise((resolve) => setTimeout(resolve, 500));
       }
 
       for (const singleCity of batch) {
         const city = singleCity as any;
-        if (city.home_page_image) {
-          const lastValue =
-            city.home_page_image_path.split('/')[city.home_page_image_path.split('/').length - 1];
-          const imagePath = `${lastValue}/${city.home_page_image}`;
+        const uploadArray = [];
 
-          try {
-            const s3Object = await this.listS3Object(imagePath);
-
-            if (s3Object.length > 0) {
-              const uploadRecord = await this.createUploadRecord(s3Object[0]);
-
-              if (uploadRecord) {
-                await this.cityModel.updateOne(
-                  { name: city.name, isDeleted: false },
-                  {
-                    $set: {
-                      upload: [
-                        {
-                          ImageId: uploadRecord._id,
-                          type: 'main',
-                        },
-                      ],
-                    },
-                  }
-                );
-              }
-            }
-          } catch (error) {
-            console.error(`Error processing image for city ${city.name}:`, error);
+        try {
+          // Process Home Page Image
+          if (city.home_page_image) {
+            const lastValue = city.home_page_image_path.split('/').pop();
+            const homePagePath = `${lastValue}/${city.home_page_image}`;
+            const homePageUpload = await this.processImage(homePagePath, 'home_page');
+            if (homePageUpload) uploadArray.push(homePageUpload);
           }
+
+          // Process Ranking Page General Image
+          if (city.ranking_page_general_image) {
+            const lastValue = city.ranking_page_general.split('/').pop();
+            const rankingGeneralPath = `${lastValue}/${city.ranking_page_general_image}`;
+            const rankingGeneralUpload = await this.processImage(
+              rankingGeneralPath,
+              'ranking_page_general'
+            );
+            if (rankingGeneralUpload) uploadArray.push(rankingGeneralUpload);
+          }
+
+          // Process Ranking Page Specific Image
+          if (city.ranking_page_specific_image) {
+            const lastValue = city.ranking_page_specific.split('/').pop();
+            const rankingSpecificPath = `${lastValue}/${city.ranking_page_specific_image}`;
+            const rankingSpecificUpload = await this.processImage(
+              rankingSpecificPath,
+              'ranking_page_specific'
+            );
+            if (rankingSpecificUpload) uploadArray.push(rankingSpecificUpload);
+          }
+
+          // Process Developer Page Image
+          if (city.developer_page_image) {
+            const lastValue = city.developer_page.split('/').pop();
+            const developerPagePath = `${lastValue}/${city.developer_page_image}`;
+            const developerPageUpload = await this.processImage(
+              developerPagePath,
+              'developer_page'
+            );
+            if (developerPageUpload) uploadArray.push(developerPageUpload);
+          }
+
+          // Update the database if any images were uploaded
+          if (uploadArray.length > 0) {
+            await this.cityModel.updateOne(
+              { name: city.name, isDeleted: false },
+              {
+                $set: {
+                  upload: uploadArray,
+                },
+              }
+            );
+          }
+        } catch (error) {
+          console.error(`Error processing images for city ${city.name}:`, error);
         }
       }
     }
@@ -2005,7 +2035,7 @@ export class ResidenceSeederService {
 
   // countries
   async processCountryImages(file: Express.Multer.File) {
-    console.log('Starting city image processing:', file.originalname);
+    console.log('Starting country image processing:', file.originalname);
 
     // Return immediately that processing has started
     setTimeout(() => {
@@ -2017,6 +2047,7 @@ export class ResidenceSeederService {
       message: 'Image processing started',
     };
   }
+
   async processCountryImagesInBackground(file: Express.Multer.File) {
     const BATCH_SIZE = 10;
 
@@ -2024,6 +2055,7 @@ export class ResidenceSeederService {
     const sheets = {
       countries: XLSX.utils.sheet_to_json(workbook.Sheets['Countries']),
     };
+
     console.log('Processing Country Images...');
     for (let i = 0; i < sheets.countries.length; i += BATCH_SIZE) {
       console.log(
@@ -2037,36 +2069,52 @@ export class ResidenceSeederService {
 
       for (const singleCountry of batch) {
         const country = singleCountry as any;
+        const uploadArray = [];
 
-        if (country.logo) {
-          try {
-            const lastValue = country.logo_path.split('/').filter(Boolean).pop();
-            const imagePath = `${lastValue}/${country.logo}`;
-
-            const s3Object = await this.listS3Object(imagePath);
-
-            if (s3Object.length > 0) {
-              const uploadRecord = await this.createUploadRecord(s3Object[0]);
-
-              if (uploadRecord) {
-                await this.countryModel.updateOne(
-                  { name: country.name, isDeleted: false },
-                  {
-                    $set: {
-                      upload: [
-                        {
-                          ImageId: uploadRecord._id,
-                          type: 'main',
-                        },
-                      ],
-                    },
-                  }
-                );
-              }
-            }
-          } catch (error) {
-            console.error(`Error processing image for country ${country.name}:`, error);
+        try {
+          // Process Logo Image
+          if (country.logo) {
+            const lastValue = country.logo_path.split('/').pop();
+            const logoPath = `${lastValue}/${country.logo}`;
+            const logoUpload = await this.processImage(logoPath, 'logo');
+            if (logoUpload) uploadArray.push(logoUpload);
           }
+
+          // Process Ranking Page General Image
+          if (country.ranking_page_general_image) {
+            const lastValue = country.ranking_page_general.split('/').pop();
+            const rankingGeneralPath = `${lastValue}/${country.ranking_page_general_image}`;
+            const rankingGeneralUpload = await this.processImage(
+              rankingGeneralPath,
+              'ranking_page_general'
+            );
+            if (rankingGeneralUpload) uploadArray.push(rankingGeneralUpload);
+          }
+
+          // Process Ranking Page Specific Image
+          if (country.ranking_page_specific_image) {
+            const lastValue = country.ranking_page_specific.split('/').pop();
+            const rankingSpecificPath = `${lastValue}/${country.ranking_page_specific_image}`;
+            const rankingSpecificUpload = await this.processImage(
+              rankingSpecificPath,
+              'ranking_page_specific'
+            );
+            if (rankingSpecificUpload) uploadArray.push(rankingSpecificUpload);
+          }
+
+          // Update the database if any images were uploaded
+          if (uploadArray.length > 0) {
+            await this.countryModel.updateOne(
+              { name: country.name, isDeleted: false },
+              {
+                $set: {
+                  upload: uploadArray,
+                },
+              }
+            );
+          }
+        } catch (error) {
+          console.error(`Error processing images for country ${country.name}:`, error);
         }
       }
     }
@@ -2075,7 +2123,7 @@ export class ResidenceSeederService {
   //PropertyType
 
   async processPropertyTypeImages(file: Express.Multer.File) {
-    console.log('Starting PropertyType image processing:', file.originalname);
+    console.log('Starting Property Type image processing:', file.originalname);
 
     // Return immediately that processing has started
     setTimeout(() => {
@@ -2087,6 +2135,7 @@ export class ResidenceSeederService {
       message: 'Image processing started',
     };
   }
+
   async processPropertyTypeImagesInBackground(file: Express.Multer.File) {
     const BATCH_SIZE = 10;
 
@@ -2108,37 +2157,52 @@ export class ResidenceSeederService {
 
       for (const singlePropertyType of batch) {
         const propertyType = singlePropertyType as any;
+        const uploadArray = [];
 
-        if (propertyType.logo) {
-          const lastValue =
-            propertyType.logo_path.split('/')[propertyType.logo_path.split('/').length - 1];
-          const imagePath = `${lastValue}/${propertyType.logo}`;
-
-          try {
-            const s3Object = await this.listS3Object(imagePath);
-
-            if (s3Object.length > 0) {
-              const uploadRecord = await this.createUploadRecord(s3Object[0]);
-
-              if (uploadRecord) {
-                await this.propertyTypeRepository.updateWithFilter(
-                  { name: propertyType.name, isDeleted: false },
-                  {
-                    $set: {
-                      upload: [
-                        {
-                          ImageId: uploadRecord._id,
-                          type: 'main',
-                        },
-                      ],
-                    },
-                  }
-                );
-              }
-            }
-          } catch (error) {
-            console.error(`Error processing image for property type ${propertyType.name}:`, error);
+        try {
+          // Process Logo Image
+          if (propertyType.logo) {
+            const lastValue = propertyType.logo_path.split('/').pop();
+            const logoPath = `${lastValue}/${propertyType.logo}`;
+            const logoUpload = await this.processImage(logoPath, 'logo');
+            if (logoUpload) uploadArray.push(logoUpload);
           }
+
+          // Process Developer Page Image
+          if (propertyType.developer_page_image) {
+            const lastValue = propertyType.developer_page.split('/').pop();
+            const developerPagePath = `${lastValue}/${propertyType.developer_page_image}`;
+            const developerPageUpload = await this.processImage(
+              developerPagePath,
+              'developer_page'
+            );
+            if (developerPageUpload) uploadArray.push(developerPageUpload);
+          }
+
+          // Process Ranking Page Specific Image
+          if (propertyType.ranking_page_specific_image) {
+            const lastValue = propertyType.ranking_page_specific.split('/').pop();
+            const rankingSpecificPath = `${lastValue}/${propertyType.ranking_page_specific_image}`;
+            const rankingSpecificUpload = await this.processImage(
+              rankingSpecificPath,
+              'ranking_page_specific'
+            );
+            if (rankingSpecificUpload) uploadArray.push(rankingSpecificUpload);
+          }
+
+          // Update the database if any images were uploaded
+          if (uploadArray.length > 0) {
+            await this.propertyTypeRepository.updateWithFilter(
+              { name: propertyType.name, isDeleted: false },
+              {
+                $set: {
+                  upload: uploadArray,
+                },
+              }
+            );
+          }
+        } catch (error) {
+          console.error(`Error processing images for property type ${propertyType.name}:`, error);
         }
       }
     }
@@ -2159,6 +2223,7 @@ export class ResidenceSeederService {
       message: 'Image processing started',
     };
   }
+
   async processLifestyleImagesInBackground(file: Express.Multer.File) {
     const BATCH_SIZE = 10;
 
@@ -2166,6 +2231,7 @@ export class ResidenceSeederService {
     const sheets = {
       lifestyles: XLSX.utils.sheet_to_json(workbook.Sheets['Lifestyles']),
     };
+
     console.log('Processing Lifestyle Images...');
     for (let i = 0; i < sheets.lifestyles.length; i += BATCH_SIZE) {
       console.log(
@@ -2179,37 +2245,52 @@ export class ResidenceSeederService {
 
       for (const singleLifestyle of batch) {
         const lifestyle = singleLifestyle as any;
+        const uploadArray = [];
 
-        if (lifestyle.logo) {
-          const lastValue =
-            lifestyle.image_path.split('/')[lifestyle.image_path.split('/').length - 1];
-          const imagePath = `${lastValue}/${lifestyle.logo}`;
-
-          try {
-            const s3Object = await this.listS3Object(imagePath);
-
-            if (s3Object.length > 0) {
-              const uploadRecord = await this.createUploadRecord(s3Object[0]);
-
-              if (uploadRecord) {
-                await this.lifeStyleRepository.updateWithFilter(
-                  { name: lifestyle.name, isDeleted: false },
-                  {
-                    $set: {
-                      upload: [
-                        {
-                          ImageId: uploadRecord._id,
-                          type: 'main',
-                        },
-                      ],
-                    },
-                  }
-                );
-              }
-            }
-          } catch (error) {
-            console.error(`Error processing image for lifestyle ${lifestyle.name}:`, error);
+        try {
+          // Process Logo Image
+          if (lifestyle.logo) {
+            const lastValue = lifestyle.image_path.split('/').pop();
+            const logoPath = `${lastValue}/${lifestyle.logo}`;
+            const logoUpload = await this.processImage(logoPath, 'logo');
+            if (logoUpload) uploadArray.push(logoUpload);
           }
+
+          // Process Developer Page Image
+          if (lifestyle.developer_page_image) {
+            const lastValue = lifestyle.developer_page.split('/').pop();
+            const developerPagePath = `${lastValue}/${lifestyle.developer_page_image}`;
+            const developerPageUpload = await this.processImage(
+              developerPagePath,
+              'developer_page'
+            );
+            if (developerPageUpload) uploadArray.push(developerPageUpload);
+          }
+
+          // Process Ranking Page Specific Image
+          if (lifestyle.ranking_page_specific_image) {
+            const lastValue = lifestyle.ranking_page_specific.split('/').pop();
+            const rankingSpecificPath = `${lastValue}/${lifestyle.ranking_page_specific_image}`;
+            const rankingSpecificUpload = await this.processImage(
+              rankingSpecificPath,
+              'ranking_page_specific'
+            );
+            if (rankingSpecificUpload) uploadArray.push(rankingSpecificUpload);
+          }
+
+          // Update the database if any images were uploaded
+          if (uploadArray.length > 0) {
+            await this.lifeStyleRepository.updateWithFilter(
+              { name: lifestyle.name, isDeleted: false },
+              {
+                $set: {
+                  upload: uploadArray,
+                },
+              }
+            );
+          }
+        } catch (error) {
+          console.error(`Error processing images for lifestyle ${lifestyle.name}:`, error);
         }
       }
     }
@@ -2299,6 +2380,7 @@ export class ResidenceSeederService {
       message: 'Image processing started',
     };
   }
+
   async processGeographicalAreaImagesInBackground(file: Express.Multer.File) {
     const BATCH_SIZE = 10;
 
@@ -2320,40 +2402,66 @@ export class ResidenceSeederService {
 
       for (const singleArea of batch) {
         const geographicalArea = singleArea as any;
+        const uploadArray = [];
 
-        if (geographicalArea.logo) {
-          const lastValue =
-            geographicalArea.logo_path.split('/')[geographicalArea.logo_path.split('/').length - 1];
-          const imagePath = `${lastValue}/${geographicalArea.logo}`;
+        try {
+          // Process Logo Image
+          if (geographicalArea.logo) {
+            const lastValue = geographicalArea.logo_path.split('/').pop();
+            const logoPath = `${lastValue}/${geographicalArea.logo}`;
+            const logoUpload = await this.processImage(logoPath, 'logo');
+            if (logoUpload) uploadArray.push(logoUpload);
+          }
 
-          try {
-            const s3Object = await this.listS3Object(imagePath);
+          // Process Developer Page Image
+          if (geographicalArea.developer_page_image) {
+            const lastValue = geographicalArea.developer_page.split('/').pop();
+            const developerPagePath = `${lastValue}/${geographicalArea.developer_page_image}`;
+            const developerPageUpload = await this.processImage(
+              developerPagePath,
+              'developer_page'
+            );
+            if (developerPageUpload) uploadArray.push(developerPageUpload);
+          }
 
-            if (s3Object.length > 0) {
-              const uploadRecord = await this.createUploadRecord(s3Object[0]);
+          // Process Ranking Page General Image
+          if (geographicalArea.ranking_page_general_image) {
+            const lastValue = geographicalArea.ranking_page_general.split('/').pop();
+            const rankingGeneralPath = `${lastValue}/${geographicalArea.ranking_page_general_image}`;
+            const rankingGeneralUpload = await this.processImage(
+              rankingGeneralPath,
+              'ranking_page_general'
+            );
+            if (rankingGeneralUpload) uploadArray.push(rankingGeneralUpload);
+          }
 
-              if (uploadRecord) {
-                await this.geographicalAreasRepository.updateWithFilter(
-                  { name: geographicalArea.name, isDeleted: false },
-                  {
-                    $set: {
-                      upload: [
-                        {
-                          ImageId: uploadRecord._id,
-                          type: 'main',
-                        },
-                      ],
-                    },
-                  }
-                );
+          // Process Ranking Page Specific Image
+          if (geographicalArea.ranking_page_specific_image) {
+            const lastValue = geographicalArea.ranking_page_specific.split('/').pop();
+            const rankingSpecificPath = `${lastValue}/${geographicalArea.ranking_page_specific_image}`;
+            const rankingSpecificUpload = await this.processImage(
+              rankingSpecificPath,
+              'ranking_page_specific'
+            );
+            if (rankingSpecificUpload) uploadArray.push(rankingSpecificUpload);
+          }
+
+          // Update the database if any images were uploaded
+          if (uploadArray.length > 0) {
+            await this.geographicalAreasRepository.updateWithFilter(
+              { name: geographicalArea.name, isDeleted: false },
+              {
+                $set: {
+                  upload: uploadArray,
+                },
               }
-            }
-          } catch (error) {
-            console.error(
-              `Error processing image for geographical area ${geographicalArea.name}:`,
-              error
             );
           }
+        } catch (error) {
+          console.error(
+            `Error processing images for geographical area ${geographicalArea.name}:`,
+            error
+          );
         }
       }
     }
