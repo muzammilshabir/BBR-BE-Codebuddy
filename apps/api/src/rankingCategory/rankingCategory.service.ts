@@ -249,7 +249,7 @@ export class RankingCategoryService {
                 from: 'uploads',
                 localField: 'upload.ImageId',
                 foreignField: '_id',
-                as: 'upload.ImageId',
+                as: 'uploadData',
               },
             },
             {
@@ -269,7 +269,7 @@ export class RankingCategoryService {
                   {
                     $project: {
                       slug: 1,
-                      geographicalAreasId: { slug: 1 },
+                      geographicalAreasId: { $arrayElemAt: ['$geographicalAreasId', 0] }, // Convert to object
                     },
                   },
                 ],
@@ -282,17 +282,13 @@ export class RankingCategoryService {
                 state: 1,
                 slug: 1,
                 upload: {
-                  ImageId: {
-                    originalFileKey: 1,
-                    fileKey: 1,
-                    url: 1,
-                    mimeType: 1,
+                  $map: {
+                    input: '$uploadData',
+                    as: 'image',
+                    in: { ImageId: '$$image' }, // Wrap each image inside an ImageId object
                   },
                 },
-                countryId: {
-                  slug: 1,
-                  geographicalAreasId: { slug: 1 },
-                },
+                countryId: { $arrayElemAt: ['$countryId', 0] }, // Convert to object
               },
             },
           ],
@@ -340,11 +336,25 @@ export class RankingCategoryService {
           foreignField: '_id',
           pipeline: [
             {
+              $lookup: {
+                from: 'uploads',
+                localField: 'upload.ImageId',
+                foreignField: '_id',
+                as: 'uploadData',
+              },
+            },
+            {
               $project: {
                 type: 1,
-                upload: 1,
                 name: 1,
                 slug: 1,
+                upload: {
+                  $map: {
+                    input: '$uploadData',
+                    as: 'image',
+                    in: { ImageId: '$$image' }, // Wrap each image inside { ImageId: {...} }
+                  },
+                },
               },
             },
           ],
@@ -358,10 +368,25 @@ export class RankingCategoryService {
           foreignField: '_id',
           pipeline: [
             {
+              $lookup: {
+                from: 'uploads',
+                localField: 'upload.ImageId',
+                foreignField: '_id',
+                as: 'uploadData',
+              },
+            },
+            {
               $project: {
                 name: 1,
                 category: 1,
                 slug: 1,
+                upload: {
+                  $map: {
+                    input: '$uploadData',
+                    as: 'image',
+                    in: { ImageId: '$$image' }, // Wrap each image inside { ImageId: {...} }
+                  },
+                },
               },
             },
           ],
