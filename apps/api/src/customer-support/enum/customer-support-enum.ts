@@ -2,7 +2,6 @@ export enum CustomerSupportSource {
   HOME = 'home',
   CONTACT_US = 'contact us',
   SUGGEST_FEATURE = 'suggest a feature',
-  SUGGESTION = 'suggestion',
   REPORT_ERROR = 'report an error',
   WELCOME_FLOW = 'welcome-flow',
   DEV_BESPOKE_REQUEST = 'dev-bespoke-request',
