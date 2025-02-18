@@ -176,6 +176,20 @@ export class UserService {
     return user;
   }
 
+  async changeEmail(oldEmail: string, newEmail: string): Promise<boolean> {
+    // Check if user with the new email already exists
+    const existingUser = await this.userModel.findOne({ email: newEmail }).exec();
+
+    if (oldEmail === newEmail || existingUser) {
+      // Forbidden
+      return false;
+    }
+
+    await this.userModel.updateOne({ email: oldEmail }, { email: newEmail });
+
+    return true;
+  }
+
   async updatePassword(id: string, password: string) {
     await this.developerProfileActivityLogRepository.create({
       developerId: new Types.ObjectId(id),

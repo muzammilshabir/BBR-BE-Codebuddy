@@ -52,6 +52,7 @@ import { LoginStatus } from '../loginAttempt/schema/loginAttempt.schema';
 import * as CryptoJS from 'crypto-js';
 import { DeveloperProfileActivityLogRepository } from 'src/developer-profile-activity-log/developer-profile-activity-log.repository';
 import { LoginAttemptEvent } from './events/login-attempt.event';
+import { ChangeEmailDto } from './dto/changeEmail.dto';
 
 @Injectable()
 export class AuthService {
@@ -177,6 +178,36 @@ export class AuthService {
     }
   }
 
+  async changeEmail(changeEmailDto: ChangeEmailDto) {
+    const user = await this.userService.findByEmail(changeEmailDto.oldEmail);
+
+    if (!user || user.isVerified || user.emailVerified || !user.verificationToken) {
+      // Forbidden
+      throw new ForbiddenException('Email is invalid');
+    }
+
+    const isUserUpdated = await this.userService.changeEmail(
+      changeEmailDto.oldEmail,
+      changeEmailDto.newEmail
+    );
+
+    if (!isUserUpdated) {
+      throw new NotFoundException('Email is invalid');
+    }
+
+    const updatedUser = await this.userService.assignVerificationToken(changeEmailDto.newEmail);
+
+    if (updatedUser && !updatedUser.isVerified) {
+      this.sendVerificationEmail(
+        updatedUser.email,
+        updatedUser.verificationToken,
+        updatedUser.role
+      );
+    }
+
+    return updatedUser.toJSON();
+  }
+
   async loginWithEmailPassword(loginDto: LoginDto, ip: string, role: UserRole) {
     const user = await this.userService.findByEmail(loginDto.email, role);
 
@@ -199,7 +230,7 @@ export class AuthService {
       this.eventEmitter.emit(
         LoginAttemptEvent.event,
         new LoginAttemptEvent({
-          status: LoginStatus.FAILED
+          status: LoginStatus.FAILED,
         })
       );
 
@@ -213,7 +244,7 @@ export class AuthService {
         LoginAttemptEvent.event,
         new LoginAttemptEvent({
           userId: user.id,
-          status: LoginStatus.FAILED
+          status: LoginStatus.FAILED,
         })
       );
 
@@ -236,7 +267,7 @@ export class AuthService {
         LoginAttemptEvent.event,
         new LoginAttemptEvent({
           userId: user.id,
-          status: LoginStatus.FAILED
+          status: LoginStatus.FAILED,
         })
       );
 
@@ -250,7 +281,7 @@ export class AuthService {
         LoginAttemptEvent.event,
         new LoginAttemptEvent({
           userId: user.id,
-          status: LoginStatus.SUCCESS
+          status: LoginStatus.SUCCESS,
         })
       );
 
@@ -275,7 +306,7 @@ export class AuthService {
       LoginAttemptEvent.event,
       new LoginAttemptEvent({
         userId: user.id,
-        status: LoginStatus.SUCCESS
+        status: LoginStatus.SUCCESS,
       })
     );
 

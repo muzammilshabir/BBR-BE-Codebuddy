@@ -76,6 +76,7 @@ import { GetUserByIdDto, getUserByIdSchema } from './dto/getUserById.dto';
 import { ListAdminsDto, listAdminsSchema, ListUserDto, listUserSchema } from './dto/listUsers';
 import { AddSellerDto, AddSellerSchema } from '../users/dto/createUser.dto';
 import { Roles } from './decorators/roles.decorator';
+import { ChangeEmailDto, changeEmailSchema } from './dto/changeEmail.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -231,6 +232,18 @@ export class AuthController {
     await this.authService.resendVerificationEmail(resendVerificationEmailDo);
 
     return ResponseService.buildResponse({}, 'Verification email sent successfully');
+  }
+
+  // Create a change email if wrong is enter for verification
+  @ApiOperation({
+    summary: 'Change email',
+  })
+  @Public()
+  @Post('/change-email')
+  @UsePipes(new JoiValidationPipe(changeEmailSchema, 'body'))
+  async changeEmail(@Body() changeEmailDto: ChangeEmailDto) {
+    const response = await this.authService.changeEmail(changeEmailDto);
+    return ResponseService.buildResponse(response, 'Email changed successfully');
   }
 
   @ApiBearerAuth()

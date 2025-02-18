@@ -10,7 +10,7 @@ import {
   UserPreferences,
 } from '../types/user.type';
 
-@Schema({ timestamps: true })
+@Schema({ timestamps: true, toJSON: { virtuals: true, transform: removeSensitiveData } })
 export class User extends Document {
   @Prop({ required: false })
   fullName: string;
@@ -163,6 +163,18 @@ export class User extends Document {
 
   @Prop({ required: false, default: false })
   cometChatIntegrated: boolean;
+}
+
+function removeSensitiveData(doc, ret) {
+  // delete ret.id;
+  // delete ret._id;
+  // delete ret.__v;
+  delete ret.password;
+  delete ret.verificationToken;
+  delete ret.emailVerificationToken;
+  delete ret.resetPasswordToken;
+  delete ret.oAuthId;
+  delete ret.stripeCustomerId;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
