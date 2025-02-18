@@ -21,7 +21,8 @@ type Template =
   | 'hundred-five-star-reviews'
   | 'job-application'
   | 'invoice'
-  | 'send-invoice';
+  | 'send-invoice'
+  | 'customer-support-acknowledgement';
 
 export class SendEmailEvent {
   static event = 'send-email';

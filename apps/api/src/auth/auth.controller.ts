@@ -13,7 +13,7 @@ import {
   UseGuards,
   UsePipes,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiHeader, ApiOperation, ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { CaptchaGuard } from '../captcha/guards/captcha.guard';
 import { UserRole } from '../users/enum/user.enum';
 import { AuthService } from './auth.service';
@@ -80,6 +80,7 @@ import { Roles } from './decorators/roles.decorator';
 @ApiTags('Auth')
 @Controller('auth')
 @UseGuards(AtGuard)
+@ApiSecurity('x-api-key')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 

@@ -90,8 +90,8 @@ export const createUserSchema = Joi.object({
   contactInfo: contactInfoSchema.optional(),
   preferences: preferencesSchema.optional(),
   notificationPreferences: notificationPreferencesSchema.optional(),
-  avatarImage: Joi.string().optional().custom(joiObjectIdValidator('avatarImage')),
-  companyLogo: Joi.string().optional().custom(joiObjectIdValidator('companyLogo')),
+  avatarImage: Joi.string().allow(null, '').optional().custom(joiObjectIdValidator('avatarImage')),
+  companyLogo: Joi.string().allow(null, '').optional().custom(joiObjectIdValidator('companyLogo')),
   yearEstablished: Joi.string().optional(),
   briefCompanyDescription: Joi.string().optional(),
   associatedBrandId: Joi.array()
@@ -350,6 +350,6 @@ export const AddSellerSchema = Joi.object({
     emailNotifications: Joi.boolean().required(),
   }).required(),
 
-  avatarImage: Joi.string().custom(joiObjectIdValidator('avatarImage')).optional(),
-  companyLogo: Joi.string().custom(joiObjectIdValidator('companyLogo')).optional(),
+  avatarImage: Joi.string().allow(null, '').custom(joiObjectIdValidator('avatarImage')).optional(),
+  companyLogo: Joi.string().allow(null, '').custom(joiObjectIdValidator('companyLogo')).optional(),
 });

@@ -50,12 +50,8 @@ export async function bootstrap(appModule: any) {
       scheme: 'bearer',
       bearerFormat: 'Bearer',
     })
-    .addSecurity('ApiKeyAuth', {
-      type: 'apiKey',
-      in: 'header',
-      name: 'x-api-key',
-    })
-    .addSecurityRequirements('ApiKeyAuth')
+    .addApiKey({ type: 'apiKey', name: 'x-api-key', in: 'header' }, 'x-api-key')
+    .addSecurityRequirements('x-api-key')
     .build();
 
   app.use('/api', (req, res, next) => {
