@@ -36,6 +36,12 @@ export class CustomerSupportController {
   @UsePipes(new JoiValidationPipe(createCustomerSupportSchema, 'body'))
   async create(@Body() createCustomerSupportDto: CreateCustomerSupportDto) {
     const customerSupport = await this.customerSupportService.create(createCustomerSupportDto);
+
+    // When a user submits a form, they should receive an acknowledgment email upon submission.
+    if (customerSupport) {
+      this.customerSupportService.sendCustomerSupportAcknowledgementEmail(customerSupport);
+    }
+
     return ResponseService.buildResponse(
       { customerSupport },
       'Customer support created successfully'
@@ -71,7 +77,7 @@ export class CustomerSupportController {
   async updateCustomerSupport(
     @Param('id') customerSupportId: string,
     @Body() updateCustomerSupportDto: UpdateCustomerSupportDto,
-    @GetCurrentUserId() userId: string,
+    @GetCurrentUserId() userId: string
   ) {
     const customerSupport = await this.customerSupportService.updateCustomerSupport(
       customerSupportId,
@@ -108,9 +114,14 @@ export class CustomerSupportController {
   @ApiBearerAuth()
   @Roles(UserRole.SELLER, UserRole.ADMIN)
   @Permissions('customer-support', PermissionLevel.DELETE)
-  async deleteCustomerSupport(@Param('id') customerSupportId: string, @GetCurrentUserId() userId: string) {
-    const customerSupport =
-      await this.customerSupportService.deleteCustomerSupport(customerSupportId, userId);
+  async deleteCustomerSupport(
+    @Param('id') customerSupportId: string,
+    @GetCurrentUserId() userId: string
+  ) {
+    const customerSupport = await this.customerSupportService.deleteCustomerSupport(
+      customerSupportId,
+      userId
+    );
     return ResponseService.buildResponse(
       { customerSupport },
       'Customer support deleted successfully'

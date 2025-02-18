@@ -93,7 +93,7 @@ export const updateStaffMemberSchema = Joi.object({
     countryCode: Joi.string().optional(),
     number: Joi.string().optional(),
   }).optional(),
-  avatarImage: Joi.string().optional().custom(joiObjectIdValidator('avatarImage')),
+  avatarImage: Joi.string().allow(null, '').optional().custom(joiObjectIdValidator('avatarImage')),
   roleId: Joi.string().optional().custom(joiObjectIdValidator('roleId')),
 });
 
@@ -219,8 +219,8 @@ export const updateSellerByIdSchema = Joi.object({
     emailNotifications: Joi.boolean().optional(),
   }).optional(),
 
-  avatarImage: Joi.string().optional().custom(joiObjectIdValidator('avatarImage')),
-  companyLogo: Joi.string().optional().custom(joiObjectIdValidator('companyLogo')),
+  avatarImage: Joi.string().allow(null, '').optional().custom(joiObjectIdValidator('avatarImage')),
+  companyLogo: Joi.string().allow(null, '').optional().custom(joiObjectIdValidator('companyLogo')),
 
   yearEstablished: Joi.string().optional(),
   briefCompanyDescription: Joi.string().optional(),

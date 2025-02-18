@@ -19,6 +19,8 @@ import { CustomerSupportStatus } from './enum/customer-support-enum';
 import { SupportActivityLogRepository } from 'src/support-activity-log/support-activity-log.repository';
 import { CustomerSupportConversationRepository } from 'src/customer-support-conversation/customer-support-conversation.repository';
 import { UserRepository } from 'src/users/user.repository';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { SendEmailEvent } from 'src/mailer/events/send-email.event';
 
 @Injectable()
 export class CustomerSupportService {
@@ -29,7 +31,8 @@ export class CustomerSupportService {
     private readonly developerProfileActivityLogRepository: DeveloperProfileActivityLogRepository,
     private readonly supportActivityLogRepository: SupportActivityLogRepository,
     private readonly customerSupportConversationRepository: CustomerSupportConversationRepository,
-    private readonly userRepository: UserRepository
+    private readonly userRepository: UserRepository,
+    private readonly eventEmitter: EventEmitter2
   ) {}
   async getDeveloperId(createCustomerSupportDto: CreateCustomerSupportDto) {
     if (createCustomerSupportDto.developerId) {
@@ -341,5 +344,21 @@ export class CustomerSupportService {
     return this.customerSupportRepository.update(customerSupportId, {
       calendlyDetails: updateCalendlyDetailsDto,
     });
+  }
+
+  sendCustomerSupportAcknowledgementEmail(customerSupport: CustomerSupport) {
+    const { email, name } = customerSupport;
+
+    this.eventEmitter.emit(
+      SendEmailEvent.event,
+      new SendEmailEvent({
+        context: {
+          name,
+        },
+        template: 'customer-support-acknowledgement',
+        subject: 'Customer Support Acknowledgement',
+        toEmail: email,
+      })
+    );
   }
 }

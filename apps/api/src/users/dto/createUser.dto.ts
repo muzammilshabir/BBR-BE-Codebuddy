@@ -350,6 +350,6 @@ export const AddSellerSchema = Joi.object({
     emailNotifications: Joi.boolean().required(),
   }).required(),
 
-  avatarImage: Joi.string().custom(joiObjectIdValidator('avatarImage')).optional(),
-  companyLogo: Joi.string().custom(joiObjectIdValidator('companyLogo')).optional(),
+  avatarImage: Joi.string().allow(null, '').custom(joiObjectIdValidator('avatarImage')).optional(),
+  companyLogo: Joi.string().allow(null, '').custom(joiObjectIdValidator('companyLogo')).optional(),
 });

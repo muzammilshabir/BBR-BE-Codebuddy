@@ -1,7 +1,7 @@
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
 import { Body, Controller, Get, Param, Patch, Post, Query, UsePipes } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/enum/user.enum';
 import { GetCurrentUser } from '../auth/decorators/getCurrentUser.decorator';
@@ -39,6 +39,7 @@ import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('RankingCategory')
 @Controller('rankingCategory')
+@ApiSecurity('x-api-key')
 export class RankingCategoryController {
   constructor(private readonly rankingCategoryService: RankingCategoryService) {}
 
