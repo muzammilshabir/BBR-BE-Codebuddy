@@ -19,7 +19,7 @@ export const phoneSchema = Joi.object({
 export const companyInfoSchema = Joi.object({
   address: Joi.string().required(),
   corporatePhone: phoneSchema.required(),
-  website: Joi.string().uri().required(),
+  website: Joi.string().uri().optional(),
 });
 
 export const contactPersonInfoSchema = Joi.object({
