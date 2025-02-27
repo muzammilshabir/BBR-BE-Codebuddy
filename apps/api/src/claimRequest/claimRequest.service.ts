@@ -265,7 +265,7 @@ export class ClaimRequestService {
       isVerified: false,
     };
 
-    await this.authService.createDummyDeveloper(userDetails);
+    const tempDeveloper = await this.authService.createDummyDeveloper(userDetails);
 
     const transformedDto = {
       ...createClaimRequestDto,
@@ -274,9 +274,12 @@ export class ClaimRequestService {
         : undefined,
       residenceId: new Types.ObjectId(residenceId),
       status: ClaimRequestStatus.Pending,
+      developerId: new Types.ObjectId(tempDeveloper.id),
     };
 
     const claimRequest = await this.claimRequestRepository.create(transformedDto);
+
+    // TODO: Napraviti da stize mail o obavestenju da je napravljen zahtev i da je potrebno da se zavrsi profil ukoliko nije....
 
     await this.residenceActivityLogRepository.create({
       residenceId: new Types.ObjectId(residenceId),
@@ -335,7 +338,7 @@ export class ClaimRequestService {
       isVerified: false,
     };
 
-    await this.authService.createDummyDeveloper(userDetails);
+    const tempDeveloper = await this.authService.createDummyDeveloper(userDetails);
 
     const transformedDto = {
       ...createClaimRequestDto,
@@ -344,6 +347,7 @@ export class ClaimRequestService {
         : undefined,
       residenceId: new Types.ObjectId(residenceId),
       status: ClaimRequestStatus.Pending,
+      developerId: new Types.ObjectId(tempDeveloper.id),
     };
 
     const claimRequest = await this.claimRequestRepository.create(transformedDto);
@@ -370,6 +374,7 @@ export class ClaimRequestService {
     if (!user) {
       throw new NotFoundException(`User with ID ${userId} not found`);
     }
+
     const existingClaimRequest = await this.claimRequestRepository.findAll({
       email: user.email,
       status: ClaimRequestStatus.Pending,
@@ -461,9 +466,10 @@ export class ClaimRequestService {
       throw new NotFoundException(`claimRequest with ID ${getClaimRequestByIdDto.id} not found`);
     }
 
-    if (!claimRequest.developerId) {
-      throw new BadRequestException('Developer is not associate with claim request');
-    }
+    // ! WTF !
+    // if (!claimRequest.developerId) {
+    //   throw new BadRequestException('Developer is not associate with claim request');
+    // }
 
     const residence = await this.residenceRepository.findById(claimRequest.residenceId.toString());
     if (!residence) {

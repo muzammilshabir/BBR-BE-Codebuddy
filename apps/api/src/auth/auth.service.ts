@@ -825,7 +825,7 @@ export class AuthService {
   async createDummyDeveloper(userDetails: CreateDummyUserDto) {
     const user = await this.userService.createDummyDeveloper(userDetails);
 
-    this.sendVerificationEmail(user.email, user.verificationToken, user.role);
+    // this.sendVerificationEmail(user.email, user.verificationToken, user.role);
 
     return user;
   }

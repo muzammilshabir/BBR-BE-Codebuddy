@@ -880,6 +880,16 @@ export class UserService {
       throw new NotFoundException('No user found with the provided email');
     }
 
+    // Check if comet is not integrated and reintegrate it
+    if (!user.cometChatIntegrated) {
+      await this.cometChatService.createUser(
+        user._id.toString(),
+        fullName,
+        user.role === UserRole.SELLER ? 'seller' : 'buyer'
+      );
+      user.cometChatIntegrated = true;
+    }
+
     // Update user if not verified, else return message
     if (!user?.isVerified) {
       user.fullName = fullName;

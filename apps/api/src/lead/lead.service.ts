@@ -209,25 +209,27 @@ export class LeadService {
       }
     }
 
-    await this.residenceActivityLogRepository.create({
-      residenceId,
-      activityType: 'The new lead received',
-      details: {
-        id: lead.id,
-      },
-      userId: new Types.ObjectId(userId),
-      createdAt: new Date(),
-    });
+    if (residenceId) {
+      await this.residenceActivityLogRepository.create({
+        residenceId,
+        activityType: 'The new lead received',
+        details: {
+          id: lead.id,
+        },
+        userId: new Types.ObjectId(userId),
+        createdAt: new Date(),
+      });
 
-    await this.devResidenceActivityLogRepository.create({
-      residenceId,
-      activityType: 'The new lead received',
-      details: {
-        id: lead.id,
-      },
-      userId: new Types.ObjectId(userId),
-      createdAt: new Date(),
-    });
+      await this.devResidenceActivityLogRepository.create({
+        residenceId,
+        activityType: 'The new lead received',
+        details: {
+          id: lead.id,
+        },
+        userId: new Types.ObjectId(userId),
+        createdAt: new Date(),
+      });
+    }
 
     await this.leadsActivityLogRepository.create({
       leadId: new Types.ObjectId(lead.id),

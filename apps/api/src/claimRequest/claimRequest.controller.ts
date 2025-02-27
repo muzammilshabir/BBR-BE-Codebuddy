@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Param, Patch, Post, Query, UsePipes } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { ClaimRequestService } from './claimRequest.service';
 import { UserRole } from '../users/enum/user.enum';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -27,6 +27,7 @@ import { PermissionLevel } from '../modulePolicy/enum/permission-enum';
 
 @ApiTags('ClaimRequest')
 @Controller('claim-request')
+@ApiSecurity('x-api-key')
 export class ClaimRequestController {
   constructor(private readonly claimRequestService: ClaimRequestService) {}
 
