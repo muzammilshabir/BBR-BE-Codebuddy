@@ -483,12 +483,14 @@ export class ClaimRequestService {
       await this.residenceRepository.findById(claimRequest.residenceId.toString())
     ).populate('developerId') as any;
 
+    const fullName = claimRequest?.fullName
+      ? claimRequest.fullName
+      : updatedResidence?.developerId?.fullName
+        ? updatedResidence.developerId.fullName
+        : '';
+
     // Send email to residence owner
-    await this.sendApprovedClaimRequestEmail(
-      claimRequest.email,
-      updatedResidence.developerId.fullName,
-      residence.name
-    );
+    await this.sendApprovedClaimRequestEmail(claimRequest.email, fullName, residence.name);
 
     return approvedClaimRequest;
   }

@@ -194,6 +194,7 @@ export class RankingRequestService {
     const isRankingRequestExist = await this.rankingRequestRepository.find({
       rankingCategoryId: new Types.ObjectId(createRankingRequestDto.rankingCategoryId),
       residenceId: new Types.ObjectId(createRankingRequestDto.residenceId),
+      isDeleted: { $ne: DeletionStatus.DELETED },
     });
 
     if (isRankingRequestExist) {
@@ -553,7 +554,7 @@ export class RankingRequestService {
       rankingRequest.status === RankingRequestStatus.PENDING ||
       rankingRequest.status === RankingRequestStatus.DRAFT
     ) {
-      await this.rankingRequestDraftRepository.update(rankingRequestId, {
+      await this.rankingRequestRepository.update(rankingRequestId, {
         status: RankingRequestStatus.REJECTED,
         rejectionReason: rejectRankingRequestDto.reason,
         updatedById: new Types.ObjectId(userId),
