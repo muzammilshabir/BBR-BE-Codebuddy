@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invoice Details</title>
+    <title>Approved Claim Request</title>
     <!--[if !mso]><!-->
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
     <!--<![endif]-->
@@ -252,54 +252,15 @@
                     <!-- Main Content -->
                     <tr class="content-wrapper">
                         <td class="content">
-                            <h1 class="main-title">Invoice Details</h1>
+                            <h1 class="main-title">Welcome to Your Exclusive Residence Ownership</h1>
                             
-                            <p class="welcome-text">Hey {{customerName}},<br>
-                            We hope this email finds you well. Please find below the details of your invoice:</p>
+                            <p class="welcome-text">Dear, {{name}}<br>
+                                We are pleased to inform you that your claim request for {{residence}} has been successfully processed, and you are now officially recognized as its owner within our exclusive network.
+                            </p>
 
-                            <p><strong>Date:</strong> {{formatDate date}}</p>
+                            <p class="welcome-text">As an esteemed property owner, you now have access to personalized management features and the ability to curate your residence’s profile. Should you require any assistance or have any preferences regarding your listing, our dedicated support team is at your disposal.</p>
 
-                            <table style="width: 100%; border-collapse: collapse;">
-                              <thead>
-                                <tr style="background-color: #f2f2f2;">
-                                  <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Item</th>
-                                  <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">Quantity</th>
-                                  <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">Price</th>
-                                  <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">Total</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {{#each items}}
-                                <tr>
-                                  <td style="border: 1px solid #ddd; padding: 8px;">{{name}}</td>
-                                  <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">{{quantity}}</td>
-                                  <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">{{formatCurrency price}}</td>
-                                  <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">{{formatCurrency (multiply quantity price)}}</td>
-                                </tr>
-                                {{/each}}
-                              </tbody>
-                            </table>
-
-                            <table style="width: 100%; margin-top: 20px;">
-                              <tr>
-                                <td style="text-align: right;"><strong>Subtotal:</strong></td>
-                                <td style="text-align: right; width: 100px;">{{formatCurrency subTotal}}</td>
-                              </tr>
-                              {{#if discount}}
-                              <tr>
-                                <td style="text-align: right;"><strong>Discount:</strong></td>
-                                <td style="text-align: right;">{{formatCurrency discount}}</td>
-                              </tr>
-                              {{/if}}
-                              <tr>
-                                <td style="text-align: right;"><strong>Tax ({{tax}}%):</strong></td>
-                                <td style="text-align: right;">{{formatCurrency taxAmount}}</td>
-                              </tr>
-                              <tr>
-                                <td style="text-align: right;"><strong>Total:</strong></td>
-                                <td style="text-align: right;"><strong>{{formatCurrency total}}</strong></td>
-                              </tr>
-                            </table>
+                            <p class="welcome-text">We look forward to supporting you in making the most of your ownership experience.</p>
 
                             <div class="divider"></div>
                         

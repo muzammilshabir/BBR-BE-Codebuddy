@@ -22,7 +22,11 @@ type Template =
   | 'job-application'
   | 'invoice'
   | 'send-invoice'
-  | 'customer-support-acknowledgement';
+  | 'customer-support-acknowledgement'
+  | 'inital'
+  | 'rejected-claim-request'
+  | 'claim-request-approved'
+  | 'claim-request';
 
 export class SendEmailEvent {
   static event = 'send-email';

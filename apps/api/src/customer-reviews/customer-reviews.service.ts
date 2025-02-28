@@ -246,7 +246,6 @@ export class CustomerReviewsService {
     };
 
     const { data, count } = await this.customerReviewRepository.findAllReviews(filter, options);
-    console.log(count);
     const { pagination } = PaginationService.paginate(
       { rows: data, count },
       getResidenceReviewsDto

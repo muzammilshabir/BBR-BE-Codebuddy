@@ -204,7 +204,11 @@ export class ResidenceService {
       const residenceDraft = await this.checkResidenceDraft(id);
 
       // Log changes to the name
-      if (updateResidenceDto.name && residenceDraft.name !== updateResidenceDto.name) {
+      if (
+        updateResidenceDto.name &&
+        residenceDraft &&
+        residenceDraft?.name !== updateResidenceDto.name
+      ) {
         await this.residenceActivityLogRepository.create({
           residenceId: new Types.ObjectId(id),
           activityType: 'Details Changed',
@@ -370,32 +374,46 @@ export class ResidenceService {
     userId: string
   ): Promise<Residence> {
     await this.checkResidenceRejectedStatus(residenceId);
+    const residenceDraft = await this.checkResidenceDraft(residenceId); // Get existing data
+
+    if (!residenceDraft) {
+      throw new Error('Residence draft not found');
+    }
+
+    // Ensure highlightedAmenities exist in the current draft
+    const existingAmenities = residenceDraft.nearbyAmenities?.highlightedAmenities || [];
+
     const transformedDto = {
       ...updateNearbyAmenitiesDto,
       amenitiesList: updateNearbyAmenitiesDto.amenitiesList.map(
         (amenityId) => new Types.ObjectId(amenityId)
       ),
       highlightedAmenities: updateNearbyAmenitiesDto.highlightedAmenities.map(
-        (highlightedAmenity) => ({
-          ...highlightedAmenity,
-          amenityId: highlightedAmenity.amenityId
-            ? new Types.ObjectId(highlightedAmenity.amenityId)
-            : undefined,
-          ImageId: highlightedAmenity.ImageId
-            ? new Types.ObjectId(highlightedAmenity.ImageId)
-            : undefined,
-        })
+        (highlightedAmenity) => {
+          // Find the existing amenity in the database
+          const existingAmenity = existingAmenities.find(
+            (item) => item.amenityId.toString() === highlightedAmenity.amenityId.toString()
+          );
+
+          return {
+            ...highlightedAmenity,
+            amenityId: highlightedAmenity.amenityId
+              ? new Types.ObjectId(highlightedAmenity.amenityId)
+              : undefined,
+            ImageId:
+              highlightedAmenity.ImageId !== undefined
+                ? new Types.ObjectId(highlightedAmenity.ImageId) // ✅ If new ImageId is sent, update it
+                : existingAmenity?.ImageId, // ✅ If not sent, keep old ImageId
+          };
+        }
       ),
       updatedById: new Types.ObjectId(userId),
     };
 
-    const residenceDraft = await this.checkResidenceDraft(residenceId);
+    return await this.residenceDraftRepository.update(residenceDraft.id, {
+      $set: { nearbyAmenities: transformedDto }, // ✅ Ensures fields are updated properly
+    });
 
-    if (residenceDraft) {
-      return await this.residenceDraftRepository.update(residenceDraft.id, {
-        nearbyAmenities: transformedDto,
-      });
-    }
     const residence: Residence = await this.residenceRepository.findById(residenceId);
 
     const plainResidence = residence.toJSON();
@@ -567,55 +585,61 @@ export class ResidenceService {
           localField: 'residenceTypeIds',
           foreignField: '_id',
           pipeline: [{ $project: { _id: 1, type: 1 } }],
-          as: 'residenceTypeIds'
-        }
+          as: 'residenceTypeIds',
+        },
       },
       {
         $lookup: {
           from: 'cities',
           localField: 'cityId',
           foreignField: '_id',
-          pipeline: [{
-            $project: {
-              _id: 1,
-              name: 1,
-              countryId: 1,
-              upload: 1
-            }
-          }],
-          as: 'cityId'
-        }
+          pipeline: [
+            {
+              $project: {
+                _id: 1,
+                name: 1,
+                countryId: 1,
+                upload: 1,
+              },
+            },
+          ],
+          as: 'cityId',
+        },
       },
       {
         $lookup: {
           from: 'countries',
           localField: 'countryId',
           foreignField: '_id',
-          pipeline: [{
-            $project: {
-              _id: 1,
-              name: 1,
-              upload: 1
-            }
-          }],
-          as: 'countryId'
-        }
+          pipeline: [
+            {
+              $project: {
+                _id: 1,
+                name: 1,
+                upload: 1,
+              },
+            },
+          ],
+          as: 'countryId',
+        },
       },
       {
         $lookup: {
           from: 'states',
           localField: 'stateId',
           foreignField: '_id',
-          pipeline: [{
-            $project: {
-              _id: 1,
-              name: 1,
-              stateCode: 1,
-              upload: 1
-            }
-          }],
-          as: 'stateId'
-        }
+          pipeline: [
+            {
+              $project: {
+                _id: 1,
+                name: 1,
+                stateCode: 1,
+                upload: 1,
+              },
+            },
+          ],
+          as: 'stateId',
+        },
       },
       {
         $lookup: {
@@ -632,8 +656,8 @@ export class ResidenceService {
           localField: 'highestRankingCategoryId',
           foreignField: '_id',
           pipeline: [{ $project: { _id: 1, title: 1 } }],
-          as: 'highestRankingCategoryId'
-        }
+          as: 'highestRankingCategoryId',
+        },
       },
       {
         $lookup: {
@@ -642,22 +666,25 @@ export class ResidenceService {
             mainPhotos: '$visuals.mainPhotos',
             mainGalleryPhotos: '$visuals.mainGalleryPhotos',
             secondGalleryPhotos: '$visuals.secondGalleryPhotos',
-            videoTour: '$visuals.videoTour'
+            videoTour: '$visuals.videoTour',
           },
           pipeline: [
             {
               $match: {
                 $expr: {
-                  $in: ['$_id', {
-                    $concatArrays: [
-                      { $ifNull: ['$$mainPhotos', []] },
-                      { $ifNull: ['$$mainGalleryPhotos', []] },
-                      { $ifNull: ['$$secondGalleryPhotos', []] },
-                      { $ifNull: [['$$videoTour'], []] }
-                    ]
-                  }]
-                }
-              }
+                  $in: [
+                    '$_id',
+                    {
+                      $concatArrays: [
+                        { $ifNull: ['$$mainPhotos', []] },
+                        { $ifNull: ['$$mainGalleryPhotos', []] },
+                        { $ifNull: ['$$secondGalleryPhotos', []] },
+                        { $ifNull: [['$$videoTour'], []] },
+                      ],
+                    },
+                  ],
+                },
+              },
             },
             {
               $project: {
@@ -665,60 +692,64 @@ export class ResidenceService {
                 originalFileKey: 1,
                 fileKey: 1,
                 url: 1,
-                mimeType: 1
-              }
-            }
+                mimeType: 1,
+              },
+            },
           ],
-          as: 'uploadedFiles'
-        }
+          as: 'uploadedFiles',
+        },
       },
       {
         $lookup: {
           from: 'amenities',
           localField: 'nearbyAmenities.amenitiesList',
           foreignField: '_id',
-          pipeline: [{
-            $project: {
-              _id: 1,
-              name: 1,
-              id: { $toString: '$_id' }
-            }
-          }],
-          as: 'amenitiesList'
-        }
+          pipeline: [
+            {
+              $project: {
+                _id: 1,
+                name: 1,
+                id: { $toString: '$_id' },
+              },
+            },
+          ],
+          as: 'amenitiesList',
+        },
       },
       {
         $lookup: {
           from: 'amenities',
           localField: 'nearbyAmenities.highlightedAmenities.amenityId',
           foreignField: '_id',
-          pipeline: [{
-            $project: {
-              _id: 1,
-              name: 1,
-              id: { $toString: '$_id' }
-            }
-          }],
-          as: 'highlightedAmenities'
-        }
+          pipeline: [
+            {
+              $project: {
+                _id: 1,
+                name: 1,
+                id: { $toString: '$_id' },
+              },
+            },
+          ],
+          as: 'highlightedAmenities',
+        },
       },
       {
-        $lookup:{
-          from:'users',
-          localField:'createdById',
-          foreignField:'_id',
-          pipeline:[{$project:{_id:1,fullName:1}}],
-          as:'createdById'
-        }
+        $lookup: {
+          from: 'users',
+          localField: 'createdById',
+          foreignField: '_id',
+          pipeline: [{ $project: { _id: 1, fullName: 1 } }],
+          as: 'createdById',
+        },
       },
       {
-        $lookup:{
-          from:'users',
-          localField:'developerId',
-          foreignField:'_id',
-          pipeline:[{$project:{_id:1,fullName:1}}],
-          as:'developerId'
-        }
+        $lookup: {
+          from: 'users',
+          localField: 'developerId',
+          foreignField: '_id',
+          pipeline: [{ $project: { _id: 1, fullName: 1 } }],
+          as: 'developerId',
+        },
       }
     );
 
@@ -733,17 +764,20 @@ export class ResidenceService {
               as: 'highlighted',
               in: {
                 amenityId: {
-                  $arrayElemAt: [{
-                    $filter: {
-                      input: '$highlightedAmenities',
-                      as: 'amenity',
-                      cond: { $eq: ['$$amenity._id', '$$highlighted.amenityId'] }
-                    }
-                  }, 0]
+                  $arrayElemAt: [
+                    {
+                      $filter: {
+                        input: '$highlightedAmenities',
+                        as: 'amenity',
+                        cond: { $eq: ['$$amenity._id', '$$highlighted.amenityId'] },
+                      },
+                    },
+                    0,
+                  ],
                 },
-                generalDescription: '$$highlighted.generalDescription'
-              }
-            }
+                generalDescription: '$$highlighted.generalDescription',
+              },
+            },
           },
           'cityId': { $arrayElemAt: ['$cityId', 0] },
           'countryId': { $arrayElemAt: ['$countryId', 0] },
@@ -754,15 +788,15 @@ export class ResidenceService {
           'saves': 0,
           'inquiries': 0,
           'createdById': { $arrayElemAt: ['$createdById', 0] },
-          'developerId': { $arrayElemAt: ['$developerId', 0] }
-        }
+          'developerId': { $arrayElemAt: ['$developerId', 0] },
+        },
       },
       {
         $project: {
           amenitiesList: 0,
           highlightedAmenities: 0,
-          uploadedFiles: 0
-        }
+          uploadedFiles: 0,
+        },
       }
     );
 
@@ -771,18 +805,15 @@ export class ResidenceService {
     pipeline.push(
       {
         $facet: {
-          data: [
-            { $skip: options.offset },
-            { $limit: options.limit }
-          ],
-          totalCount: [{ $count: 'count' }]
-        }
+          data: [{ $skip: options.offset }, { $limit: options.limit }],
+          totalCount: [{ $count: 'count' }],
+        },
       },
       {
         $project: {
           data: 1,
-          totalCount: { $arrayElemAt: ['$totalCount.count', 0] }
-        }
+          totalCount: { $arrayElemAt: ['$totalCount.count', 0] },
+        },
       }
     );
 
@@ -1984,7 +2015,6 @@ export class ResidenceService {
           },
         }
       );
-      console.log({ residence, newRankingRequests });
       const position = await this.getCurrentPosition(
         newRankingRequests.data,
         residence?._id.toString()
@@ -2046,7 +2076,6 @@ export class ResidenceService {
   }
 
   async listResidencesByDeveloperId(developerId: string) {
-    console.log(developerId);
     return this.residenceRepository.findAllByFilter({
       createdById: new Types.ObjectId(developerId),
     });
@@ -2300,10 +2329,6 @@ export class ResidenceService {
       }
 
       if (residences.length > 0) {
-        residences.forEach((residence) => {
-          console.log('Current residence object:', JSON.stringify(residence, null, 2));
-        });
-
         const flattenedData = residences.map((residence) => ({
           'Residence Name': residence?.name || '-',
           'Status': residence?.status || '-',
@@ -2446,7 +2471,7 @@ export class ResidenceService {
       ...plainResidence,
       ...transformedDto,
       residenceId: new Types.ObjectId(foundResidence._id.toString()),
-      status: ResidenceStatus.DRAFT,
+      status: ResidenceStatus.PENDING,
     });
   }
 
@@ -2479,7 +2504,7 @@ export class ResidenceService {
             isDeleted: { $ne: DeletionStatus.DELETED },
           },
           {
-            offset:skip,
+            offset: skip,
             limit: BATCH_SIZE,
           }
         );
@@ -2513,8 +2538,7 @@ export class ResidenceService {
             }
 
             // Add small delay to prevent overwhelming the server
-            await new Promise(resolve => setTimeout(resolve, 100));
-
+            await new Promise((resolve) => setTimeout(resolve, 100));
           } catch (error) {
             this.logger.error(`Error processing residence ${residence._id}: ${error.message}`);
           }
@@ -2525,7 +2549,6 @@ export class ResidenceService {
       }
 
       this.logger.log(`BBR score processing completed. Total processed: ${totalProcessed}`);
-
     } catch (error) {
       this.logger.error('Error in BBR score processing:', error);
     }

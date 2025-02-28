@@ -21,6 +21,8 @@ import { ResidenceStatus } from '../residences/enum/residence-enum';
 import { ResidenceActivityLogRepository } from 'src/residence-activity-log/residence-activity-log.repository';
 import { DeveloperProfileActivityLogRepository } from 'src/developer-profile-activity-log/developer-profile-activity-log.repository';
 import { DevResidenceActivityLogRepository } from 'src/dev-residence-activity-log/dev-residence-activity-log.repository';
+import { SendEmailEvent } from 'src/mailer/events/send-email.event';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class ClaimRequestService {
@@ -33,7 +35,8 @@ export class ClaimRequestService {
     private readonly residenceDraftRepository: ResidenceDraftRepository,
     private readonly residenceActivityLogRepository: ResidenceActivityLogRepository,
     private readonly devResidenceActivityLogRepository: DevResidenceActivityLogRepository,
-    private readonly developerProfileActivityLogRepository: DeveloperProfileActivityLogRepository
+    private readonly developerProfileActivityLogRepository: DeveloperProfileActivityLogRepository,
+    private readonly eventEmitter: EventEmitter2
   ) {}
 
   async createClaimResidence(
@@ -82,6 +85,12 @@ export class ClaimRequestService {
       userId: new Types.ObjectId(userId),
       createdAt: new Date(),
     });
+
+    // get residence
+    const residence = await this.residenceRepository.findById(residenceId.toString());
+
+    // Sending email to developer
+    await this.sendClaimRequestEmail(createClaimRequestDto.email, residence.name);
 
     return claimRequest;
   }
@@ -210,6 +219,14 @@ export class ClaimRequestService {
       userId: new Types.ObjectId(userId),
       createdAt: new Date(),
     });
+
+    // Sending mail to developer about successful claiming residence
+    await this.sendApprovedClaimRequestEmail(
+      createClaimRequestDto.email,
+      user.fullName,
+      residence.name
+    );
+
     return claimRequest;
   }
 
@@ -295,6 +312,9 @@ export class ClaimRequestService {
       createdAt: new Date(),
     });
 
+    // Sending email to claimed residence owner
+    await this.sendClaimRequestEmail(createClaimRequestDto.email, residence.name);
+
     return claimRequest;
   }
 
@@ -365,6 +385,10 @@ export class ClaimRequestService {
       details: { id: claimRequest.id },
       createdAt: new Date(),
     });
+
+    const residence = await this.residenceRepository.findById(residenceId.toString());
+    // Send email to claimed residence owner
+    await this.sendClaimRequestEmail(createClaimRequestDto.email, residence.name);
 
     return claimRequest;
   }
@@ -454,6 +478,18 @@ export class ClaimRequestService {
         developerId: new Types.ObjectId(claimRequest.developerId),
       });
     }
+
+    const updatedResidence = (
+      await this.residenceRepository.findById(claimRequest.residenceId.toString())
+    ).populate('developerId') as any;
+
+    // Send email to residence owner
+    await this.sendApprovedClaimRequestEmail(
+      claimRequest.email,
+      updatedResidence.developerId.fullName,
+      residence.name
+    );
+
     return approvedClaimRequest;
   }
 
@@ -466,10 +502,9 @@ export class ClaimRequestService {
       throw new NotFoundException(`claimRequest with ID ${getClaimRequestByIdDto.id} not found`);
     }
 
-    // ! WTF !
-    // if (!claimRequest.developerId) {
-    //   throw new BadRequestException('Developer is not associate with claim request');
-    // }
+    if (!claimRequest.developerId) {
+      throw new BadRequestException('Developer is not associate with claim request');
+    }
 
     const residence = await this.residenceRepository.findById(claimRequest.residenceId.toString());
     if (!residence) {
@@ -485,6 +520,12 @@ export class ClaimRequestService {
       userId: new Types.ObjectId(claimRequest.developerId),
       createdAt: new Date(),
     });
+
+    await this.sendRejectedClaimRequestEmail(
+      claimRequest.email,
+      rejectClaimRequestDto.rejectionReason,
+      residence.name
+    );
 
     return await this.claimRequestRepository.update(getClaimRequestByIdDto.id, {
       status: ClaimRequestStatus.Rejected,
@@ -552,5 +593,47 @@ export class ClaimRequestService {
 
     // Return the response with open requests count (defaults to 0)
     return { 'open-requests': openRequestsCount.count || 0 };
+  }
+
+  private async sendApprovedClaimRequestEmail(email: string, name: string, residence: string) {
+    this.eventEmitter.emit(
+      SendEmailEvent.event,
+      new SendEmailEvent({
+        context: {
+          name,
+          residence,
+        },
+        template: 'claim-request-approved',
+        subject: `Welcome to Your Exclusive Residence Ownership`,
+        toEmail: email,
+      })
+    );
+  }
+  private async sendClaimRequestEmail(email: string, residence: string) {
+    this.eventEmitter.emit(
+      SendEmailEvent.event,
+      new SendEmailEvent({
+        context: {
+          residence,
+        },
+        template: 'claim-request',
+        subject: `Your Claim Request for ${residence} Has Been Received`,
+        toEmail: email,
+      })
+    );
+  }
+  private async sendRejectedClaimRequestEmail(email: string, reason: string, residence: string) {
+    this.eventEmitter.emit(
+      SendEmailEvent.event,
+      new SendEmailEvent({
+        context: {
+          residence,
+          reason,
+        },
+        template: 'rejected-claim-request',
+        subject: `Update on Your Claim Request for ${residence}`,
+        toEmail: email,
+      })
+    );
   }
 }

@@ -227,34 +227,43 @@ export const createRankingCategorySchema = Joi.object({
     )
     .optional(),
 
-  locationId: Joi.string().custom(joiObjectIdValidator('locationId')).optional(),
+  locationId: Joi.string().allow(null, '').custom(joiObjectIdValidator('locationId')).optional(),
 
   countryId: Joi.string()
+    .allow(null, '')
     .custom(joiObjectIdValidator('countryId'))
     .when('categoryType', { is: CategoryType.COUNTRY, then: Joi.required() }),
 
   stateId: Joi.string()
+    .allow(null, '')
     .custom(joiObjectIdValidator('stateId'))
     .when('categoryType', { is: CategoryType.STATE, then: Joi.required() }),
 
   cityId: Joi.string()
+    .allow(null, '')
     .custom(joiObjectIdValidator('cityId'))
     .when('categoryType', { is: CategoryType.CITY, then: Joi.required() }),
 
   lifeStyleId: Joi.string()
+    .allow(null, '')
     .custom(joiObjectIdValidator('lifeStyleId'))
     .when('categoryType', { is: CategoryType.LIFESTYLE, then: Joi.required() }),
 
   propertyTypeId: Joi.string()
+    .allow(null, '')
     .custom(joiObjectIdValidator('propertyTypeId'))
     .when('categoryType', { is: CategoryType.PROPERTY_TYPE, then: Joi.required() }),
 
   geoGraphyId: Joi.string()
+    .allow(null, '')
     .custom(joiObjectIdValidator('propertyTypeId'))
     .when('categoryType', { is: CategoryType.GEOGRAPHY, then: Joi.required() }),
 
-  brandId: Joi.string().custom(joiObjectIdValidator('brandId')).when('categoryType', {
-    is: CategoryType.BRAND,
-    then: Joi.required(),
-  }),
+  brandId: Joi.string()
+    .allow(null, '')
+    .custom(joiObjectIdValidator('brandId'))
+    .when('categoryType', {
+      is: CategoryType.BRAND,
+      then: Joi.required(),
+    }),
 });

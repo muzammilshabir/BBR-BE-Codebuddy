@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invoice Details</title>
+    <title>Rejected Claim Request</title>
     <!--[if !mso]><!-->
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
     <!--<![endif]-->
@@ -252,55 +252,18 @@
                     <!-- Main Content -->
                     <tr class="content-wrapper">
                         <td class="content">
-                            <h1 class="main-title">Invoice Details</h1>
+                            <h1 class="main-title">Update on Your Claim Request for {{residence}}</h1>
                             
-                            <p class="welcome-text">Hey {{customerName}},<br>
-                            We hope this email finds you well. Please find below the details of your invoice:</p>
+                            <p class="welcome-text">Hello,<br>
+                            We have carefully reviewed your claim request for {{residence}}. Unfortunately, we are unable to approve it at this time due to the following reason:</p>
 
-                            <p><strong>Date:</strong> {{formatDate date}}</p>
+                            <p class="welcome-text"><strong>{{reason}}</strong></p>
 
-                            <table style="width: 100%; border-collapse: collapse;">
-                              <thead>
-                                <tr style="background-color: #f2f2f2;">
-                                  <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Item</th>
-                                  <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">Quantity</th>
-                                  <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">Price</th>
-                                  <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">Total</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {{#each items}}
-                                <tr>
-                                  <td style="border: 1px solid #ddd; padding: 8px;">{{name}}</td>
-                                  <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">{{quantity}}</td>
-                                  <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">{{formatCurrency price}}</td>
-                                  <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">{{formatCurrency (multiply quantity price)}}</td>
-                                </tr>
-                                {{/each}}
-                              </tbody>
-                            </table>
+                            <p class="welcome-text">If you believe there has been a misunderstanding or if you have additional details to support your request, please feel free to reply to this email or contact our support team.</p>
 
-                            <table style="width: 100%; margin-top: 20px;">
-                              <tr>
-                                <td style="text-align: right;"><strong>Subtotal:</strong></td>
-                                <td style="text-align: right; width: 100px;">{{formatCurrency subTotal}}</td>
-                              </tr>
-                              {{#if discount}}
-                              <tr>
-                                <td style="text-align: right;"><strong>Discount:</strong></td>
-                                <td style="text-align: right;">{{formatCurrency discount}}</td>
-                              </tr>
-                              {{/if}}
-                              <tr>
-                                <td style="text-align: right;"><strong>Tax ({{tax}}%):</strong></td>
-                                <td style="text-align: right;">{{formatCurrency taxAmount}}</td>
-                              </tr>
-                              <tr>
-                                <td style="text-align: right;"><strong>Total:</strong></td>
-                                <td style="text-align: right;"><strong>{{formatCurrency total}}</strong></td>
-                              </tr>
-                            </table>
-
+                            <div class="welcome-text">
+                                We appreciate your time and interest in Best Branded Residences, and we remain available for any further assistance.
+                            </div>
                             <div class="divider"></div>
                         
                             <p class="closing-text">If you did not request this email you can safely ignore it.</p>

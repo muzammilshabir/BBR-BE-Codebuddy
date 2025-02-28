@@ -45,8 +45,8 @@ export class BrandService {
 
       // If hasRankingCategory is true, fetch relevant brands
       if (hasRankingCategory) {
-        const rankingBrands = await this.rankingCategoryModel.distinct('brandId', {});
-
+        let rankingBrands = await this.rankingCategoryModel.distinct('brandId', {});
+        rankingBrands = rankingBrands.filter((id) => id !== null);
         if (rankingBrands.length) {
           matchFilter._id = { $in: rankingBrands };
         }
