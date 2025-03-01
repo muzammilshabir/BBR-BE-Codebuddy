@@ -18,7 +18,7 @@ export class RankingCategoryRepository extends BaseRepository<RankingCategory> {
 
   async findById(id: string): Promise<RankingCategory | null> {
     const rankingCategory = await this.rankingCategoryModel
-      .findOne({ _id: id, isDeleted: { $ne: DeletionStatus.DELETED } })
+      .findOne({ _id: id, isDeleted: { $ne: DeletionStatus.DELETED }, status: 'active' })
       .populate('createdById', 'fullName email role')
       .populate({
         path: 'upload.ImageId',
@@ -196,50 +196,49 @@ export class RankingCategoryRepository extends BaseRepository<RankingCategory> {
 
   async rankingCategories(filter: any): Promise<any> {
     const rankingCategories = await this.rankingCategoryModel
-    .find(filter)
-    .populate('createdById', 'fullName email role')
-    .populate({
-      path: 'upload.ImageId',
-      select: 'originalFileKey fileKey url mimeType',
-      model: 'Upload',
-    })
-    .populate({
-      path: 'countryId',
-      select: 'name code',
-      model: 'Country',
-    })
-    .populate({
-      path: 'stateId',
-      select: 'name stateCode',
-      model: 'State',
-    })
-    .populate({
-      path: 'cityId',
-      select: 'name state',
-      model: 'City',
-    })
-    .populate({
-      path: 'locationId',
-      select: 'name coordinates',
-      model: 'Location',
-    })
-    .populate({
-      path: 'propertyTypeId',
-      select: 'type description',
-      model: 'PropertyType',
-    })
-    .populate({
-      path: 'lifeStyleId',
-      select: 'name category',
-      model: 'LifeStyle',
-    })
-    .populate({
-      path: 'geoGraphyId',
-      select: 'type upload name',
-      model: 'GeographicalAreas',
-    })
+      .find(filter)
+      .populate('createdById', 'fullName email role')
+      .populate({
+        path: 'upload.ImageId',
+        select: 'originalFileKey fileKey url mimeType',
+        model: 'Upload',
+      })
+      .populate({
+        path: 'countryId',
+        select: 'name code',
+        model: 'Country',
+      })
+      .populate({
+        path: 'stateId',
+        select: 'name stateCode',
+        model: 'State',
+      })
+      .populate({
+        path: 'cityId',
+        select: 'name state',
+        model: 'City',
+      })
+      .populate({
+        path: 'locationId',
+        select: 'name coordinates',
+        model: 'Location',
+      })
+      .populate({
+        path: 'propertyTypeId',
+        select: 'type description',
+        model: 'PropertyType',
+      })
+      .populate({
+        path: 'lifeStyleId',
+        select: 'name category',
+        model: 'LifeStyle',
+      })
+      .populate({
+        path: 'geoGraphyId',
+        select: 'type upload name',
+        model: 'GeographicalAreas',
+      });
 
-  return rankingCategories;
-
+    return rankingCategories;
   }
 }

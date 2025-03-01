@@ -1,7 +1,7 @@
 import { JoiValidationPipe } from '@bbr/api-core/modules/joi-validation-pipe/joi-validation-pipe.interceptor';
 import { ResponseService } from '@bbr/api-core/modules/response/response.service';
 import { Body, Controller, Get, Param, Patch, Post, Query, Res, UsePipes } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiSecurity, ApiTags } from '@nestjs/swagger';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/enum/user.enum';
 import { GetCurrentUser } from '../auth/decorators/getCurrentUser.decorator';
@@ -42,10 +42,14 @@ import {
 } from './dto/improve-ranking-request.dto ';
 import { ChangeRankingScoreDto, changeRankingScoreSchema } from './dto/change-ranking-score.dto';
 import { Public } from '../auth/decorators/public.decorator';
-import { PreviewRankingChangeDto, previewRankingChangeSchema } from './dto/preview-ranking-change.dto';
+import {
+  PreviewRankingChangeDto,
+  previewRankingChangeSchema,
+} from './dto/preview-ranking-change.dto';
 
 @ApiTags('RankingRequest')
 @Controller('rankingRequest')
+@ApiSecurity('x-api-key')
 export class RankingRequestController {
   constructor(private readonly rankingRequestService: RankingRequestService) {}
 
@@ -328,10 +332,7 @@ export class RankingRequestController {
       previewRankingChangeDto.rankingRequestId.toString(),
       previewRankingChangeDto.changeRankingScore
     );
-    
-    return ResponseService.buildResponse(
-      preview,
-      'Ranking change preview generated successfully'
-    );
+
+    return ResponseService.buildResponse(preview, 'Ranking change preview generated successfully');
   }
 }

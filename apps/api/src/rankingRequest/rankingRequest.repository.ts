@@ -405,7 +405,7 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
             updatedAt: '$latestDraft.updatedAt',
             status: {
               $cond: {
-                if: { $eq: ['$latestDraft.status', 'active'] },
+                if: { $eq: ['$latestDraft.status', ['pending']] },
                 then: '$rankingRequestData.status',
                 else: '$latestDraft.status',
               },

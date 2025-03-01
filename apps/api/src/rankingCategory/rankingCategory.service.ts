@@ -130,7 +130,10 @@ export class RankingCategoryService {
     }
 
     if (propertyTypeId) {
-      matchStage.propertyTypeId = this.getIdBySlugOrObjectId(this.propertyTypeModel, propertyTypeId);
+      matchStage.propertyTypeId = this.getIdBySlugOrObjectId(
+        this.propertyTypeModel,
+        propertyTypeId
+      );
     }
 
     if (lifestyleId) {
@@ -522,10 +525,7 @@ export class RankingCategoryService {
       {
         $facet: {
           metadata: [{ $count: 'total' }],
-          data: [
-            { $skip: (page - 1) * limit },
-            { $limit: limit },
-          ],
+          data: [{ $skip: (page - 1) * limit }, { $limit: limit }],
         },
       },
     ];
@@ -542,10 +542,7 @@ export class RankingCategoryService {
       ),
     }));
 
-    const { pagination } = PaginationService.paginate(
-      { rows: data, count },
-      rankingCategoryDto
-    );
+    const { pagination } = PaginationService.paginate({ rows: data, count }, rankingCategoryDto);
 
     return { pagination, rankingCategories: updatedData };
   }
@@ -861,8 +858,16 @@ export class RankingCategoryService {
     return updatedCategory;
   }
 
-  async findRankingCategoryById(id: string): Promise<RankingCategory> {
+  async findRankingCategoryByIdPublic(id: string): Promise<RankingCategory> {
     const rankingCategory = await this.rankingCategoryRepository.findById(id);
+    if (!rankingCategory) {
+      throw new NotFoundException(`Ranking category with ID ${id}`);
+    }
+    return rankingCategory;
+  }
+
+  async findRankingCategoryById(id: string): Promise<RankingCategory> {
+    const rankingCategory = await this.rankingCategoryRepository.findOne(id);
     if (!rankingCategory) {
       throw new NotFoundException(`Ranking category with ID ${id}`);
     }
@@ -877,7 +882,7 @@ export class RankingCategoryService {
   }
 
   async findRankingCategory(id: string) {
-    const rankingCategory = await this.findRankingCategoryById(id);
+    const rankingCategory = await this.findRankingCategoryByIdPublic(id);
     if (!rankingCategory) {
       throw new NotFoundException(`Residence with ID ${id}`);
     }
@@ -988,11 +993,9 @@ export class RankingCategoryService {
     }
 
     if (
-      [
-        RankingCategoryStatus.DRAFT,
-        RankingCategoryStatus.REJECTED,
-        RankingCategoryStatus.ACTIVE,
-      ].includes(updateRankingCategoryStatusDto.status)
+      [RankingCategoryStatus.DRAFT, RankingCategoryStatus.REJECTED].includes(
+        updateRankingCategoryStatusDto.status
+      )
     ) {
       throw new BadRequestException(
         `Cannot update Ranking category with status: ${updateRankingCategoryStatusDto.status}`

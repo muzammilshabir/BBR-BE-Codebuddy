@@ -28,7 +28,8 @@ export const updateRankingCategoryStatusSchema = Joi.object({
       RankingCategoryStatus.PENDING,
       RankingCategoryStatus.INACTIVE,
       RankingCategoryStatus.ARCHIVED,
-      RankingCategoryStatus.DELETED
+      RankingCategoryStatus.DELETED,
+      RankingCategoryStatus.ACTIVE
     )
     .required(),
 });

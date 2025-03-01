@@ -202,7 +202,6 @@ export class ResidenceService {
         transformedDto.address = updateResidenceDto.address;
       }
       const residenceDraft = await this.checkResidenceDraft(id);
-
       // Log changes to the name
       if (
         updateResidenceDto.name &&
@@ -258,9 +257,21 @@ export class ResidenceService {
         return await this.residenceDraftRepository.update(residenceDraft.id, transformedDto);
       }
 
+      const residence = await this.residenceRepository.findById(id);
+      const residenceData = residence.toObject();
+
+      // Remove unwanted MongoDB fields
+      delete residenceData._id;
+      delete residenceData.__v;
+      delete residenceData.createdAt;
+      delete residenceData.updatedAt;
+      delete residenceData.status;
+
       return await this.residenceDraftRepository.create({
+        ...residenceData,
         ...transformedDto,
         residenceId: new Types.ObjectId(id),
+        status: ResidenceStatus.PENDING,
       });
     } catch (error) {
       console.log(error);
@@ -487,6 +498,7 @@ export class ResidenceService {
       await this.checkResidenceRejectedStatus(residenceId);
 
       const residenceDraftRequest = await this.checkResidenceDraft(residenceId);
+
       if (!residenceDraftRequest) {
         throw new BadRequestException(
           `Not found pending Residence Draft Request with residenceId ${residenceId}`

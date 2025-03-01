@@ -105,6 +105,21 @@ export class RankingRequestService {
     return { pagination, rankingRequests: updatedData };
   }
 
+  async listResidencesWithDraft(listRankingRequestWithDraftDto: ListRankingRequestWithDraftDto) {
+    const result = await this.rankingRequestRepository.listRankingRequestWithDraft(
+      listRankingRequestWithDraftDto
+    );
+    const count = result[0]?.totalCount || 0;
+    const data = result[0]?.data || [];
+
+    const { pagination } = PaginationService.paginate(
+      { rows: data, count },
+      listRankingRequestWithDraftDto
+    );
+
+    return { pagination, rankingRequests: data };
+  }
+
   async findAllRankingRequestForUser(listRankingRequestForUserDto: ListRankingRequestForUserDto) {
     const result = await this.rankingRequestRepository.findAllRankingRequestForUser(
       listRankingRequestForUserDto
@@ -301,13 +316,33 @@ export class RankingRequestService {
     }
 
     const rankingRequestDraft = await this.checkRankingRequestDraft(rankingRequestId);
+
     if (rankingRequestDraft) {
       return await this.rankingRequestDraftRepository.update(
         rankingRequestDraft.id,
         transformedDto
       );
     }
+
+    const rankingRequest = await this.findRankingRequestById(rankingRequestId);
+    const rankingRequestData = rankingRequest.toObject();
+
+    // remove props
+    delete rankingRequestData._id;
+    delete rankingRequestData.__v;
+    delete rankingRequestData.createdAt;
+    delete rankingRequestData.updatedAt;
+    delete rankingRequestData.status;
+
+    rankingRequestData.rankingCategoryId = new Types.ObjectId(
+      rankingRequestData.rankingCategoryId._id
+    );
+    rankingRequestData.residenceId = new Types.ObjectId(rankingRequestData.residenceId._id);
+    rankingRequestData.status = RankingRequestStatus.DRAFT;
+    rankingRequestData.paymentStatus = 'unPaid';
+
     return await this.rankingRequestDraftRepository.create({
+      ...rankingRequestData,
       ...transformedDto,
       rankingRequestId: new Types.ObjectId(rankingRequestId),
     });
@@ -658,21 +693,6 @@ export class RankingRequestService {
     });
 
     return updatedRankingRequest;
-  }
-
-  async listResidencesWithDraft(listRankingRequestWithDraftDto: ListRankingRequestWithDraftDto) {
-    const result = await this.rankingRequestRepository.listRankingRequestWithDraft(
-      listRankingRequestWithDraftDto
-    );
-    const count = result[0]?.totalCount || 0;
-    const data = result[0]?.data || [];
-
-    const { pagination } = PaginationService.paginate(
-      { rows: data, count },
-      listRankingRequestWithDraftDto
-    );
-
-    return { pagination, rankingRequests: data };
   }
 
   async calculateBBRScore(

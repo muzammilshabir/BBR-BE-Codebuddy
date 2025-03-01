@@ -74,7 +74,9 @@ export class RankingRequestDraftService {
         if (!isRankingRequestChanged) {
           throw new BadRequestException(`No change found in ranking request draft`);
         }
+
         const pendingRankingRequestDraft = await this.markAsPending(rankingRequestDraft.id, userId);
+
         await this.rankingRequestRepository.update(rankingRequestId, {
           status: RankingRequestStatus.PENDING,
           updatedById: new Types.ObjectId(userId),
