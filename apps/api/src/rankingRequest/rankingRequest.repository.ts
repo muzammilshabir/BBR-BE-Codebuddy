@@ -1161,7 +1161,7 @@ export class RankingRequestRepository extends BaseRepository<RankingRequest> {
 
       if (validResidenceTypeIds.length > 0) {
         pipeline.push({
-          $match: { 'residence.residenceTypeIds': { $all: validResidenceTypeIds } },
+          $match: { 'residence.propertyTypeIds': { $all: validResidenceTypeIds } },
         });
       }
     }

@@ -172,7 +172,7 @@ export class RankingRequestService {
       listRankingRequestForUserDto
     );
 
-    return { pagination, rankingRequests: updatedData };
+    return { pagination, rankingRequests: updatedData.sort((a, b) => a.position - b.position) };
   }
 
   async create(

@@ -114,11 +114,11 @@ export class RankingCategoryService {
 
     // Additional filters based on IDs
     if (countryId) {
-      matchStage.countryId = this.getIdBySlugOrObjectId(this.countryModel, countryId);
+      matchStage.countryId = await this.getIdBySlugOrObjectId(this.countryModel, countryId);
     }
 
     if (cityId) {
-      matchStage.cityId = this.getIdBySlugOrObjectId(this.cityModel, cityId);
+      matchStage.cityId = await this.getIdBySlugOrObjectId(this.cityModel, cityId);
     }
 
     if (stateId) {
@@ -130,22 +130,22 @@ export class RankingCategoryService {
     }
 
     if (propertyTypeId) {
-      matchStage.propertyTypeId = this.getIdBySlugOrObjectId(
+      matchStage.propertyTypeId = await this.getIdBySlugOrObjectId(
         this.propertyTypeModel,
         propertyTypeId
       );
     }
 
     if (lifestyleId) {
-      matchStage.lifeStyleId = this.getIdBySlugOrObjectId(this.lifeStyleModel, lifestyleId);
+      matchStage.lifeStyleId = await this.getIdBySlugOrObjectId(this.lifeStyleModel, lifestyleId);
     }
 
     if (geoGraphyId) {
-      matchStage.geoGraphyId = this.getIdBySlugOrObjectId(this.geographyModel, geoGraphyId);
+      matchStage.geoGraphyId = await this.getIdBySlugOrObjectId(this.geographyModel, geoGraphyId);
     }
 
     if (brandId) {
-      matchStage.brandId = this.getIdBySlugOrObjectId(this.brandModel, brandId);
+      matchStage.brandId = await this.getIdBySlugOrObjectId(this.brandModel, brandId);
     }
 
     const paginationOptions = PaginationService.prepareOptions(rankingCategoryDto);
@@ -153,6 +153,8 @@ export class RankingCategoryService {
       acc[field] = order;
       return acc;
     }, {});
+
+    console.log(matchStage);
 
     const pipeline: PipelineStage[] = [
       {
