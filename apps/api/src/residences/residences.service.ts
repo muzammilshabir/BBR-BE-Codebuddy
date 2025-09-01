@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, Logger, Inject, forwardRef } from '@nestjs/common';
 import { ResidenceRepository } from './residences.repository';
 import { CreateResidenceDto } from './dto/create-residence.dto';
 import { Residence } from './schema/residences.schema';
@@ -74,6 +74,7 @@ export class ResidenceService {
     private readonly cityRepository: CityRepository,
     private readonly residenceDraftRepository: ResidenceDraftRepository,
     private readonly unitDraftRepository: UnitDraftRepository,
+    @Inject(forwardRef(() => UnitRepository))
     private readonly unitRepository: UnitRepository,
     private readonly residenceTypeRepository: ResidenceTypeRepository,
     private readonly brandRepository: BrandRepository,
@@ -358,7 +359,7 @@ export class ResidenceService {
     const residenceDraft = await this.checkResidenceDraft(residenceId);
 
     if (residenceDraft) {
-      return await this.residenceDraftRepository.update(residenceDraft.id, {
+      return await (this.residenceDraftRepository.update as any)(residenceDraft.id, {
         visuals: transformedDto,
       });
     }
@@ -376,7 +377,7 @@ export class ResidenceService {
       status: ResidenceStatus.DRAFT,
     };
 
-    return await this.residenceDraftRepository.create(newResidenceDraft);
+    return await (this.residenceDraftRepository.create as any)(newResidenceDraft);
   }
 
   async updateNearbyAmenities(
@@ -421,7 +422,7 @@ export class ResidenceService {
       updatedById: new Types.ObjectId(userId),
     };
 
-    return await this.residenceDraftRepository.update(residenceDraft.id, {
+    return await (this.residenceDraftRepository.update as any)(residenceDraft.id, {
       $set: { nearbyAmenities: transformedDto }, // ✅ Ensures fields are updated properly
     });
 
@@ -438,7 +439,7 @@ export class ResidenceService {
       status: ResidenceStatus.DRAFT,
     };
 
-    return await this.residenceDraftRepository.create(newResidenceDraft);
+    return await (this.residenceDraftRepository.create as any)(newResidenceDraft);
   }
 
   async getResidenceById(residenceId: string): Promise<any> {
@@ -506,7 +507,7 @@ export class ResidenceService {
       }
       const draftRequestId = residenceDraftRequest.id.toString();
 
-      const updatedResidenceDraftRequest = await this.residenceDraftRepository.update(
+      const updatedResidenceDraftRequest = await (this.residenceDraftRepository.update as any)(
         draftRequestId,
         {
           status: ResidenceStatus.ACTIVE,
@@ -960,7 +961,7 @@ export class ResidenceService {
       );
     }
 
-    const updatedResidenceDraftRequest = await this.residenceDraftRepository.update(
+    const updatedResidenceDraftRequest = await (this.residenceDraftRepository.update as any)(
       residenceDraftRequest.id,
       {
         status: ResidenceStatus.REJECTED,
@@ -1032,9 +1033,9 @@ export class ResidenceService {
     };
 
     if (filtersDto.cities && filtersDto.cities.length > 0) {
-      const resolvedCityIds = await Promise.all(
-        filtersDto.cities.map((idOrSlug) => this.getIdBySlugOrObjectId(this.cityModel, idOrSlug))
-      );
+             const resolvedCityIds = await Promise.all(
+         filtersDto.cities.map((idOrSlug) => (this.getIdBySlugOrObjectId as any)(this.cityModel, idOrSlug))
+       );
 
       const validCityIds = resolvedCityIds.filter(Boolean);
 
@@ -1048,9 +1049,9 @@ export class ResidenceService {
         ? filtersDto.countryId
         : [filtersDto.countryId];
 
-      const resolvedCountryIds = await Promise.all(
-        countryIds.map((idOrSlug) => this.getIdBySlugOrObjectId(this.countryModel, idOrSlug))
-      );
+             const resolvedCountryIds = await Promise.all(
+         countryIds.map((idOrSlug) => (this.getIdBySlugOrObjectId as any)(this.countryModel, idOrSlug))
+       );
 
       const validCountryIds = resolvedCountryIds.filter(Boolean);
 
@@ -1071,11 +1072,11 @@ export class ResidenceService {
     }
 
     if (filtersDto.geographicalAreasId && filtersDto.geographicalAreasId.length > 0) {
-      const resolvedGeographyIds = await Promise.all(
-        filtersDto.geographicalAreasId.map((idOrSlug) =>
-          this.getIdBySlugOrObjectId(this.geographyModel, idOrSlug)
-        )
-      );
+             const resolvedGeographyIds = await Promise.all(
+         filtersDto.geographicalAreasId.map((idOrSlug) =>
+           (this.getIdBySlugOrObjectId as any)(this.geographyModel, idOrSlug)
+         )
+       );
 
       const validGeographyIds = resolvedGeographyIds.filter(Boolean);
 

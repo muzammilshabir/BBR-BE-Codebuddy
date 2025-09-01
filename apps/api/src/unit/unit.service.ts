@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import { ForbiddenException, Injectable, InternalServerErrorException, Logger, Inject, forwardRef } from '@nestjs/common';
 import { UnitRepository } from './unit.repository';
 import { AddUnitDto } from './dto/add-unit.dto';
 import { Unit } from './schema/unit.schema';
@@ -31,6 +31,7 @@ export class UnitService {
   constructor(
     private readonly unitRepository: UnitRepository,
     private readonly uploadService: UploadService,
+    @Inject(forwardRef(() => ResidenceService))
     private readonly residenceService: ResidenceService,
     private readonly roomTypeRepository: RoomTypeRepository,
     private readonly residenceServiceRepository: ResidenceServiceRepository,
@@ -352,8 +353,8 @@ export class UnitService {
     data: any[],
     residenceId: string,
     userId: string
-  ): Promise<{ addedUnits: Unit[]; failedToAdd: { unitName: string; errors: string[] }[] }> {
-    const addedUnits: Unit[] = [];
+  ): Promise<{ addedUnits: any[]; failedToAdd: { unitName: string; errors: string[] }[] }> {
+    const addedUnits: any[] = [];
     const failedToAdd: { unitName: string; errors: string[] }[] = [];
 
     await this.residenceService.getResidenceById(residenceId);

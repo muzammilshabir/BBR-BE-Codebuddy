@@ -8,7 +8,7 @@ export class BaseRepository<T extends Document> {
     options?: any,
     populateOptions?: any[]
   ): Promise<{ data: T[]; count: number }> {
-    let query = this.model.find({
+    let query: any = this.model.find({
       ...filter,
       ...(options?.sort?.[0]?.[0] ? { [options?.sort?.[0]?.[0] || '']: { $exists: true } } : {}),
     });
@@ -19,7 +19,7 @@ export class BaseRepository<T extends Document> {
     // If populate options are provided, apply them to the query
     if (populateOptions && populateOptions.length) {
       populateOptions.forEach((populate) => {
-        query = query.populate(populate);
+        query = query.populate(populate as any);
       });
     }
 

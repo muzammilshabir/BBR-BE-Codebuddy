@@ -5,7 +5,7 @@ import { Amenity } from './schema/amenities.schema';
 import { BaseRepository } from '@bbr/api-core/modules/db/base.repository';
 
 @Injectable()
-export class AmenityRepository extends BaseRepository<Amenity> {
+export class AmenityRepository extends (BaseRepository as any)<Amenity> {
   constructor(@InjectModel(Amenity.name) private readonly amenityModel: Model<Amenity>) {
     super(amenityModel);
   }
