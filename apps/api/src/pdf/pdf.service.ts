@@ -6,7 +6,7 @@ import { Refund } from 'src/stripe/schema/refund.schema';
 export class PdfService {
   async generateRefundReceipt(refund: Refund): Promise<Buffer> {
     const doc = new PDFDocument();
-    const buffers: Buffer[] = [];
+    const buffers: any[] = [];
 
     doc.on('data', buffers.push.bind(buffers));
 
@@ -25,7 +25,7 @@ export class PdfService {
 
     return new Promise((resolve) => {
       doc.on('end', () => {
-        resolve(Buffer.concat(buffers));
+        resolve(Buffer.concat(buffers as any));
       });
     });
   }

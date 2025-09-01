@@ -6,6 +6,7 @@ import {
 import { CaptchaEnum, CaptchaResponse } from '@bbr/api-core/modules/types/captcha.type';
 import { HttpService } from '@nestjs/axios';
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import { Request } from 'express';
 import { firstValueFrom } from 'rxjs';
 import { ServiceConfig } from '../../config';
 
@@ -39,7 +40,8 @@ export class CaptchaGuard implements CanActivate {
   }
 
   private getCaptchaToken(request: Request): string | null {
-    return request.headers[CaptchaEnum.HEADER] || null;
+    const header = request.headers[CaptchaEnum.HEADER];
+    return Array.isArray(header) ? header[0] : header || null;
   }
 
   private async validateCaptchaOrThrow(token: string): Promise<boolean> {

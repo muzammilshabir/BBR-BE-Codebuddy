@@ -6,6 +6,7 @@ import {
   Logger,
   RawBodyRequest,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { ServiceConfig } from 'src/config';
 import * as crypto from 'crypto';
 
@@ -23,7 +24,8 @@ export class CalendlyWebhookGuard implements CanActivate {
       throw new BadRequestException('No Calendly signature found in the request headers');
     }
 
-    const [timestampPart, signaturePart] = signature.split(',');
+    const signatureStr = Array.isArray(signature) ? signature[0] : signature;
+    const [timestampPart, signaturePart] = signatureStr.split(',');
     const timestamp = timestampPart.split('=')[1];
     const v1Signature = signaturePart.split('=')[1];
 
@@ -36,8 +38,8 @@ export class CalendlyWebhookGuard implements CanActivate {
 
     // Compare signatures securely
     const isValid = crypto.timingSafeEqual(
-      Buffer.from(computedSignature),
-      Buffer.from(v1Signature)
+      Buffer.from(computedSignature as any) as any,
+      Buffer.from(v1Signature as any) as any
     );
 
     if (!isValid) {

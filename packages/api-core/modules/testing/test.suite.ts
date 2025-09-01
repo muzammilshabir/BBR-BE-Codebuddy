@@ -6,6 +6,13 @@ import { setupServer } from 'msw/node';
 import { FixtureReferenceService } from '../fixture/fixtureReference.service';
 import { FixturesService } from '../fixture/fixture.service';
 
+// Jest globals
+declare const beforeAll: (fn: () => void | Promise<void>) => void;
+declare const beforeEach: (fn: () => void | Promise<void>) => void;
+declare const afterEach: (fn: () => void | Promise<void>) => void;
+declare const afterAll: (fn: () => void | Promise<void>) => void;
+declare const jest: any;
+
 export class TestSuite {
   public app: INestApplication;
   private testingModule: TestingModule;

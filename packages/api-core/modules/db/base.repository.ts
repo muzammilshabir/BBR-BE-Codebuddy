@@ -16,7 +16,7 @@ export class BaseRepository<T extends Document> {
     // If populate options are provided, apply them to the query
     if (populateOptions && populateOptions.length) {
       populateOptions.forEach((populate) => {
-        query = query.populate(populate);
+        query = (query as any).populate(populate);
       });
     }
 

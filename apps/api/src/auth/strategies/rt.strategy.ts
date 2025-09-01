@@ -2,6 +2,7 @@ import { JwtTokenType } from '@bbr/api-core/modules/types/jwtToken.type';
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+import { Request } from 'express';
 import { ServiceConfig } from '../../config';
 import { JwtPayloadType } from '../type/jwt-payload.type';
 

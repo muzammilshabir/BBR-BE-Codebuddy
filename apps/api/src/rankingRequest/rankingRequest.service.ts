@@ -594,9 +594,9 @@ export class RankingRequestService {
   private async generateCsv(residences): Promise<Buffer> {
     const csvStream = format({ headers: true });
     const bufferStream = new Writable();
-    const data: Buffer[] = [];
+    const data: any[] = [];
 
-    bufferStream._write = (chunk, encoding, next) => {
+    bufferStream._write = (chunk: any, encoding: any, next: any) => {
       data.push(chunk);
       next();
     };
@@ -618,7 +618,7 @@ export class RankingRequestService {
 
     const csvFile = await new Promise<Buffer>((resolve) => {
       bufferStream.on('finish', () => {
-        resolve(Buffer.concat(data));
+        resolve(Buffer.concat(data as any));
       });
     });
 
