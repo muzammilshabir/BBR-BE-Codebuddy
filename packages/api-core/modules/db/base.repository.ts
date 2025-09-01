@@ -8,7 +8,7 @@ export class BaseRepository<T extends Document> {
     options?: any,
     populateOptions?: any[]
   ): Promise<{ data: T[]; count: number }> {
-    let query = this.model.find(filter);
+    let query: any = this.model.find(filter);
     if (options) {
       query.skip(options.offset).limit(options.limit).sort(options.sort);
     }
